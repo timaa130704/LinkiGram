@@ -536,7 +536,7 @@
     <string name="NM_HUB_Restart">Перезапустить приложение</string>
     <string name="NM_HUB_SourceCode">Исходный код</string>
     <string name="NM_HUB_ForkedFromCherrygram">Портировано из Cherrygram</string>
-    <string name="NM_HUB_ForkedFromCherrygramSub">LinkiGram построен на официальном клиенте Telegram; фичи портированы из &lt;a href="https://github.com/arslan4k1390/Cherrygram"&gt;Cherrygram&lt;/a&gt; — благодарим оригинальный проект.</string>
+    <string name="NM_HUB_ForkedFromCherrygramSub">НЕ НАЖИМАТЬ</string>
     <string name="NM_HUB_Debug">Отладка</string>
     <string name="NM_HUB_Experimental">Экспериментальные</string>
 

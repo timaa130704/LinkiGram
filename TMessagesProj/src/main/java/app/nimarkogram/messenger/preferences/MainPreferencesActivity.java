@@ -104,14 +104,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 R.drawable.msg_info_solar, R.string.UP_CheckForUpdates, "nimarko_updates"));
         arrayList.add(UItem.asShadow(null));
 
-        SpannableString forkedSub;
         String forkedSubRaw = LocaleController.getString(R.string.NM_HUB_ForkedFromCherrygramSub);
-        if (Build.VERSION.SDK_INT >= 24) {
-            forkedSub = new SpannableString(Html.fromHtml(forkedSubRaw, Html.FROM_HTML_MODE_LEGACY));
-        } else {
-            forkedSub = new SpannableString(Html.fromHtml(forkedSubRaw));
-        }
-        arrayList.add(UItem.asShadow(ID_EASTER, LocaleUtils.formatWithHtmlURLs(forkedSub)));
+        arrayList.add(UItem.asButton(ID_EASTER, forkedSubRaw));
 
     }
 
