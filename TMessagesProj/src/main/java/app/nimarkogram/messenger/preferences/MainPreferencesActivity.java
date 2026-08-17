@@ -41,6 +41,10 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public static final int ID_TEXTANIM       = 28;
     public static final int ID_PILLSTACK      = 29;
     public static final int ID_SOURCE_CODE    = 30;
+    public static final int ID_EASTER         = 31;
+
+    private int easterEggClicks = 0;
+    private long easterEggLastClickTime = 0;
 
     private static final String SOURCE_REPOSITORY_URL = "https://github.com/timaa130704/LinkiGram";
 
@@ -107,7 +111,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         } else {
             forkedSub = new SpannableString(Html.fromHtml(forkedSubRaw));
         }
-        arrayList.add(UItem.asShadow(LocaleUtils.formatWithHtmlURLs(forkedSub)));
+        arrayList.add(UItem.asShadow(ID_EASTER, LocaleUtils.formatWithHtmlURLs(forkedSub)));
 
     }
 
@@ -173,8 +177,38 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 org.telegram.messenger.browser.Browser.openUrl(getParentActivity(),
                         "https://github.com/arslan4k1390/Cherrygram");
                 break;
+            case ID_EASTER:
+                handleEasterEggClick();
+                break;
             default:
                 break;
         }
+    }
+
+    private void handleEasterEggClick() {
+        long now = System.currentTimeMillis();
+        if (now - easterEggLastClickTime > 1500) {
+            easterEggClicks = 0;
+        }
+        easterEggLastClickTime = now;
+        easterEggClicks++;
+        if (easterEggClicks >= 10) {
+            easterEggClicks = 0;
+            showEasterEggPhoto();
+        }
+    }
+
+    private void showEasterEggPhoto() {
+        android.content.Context context = getParentActivity() != null ? getParentActivity() : getContext();
+        if (context == null) return;
+        android.widget.ImageView imageView = new android.widget.ImageView(context);
+        android.graphics.drawable.Drawable d = context.getResources().getDrawable(R.drawable.easter_egg);
+        imageView.setImageDrawable(d);
+        imageView.setAdjustViewBounds(true);
+        imageView.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        org.telegram.ui.ActionBar.BottomSheet bottomSheet = new org.telegram.ui.ActionBar.BottomSheet(context, false);
+        bottomSheet.setCustomView(imageView);
+        bottomSheet.setBackgroundColor(0xff000000);
+        bottomSheet.show();
     }
 }
