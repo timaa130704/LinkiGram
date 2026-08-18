@@ -22,7 +22,7 @@ public final class NimarkoConfig {
     public static final String APP_NAME = "LinkiGram";
     
     public static final String VERSION_NAME = org.telegram.messenger.BuildVars.BUILD_VERSION_STRING;
-    public static final int VERSION_CODE = 1;
+    public static final int VERSION_CODE = 13; // Updated for version 1.3
 
     public static final long[] TRUSTED_AUTHOR_IDS = new long[0];
 
@@ -150,7 +150,7 @@ public final class NimarkoConfig {
     }
 
     public static String fullVersionString() {
-        return APP_NAME + " " + VERSION_NAME;
+        return APP_NAME + " v" + VERSION_NAME + " (1.3)";
     }
 
     public static boolean pluginsEngine = getPreferences().getBoolean("pluginsEngine", true);
@@ -243,10 +243,14 @@ public final class NimarkoConfig {
 
     public static void markMessageDeletedByOther(long dialogId, int messageId) {
         try {
-            Set<String> set = new HashSet<>(getPreferences().getStringSet("deletedByOtherMessages", Collections.emptySet()));
+            SharedPreferences prefs = getPreferences();
+            SharedPreferences.Editor editor = getEditor();
+            Set<String> set = new HashSet<>(prefs.getStringSet("deletedByOtherMessages", Collections.emptySet()));
             set.add(dialogId + ":" + messageId);
-            getEditor().putStringSet("deletedByOtherMessages", set).apply();
-        } catch (Throwable ignored) {}
+            editor.putStringSet("deletedByOtherMessages", set).apply();
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("nimarko: markMessageDeletedByOther failed", e);
+        }
     }
 
     public static boolean isMessageDeletedByOther(long dialogId, int messageId) {
@@ -260,18 +264,28 @@ public final class NimarkoConfig {
     private static volatile Set<Long> ghostChats = loadLongSet("ghostChats");
 
     public static boolean isGhostChat(long dialogId) {
-        return ghostChats.contains(dialogId);
+        try {
+            Set<Long> chats = ghostChats;
+            return chats != null && chats.contains(dialogId);
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("nimarko: isGhostChat failed", e);
+            return false;
+        }
     }
 
     public static synchronized void toggleGhostChat(long dialogId) {
-        Set<Long> updated = new HashSet<>(ghostChats);
-        if (!updated.add(dialogId)) {
-            updated.remove(dialogId);
+        try {
+            Set<Long> updated = new HashSet<>(ghostChats);
+            if (!updated.add(dialogId)) {
+                updated.remove(dialogId);
+            }
+            SharedPreferences.Editor editor = getEditor();
+            putLongSet(editor, "ghostChats", updated);
+            editor.apply();
+            ghostChats = updated;
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("nimarko: toggleGhostChat failed for dialogId=" + dialogId, e);
         }
-        SharedPreferences.Editor editor = getEditor();
-        putLongSet(editor, "ghostChats", updated);
-        editor.apply();
-        ghostChats = updated;
     }
 
     public static boolean hideStoryViews = getPreferences().getBoolean("hideStoryViews", false);
@@ -412,18 +426,27 @@ public final class NimarkoConfig {
     }
      
     public static String getVoipRelayTokenForUid(long uid) {
-        String key = "voipRelayAuthToken_" + uid;
-        String token = getPreferences().getString(key, "");
-        long selectedUid = org.telegram.messenger.UserConfig.getInstance(
-                org.telegram.messenger.UserConfig.selectedAccount).getClientUserId();
-        if (token.isEmpty() && uid == selectedUid && getPreferences().contains("voipRelayAuthToken")) {
-            token = getPreferences().getString("voipRelayAuthToken", "");
-            getEditor().putString(key, token).remove("voipRelayAuthToken").apply();
+        try {
+            String key = "voipRelayAuthToken_" + uid;
+            String token = getPreferences().getString(key, "");
+            long selectedUid = org.telegram.messenger.UserConfig.getInstance(
+                    org.telegram.messenger.UserConfig.selectedAccount).getClientUserId();
+            if (token.isEmpty() && uid == selectedUid && getPreferences().contains("voipRelayAuthToken")) {
+                token = getPreferences().getString("voipRelayAuthToken", "");
+                getEditor().putString(key, token).remove("voipRelayAuthToken").apply();
+            }
+            return token;
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("nimarko: getVoipRelayTokenForUid failed for uid=" + uid, e);
+            return "";
         }
-        return token;
     }
     public static void setVoipRelayTokenForUid(long uid, String token) {
-        getEditor().putString("voipRelayAuthToken_" + uid, token == null ? "" : token).apply();
+        try {
+            getEditor().putString("voipRelayAuthToken_" + uid, token == null ? "" : token).apply();
+        } catch (Exception e) {
+            org.telegram.messenger.FileLog.e("nimarko: setVoipRelayTokenForUid failed for uid=" + uid, e);
+        }
     }
 
     public static boolean wsAutoSubscribed = getPreferences().getBoolean("wsAutoSubscribed", false);
@@ -1476,6 +1499,16 @@ public final class NimarkoConfig {
 
     public static boolean showRPCErrors = getPreferences().getBoolean("showRPCErrors", false);
     public static void toggleShowRPCErrors() { showRPCErrors = !showRPCErrors; getEditor().putBoolean("showRPCErrors", showRPCErrors).apply(); }
+
+    public static volatile boolean ignoreNoForwards = getPreferences().getBoolean("ignoreNoForwards", false);
+    public static void toggleIgnoreNoForwards() {
+        ignoreNoForwards = !ignoreNoForwards;
+        getEditor().putBoolean("ignoreNoForwards", ignoreNoForwards).apply();
+    }
+    public static void setIgnoreNoForwards(boolean v) {
+        ignoreNoForwards = v;
+        getEditor().putBoolean("ignoreNoForwards", v).apply();
+    }
 
     public static final int AUDIO_SOURCE_DEFAULT = 0;
     public static final int AUDIO_SOURCE_MIC = 1;

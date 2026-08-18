@@ -19598,7 +19598,7 @@ public class ChatActivity extends BaseFragment implements
                     if (!messageObject.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat)) {
                         cantDeleteMessagesCount--;
                     }
-                    boolean noforwards = isPeerNoForwards();
+                    boolean noforwards = isPeerNoForwards() && !app.nimarkogram.messenger.NimarkoConfig.ignoreNoForwards;
                     if (chatMode == MODE_SCHEDULED || !messageObject.canForwardMessage() || noforwards) {
                         cantForwardMessagesCount--;
                     } else {
@@ -19635,7 +19635,7 @@ public class ChatActivity extends BaseFragment implements
                     if (!messageObject.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat)) {
                         cantDeleteMessagesCount++;
                     }
-                    boolean noforwards = isPeerNoForwards();
+                    boolean noforwards = isPeerNoForwards() && !app.nimarkogram.messenger.NimarkoConfig.ignoreNoForwards;
                     if (chatMode == MODE_SCHEDULED || !messageObject.canForwardMessage() || noforwards) {
                         cantForwardMessagesCount++;
                     } else {
@@ -19670,7 +19670,7 @@ public class ChatActivity extends BaseFragment implements
                 ActionBarMenuItem tagItem = actionBar.createActionMode().getItem(tag_message);
                 ActionBarMenuItem shareItem = actionBar.createActionMode().getItem(share);
 
-                boolean noforwards = isPeerNoForwards() || hasSelectedNoforwardsMessage();
+                boolean noforwards = (isPeerNoForwards() || hasSelectedNoforwardsMessage()) && !app.nimarkogram.messenger.NimarkoConfig.ignoreNoForwards;
                 if (prevCantForwardCount == 0 && cantForwardMessagesCount != 0 || prevCantForwardCount != 0 && cantForwardMessagesCount == 0) {
                     forwardButtonAnimation = new AnimatorSet();
                     ArrayList<Animator> animators = new ArrayList<>();
@@ -19717,7 +19717,8 @@ public class ChatActivity extends BaseFragment implements
                 int copyVisible = View.GONE, starVisible = View.GONE, newCopyVisible = View.GONE, newStarVisible = View.GONE;
                 if (copyItem != null) {
                     copyVisible = copyItem.getVisibility();
-                    copyItem.setVisibility(!noforwards && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
+                    boolean allowCopy = !noforwards && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0;
+                    copyItem.setVisibility(allowCopy ? View.VISIBLE : View.GONE);
                     newCopyVisible = copyItem.getVisibility();
                 }
                 if (starItem != null) {
@@ -19812,7 +19813,7 @@ public class ChatActivity extends BaseFragment implements
                                 MessageObject msg = selectedMessagesIds[a].valueAt(i);
                                 if (msg == null) continue;
                                 if (msg.isVoiceOnce() || msg.isRoundOnce()) continue;
-                                if (msg.messageOwner.noforwards) continue;
+                                if (msg.messageOwner.noforwards && !app.nimarkogram.messenger.NimarkoConfig.ignoreNoForwards) continue;
                                 if (msg.isVoice() || msg.isRoundVideo())
                                     show = true;
                             }

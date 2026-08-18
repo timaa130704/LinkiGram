@@ -3586,23 +3586,27 @@ public class MessageObject {
 
     private boolean spoiledLoginCode = false;
     private static Pattern loginCodePattern;
-    public void spoilLoginCode() { 
-        if (!spoiledLoginCode && messageText != null && messageOwner != null && messageOwner.entities != null && messageOwner.from_id instanceof TLRPC.TL_peerUser && (messageOwner.from_id.user_id == 777000 || messageOwner.from_id.user_id == UserObject.VERIFY)) {
-            if (loginCodePattern == null) {
-                loginCodePattern = Pattern.compile("[\\d\\-]{5,8}");
-            }
-            try {
-                Matcher matcher = loginCodePattern.matcher(messageText);
-                if (matcher.find()) {
-                    TLRPC.TL_messageEntitySpoiler spoiler = new TLRPC.TL_messageEntitySpoiler();
-                    spoiler.offset = matcher.start();
-                    spoiler.length = matcher.end() - spoiler.offset;
-                    messageOwner.entities.add(spoiler);
+    public void spoilLoginCode() {
+        try {
+            if (!spoiledLoginCode && messageText != null && messageOwner != null && messageOwner.entities != null && messageOwner.from_id instanceof TLRPC.TL_peerUser && (messageOwner.from_id.user_id == 777000 || messageOwner.from_id.user_id == UserObject.VERIFY)) {
+                if (loginCodePattern == null) {
+                    loginCodePattern = Pattern.compile("[\\d\\-]{5,8}");
                 }
-            } catch (Exception e) {
-                FileLog.e(e, false);
+                try {
+                    Matcher matcher = loginCodePattern.matcher(messageText);
+                    if (matcher.find()) {
+                        TLRPC.TL_messageEntitySpoiler spoiler = new TLRPC.TL_messageEntitySpoiler();
+                        spoiler.offset = matcher.start();
+                        spoiler.length = matcher.end() - spoiler.offset;
+                        messageOwner.entities.add(spoiler);
+                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+                spoiledLoginCode = true;
             }
-            spoiledLoginCode = true;
+        } catch (Exception e) {
+            FileLog.e("spoilLoginCode failed", e);
         }
     }
 
@@ -11633,7 +11637,11 @@ public class MessageObject {
     public boolean canForwardMessage() {
         if (isQuickReply() || isEphemeral()) return false;
         if (type == TYPE_GIFT_STARS || type == TYPE_GIFT_THEME_UPDATE || type == TYPE_SUGGEST_BIRTHDAY || type == TYPE_GIFT_OFFER || type == TYPE_SHARING_OFFER || type == TYPE_COMMUNITY_CHANGED) return false;
-        return !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != MessageObject.TYPE_PHONE_CALL && !isSponsored() && !messageOwner.noforwards;
+        boolean canForward = !(messageOwner instanceof TLRPC.TL_message_secret) && !needDrawBluredPreview() && !isLiveLocation() && type != MessageObject.TYPE_PHONE_CALL && !isSponsored();
+        if (canForward && messageOwner.noforwards) {
+            canForward = app.nimarkogram.messenger.NimarkoConfig.ignoreNoForwards;
+        }
+        return canForward;
     }
 
     public boolean canEditMedia() {
