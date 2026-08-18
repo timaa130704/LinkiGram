@@ -87,7 +87,7 @@ android {
         }
     }
 
-    defaultConfig.applicationId = 'app.nimarkogram.messenger'
+    defaultConfig.applicationId = 'app.linkigram.messenger'
 
     sourceSets.debug {
         manifest.srcFile '../TMessagesProj/config/release/AndroidManifest_standalone.xml'

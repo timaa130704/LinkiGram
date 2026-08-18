@@ -2055,4 +2055,26 @@ public final class NimarkoConfig {
     public static void setNotificationReactionEmoji(int account, String emoji) {
         getEditor().putString("notificationReactionEmoji_" + account, emoji).apply();
     }
+
+    private static final java.util.Map<String, java.util.List<String>> editHistory = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void recordEditHistory(long dialogId, int messageId, String text) {
+        try {
+            String key = dialogId + ":" + messageId;
+            java.util.List<String> list = editHistory.computeIfAbsent(key, k -> new ArrayList<>());
+            String last = list.isEmpty() ? null : list.get(list.size() - 1);
+            if (last == null || !last.equals(text)) {
+                list.add(text);
+                if (list.size() > 20) {
+                    list.remove(0);
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    public static java.util.List<String> getEditHistory(long dialogId, int messageId) {
+        java.util.List<String> list = editHistory.get(dialogId + ":" + messageId);
+        if (list == null) return Collections.emptyList();
+        return new ArrayList<>(list);
+    }
 }

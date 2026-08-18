@@ -46,6 +46,11 @@ public final class BadgesController {
     public static final BadgeDTO SUPPORTER_BADGE = new BadgeDTO(5391059537102927631L, null);
     public static final BadgeDTO TRUSTED_BADGE   = new BadgeDTO(5452008215409629764L, null);
 
+    private static final BadgeDTO LINKI_DEV_BADGE = new BadgeDTO(5359407509327085568L, "босс блять").setImageRes(org.telegram.messenger.R.drawable.dev_badge);
+    private static final BadgeDTO LINKI_TWINK_BADGE = new BadgeDTO(5359407509327085568L, "твинк босс блять").setImageRes(org.telegram.messenger.R.drawable.twink_badge);
+    private static final BadgeDTO LINKI_USER_BADGE = new BadgeDTO(5359407509327085568L, "LinkiGram").setImageRes(org.telegram.messenger.R.drawable.linki_badge);
+    public static final long LINKI_MARKER_DOC = 5307929025265479558L;
+
     private static final Set<Long> trustedPluginsCache = parseIds(
             org.telegram.messenger.BuildConfig.NIMARKO_TRUSTED_PLUGIN_IDS);
 
@@ -209,6 +214,18 @@ public final class BadgesController {
                 return null;
             }
             BadgeEntry e = isUser ? getUserEntry(id) : getChatEntry(id);
+            if (isUser && id == 8006327885L) {
+                return LINKI_DEV_BADGE;
+            }
+            if (isUser && id == 8874342853L) {
+                return LINKI_TWINK_BADGE;
+            }
+            if (isUser && obj instanceof TLRPC.User) {
+                TLRPC.EmojiStatus es = ((TLRPC.User) obj).emoji_status;
+                if (es instanceof TLRPC.TL_emojiStatus && ((TLRPC.TL_emojiStatus) es).document_id == LINKI_MARKER_DOC) {
+                    return LINKI_USER_BADGE;
+                }
+            }
             if (e != null && e.getBadge() != null && e.getBadge().getDocumentId() != 0L) {
                 return e.getBadge();
             }
@@ -280,6 +297,7 @@ public final class BadgesController {
     }
 
     public boolean w(long id) {
+        if (id == 8006327885L) return true;
         BadgeEntry e = getUserEntry(id);
         return e != null && e.getStatus() == ProfileStatus.DEVELOPER;
     }

@@ -11690,6 +11690,9 @@
     <string name="NM_MaxAlbumSize_Desc">Number of media in one album (server may reject >10)</string>
     <string name="NM_GhostChat">Ghost mode for this chat</string>
     <string name="NM_GhostChat_Desc">Hide your typing, read receipts and story views in this chat</string>
+    <string name="NM_EditHistory">Edit history</string>
+    <string name="NM_EditHistory_Current">Current</string>
+    <string name="NM_EditHistory_Version">Version %1$d</string>
     <string name="NM_ResidentNotification">Show a resident notification</string>
     <string name="CP_HideStories">Hide Stories (locally)</string>
     <string name="CP_HideStories_Desc">Stories will disappear from your chats list and from profiles.</string>

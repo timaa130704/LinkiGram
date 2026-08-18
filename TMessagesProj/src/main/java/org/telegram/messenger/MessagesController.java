@@ -19382,6 +19382,7 @@ public class MessagesController extends BaseController implements NotificationCe
                 }
                 updatesOnMainThread.add(baseUpdate);
             } else if (baseUpdate instanceof TL_update.TL_updateEditChannelMessage || baseUpdate instanceof TL_update.TL_updateEditMessage) {
+                android.util.Log.d("EDIT_HISTORY", "ENTER edit block, message.id=" + (baseUpdate instanceof TL_update.TL_updateEditMessage ? ((TL_update.TL_updateEditMessage) baseUpdate).message.id : ((TL_update.TL_updateEditChannelMessage) baseUpdate).message.id));
                 TLRPC.Message message;
                 if (baseUpdate instanceof TL_update.TL_updateEditChannelMessage) {
                     message = ((TL_update.TL_updateEditChannelMessage) baseUpdate).message;
@@ -19461,6 +19462,41 @@ public class MessagesController extends BaseController implements NotificationCe
 
                 ImageLoader.saveMessageThumbs(message);
                 AndroidUtilities.runOnUIThread(()-> getSendMessagesHelper().onMessageEdited(message));
+
+                try {
+                    MessageObject oldById = dialogMessagesByIds.get(message.id);
+                    MessageObject oldMessage = oldById;
+                    if (oldMessage == null) {
+                        ArrayList<MessageObject> oldList = dialogMessage.get(message.dialog_id);
+                        if (oldList != null) {
+                            for (int oi = 0; oi < oldList.size(); oi++) {
+                                MessageObject mo = oldList.get(oi);
+                                if (mo != null && mo.getId() == message.id) {
+                                    oldMessage = mo;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (oldMessage != null && oldMessage.messageOwner != null) {
+                        String oldText = oldMessage.messageOwner.message;
+                        String newText = message.message;
+                        if (oldText == null) oldText = "";
+                        if (newText == null) newText = "";
+                        FileLog.d("EditHistory: found old msg id=" + message.id + " oldText=" + oldText + " newText=" + newText);
+                        android.util.Log.d("EDIT_HISTORY", "old found id=" + message.id + " old='" + oldText + "' new='" + newText + "'");
+                        if (!oldText.equals(newText)) {
+                            app.nimarkogram.messenger.NimarkoConfig.recordEditHistory(message.dialog_id, message.id, oldText);
+                            FileLog.d("EditHistory: recorded history for id=" + message.id + " size=" + app.nimarkogram.messenger.NimarkoConfig.getEditHistory(message.dialog_id, message.id).size());
+                            android.util.Log.d("EDIT_HISTORY", "recorded id=" + message.id + " size=" + app.nimarkogram.messenger.NimarkoConfig.getEditHistory(message.dialog_id, message.id).size());
+                        }
+                    } else {
+                        FileLog.d("EditHistory: old message NOT FOUND for id=" + message.id + " dialog=" + message.dialog_id);
+                        android.util.Log.d("EDIT_HISTORY", "OLD NOT FOUND id=" + message.id + " dialog=" + message.dialog_id);
+                    }
+                } catch (Throwable t) {
+                    FileLog.e(t);
+                }
 
                 boolean isDialogCreated = createdDialogIds.contains(message.dialog_id);
                 MessageObject obj = new MessageObject(currentAccount, message, usersDict, chatsDict, isDialogCreated, isDialogCreated);
@@ -20796,6 +20832,15 @@ public class MessagesController extends BaseController implements NotificationCe
                             for (int a = 0, size2 = arrayList.size(); a < size2; a++) {
                                 MessageObject newMessage = arrayList.get(a);
                                 if (oldObject.getId() == newMessage.getId()) {
+                                    if (oldObject.messageOwner != null && newMessage.messageOwner != null) {
+                                        String oldText = oldObject.messageOwner.message;
+                                        String newText = newMessage.messageOwner.message;
+                                        if (oldText == null) oldText = "";
+                                        if (newText == null) newText = "";
+                                        if (!oldText.equals(newText)) {
+                                            app.nimarkogram.messenger.NimarkoConfig.recordEditHistory(dialogId, newMessage.getId(), oldText);
+                                        }
+                                    }
                                     oldObjects.set(i, newMessage);
                                     if (newMessage.messageOwner.peer_id != null && newMessage.messageOwner.peer_id.channel_id == 0) {
                                         dialogMessagesByIds.put(newMessage.getId(), newMessage);

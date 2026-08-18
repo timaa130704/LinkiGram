@@ -361,6 +361,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable[] botVerificationDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable[2];
     
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable[] nimarkoBadgeDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable[2];
+    private final android.graphics.drawable.Drawable[] nimarkoBadgeImageDrawable = new android.graphics.drawable.Drawable[2];
     private final Drawable[] verifiedCheckDrawable = new Drawable[2];
     private final CrossfadeDrawable[] verifiedCrossfadeDrawable = new CrossfadeDrawable[2];
     private final CrossfadeDrawable[] premiumCrossfadeDrawable = new CrossfadeDrawable[2];
@@ -12626,6 +12627,23 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 lastNimarkoBadgeDocId[a] = 0L;
                 return;
             }
+            if (badge.getImageRes() != 0) {
+                try {
+                    nimarkoBadgeImageDrawable[a] = app.nimarkogram.messenger.badges.BadgeUi.createBadgeImageDrawable(badge.getImageRes());
+                } catch (Throwable ignored) {
+                    nimarkoBadgeImageDrawable[a] = null;
+                }
+                if (nimarkoBadgeDrawable[a] != null) {
+                    nimarkoBadgeDrawable[a].set((Drawable) null, true);
+                }
+                lastNimarkoBadgeDocId[a] = badge.getDocumentId();
+                final app.nimarkogram.messenger.api.dto.BadgeDTO finalBadge2 = badge;
+                CharSequence badgeDesc2 = TextUtils.isEmpty(badge.getText())
+                        ? LocaleController.getString(R.string.NM_ProfileBadge)
+                        : LocaleController.getString(R.string.NM_ProfileBadge) + ": " + badge.getText();
+                placeNimarkoBadge(a, v -> showNimarkoBadgeBulletin(finalBadge2), badgeDesc2);
+                return;
+            }
             
             boolean justCreated = (nimarkoBadgeDrawable[a] == null);
             if (justCreated) {
@@ -12690,13 +12708,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void placeNimarkoBadge(int a, View.OnClickListener click, CharSequence description) {
+        Drawable d = nimarkoBadgeImageDrawable[a] != null ? nimarkoBadgeImageDrawable[a] : nimarkoBadgeDrawable[a];
         if (nameTextView[a].getRightDrawable2() == null) {
-            nameTextView[a].setRightDrawable2(nimarkoBadgeDrawable[a]);
+            nameTextView[a].setRightDrawable2(d);
             nameTextView[a].setRightDrawable2OnClick(click);
             nameTextView[a].setRightDrawable2ContentDescription(description);
             lastNimarkoBadgeSlot[a] = 2;
         } else {
-            nameTextView[a].setRightDrawable(nimarkoBadgeDrawable[a]);
+            nameTextView[a].setRightDrawable(d);
             nameTextView[a].setRightDrawableOnClick(click);
             nameTextView[a].setRightDrawableContentDescription(description);
             lastNimarkoBadgeSlot[a] = 1;
@@ -12705,8 +12724,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private void clearNimarkoBadgeSlot(int a) {
         if (nameTextView[a] == null) return;
+        Drawable d = nimarkoBadgeImageDrawable[a] != null ? nimarkoBadgeImageDrawable[a] : nimarkoBadgeDrawable[a];
         if (lastNimarkoBadgeSlot[a] == 1) {
-            if (nameTextView[a].getRightDrawable() == nimarkoBadgeDrawable[a]) {
+            if (nameTextView[a].getRightDrawable() == d) {
                 nameTextView[a].setRightDrawable(null);
             }
             
@@ -12714,13 +12734,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             nameTextView[a].setRightDrawableContentDescription(null);
         }
         if (lastNimarkoBadgeSlot[a] == 2) {
-            if (nameTextView[a].getRightDrawable2() == nimarkoBadgeDrawable[a]) {
+            if (nameTextView[a].getRightDrawable2() == d) {
                 nameTextView[a].setRightDrawable2(null);
             }
             nameTextView[a].setRightDrawable2OnClick(null);
             nameTextView[a].setRightDrawable2ContentDescription(null);
         }
         lastNimarkoBadgeSlot[a] = 0;
+        nimarkoBadgeImageDrawable[a] = null;
     }
 
     private final long[] lastNimarkoBadgeDocId = new long[2];
@@ -12729,6 +12750,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void showNimarkoBadgeBulletin(app.nimarkogram.messenger.api.dto.BadgeDTO badge) {
         try {
             if (badge == null) return;
+            if (badge.getImageRes() != 0) {
+                app.nimarkogram.messenger.badges.BadgeUi.showBulletin(currentAccount, badge);
+                return;
+            }
             CharSequence rawText = badge.getText();
             
             final CharSequence text = TextUtils.isEmpty(rawText)

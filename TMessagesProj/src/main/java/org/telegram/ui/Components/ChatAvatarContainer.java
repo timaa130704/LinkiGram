@@ -245,6 +245,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable botVerificationDrawable;
     
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable badgeEmojiDrawable;
+    private android.graphics.drawable.Drawable badgeImageDrawable;
     private app.nimarkogram.messenger.api.dto.BadgeDTO currentNimarkoBadge;
 
     protected boolean useAnimatedSubtitle() {
@@ -1454,18 +1455,29 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         } catch (Throwable ignored) {}
 
         if (badge != null) {
-            if (badgeEmojiDrawable == null) {
-                badgeEmojiDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(titleTextView, dp(24));
-                if (isAttachedToWindow()) badgeEmojiDrawable.attach();
+            if (badge.getImageRes() != 0) {
+                try {
+                    badgeImageDrawable = app.nimarkogram.messenger.badges.BadgeUi.createBadgeImageDrawable(badge.getImageRes());
+                    if (badgeEmojiDrawable != null) {
+                        badgeEmojiDrawable.set((Drawable) null, false);
+                        badgeEmojiDrawable.setParticles(false, false);
+                    }
+                } catch (Throwable ignored) {}
+            } else {
+                badgeImageDrawable = null;
+                if (badgeEmojiDrawable == null) {
+                    badgeEmojiDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(titleTextView, dp(24));
+                    if (isAttachedToWindow()) badgeEmojiDrawable.attach();
+                }
+                boolean animateBadge = animated && lastNimarkoBadgeDocId != 0L && lastNimarkoBadgeDocId != badge.getDocumentId();
+                badgeEmojiDrawable.set(badge.getDocumentId(), animateBadge);
+                badgeEmojiDrawable.setParticles(true, false);
+                badgeEmojiDrawable.setColor(getThemedColor(Theme.key_profile_verifiedBackground));
+                lastNimarkoBadgeDocId = badge.getDocumentId();
             }
-            boolean animateBadge = animated && lastNimarkoBadgeDocId != 0L && lastNimarkoBadgeDocId != badge.getDocumentId();
-            badgeEmojiDrawable.set(badge.getDocumentId(), animateBadge);
-            badgeEmojiDrawable.setParticles(true, false);
-            badgeEmojiDrawable.setColor(getThemedColor(Theme.key_profile_verifiedBackground));
-            lastNimarkoBadgeDocId = badge.getDocumentId();
-            
         } else {
             lastNimarkoBadgeDocId = 0L;
+            badgeImageDrawable = null;
             if (badgeEmojiDrawable != null) {
                 badgeEmojiDrawable.set((Drawable) null, false);
                 badgeEmojiDrawable.setParticles(false, false);
@@ -1494,7 +1506,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             }
         } else if (badgeInSlot2) {
             
-            titleTextView.setRightDrawable2(badgeEmojiDrawable);
+            titleTextView.setRightDrawable2(badgeImageDrawable != null ? badgeImageDrawable : badgeEmojiDrawable);
             rightDrawableIsScamOrVerified = false;
             rightDrawable2IsBadge = true;
             rightDrawable2ContentDescription = badgeAccessibilityDescription.toString();
@@ -1548,7 +1560,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                     : LocaleController.getString(R.string.AccDescrPremium);
         } else if (badge != null) {
             
-            titleTextView.setRightDrawable(badgeEmojiDrawable);
+            titleTextView.setRightDrawable(badgeImageDrawable != null ? badgeImageDrawable : badgeEmojiDrawable);
             rightDrawableContentDescription = badgeAccessibilityDescription.toString();
         } else {
             titleTextView.setRightDrawable(null);
@@ -1599,6 +1611,10 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     private void showNimarkoBadgeBulletin(app.nimarkogram.messenger.api.dto.BadgeDTO badge) {
         try {
             if (badge == null || parentFragment == null) return;
+            if (badge.getImageRes() != 0) {
+                app.nimarkogram.messenger.badges.BadgeUi.showBulletin(currentAccount, badge);
+                return;
+            }
             CharSequence rawText = badge.getText();
             
             final CharSequence text = TextUtils.isEmpty(rawText)

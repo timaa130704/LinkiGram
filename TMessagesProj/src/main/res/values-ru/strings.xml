@@ -1037,6 +1037,9 @@
     <string name="NM_MaxAlbumSize_Desc">Количество медиа в одном альбоме (сервер может отвергнуть >10)</string>
     <string name="NM_GhostChat">Призрачный режим для этого чата</string>
     <string name="NM_GhostChat_Desc">Скрывать «печатает», прочтение и просмотры историй в этом чате</string>
+    <string name="NM_EditHistory">История изменений</string>
+    <string name="NM_EditHistory_Current">Текущая</string>
+    <string name="NM_EditHistory_Version">Версия %1$d</string>
     <string name="NM_ResidentNotification">Включить постоянное уведомление</string>
     <string name="CP_HideStories">Скрыть Истории (локально)</string>
     <string name="CP_HideStories_Desc">Истории исчезнут из списка чатов и из профилей.</string>

@@ -1778,6 +1778,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int nimarko_browser = 9103;
     private final static int nimarko_delete_all = 9104;
     private final static int nimarko_ghost_chat = 9105;
+    private final static int OPTION_EDIT_HISTORY = 9130;
 
     private final static int id_chat_compose_panel = 1000;
 
@@ -27142,6 +27143,21 @@ public class ChatActivity extends BaseFragment implements
                 pinnedMessageObjects.put(messageObject.getId(), messageObject);
             }
             MessageObject old = messagesDict[loadIndex].get(messageObject.getId());
+            if (old != null && old.messageOwner != null && messageObject.messageOwner != null) {
+                try {
+                    String oldText = old.messageOwner.message;
+                    String newText = messageObject.messageOwner.message;
+                    if (oldText == null) oldText = "";
+                    if (newText == null) newText = "";
+                    android.util.Log.d("EDIT_HISTORY", "ChatActivity replace: id=" + messageObject.getId() + " old='" + oldText + "' new='" + newText + "'");
+                    if (!oldText.equals(newText)) {
+                        app.nimarkogram.messenger.NimarkoConfig.recordEditHistory(messageObject.getDialogId(), messageObject.getId(), oldText);
+                        android.util.Log.d("EDIT_HISTORY", "ChatActivity recorded id=" + messageObject.getId() + " size=" + app.nimarkogram.messenger.NimarkoConfig.getEditHistory(messageObject.getDialogId(), messageObject.getId()).size());
+                    }
+                } catch (Throwable ignored) {}
+            } else {
+                android.util.Log.d("EDIT_HISTORY", "ChatActivity old null for id=" + messageObject.getId());
+            }
             if (messageObject.getId() > 0 && old == null && UserObject.isBot(currentUser)) {
                 old = BotForumHelper.getInstance(currentAccount).onBotForumDraftCheckNewMessages(currentUser.id, (int) getTopicId(), messageObject.getId(), messageObject.messageText.toString());
                 if (old != null) {
@@ -31321,6 +31337,7 @@ public class ChatActivity extends BaseFragment implements
     private boolean createMenu(View v, boolean single, boolean listView, float x, float y,
                                boolean searchGroup, boolean longpress, boolean suggestEdit,
                                boolean ordinaryTap) {
+        android.util.Log.d("EDIT_HISTORY", "createMenu CALLED ordinaryTap=" + ordinaryTap + " longpress=" + longpress);
         if (actionBar.isActionModeShowed() || isReport()) {
             return false;
         }
@@ -34419,6 +34436,14 @@ public class ChatActivity extends BaseFragment implements
                         }
                     }
                 });
+                break;
+            }
+            case OPTION_EDIT_HISTORY: {
+                java.util.List<String> history = app.nimarkogram.messenger.NimarkoConfig.getEditHistory(selectedObject.getDialogId(), selectedObject.getId());
+                if (history == null || history.isEmpty() || getParentActivity() == null) {
+                    break;
+                }
+                showEditHistorySheet(history);
                 break;
             }
             case OPTION_DELETE: {
@@ -47045,11 +47070,22 @@ public class ChatActivity extends BaseFragment implements
         ArrayList<CharSequence> items,
         ArrayList<Integer> options
     ) {
+        android.util.Log.d("EDIT_HISTORY", "fillMessageMenu CALLED id=" + (primaryMessage != null ? primaryMessage.getId() : "null"));
         final MessageObject message = selectedObject;
         final MessageObject.GroupedMessages groupedMessages = selectedObjectGroup;
         final int type = getMessageType(message);
         final boolean isEphemeral = message.isEphemeral();
         final boolean isEphemeralFromBot = isEphemeral && !message.isOut();
+
+        try {
+            java.util.List<String> editHist = app.nimarkogram.messenger.NimarkoConfig.getEditHistory(message.getDialogId(), message.getId());
+            android.util.Log.d("EDIT_HISTORY", "fillMenu check id=" + message.getId() + " size=" + editHist.size());
+            if (!editHist.isEmpty()) {
+                items.add(LocaleController.getString(R.string.NM_EditHistory));
+                options.add(OPTION_EDIT_HISTORY);
+                icons.add(R.drawable.msg_edit);
+            }
+        } catch (Throwable ignored) {}
 
         boolean allowChatActions = true;
         boolean allowPin;
@@ -48656,5 +48692,79 @@ public class ChatActivity extends BaseFragment implements
 
         abstract void drawChatBackgroundElements(Canvas canvas, @Nullable RectF position);
         abstract void drawChatForegroundElements(Canvas canvas, @Nullable RectF position);
+    }
+
+    private void showEditHistorySheet(java.util.List<String> history) {
+        android.content.Context context = getParentActivity() != null ? getParentActivity() : getContext();
+        if (context == null) return;
+
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(context);
+        scrollView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        android.widget.LinearLayout linearLayout = new android.widget.LinearLayout(context);
+        linearLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        scrollView.addView(linearLayout, new android.widget.ScrollView.LayoutParams(
+                android.widget.ScrollView.LayoutParams.MATCH_PARENT, android.widget.ScrollView.LayoutParams.WRAP_CONTENT));
+
+        android.widget.TextView header = new android.widget.TextView(context);
+        header.setText(LocaleController.getString(R.string.NM_EditHistory));
+        header.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16);
+        header.setTypeface(org.telegram.messenger.AndroidUtilities.bold());
+        header.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(16), AndroidUtilities.dp(21), AndroidUtilities.dp(8));
+        linearLayout.addView(header);
+
+        addEditHistoryBubble(linearLayout, context, LocaleController.getString(R.string.NM_EditHistory_Current), selectedObject != null && selectedObject.messageOwner != null ? selectedObject.messageOwner.message : "");
+        for (int hi = history.size() - 1; hi >= 0; hi--) {
+            String v = history.get(hi);
+            if (v == null) v = "";
+            addEditHistoryBubble(linearLayout, context, LocaleController.formatString(R.string.NM_EditHistory_Version, history.size() - hi), v);
+        }
+
+        org.telegram.ui.ActionBar.BottomSheet bottomSheet = new org.telegram.ui.ActionBar.BottomSheet(context, false);
+        bottomSheet.setCustomView(scrollView);
+        bottomSheet.show();
+    }
+
+    private void addEditHistoryBubble(android.widget.LinearLayout container, android.content.Context context, String label, String text) {
+        try {
+            if (text == null) text = "";
+            android.widget.TextView labelView = new android.widget.TextView(context);
+            labelView.setText(label);
+            labelView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12);
+            labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+            labelView.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(10), AndroidUtilities.dp(21), AndroidUtilities.dp(2));
+            container.addView(labelView);
+
+            TLRPC.TL_message message = new TLRPC.TL_message();
+            message.id = 1;
+            message.date = getConnectionsManager().getCurrentTime();
+            message.message = text;
+            message.out = true;
+            message.dialog_id = getUserConfig().getClientUserId();
+            message.flags = 3;
+            message.from_id = getMessagesController().getPeer(getUserConfig().getClientUserId());
+            message.peer_id = getMessagesController().getPeer(getUserConfig().getClientUserId());
+            if (message.peer_id == null) {
+                message.peer_id = new TLRPC.TL_peerUser();
+                message.peer_id.user_id = getUserConfig().getClientUserId();
+            }
+            if (message.from_id == null) {
+                message.from_id = new TLRPC.TL_peerUser();
+                message.from_id.user_id = getUserConfig().getClientUserId();
+            }
+            MessageObject messageObject = new MessageObject(currentAccount, message, true, false);
+
+            org.telegram.ui.Cells.ChatMessageCell cell = new org.telegram.ui.Cells.ChatMessageCell(context, currentAccount);
+            cell.setDelegate(new org.telegram.ui.Cells.ChatMessageCell.ChatMessageCellDelegate() {
+            });
+            cell.isChat = false;
+            cell.setFullyDraw(true);
+            cell.setMessageObject(messageObject, null, false, false, false);
+            cell.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2));
+            container.addView(cell, new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 }

@@ -637,6 +637,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private boolean drawPremium;
     private final View emojiStatusView;
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable emojiStatus;
+    private android.graphics.drawable.Drawable nimarkoBadgeImageDrawable;
+    private app.nimarkogram.messenger.api.dto.BadgeDTO currentNimarkoBadge;
     
     private long lastNimarkoMaskDocId = 0L;
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable botVerification;
@@ -1544,6 +1546,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         if (nimarkoBadge != null && nimarkoBadge.getDocumentId() != 0L) {
                             drawPremium = true;
                             nameLayoutEllipsizeByGradient = true;
+                            currentNimarkoBadge = nimarkoBadge;
+                            if (nimarkoBadge.getImageRes() != 0) {
+                                nimarkoBadgeImageDrawable = app.nimarkogram.messenger.badges.BadgeUi.createBadgeImageDrawable(nimarkoBadge.getImageRes());
+                            } else {
+                                nimarkoBadgeImageDrawable = null;
+                            }
                             emojiStatus.center = LocaleController.isRTL;
                             emojiStatus.set(nimarkoBadge.getDocumentId(), false);
                             emojiStatus.setParticles(true, false);
@@ -4570,18 +4578,23 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     y -= dp(9);
                 }
                 if (emojiStatus != null) {
-                    emojiStatusView.setTranslationX(gtx + nameMuteLeft - dp(2));
-                    emojiStatusView.setTranslationY(gty + y - dp(4));
-                    if (rightFragmentOpenedProgress > 0) {
-                        emojiStatus.setBounds(
-                            nameMuteLeft - dp(2),
-                            y - dp(4),
-                            nameMuteLeft + dp(20),
-                            y - dp(4) + dp(22)
-                        );
-                        emojiStatus.draw(canvas);
+                    if (nimarkoBadgeImageDrawable != null) {
+                        setDrawableBounds(nimarkoBadgeImageDrawable, nameMuteLeft - dp(2), y - dp(4));
+                        nimarkoBadgeImageDrawable.draw(canvas);
                     } else {
-                        emojiStatusVisible = true;
+                        emojiStatusView.setTranslationX(gtx + nameMuteLeft - dp(2));
+                        emojiStatusView.setTranslationY(gty + y - dp(4));
+                        if (rightFragmentOpenedProgress > 0) {
+                            emojiStatus.setBounds(
+                                nameMuteLeft - dp(2),
+                                y - dp(4),
+                                nameMuteLeft + dp(20),
+                                y - dp(4) + dp(22)
+                            );
+                            emojiStatus.draw(canvas);
+                        } else {
+                            emojiStatusVisible = true;
+                        }
                     }
                     emojiStatus.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
                 } else {

@@ -10,9 +10,20 @@ public final class BadgeDTO {
     @SerializedName("text")
     private String text;
 
+    public transient int imageRes;
+
     public BadgeDTO(long documentId, String text) {
         this.documentId = documentId;
         this.text = text;
+    }
+
+    public int getImageRes() {
+        return imageRes;
+    }
+
+    public BadgeDTO setImageRes(int imageRes) {
+        this.imageRes = imageRes;
+        return this;
     }
 
     public long getDocumentId() {
