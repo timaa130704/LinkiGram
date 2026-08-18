@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="docs/assets/nimarkogram-icon.png" width="128" height="128" alt="LinkiGram icon">
-</p>
 
 <h1 align="center">LinkiGram</h1>
 
