@@ -898,35 +898,6 @@ public class ApplicationLoader extends Application {
         }
 
         try {
-            new Thread(() -> {
-                try {
-                    Thread.sleep(3000);
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    mainHandler.post(() -> {
-                        try {
-                            for (int a = 0; a < org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT; a++) {
-                                if (org.telegram.messenger.UserConfig.getInstance(a).isClientActivated()) {
-                                    try {
-                                        TLRPC.User me = org.telegram.messenger.UserConfig.getInstance(a).getCurrentUser();
-                                        boolean hasOwnStatus = false;
-                                        if (me != null && me.emoji_status instanceof TLRPC.TL_emojiStatus) {
-                                            hasOwnStatus = ((TLRPC.TL_emojiStatus) me.emoji_status).document_id != 0L;
-                                        }
-                                        if (!hasOwnStatus) {
-                                            TLRPC.TL_emojiStatus status = new TLRPC.TL_emojiStatus();
-                                            status.document_id = app.nimarkogram.messenger.badges.BadgesController.LINKI_MARKER_DOC;
-                                            org.telegram.messenger.MessagesController.getInstance(a).updateEmojiStatus(status);
-                                        }
-                                    } catch (Throwable ignored) {}
-                                }
-                            }
-                        } catch (Throwable ignored) {}
-                    });
-                } catch (Throwable ignored) {}
-            }, "linki-marker").start();
-        } catch (Throwable ignored) {}
-
-        try {
             app.nimarkogram.messenger.textanim.NimarkoTextAnim.initIfEnabled();
         } catch (Throwable t) {
             FileLog.e("nimarko-textanim: init failed", t);

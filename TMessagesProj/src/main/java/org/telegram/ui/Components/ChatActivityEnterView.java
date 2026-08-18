@@ -12899,7 +12899,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     SendMessagesHelper.SendingMediaInfo info = new SendMessagesHelper.SendingMediaInfo();
                                     if (!entry.isVideo && entry.imagePath != null) {
                                         info.path = entry.imagePath;
-                                        if (entry.isHighQuality()) {
+                                        if (entry.isHighQuality() || app.nimarkogram.messenger.NimarkoConfig.sendOriginalPhoto) {
                                             info.originalPhotoEntry = entry.clone();
                                         }
                                     } else if (entry.path != null) {

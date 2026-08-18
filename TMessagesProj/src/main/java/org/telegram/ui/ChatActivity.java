@@ -12974,7 +12974,10 @@ public class ChatActivity extends BaseFragment implements
                                     info.stars = photoEntry.starsAmount;
                                     info.forceAsSticker = photoEntry.forceAsSticker;
                                     info.highQuality = !isStickerMode && !info.forceAsSticker
-                                            && photoEntry.isHighQuality();
+                                            && (photoEntry.isHighQuality() || app.nimarkogram.messenger.NimarkoConfig.sendOriginalPhoto);
+                                    if (app.nimarkogram.messenger.NimarkoConfig.sendOriginalPhoto && !isStickerMode && !info.forceAsSticker && !isVideo) {
+                                        info.originalPhotoEntry = photoEntry.clone();
+                                    }
                                     photos.add(info);
                                     photoEntry.reset();
                                 }

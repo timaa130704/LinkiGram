@@ -2318,8 +2318,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     && !TextUtils.isEmpty(name)
                     && id.matches("^[a-zA-Z][a-zA-Z0-9_-]{1,31}$")
                     && (minVersion == null
-                    || SharedConfig.versionBiggerOrEqual(
-                    BuildVars.BUILD_VERSION_STRING, minVersion))) {
+                    || true)) {
                 plugin = new Plugin(id, name);
                 plugin.setAuthor(metadata.getOrDefault(
                         "author", LocaleController.getString(
@@ -5664,10 +5663,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                             + "underscores.");
         }
         String minVersion = pluginMetadata.get("min_version");
-        boolean versionOk = minVersion == null
-                || SharedConfig.versionBiggerOrEqual(
-                        BuildVars.BUILD_VERSION_STRING,
-                        minVersion);
+        boolean versionOk = true;
         PluginDebugLog.log(
                 "validate id=" + pluginId + " name=" + pluginName
                         + " min_version=" + minVersion

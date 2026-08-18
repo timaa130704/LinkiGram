@@ -89,7 +89,11 @@ public final class ApiClient {
                         }
                         text = row.get("text").getAsString();
                     }
-                    out.put(uid, new BadgeDTO(docId, text));
+                    BadgeDTO dto = new BadgeDTO(docId, text);
+                    if (row.has("badge_key") && row.get("badge_key").isJsonPrimitive()) {
+                        dto.setBadgeKey(row.get("badge_key").getAsString());
+                    }
+                    out.put(uid, dto);
                 } catch (Throwable malformedRow) {
                     return new BadgeFetchResult(false, Collections.emptyMap());
                 }

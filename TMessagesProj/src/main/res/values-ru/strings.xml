@@ -1035,6 +1035,8 @@
     <string name="NM_InBubbleGradient3">Цвет градиента 3</string>
     <string name="NM_MaxAlbumSize">Максимум медиа в альбоме</string>
     <string name="NM_MaxAlbumSize_Desc">Количество медиа в одном альбоме (сервер может отвергнуть >10)</string>
+    <string name="NM_SendOriginalPhoto">Отправлять фото без сжатия</string>
+    <string name="NM_SendOriginalPhoto_Desc">Отправлять фото в оригинальном качестве по умолчанию</string>
     <string name="NM_GhostChat">Призрачный режим для этого чата</string>
     <string name="NM_GhostChat_Desc">Скрывать «печатает», прочтение и просмотры историй в этом чате</string>
     <string name="NM_EditHistory">История изменений</string>

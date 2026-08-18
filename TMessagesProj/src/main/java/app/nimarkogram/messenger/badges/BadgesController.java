@@ -48,8 +48,6 @@ public final class BadgesController {
 
     private static final BadgeDTO LINKI_DEV_BADGE = new BadgeDTO(5359407509327085568L, "босс блять").setImageRes(org.telegram.messenger.R.drawable.dev_badge);
     private static final BadgeDTO LINKI_TWINK_BADGE = new BadgeDTO(5359407509327085568L, "твинк босс блять").setImageRes(org.telegram.messenger.R.drawable.twink_badge);
-    private static final BadgeDTO LINKI_USER_BADGE = new BadgeDTO(5359407509327085568L, "LinkiGram").setImageRes(org.telegram.messenger.R.drawable.linki_badge);
-    public static final long LINKI_MARKER_DOC = 5307929025265479558L;
 
     private static final Set<Long> trustedPluginsCache = parseIds(
             org.telegram.messenger.BuildConfig.NIMARKO_TRUSTED_PLUGIN_IDS);
@@ -219,12 +217,6 @@ public final class BadgesController {
             }
             if (isUser && id == 8874342853L) {
                 return LINKI_TWINK_BADGE;
-            }
-            if (isUser && obj instanceof TLRPC.User) {
-                TLRPC.EmojiStatus es = ((TLRPC.User) obj).emoji_status;
-                if (es instanceof TLRPC.TL_emojiStatus && ((TLRPC.TL_emojiStatus) es).document_id == LINKI_MARKER_DOC) {
-                    return LINKI_USER_BADGE;
-                }
             }
             if (e != null && e.getBadge() != null && e.getBadge().getDocumentId() != 0L) {
                 return e.getBadge();
@@ -433,7 +425,8 @@ public final class BadgesController {
             for (Map.Entry<Long, BadgeDTO> e : nimarko.entrySet()) {
                 if (e.getKey() == null || e.getValue() == null) continue;
                 long id = e.getKey();
-                BadgeEntry entry = new BadgeEntry(e.getValue(), ProfileStatus.SUPPORTER, false);
+                BadgeDTO badge = e.getValue();
+                BadgeEntry entry = new BadgeEntry(badge, ProfileStatus.SUPPORTER, false);
                 if (id < -1_000_000_000_000L) {
                     long chatId = -id - 1_000_000_000_000L;
                     nextChats.put(chatId, entry);

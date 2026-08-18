@@ -11,6 +11,7 @@ public final class BadgeDTO {
     private String text;
 
     public transient int imageRes;
+    public transient String badgeKey;
 
     public BadgeDTO(long documentId, String text) {
         this.documentId = documentId;
@@ -23,6 +24,15 @@ public final class BadgeDTO {
 
     public BadgeDTO setImageRes(int imageRes) {
         this.imageRes = imageRes;
+        return this;
+    }
+
+    public String getBadgeKey() {
+        return badgeKey;
+    }
+
+    public BadgeDTO setBadgeKey(String badgeKey) {
+        this.badgeKey = badgeKey;
         return this;
     }
 

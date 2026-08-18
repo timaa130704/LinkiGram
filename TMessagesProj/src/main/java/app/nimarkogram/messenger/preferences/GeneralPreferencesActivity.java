@@ -83,6 +83,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient1Row = 28;
     private final int inBubbleGradient2Row = 29;
     private final int inBubbleGradient3Row = 30;
+    private final int sendOriginalPhotoRow = 31;
 
     private final int hideStoriesRow = 7;
     private final int archiveStoriesRow = 8;
@@ -240,6 +241,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             items.add(UItem.asButton(inBubbleGradient2Row, getString(R.string.NM_InBubbleGradient2), formatHexColor(NimarkoConfig.inBubbleGradient2)));
             items.add(UItem.asButton(inBubbleGradient3Row, getString(R.string.NM_InBubbleGradient3), formatHexColor(NimarkoConfig.inBubbleGradient3)));
         }
+        items.add(SettingsHelper.asSwitchCG(sendOriginalPhotoRow, getString(R.string.NM_SendOriginalPhoto), getString(R.string.NM_SendOriginalPhoto_Desc))
+                .setChecked(NimarkoConfig.sendOriginalPhoto)
+        );
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.NM_Config_Header)));
@@ -405,6 +409,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             showGradientColorPicker(2, NimarkoConfig.inBubbleGradient2);
         } else if (item.id == inBubbleGradient3Row) {
             showGradientColorPicker(3, NimarkoConfig.inBubbleGradient3);
+        } else if (item.id == sendOriginalPhotoRow) {
+            NimarkoConfig.toggleSendOriginalPhoto();
+            SettingsHelper.updateCheckState(view, NimarkoConfig.sendOriginalPhoto);
         } else if (item.id == exportConfigRow) {
             exportConfig();
         } else if (item.id == importConfigRow) {

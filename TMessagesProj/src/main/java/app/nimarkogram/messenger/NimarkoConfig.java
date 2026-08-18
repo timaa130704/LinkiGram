@@ -292,6 +292,12 @@ public final class NimarkoConfig {
         getEditor().putInt("maxAlbumSize", v).apply();
     }
 
+    public static boolean sendOriginalPhoto = getPreferences().getBoolean("sendOriginalPhoto", false);
+    public static void toggleSendOriginalPhoto() {
+        sendOriginalPhoto = !sendOriginalPhoto;
+        getEditor().putBoolean("sendOriginalPhoto", sendOriginalPhoto).apply();
+    }
+
     public static boolean inBubbleGradients = getPreferences().getBoolean("inBubbleGradients", false);
     public static void toggleInBubbleGradients() {
         inBubbleGradients = !inBubbleGradients;
