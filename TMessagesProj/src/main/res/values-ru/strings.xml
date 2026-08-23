@@ -629,6 +629,8 @@
     <string name="NM_BT_LayoutFooterDesc">Нажмите, чтобы включить/отключить, удерживайте и перетаскивайте, чтобы изменить порядок.</string>
     <string name="NM_BT_ShowSearchInTabs">Кнопка поиска в табах</string>
     <string name="NM_BT_ShowSearchInTabs_Desc">Показывать круглую кнопку поиска рядом с нижней панелью вкладок. Долгое нажатие открывает архив чатов.</string>
+    <string name="NM_BT_SemiTransparentTabs">Полупрозрачный фон</string>
+    <string name="NM_BT_SemiTransparentTabs_Desc">Сделать нижнюю панель вкладок полупрозрачной, чтобы контент за ней частично просвечивал.</string>
     <string name="NM_BT_EditorHeader">Вкладки</string>
     <string name="NM_BT_EditorFooter">Нажмите на вкладку, чтобы включить или выключить её. Долгое нажатие — перетащить.</string>
     <string name="NM_BT_ResetOrder">Сбросить порядок</string>

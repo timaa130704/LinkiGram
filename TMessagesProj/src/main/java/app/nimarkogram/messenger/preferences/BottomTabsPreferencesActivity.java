@@ -23,6 +23,7 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
     private static final int ID_SHOW_TITLE = 2;
     private static final int ID_FORCE_OPEN_CHATS = 4;
     private static final int ID_SHOW_SEARCH_IN_TABS = 5;
+    private static final int ID_SEMI_TRANSPARENT = 7;
     private static final int ID_RESET_ORDER = 6;
 
     private MainTabsPreviewCell editorCell;
@@ -122,6 +123,10 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
                             LocaleController.getString(R.string.NM_BT_ShowSearchInTabs))
                     .setChecked(NimarkoConfig.showSearchInTabs));
             items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_ShowSearchInTabs_Desc)));
+            items.add(UItem.asCheck(ID_SEMI_TRANSPARENT,
+                            LocaleController.getString(R.string.NM_BT_SemiTransparentTabs))
+                    .setChecked(NimarkoConfig.mainTabsSemiTransparent));
+            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_SemiTransparentTabs_Desc)));
 
             items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_ActionsHeader)));
             items.add(SettingsHelper.asSwitchCG(ID_FORCE_OPEN_CHATS,
@@ -164,6 +169,11 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
             if (editorCell != null) {
                 editorCell.refresh();
             }
+            postCgTabsUpdated();
+            rebuildMainTabsFragments();
+        } else if (id == ID_SEMI_TRANSPARENT) {
+            NimarkoConfig.toggleMainTabsSemiTransparent();
+            applyCheck(item, view, NimarkoConfig.mainTabsSemiTransparent);
             postCgTabsUpdated();
             rebuildMainTabsFragments();
         } else if (id == ID_FORCE_OPEN_CHATS) {

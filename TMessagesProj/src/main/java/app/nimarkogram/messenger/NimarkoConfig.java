@@ -3,6 +3,7 @@ package app.nimarkogram.messenger;
 import android.content.SharedPreferences;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.telegram.messenger.ApplicationLoader;
@@ -310,6 +311,97 @@ public final class NimarkoConfig {
     public static void toggleSendOriginalPhoto() {
         sendOriginalPhoto = !sendOriginalPhoto;
         getEditor().putBoolean("sendOriginalPhoto", sendOriginalPhoto).apply();
+    }
+
+    private static final int XP_PER_LEVEL = 10;
+
+    public static long getXp(int account) {
+        return getPreferences().getLong("userXp_" + account, 0L);
+    }
+
+    public static void addXp(int account, long amount) {
+        long xp = getXp(account) + Math.max(0, amount);
+        getEditor().putLong("userXp_" + account, xp).apply();
+    }
+
+    public static int getLevel(int account) {
+        return (int) (getXp(account) / XP_PER_LEVEL) + 1;
+    }
+
+    public static int getLevelProgress(int account) {
+        return (int) (getXp(account) % XP_PER_LEVEL);
+    }
+
+    public static void setXp(int account, long xp) {
+        getEditor().putLong("userXp_" + account, Math.max(0, xp)).apply();
+    }
+
+    public static void syncXpToServer(int account) {
+        final String base = org.telegram.messenger.BuildConfig.NIMARKO_API_BASE_URL;
+        android.util.Log.d("xp-sync", "base='" + base + "'");
+        if (base == null || base.trim().isEmpty()) return;
+        final long xp = getXp(account);
+        final long myId = org.telegram.messenger.UserConfig.getInstance(account).clientUserId;
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(base + "api/xp");
+                android.util.Log.d("xp-sync", "url=" + url);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                conn.setDoOutput(true);
+                java.util.Map<String, Object> payload = new HashMap<>();
+                payload.put("user_id", myId);
+                payload.put("xp", xp);
+                conn.getOutputStream().write(GSON.toJson(payload).getBytes("UTF-8"));
+                int code = conn.getResponseCode();
+                android.util.Log.d("xp-sync", "code=" + code);
+                conn.getInputStream().close();
+            } catch (Throwable t) {
+                android.util.Log.d("xp-sync", "err=" + t);
+            }
+        }, "xp-sync").start();
+    }
+
+    public static java.util.Map<Long, Long> getRemoteLevels() {
+        java.util.Map<Long, Long> out = new HashMap<>();
+        final String base = org.telegram.messenger.BuildConfig.NIMARKO_API_BASE_URL;
+        if (base == null || base.trim().isEmpty()) return out;
+        try {
+            java.net.URL url = new java.net.URL(base + "levels");
+            android.util.Log.d("xp-sync", "getRemoteLevels url=" + url);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
+            int code = conn.getResponseCode();
+            android.util.Log.d("xp-sync", "getRemoteLevels code=" + code);
+            java.io.InputStream in = conn.getInputStream();
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int n;
+            while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
+            in.close();
+            String body = bos.toString("UTF-8");
+            android.util.Log.d("xp-sync", "getRemoteLevels body=" + body);
+            JsonObject root = GSON.fromJson(body, JsonObject.class);
+            if (root != null && root.has("levels") && root.get("levels").isJsonObject()) {
+                JsonObject levels = root.getAsJsonObject("levels");
+                for (Map.Entry<String, com.google.gson.JsonElement> e : levels.entrySet()) {
+                    try {
+                        long uid = Long.parseLong(e.getKey());
+                        JsonObject row = e.getValue().getAsJsonObject();
+                        if (row.has("xp")) out.put(uid, row.get("xp").getAsLong());
+                    } catch (Throwable ignored) {}
+                }
+            }
+        } catch (Throwable t) {
+            android.util.Log.d("xp-sync", "getRemoteLevels err=" + t);
+        }
+        android.util.Log.d("xp-sync", "getRemoteLevels result=" + out.size());
+        return out;
     }
 
     public static boolean inBubbleGradients = getPreferences().getBoolean("inBubbleGradients", false);
@@ -1594,6 +1686,10 @@ public final class NimarkoConfig {
 
     public static boolean showSearchInTabs = getPreferences().getBoolean("showSearchInTabs", false);
     public static void toggleShowSearchInTabs() { showSearchInTabs = !showSearchInTabs; getEditor().putBoolean("showSearchInTabs", showSearchInTabs).apply(); }
+
+    public static boolean mainTabsSemiTransparent = getPreferences().getBoolean("mainTabsSemiTransparent", false);
+    public static void toggleMainTabsSemiTransparent() { mainTabsSemiTransparent = !mainTabsSemiTransparent; getEditor().putBoolean("mainTabsSemiTransparent", mainTabsSemiTransparent).apply(); }
+    public static final int MAIN_TABS_SEMI_TRANSPARENT_ALPHA = 150;
 
     public static final int ROUND_AUTO = 0;
     public static final int ROUND_SD = 1;

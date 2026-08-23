@@ -11526,6 +11526,8 @@
     <string name="NM_BT_DoubleTapDesc">Double-tap a chat tab to open \"Saved Messages\". Double-tap the profile tab (or Settings if the profile tab is hidden) to switch accounts.</string>
     <string name="NM_BT_ShowSearchInTabs">Search button in tabs</string>
     <string name="NM_BT_ShowSearchInTabs_Desc">Show a circular search button next to the bottom tabs row. Long-press the button to open archived chats.</string>
+    <string name="NM_BT_SemiTransparentTabs">Semi-transparent background</string>
+    <string name="NM_BT_SemiTransparentTabs_Desc">Make the bottom tabs bar semi-transparent, allowing the content behind to partially show through.</string>
     <string name="NM_BT_EditorHeader">Tabs</string>
     <string name="NM_BT_EditorFooter">Tap a tab to toggle. Long-press to drag and reorder.</string>
     <string name="NM_BT_ResetOrder">Reset order</string>

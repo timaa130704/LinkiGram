@@ -447,6 +447,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
         tabsViewBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+            tabsViewBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+        }
         tabsView.setBackground(tabsViewBackground);
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
@@ -490,6 +493,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     searchButton, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
             searchButtonBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
             searchButtonBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+                searchButtonBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+            }
             searchButton.setBackground(searchButtonBackground);
 
             int searchSize = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
@@ -1550,9 +1556,19 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         blur3_updateFadeColors();
         if (tabsViewBackground != null) {
             tabsViewBackground.updateColors();
+            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+                tabsViewBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+            } else {
+                tabsViewBackground.setAlpha(255);
+            }
         }
         if (searchButtonBackground != null) {
             searchButtonBackground.updateColors();
+            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+                searchButtonBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+            } else {
+                searchButtonBackground.setAlpha(255);
+            }
         }
         blur3_invalidateBlur();
         if (fadeView != null) {
