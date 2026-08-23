@@ -1,0 +1,76 @@
+name: Build LinkiGram
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager "ndk;26.3.11579264" "cmake;3.22.1"
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create private.properties
+        run: |
+          cat > private.properties << 'EOF'
+          TELEGRAM_API_ID=${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH=${{ secrets.TELEGRAM_API_HASH }}
+          GOOGLE_AUTH_CLIENT_ID=${{ secrets.GOOGLE_AUTH_CLIENT_ID }}
+          GOOGLE_SAFETYNET_KEY=${{ secrets.GOOGLE_SAFETYNET_KEY }}
+          GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+          HUAWEI_APP_ID=${{ secrets.HUAWEI_APP_ID }}
+          NIMARKO_UPDATE_ENDPOINT=${{ secrets.NIMARKO_UPDATE_ENDPOINT }}
+          NIMARKO_MEDIA_API_URL=${{ secrets.NIMARKO_MEDIA_API_URL }}
+          NIMARKO_API_BASE_URL=${{ secrets.NIMARKO_API_BASE_URL }}
+          NIMARKO_BANNER_API_URL=${{ secrets.NIMARKO_BANNER_API_URL }}
+          NIMARKO_BANNER_PLACEHOLDER_URL=${{ secrets.NIMARKO_BANNER_PLACEHOLDER_URL }}
+          NIMARKO_INFOCARD_RATES_URL=${{ secrets.NIMARKO_INFOCARD_RATES_URL }}
+          NIMARKO_ASIA_RELAY_HOST=${{ secrets.NIMARKO_ASIA_RELAY_HOST }}
+          NIMARKO_SUPPORT_URL=${{ secrets.NIMARKO_SUPPORT_URL }}
+          NIMARKO_TRUSTED_PLUGIN_IDS=${{ secrets.NIMARKO_TRUSTED_PLUGIN_IDS }}
+          RELEASE_STORE_FILE=${{ secrets.RELEASE_STORE_FILE }}
+          RELEASE_STORE_PASSWORD=${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}
+          EOF
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Standalone APK
+        run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkigram-apk
+          path: TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk
+          if-no-files-found: error
