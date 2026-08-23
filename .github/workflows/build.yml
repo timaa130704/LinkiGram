@@ -37,6 +37,7 @@ jobs:
 
       - name: Create private.properties
         run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 -d > release.keystore
           cat > private.properties << 'EOF'
           TELEGRAM_API_ID=${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH=${{ secrets.TELEGRAM_API_HASH }}
@@ -53,7 +54,7 @@ jobs:
           NIMARKO_ASIA_RELAY_HOST=${{ secrets.NIMARKO_ASIA_RELAY_HOST }}
           NIMARKO_SUPPORT_URL=${{ secrets.NIMARKO_SUPPORT_URL }}
           NIMARKO_TRUSTED_PLUGIN_IDS=${{ secrets.NIMARKO_TRUSTED_PLUGIN_IDS }}
-          RELEASE_STORE_FILE=${{ secrets.RELEASE_STORE_FILE }}
+          RELEASE_STORE_FILE=release.keystore
           RELEASE_STORE_PASSWORD=${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS=${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD=${{ secrets.RELEASE_KEY_PASSWORD }}
