@@ -1799,6 +1799,10 @@ public class SharedConfig {
     }
 
     public static boolean chatBlurEnabled() {
+        if (app.nimarkogram.messenger.NimarkoConfig.linkiAss && Build.VERSION.SDK_INT >= 31) {
+            // LinkiGram: liquid glass needs blur, force it on
+            return true;
+        }
         return canBlurChat() && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BLUR);
     }
 

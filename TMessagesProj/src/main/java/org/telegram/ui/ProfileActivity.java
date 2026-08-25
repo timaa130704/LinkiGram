@@ -4360,6 +4360,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         fragmentView.setWillNotDraw(false);
         contentView = ((NestedFrameLayout) fragmentView);
         contentView.needBlur = true;
+        if (app.nimarkogram.messenger.NimarkoWallpaper.isEnabled()) {
+            contentView.setBackground(null);
+            contentView.addView(new app.nimarkogram.messenger.NimarkoWallpaper.WallpaperView(context), 0,
+                    new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        }
 
         listView = new ClippedListView(context, resourcesProvider) {
 
@@ -13047,6 +13052,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         newString2 = LocaleController.getString(R.string.Online);
                     }
                 }
+                try {
+                    int lvl = app.nimarkogram.messenger.badges.BadgesController.getInstance().getLevelForUser(user.id);
+                    long myXp = app.nimarkogram.messenger.NimarkoConfig.getXp(currentAccount);
+                    int prog = app.nimarkogram.messenger.NimarkoConfig.getLevelProgress(currentAccount);
+                    if (newString2 == null || newString2.isEmpty()) {
+                        newString2 = "Уровень " + lvl + " · " + prog + "/100 XP";
+                    } else {
+                        newString2 = "Уровень " + lvl + " · " + prog + "/100 XP · " + newString2;
+                    }
+                } catch (Throwable ignored) {}
             } else if (user.id == UserObject.VERIFY) {
                 newString2 = LocaleController.getString(R.string.VerifyCodesNotifications);
             } else if (user.id == 333000 || user.id == 777000 || user.id == 42777) {
@@ -13064,6 +13079,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 
                 String tgPremium = getMessagesController().isPremiumUser(user) && app.nimarkogram.messenger.NimarkoConfig.disablePremiumStatuses ? " | TG Premium" : "";
                 newString2 = LocaleController.formatUserStatus(currentAccount, user, isOnline, shortStatus ? new boolean[1] : null) + tgPremium;
+                try {
+                    int lvl = app.nimarkogram.messenger.badges.BadgesController.getInstance().getLevelForUser(user.id);
+                    if (lvl > 1) {
+                        newString2 = "Уровень " + lvl + " · " + newString2;
+                    }
+                } catch (Throwable ignored) {}
                 hiddenStatusButton = user != null && !isOnline[0] && !getUserConfig().isPremium() && user.status != null && (user.status instanceof TLRPC.TL_userStatusRecently || user.status instanceof TLRPC.TL_userStatusLastMonth || user.status instanceof TLRPC.TL_userStatusLastWeek) && user.status.by_me;
                 if (onlineTextView[1] != null && !mediaHeaderVisible) {
                     int key = isOnline[0] && peerColor == null ? Theme.key_profile_status : Theme.key_actionBarDefaultSubtitle;

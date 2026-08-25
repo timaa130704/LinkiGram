@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import android.view.View;
 
 import app.nimarkogram.messenger.utils.AppRestartHelper;
+import app.nimarkogram.messenger.NimarkoWallpaper;
 import android.widget.FrameLayout;
 import android.view.HapticFeedbackConstants;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -57,6 +58,9 @@ public abstract class BasePreferencesActivity extends BaseFragment {
         });
         FrameLayout frameLayout = new FrameLayout(context);
         frameLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        if (NimarkoWallpaper.isEnabled()) {
+            frameLayout.addView(new NimarkoWallpaper.WallpaperView(context), 0, LayoutHelper.createFrame(-1, -1.0f));
+        }
         if (this.actionBar.menu == null) {
             this.actionBar.createMenu();
         }

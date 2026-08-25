@@ -4,14 +4,16 @@ import com.google.gson.annotations.SerializedName;
 
 public final class BadgeDTO {
 
-    @SerializedName("documentId")
+    @SerializedName(value = "documentId", alternate = {"emoji_doc_id"})
     private final long documentId;
 
     @SerializedName("text")
     private String text;
 
     public transient int imageRes;
-    public transient String badgeKey;
+
+    @SerializedName("badge_key")
+    private String badgeKey;
 
     public BadgeDTO(long documentId, String text) {
         this.documentId = documentId;

@@ -4261,6 +4261,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
             iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
         }
+        if (app.nimarkogram.messenger.NimarkoWallpaper.isEnabled() && communityId == 0 && !onlySelect) {
+            contentView.setBackground(null);
+            contentView.addView(new app.nimarkogram.messenger.NimarkoWallpaper.WallpaperView(context), 0,
+                    new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        }
 
         viewPositionWatcher = new ViewPositionWatcher(contentView);
         iBlur3FactoryFrostedLiquidGlass.setSourceRootView(viewPositionWatcher, contentView);

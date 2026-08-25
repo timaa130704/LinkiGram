@@ -602,6 +602,10 @@
     <string name="NM_BT_ShowSearchInTabs_Desc">在底部標籤列旁顯示一個圓形搜尋按鈕。長按該按鈕可開啟已封存聊天。</string>
     <string name="NM_BT_SemiTransparentTabs">半透明背景</string>
     <string name="NM_BT_SemiTransparentTabs_Desc">使底部標籤列半透明，讓其背後的內容部分可見。</string>
+    <string name="NM_BT_TintColor">背景色調顏色</string>
+    <string name="NM_BT_TintColor_Desc">為半透明底欄選擇色調顏色。需配合上方開關使用。</string>
+    <string name="NM_BT_TintOff">關閉</string>
+    <string name="NM_BT_TintReset">重設顏色</string>
     <string name="NM_BT_EditorHeader">標籤</string>
     <string name="NM_BT_EditorFooter">點擊標籤可切換開關。長按可拖曳並重新排序。</string>
     <string name="NM_BT_ResetOrder">重設順序</string>

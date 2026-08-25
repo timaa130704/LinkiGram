@@ -382,6 +382,42 @@ public final class BadgesController {
         scheduler.execute(this::refreshSync);
     }
 
+    private final java.util.HashMap<Long, Long> remoteXpCache = new java.util.HashMap<>();
+    private long lastRemoteXpRefresh;
+
+    public void refreshRemoteXpAsync() {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastRemoteXpRefresh < 30_000L) {
+            return;
+        }
+        lastRemoteXpRefresh = now;
+        new Thread(() -> {
+            java.util.Map<Long, Long> levels = app.nimarkogram.messenger.NimarkoConfig.getRemoteLevels();
+            synchronized (remoteXpCache) {
+                remoteXpCache.clear();
+                remoteXpCache.putAll(levels);
+            }
+        }, "nimarko-remote-xp").start();
+    }
+
+    public int getLevelForUser(long userId) {
+        Long cached;
+        synchronized (remoteXpCache) {
+            cached = remoteXpCache.get(userId);
+        }
+        long xp;
+        if (cached != null) {
+            xp = cached;
+        } else {
+            long myId = org.telegram.messenger.UserConfig.getInstance(org.telegram.messenger.UserConfig.selectedAccount).clientUserId;
+            if (userId != myId) {
+                return 1;
+            }
+            xp = app.nimarkogram.messenger.NimarkoConfig.getXp(org.telegram.messenger.UserConfig.selectedAccount);
+        }
+        return (int) (xp / 10L) + 1;
+    }
+
     private void seedBootstrapEntry() {
         if (apiBadgeSource.cache.isEmpty()) {
             apiBadgeSource.cache.put(BOOTSTRAP_USER_ID,
@@ -426,6 +462,9 @@ public final class BadgesController {
                 if (e.getKey() == null || e.getValue() == null) continue;
                 long id = e.getKey();
                 BadgeDTO badge = e.getValue();
+                if (badge != null && "linki".equals(badge.getBadgeKey())) {
+                    badge.setImageRes(org.telegram.messenger.R.drawable.linki_badge);
+                }
                 BadgeEntry entry = new BadgeEntry(badge, ProfileStatus.SUPPORTER, false);
                 if (id < -1_000_000_000_000L) {
                     long chatId = -id - 1_000_000_000_000L;

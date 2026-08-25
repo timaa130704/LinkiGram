@@ -404,6 +404,8 @@ public class MessagesController extends BaseController implements NotificationCe
     private int statusRequest;
     private int statusSettingState;
     private boolean offlineSent;
+    private long lastXpMinuteTime;
+    private int xpSyncCounter;
     private String uploadingAvatar;
 
     private HashMap<String, Object> uploadingThemes = new HashMap<>();
@@ -10498,6 +10500,19 @@ public class MessagesController extends BaseController implements NotificationCe
 
     public void updateTimerProc() {
         long currentTime = System.currentTimeMillis();
+
+        if (getUserConfig().isClientActivated()
+                && ApplicationLoader.isScreenOn
+                && !ApplicationLoader.mainInterfacePausedStageQueue) {
+            if (lastXpMinuteTime == 0) {
+                lastXpMinuteTime = currentTime;
+            } else if (currentTime - lastXpMinuteTime >= 60000) {
+                lastXpMinuteTime = currentTime;
+                NimarkoConfig.addXp(UserConfig.selectedAccount, 1);
+                android.util.Log.d("xp-sync", "addXp acc=" + UserConfig.selectedAccount + " xp=" + NimarkoConfig.getXp(UserConfig.selectedAccount));
+                NimarkoConfig.syncXpToServer(UserConfig.selectedAccount);
+            }
+        }
 
         checkDeletingTask(false);
         checkReadTasks();

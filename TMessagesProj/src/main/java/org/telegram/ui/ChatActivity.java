@@ -3742,7 +3742,8 @@ public class ChatActivity extends BaseFragment implements
 
                 final boolean isThemeLight = themeDelegate != null && !themeDelegate.isDark();
                 if (isThemeLight) {
-                    return ColorUtils.setAlphaComponent(super.getBackgroundColor(), 216);
+                    final int lightAlpha = (int) (216 * app.nimarkogram.messenger.NimarkoConfig.chatGlassAlphaMult());
+                    return ColorUtils.setAlphaComponent(super.getBackgroundColor(), lightAlpha);
                 }
                 return super.getBackgroundColor();
             }

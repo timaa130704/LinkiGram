@@ -158,7 +158,8 @@ public class BlurredBackgroundProviderImpl {
                             Theme.key_actionBarDefault : Theme.key_chat_topPanelBackground, r), 255);
                     }
 
-                    final float alpha = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0.85f : 0.76f;
+                    final float alpha = (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0.85f : 0.76f)
+                            * app.nimarkogram.messenger.NimarkoConfig.chatGlassAlphaMult();
                     final int colorBg = Theme.getColor(Theme.key_chat_topPanelBackground, r);
                     return Theme.multAlpha(colorBg, alpha);
                 })

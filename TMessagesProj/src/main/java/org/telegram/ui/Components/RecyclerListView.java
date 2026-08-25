@@ -3592,7 +3592,11 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
             sectionBackgroundPaint.setShadowLayer(0, 0, 0, 0);
         }
         
-        sectionBackgroundPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
+        int sectionColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+        if (app.nimarkogram.messenger.NimarkoWallpaper.isEnabled()) {
+            sectionColor = (sectionColor & 0x00FFFFFF) | (205 << 24);
+        }
+        sectionBackgroundPaint.setColor(sectionColor);
         if (topRadius == bottomRadius) {
             if (SharedConfig.shadowsInSections) {
                 canvas.drawRoundRect(rect, topRadius, topRadius, sectionBackgroundStrokePaint);

@@ -24,6 +24,9 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
     private static final int ID_FORCE_OPEN_CHATS = 4;
     private static final int ID_SHOW_SEARCH_IN_TABS = 5;
     private static final int ID_SEMI_TRANSPARENT = 7;
+    private static final int ID_TINT_COLOR = 8;
+    private static final int ID_TINT_RESET = 9;
+    private static final int ID_LINKI_ASS = 10;
     private static final int ID_RESET_ORDER = 6;
 
     private MainTabsPreviewCell editorCell;
@@ -127,6 +130,18 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
                             LocaleController.getString(R.string.NM_BT_SemiTransparentTabs))
                     .setChecked(NimarkoConfig.mainTabsSemiTransparent));
             items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_SemiTransparentTabs_Desc)));
+            if (NimarkoConfig.mainTabsSemiTransparent) {
+                items.add(UItem.asButton(ID_TINT_COLOR, getTintColorTitle()));
+                if (NimarkoConfig.mainTabsTintColor != 0) {
+                    items.add(UItem.asButton(ID_TINT_RESET, R.drawable.msg_reset,
+                            LocaleController.getString(R.string.NM_BT_TintReset)));
+                }
+                items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_TintColor_Desc)));
+            }
+            items.add(UItem.asCheck(ID_LINKI_ASS,
+                            LocaleController.getString(R.string.NM_GLASS_Liquid))
+                    .setChecked(NimarkoConfig.linkiAss));
+            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_GLASS_Liquid_Desc)));
 
             items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_ActionsHeader)));
             items.add(SettingsHelper.asSwitchCG(ID_FORCE_OPEN_CHATS,
@@ -176,6 +191,20 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
             applyCheck(item, view, NimarkoConfig.mainTabsSemiTransparent);
             postCgTabsUpdated();
             rebuildMainTabsFragments();
+        } else if (id == ID_LINKI_ASS) {
+            NimarkoConfig.toggleLinkiAss();
+            applyCheck(item, view, NimarkoConfig.linkiAss);
+            postCgTabsUpdated();
+            rebuildMainTabsFragments();
+        } else if (id == ID_TINT_COLOR) {
+            showTintColorPicker();
+        } else if (id == ID_TINT_RESET) {
+            NimarkoConfig.setMainTabsTintColor(0);
+            if (listView != null && listView.adapter != null) {
+                listView.adapter.update(true);
+            }
+            postCgTabsUpdated();
+            rebuildMainTabsFragments();
         } else if (id == ID_FORCE_OPEN_CHATS) {
             NimarkoConfig.toggleMainTabsForceOpenChats();
             applyCheck(item, view, NimarkoConfig.mainTabsForceOpenChats);
@@ -216,6 +245,39 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
                 () -> NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.cgTabsUpdated),
                 80);
+    }
+
+    private String getTintColorTitle() {
+        int c = NimarkoConfig.mainTabsTintColor;
+        if (c == 0) {
+            return LocaleController.getString(R.string.NM_BT_TintColor) + " · " + LocaleController.getString(R.string.NM_BT_TintOff);
+        }
+        return LocaleController.getString(R.string.NM_BT_TintColor) + " · " + String.format("#%06X", 0xFFFFFF & c);
+    }
+
+    private void showTintColorPicker() {
+        final android.content.Context context = getParentActivity() != null ? getParentActivity() : getContext();
+        org.telegram.ui.Components.ColorPicker colorPicker = new org.telegram.ui.Components.ColorPicker(context, false, (color, n, applyNow) -> {
+            NimarkoConfig.setMainTabsTintColor(color | 0xFF000000);
+            if (applyNow) {
+                if (listView != null && listView.adapter != null) {
+                    listView.adapter.update(true);
+                }
+                postCgTabsUpdated();
+                rebuildMainTabsFragments();
+            }
+        }) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                super.onMeasure(widthMeasureSpec, android.view.View.MeasureSpec.makeMeasureSpec(org.telegram.messenger.AndroidUtilities.dp(320), android.view.View.MeasureSpec.EXACTLY));
+            }
+        };
+        colorPicker.setColor(NimarkoConfig.mainTabsTintColor != 0 ? NimarkoConfig.mainTabsTintColor : 0xFFFFFFFF, 0);
+        colorPicker.setType(-1, true, 1, 1, false, 0, false);
+        org.telegram.ui.ActionBar.BottomSheet bottomSheet = new org.telegram.ui.ActionBar.BottomSheet(context, false);
+        bottomSheet.setCustomView(colorPicker);
+        bottomSheet.setDimBehind(false);
+        bottomSheet.show();
     }
 
     private void rebuildMainTabsFragments() {

@@ -447,10 +447,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
         tabsViewBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
-        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
-            tabsViewBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
-        }
+        applyTabsBackgroundStyle(tabsViewBackground);
         tabsView.setBackground(tabsViewBackground);
+        tabsView.setLiquidDragListener(stretch -> {
+            // стекло реагирует на движение: усиливается преломление, как на iOS
+            try {
+                tabsViewBackground.setIntensity(0.75f + 0.45f * stretch);
+            } catch (Throwable ignored) {}
+        });
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
         iBlur3FactoryFade.setSourceRootView(viewPositionWatcher, contentView);
@@ -493,9 +497,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     searchButton, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
             searchButtonBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
             searchButtonBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
-            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
-                searchButtonBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
-            }
+            applyTabsBackgroundStyle(searchButtonBackground);
             searchButton.setBackground(searchButtonBackground);
 
             int searchSize = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
@@ -1552,23 +1554,30 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
     }
 
+    private static void applyTabsBackgroundStyle(android.graphics.drawable.Drawable d) {
+        if (d == null) return;
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+            d.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+        } else {
+            d.setAlpha(255);
+        }
+        int tint = app.nimarkogram.messenger.NimarkoConfig.mainTabsTintColor;
+        if (tint != 0) {
+            d.setColorFilter(tint, android.graphics.PorterDuff.Mode.SRC_ATOP);
+        } else {
+            d.setColorFilter(null);
+        }
+    }
+
     private void blur3_updateColors() {
         blur3_updateFadeColors();
         if (tabsViewBackground != null) {
             tabsViewBackground.updateColors();
-            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
-                tabsViewBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
-            } else {
-                tabsViewBackground.setAlpha(255);
-            }
+            applyTabsBackgroundStyle(tabsViewBackground);
         }
         if (searchButtonBackground != null) {
             searchButtonBackground.updateColors();
-            if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
-                searchButtonBackground.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
-            } else {
-                searchButtonBackground.setAlpha(255);
-            }
+            applyTabsBackgroundStyle(searchButtonBackground);
         }
         blur3_invalidateBlur();
         if (fadeView != null) {

@@ -1691,6 +1691,27 @@ public final class NimarkoConfig {
     public static void toggleMainTabsSemiTransparent() { mainTabsSemiTransparent = !mainTabsSemiTransparent; getEditor().putBoolean("mainTabsSemiTransparent", mainTabsSemiTransparent).apply(); }
     public static final int MAIN_TABS_SEMI_TRANSPARENT_ALPHA = 150;
 
+    public static int mainTabsTintColor = getPreferences().getInt("mainTabsTintColor", 0);
+    public static void setMainTabsTintColor(int color) { mainTabsTintColor = color; getEditor().putInt("mainTabsTintColor", color).apply(); }
+
+    /** Linki Ass — принудительно включает жидкое стекло (шапка чата, панель ввода, кнопки, нижние табы). */
+    public static boolean linkiAss = getPreferences().getBoolean("linkiAss", true);
+    public static void toggleLinkiAss() { linkiAss = !linkiAss; getEditor().putBoolean("linkiAss", linkiAss).apply(); }
+
+    /** 0 = как в оригинале, 1..5 = всё более прозрачное стекло в чате (шапка + панель ввода). */
+    public static int chatGlassLevel = getPreferences().getInt("chatGlassLevel", 0);
+    public static void cycleChatGlassLevel() { chatGlassLevel = (chatGlassLevel + 1) % 6; getEditor().putInt("chatGlassLevel", chatGlassLevel).apply(); }
+    /** Множитель альфы стекла: 1.0 → 0.1 (почти полностью прозрачно) шагом 18%. */
+    public static float chatGlassAlphaMult() { return Math.max(0.1f, 1f - chatGlassLevel * 0.18f); }
+    public static int chatGlassPercent() { return Math.round((1f - chatGlassAlphaMult()) * 100f); }
+
+    public static boolean customBgEnabled = getPreferences().getBoolean("customBgEnabled", false);
+    public static void toggleCustomBgEnabled() { customBgEnabled = !customBgEnabled; getEditor().putBoolean("customBgEnabled", customBgEnabled).apply(); }
+    public static String customBgPath = getPreferences().getString("customBgPath", "");
+    public static void setCustomBgPath(String path) { customBgPath = path == null ? "" : path; getEditor().putString("customBgPath", customBgPath).apply(); }
+    public static int customBgDim = getPreferences().getInt("customBgDim", 2);
+    public static void cycleCustomBgDim() { customBgDim = (customBgDim + 1) % 5; getEditor().putInt("customBgDim", customBgDim).apply(); }
+
     public static final int ROUND_AUTO = 0;
     public static final int ROUND_SD = 1;
     public static final int ROUND_HD = 2;

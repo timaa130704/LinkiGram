@@ -59,6 +59,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int foldersRow = 7;
     private final int bottomTabsRow = 8;
     private final int messagesAndProfilesRow = 9;
+    private final int appBackgroundRow = 22;
 
     private app.nimarkogram.messenger.preferences.components.AvatarCornersPreviewCell avatarCornersCell;
     private app.nimarkogram.messenger.preferences.components.StickerSizeCell stickerSizeCell;
@@ -159,6 +160,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asHeader(getString(R.string.LocalMiscellaneousCache)));
         items.add(UItem.asButton(foldersRow, R.drawable.msg_folders, getString(R.string.CP_Filters_Header)));
         items.add(UItem.asButton(bottomTabsRow, R.drawable.tabs_reorder, getString(R.string.CP_MainTabs_Header)));
+        items.add(UItem.asButton(appBackgroundRow, R.drawable.msg_media, getString(R.string.NM_BG_Title)));
         items.add(UItem.asButton(messagesAndProfilesRow, R.drawable.msg_customize, getString(R.string.CP_ProfileReplyBackground)));
         items.add(UItem.asShadow(null));
     }
@@ -274,6 +276,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             presentFragment(new FoldersPreferencesActivity());
         } else if (item.id == bottomTabsRow) {
             presentFragment(new BottomTabsPreferencesActivity());
+        } else if (item.id == appBackgroundRow) {
+            presentFragment(new BackgroundPreferencesActivity());
         } else if (item.id == messagesAndProfilesRow) {
             presentFragment(new MessagesAndProfilesPreferencesActivity());
         }

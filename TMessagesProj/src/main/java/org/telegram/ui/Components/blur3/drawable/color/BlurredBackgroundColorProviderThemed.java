@@ -38,7 +38,12 @@ public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundCo
 
     public void updateColors() {
         final int color = Theme.getColor(backgroundColorId, resourcesProvider);
-        backgroundColor = Theme.multAlpha(color, alpha);
+        float effAlpha = alpha;
+        if (backgroundColorId == Theme.key_chat_messagePanelBackground
+                || backgroundColorId == Theme.key_chat_topPanelBackground) {
+            effAlpha *= app.nimarkogram.messenger.NimarkoConfig.chatGlassAlphaMult();
+        }
+        backgroundColor = Theme.multAlpha(color, effAlpha);
 
         if (isDark()) {
             strokeColorTop = 0x28FFFFFF;

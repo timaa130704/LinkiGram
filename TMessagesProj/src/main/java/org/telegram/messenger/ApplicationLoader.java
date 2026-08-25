@@ -898,6 +898,18 @@ public class ApplicationLoader extends Application {
         }
 
         try {
+            app.nimarkogram.messenger.badges.BadgesController.getInstance().refreshRemoteXpAsync();
+        } catch (Throwable ignored) {}
+
+        try {
+            for (int a = 0; a < org.telegram.messenger.UserConfig.MAX_ACCOUNT_COUNT; a++) {
+                if (org.telegram.messenger.UserConfig.getInstance(a).isClientActivated()) {
+                    app.nimarkogram.messenger.NimarkoConfig.syncXpToServer(a);
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        try {
             app.nimarkogram.messenger.textanim.NimarkoTextAnim.initIfEnabled();
         } catch (Throwable t) {
             FileLog.e("nimarko-textanim: init failed", t);
