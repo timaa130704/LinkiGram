@@ -1705,6 +1705,21 @@ public final class NimarkoConfig {
     public static float chatGlassAlphaMult() { return Math.max(0.1f, 1f - chatGlassLevel * 0.18f); }
     public static int chatGlassPercent() { return Math.round((1f - chatGlassAlphaMult()) * 100f); }
 
+    /**
+     * Классический интерфейс: выключает iOS-элементы нового Telegram —
+     * нижнюю панель вкладок и разделённое поле ввода, возвращая старую раскладку.
+     */
+    public static boolean classicUi = getPreferences().getBoolean("classicUi", false);
+    public static void setClassicUi(boolean value) {
+        classicUi = value;
+        getEditor().putBoolean("classicUi", classicUi).apply();
+        // панель вкладок остаётся, но становится плоской; поле ввода — единой панелью
+        iosStyleComposer = !value;
+        getEditor().putBoolean("iosStyleComposer", iosStyleComposer).apply();
+    }
+
+
+
     public static boolean customBgEnabled = getPreferences().getBoolean("customBgEnabled", false);
     public static void toggleCustomBgEnabled() { customBgEnabled = !customBgEnabled; getEditor().putBoolean("customBgEnabled", customBgEnabled).apply(); }
     public static String customBgPath = getPreferences().getString("customBgPath", "");

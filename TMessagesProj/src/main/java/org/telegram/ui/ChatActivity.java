@@ -3831,8 +3831,13 @@ public class ChatActivity extends BaseFragment implements
         Theme.createChatResources(context, false);
 
         actionBar.setAddToContainer(false);
-        actionBar.setCastShadows(false);
-        actionBar.setBackground(null);
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая шапка — с фоном и тенью, как в старом Telegram
+            actionBar.setCastShadows(true);
+        } else {
+            actionBar.setCastShadows(false);
+            actionBar.setBackground(null);
+        }
         
         if (inPreviewMode) {
             actionBar.setBackButtonDrawable(null);
@@ -4850,10 +4855,15 @@ public class ChatActivity extends BaseFragment implements
 
         contentView.setOccupyStatusBar(!inBubbleMode && !isInsideContainer && !inPreviewMode);
 
-        actionBar.setupGlass(
-            glassBackgroundDrawableFactory,
-            BlurredBackgroundProviderImpl.topPanelChatActivity(themeDelegate),
-            ChatObject.isForum(currentChat));
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая цельная шапка вместо стеклянных островов
+            actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));
+        } else {
+            actionBar.setupGlass(
+                glassBackgroundDrawableFactory,
+                BlurredBackgroundProviderImpl.topPanelChatActivity(themeDelegate),
+                ChatObject.isForum(currentChat));
+        }
         avatarContainer.setActionBar(actionBar);
 
         chatInputViewsContainer = new ChatInputViewsContainer(context);
@@ -47794,10 +47804,12 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private float calculateInputIslandHeight(boolean target) {
+        // LinkiGram: классическая панель ввода выше — как в старом Telegram
+        final int minIslandHeightDp = app.nimarkogram.messenger.NimarkoConfig.classicUi ? 51 : 44;
         final float enterViewIslandHeight = Math.max(
-            chatActivityEnterView != null ? chatActivityEnterView.getIslandTotalHeight(target): 0, dp(44));
+            chatActivityEnterView != null ? chatActivityEnterView.getIslandTotalHeight(target): 0, dp(minIslandHeightDp));
 
-        final float defaultIslandHeight = dp(44);
+        final float defaultIslandHeight = dp(minIslandHeightDp);
         final float enterViewFactor;
         float visibility;
         float pollAddVisibility;
@@ -47813,7 +47825,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         if (!isBottomOverlaysInvisible() && !isInsideContainer && !isInPreviewMode()) {
-            return lerp(Math.max(lerp(defaultIslandHeight, enterViewIslandHeight, enterViewFactor) * visibility, dp(44)), -dp(7), pollAddVisibility);
+            return lerp(Math.max(lerp(defaultIslandHeight, enterViewIslandHeight, enterViewFactor) * visibility, dp(minIslandHeightDp)), -dp(7), pollAddVisibility);
         } else {
             return lerp(defaultIslandHeight, enterViewIslandHeight, enterViewFactor) * visibility;
         }

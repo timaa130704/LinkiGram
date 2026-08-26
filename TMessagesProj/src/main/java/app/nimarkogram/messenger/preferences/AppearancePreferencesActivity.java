@@ -60,6 +60,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int bottomTabsRow = 8;
     private final int messagesAndProfilesRow = 9;
     private final int appBackgroundRow = 22;
+    private final int classicUiRow = 23;
 
     private app.nimarkogram.messenger.preferences.components.AvatarCornersPreviewCell avatarCornersCell;
     private app.nimarkogram.messenger.preferences.components.StickerSizeCell stickerSizeCell;
@@ -102,6 +103,13 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.drawSnowInActionBar)
         );
         items.add(UItem.asButton(customTitleRow, getString(R.string.NM_CustomTitle), getCustomTitleValueText()));
+        items.add(UItem.asShadow(null));
+
+        items.add(UItem.asHeader(getString(R.string.NM_ClassicUi_Header)));
+        items.add(SettingsHelper.asSwitchCG(classicUiRow,
+                        getString(R.string.NM_ClassicUi),
+                        getString(R.string.NM_ClassicUi_Desc))
+                .setChecked(NimarkoConfig.classicUi));
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.NM_Chat_Section)));
@@ -248,6 +256,17 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         } else if (item.id == disableSendHintsRow) {
             NimarkoConfig.toggleDisableSendHints();
             updateCheckState(view, NimarkoConfig.disableSendHints);
+        } else if (item.id == classicUiRow) {
+            NimarkoConfig.setClassicUi(!NimarkoConfig.classicUi);
+            updateCheckState(view, NimarkoConfig.classicUi);
+            if (listView != null && listView.adapter != null) {
+                listView.adapter.update(true);
+            }
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
+            showRestartBulletin();
         } else if (item.id == iosStyleComposerRow) {
             NimarkoConfig.toggleIosStyleComposer();
             updateCheckState(view, NimarkoConfig.iosStyleComposer);

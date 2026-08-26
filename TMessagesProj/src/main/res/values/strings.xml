@@ -11539,6 +11539,9 @@
     <string name="NM_BG_Pick">Choose image</string>
     <string name="NM_BG_Dim">Dimming</string>
     <string name="NM_BG_Cards">Card readability</string>
+    <string name="NM_ClassicUi_Header">Interface style</string>
+    <string name="NM_ClassicUi">Classic interface</string>
+    <string name="NM_ClassicUi_Desc">Turns off the new iOS-like elements: the bottom tabs bar (Chats / Profile / Settings) and the split input bar with separated buttons. Brings back the classic Telegram layout with the side menu. Restart is recommended.</string>
     <string name="NM_BG_Remove">Remove image</string>
     <string name="NM_BG_Error">Failed to load image</string>
     <string name="NM_GLASS_Header">Glass interface</string>

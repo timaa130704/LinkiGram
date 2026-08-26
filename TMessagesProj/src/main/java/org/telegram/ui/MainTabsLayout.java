@@ -106,8 +106,11 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             desiredTotalWidth += tabsTextWidthWithMargin[a];
         }
 
-        final int totalTabsWidth = Math.min(maxTotalWidthForTabs,
-                Math.max(minTotalWidthForTabs, Math.round(desiredTotalWidth)));
+        // LinkiGram: классическая панель растягивает табы на всю доступную ширину
+        final int totalTabsWidth = app.nimarkogram.messenger.NimarkoConfig.classicUi
+                ? maxTotalWidthForTabs
+                : Math.min(maxTotalWidthForTabs,
+                        Math.max(minTotalWidthForTabs, Math.round(desiredTotalWidth)));
         int remainingWidth = totalTabsWidth;
         int remainingTabs = visibleChildCount;
         int l = 0;
@@ -434,6 +437,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     }
 
     private void startLiquidDrag(float x, float y) {
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // классическая панель: без перетекающей капли
+            return;
+        }
         isLiquidDrag = true;
         liquidVel = 0;
         lastLiquidTime = 0;

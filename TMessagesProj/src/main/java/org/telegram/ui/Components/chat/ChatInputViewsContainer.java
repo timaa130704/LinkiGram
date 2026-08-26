@@ -33,6 +33,11 @@ public class ChatInputViewsContainer extends FrameLayout {
     public static final int INPUT_KEYBOARD_RADIUS = 29;
 
     public static final int INPUT_BUBBLE_BOTTOM = 9;
+
+    /** LinkiGram: в классическом виде панель ввода прижата к низу без отрыва. */
+    private static int inputBubbleBottomDp() {
+        return app.nimarkogram.messenger.NimarkoConfig.classicUi ? 0 : INPUT_BUBBLE_BOTTOM;
+    }
     public static final int SEPARATED_COMPOSER_SIDE_SIZE = 44;
     public static final int SEPARATED_COMPOSER_GAP = 4;
 
@@ -89,7 +94,9 @@ public class ChatInputViewsContainer extends FrameLayout {
     public void setInputIslandBubbleDrawable(BlurredBackgroundDrawable drawable) {
         blurredBackgroundDrawable = drawable;
         blurredBackgroundDrawable.setPadding(dp(INPUT_BUBBLE_DRAWABLE_PADDING));
-        blurredBackgroundDrawable.setRadius(dp(INPUT_BUBBLE_RADIUS));
+        // LinkiGram: в классическом интерфейсе поле ввода — плоская панель без скруглений
+        blurredBackgroundDrawable.setRadius(
+                app.nimarkogram.messenger.NimarkoConfig.classicUi ? 0 : dp(INPUT_BUBBLE_RADIUS));
     }
 
     public void setSeparatedComposerDrawables(
@@ -178,7 +185,7 @@ public class ChatInputViewsContainer extends FrameLayout {
     private void checkBlurredHeight(boolean force) {
         checkViewsPositions();
 
-        final int blurredHeight = inputBubbleHeightRound + dp(INPUT_BUBBLE_BOTTOM) + Math.round(maxBottomInset);
+        final int blurredHeight = inputBubbleHeightRound + dp(inputBubbleBottomDp()) + Math.round(maxBottomInset);
         if (currentBlurredHeight != blurredHeight || force) {
             currentBlurredHeight = blurredHeight;
 
@@ -226,7 +233,7 @@ public class ChatInputViewsContainer extends FrameLayout {
     }
 
     private void checkViewsPositions() {
-        inputIslandBubbleContainer.setTranslationY(-maxBottomInset - dp(INPUT_BUBBLE_BOTTOM));
+        inputIslandBubbleContainer.setTranslationY(-maxBottomInset - dp(inputBubbleBottomDp()));
         inAppKeyboardBubbleContainer.setTranslationY(inAppKeyboardBubbleContainer.getMeasuredHeight() - imeBottomInset);
     }
 
@@ -270,7 +277,7 @@ public class ChatInputViewsContainer extends FrameLayout {
     }
 
     public float getInputBubbleBottom() {
-        return getMeasuredHeight() - maxBottomInset - dp(INPUT_BUBBLE_BOTTOM);
+        return getMeasuredHeight() - maxBottomInset - dp(inputBubbleBottomDp());
     }
 
     public void getInputBubbleDrawableBounds(@NonNull Rect out) {
@@ -278,6 +285,12 @@ public class ChatInputViewsContainer extends FrameLayout {
         final int drawablePadding = dp(INPUT_BUBBLE_DRAWABLE_PADDING);
         final int bubbleTop = blurTop + (int) bubbleInputTranlationY;
         final int bubbleBottom = bubbleTop + inputBubbleHeightRound;
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая панель ввода — во всю ширину, вплотную к низу
+            out.set(-drawablePadding, bubbleTop,
+                    getMeasuredWidth() + drawablePadding, getMeasuredHeight() + drawablePadding);
+            return;
+        }
         final int fullLeft = Math.round(inputBubbleOffsetLeft);
         final int fullRight = getMeasuredWidth() - Math.round(inputBubbleOffsetRight);
         final int separatedInset = dp(SEPARATED_COMPOSER_SIDE_SIZE + SEPARATED_COMPOSER_GAP);

@@ -1440,7 +1440,14 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                     onContainerTranslationYChanged(translationY);
                 }
             };
-            containerView.setBackgroundDrawable(shadowDrawable);
+            if (app.nimarkogram.messenger.NimarkoConfig.linkiAss
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Linki Ass: стеклянная подложка шита вместо плоской заливки
+                containerView.setBackgroundDrawable(new app.nimarkogram.messenger.ui.LinkiGlassDrawable(
+                        dp(14), getThemedColor(Theme.key_dialogBackground), 0.88f));
+            } else {
+                containerView.setBackgroundDrawable(shadowDrawable);
+            }
             containerView.setPadding(backgroundPaddingLeft, (applyTopPadding ? dp(8) : 0) + backgroundPaddingTop - 1, backgroundPaddingLeft, (applyBottomPadding ? dp(8) : 0));
         }
         containerView.setVisibility(View.INVISIBLE);

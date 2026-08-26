@@ -811,7 +811,12 @@ public class Bulletin {
 
         public void setBackground(int color, int rounding) {
             if (!hasCustomBackground) {
-                background = Theme.createRoundRectDrawable(dp(rounding), color);
+                if (app.nimarkogram.messenger.NimarkoConfig.linkiAss
+                        && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    background = new app.nimarkogram.messenger.ui.LinkiGlassDrawable(dp(rounding), color);
+                } else {
+                    background = Theme.createRoundRectDrawable(dp(rounding), color);
+                }
             }
         }
 

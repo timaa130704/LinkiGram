@@ -642,6 +642,9 @@
     <string name="NM_BG_Pick">Выбрать изображение</string>
     <string name="NM_BG_Dim">Затемнение</string>
     <string name="NM_BG_Cards">Читаемость карточек</string>
+    <string name="NM_ClassicUi_Header">Стиль интерфейса</string>
+    <string name="NM_ClassicUi">Классический интерфейс</string>
+    <string name="NM_ClassicUi_Desc">Отключает новые iOS-элементы: нижнюю панель вкладок (Чаты / Профиль / Настройки) и разделённое поле ввода с отдельными кнопками. Возвращает привычную раскладку Telegram с боковым меню. Желателен перезапуск.</string>
     <string name="NM_BG_Remove">Удалить изображение</string>
     <string name="NM_BG_Error">Не удалось загрузить изображение</string>
     <string name="NM_GLASS_Header">Стеклянный интерфейс</string>

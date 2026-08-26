@@ -49,7 +49,9 @@ public final class MessageMenuTelegramPlus {
     }
 
     public static boolean isEnabled(boolean ordinaryTap) {
-        return ordinaryTap && NimarkoConfig.telegramPlusMessageMenu;
+        // Linki Ass включает стеклянное меню сообщений сам, без отдельного тумблера
+        return ordinaryTap && (NimarkoConfig.telegramPlusMessageMenu
+                || (NimarkoConfig.linkiAss && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S));
     }
 
     public static void apply(

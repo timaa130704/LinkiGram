@@ -364,8 +364,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsView = new MainTabsLayout(context, resourceProvider);
         tabsView.setClipChildren(false);
-        tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
-        tabsView.setMaxWidth(dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая панель — во всю ширину, без внутренних отступов пилюли
+            final int vPad = dp(4);
+            tabsView.setPadding(0, vPad, 0, vPad);
+            tabsView.setMaxWidth(0);
+        } else {
+            tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
+            tabsView.setMaxWidth(dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        }
 
         tabs = new GlassTabView[4];
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
@@ -444,9 +451,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
         iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
+        final boolean classicTabs = app.nimarkogram.messenger.NimarkoConfig.classicUi;
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
-        tabsViewBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
-        tabsViewBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+        // LinkiGram: классическая панель — плоская полоса без скруглений и отступов
+        tabsViewBackground.setRadius(classicTabs ? 0 : dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
+        tabsViewBackground.setPadding(classicTabs ? 0 : dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         applyTabsBackgroundStyle(tabsViewBackground);
         tabsView.setBackground(tabsViewBackground);
         tabsView.setLiquidDragListener(stretch -> {
@@ -508,6 +517,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT,
                             DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
                             Gravity.BOTTOM));
+        } else if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая панель занимает всю ширину экрана
+            tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(
+                    LayoutHelper.MATCH_PARENT,
+                    DialogsActivity.MAIN_TABS_HEIGHT,
+                    Gravity.BOTTOM));
         } else {
             tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(
                     328 + DialogsActivity.MAIN_TABS_MARGIN * 2,
