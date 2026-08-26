@@ -11538,6 +11538,7 @@
     <string name="NM_BG_Enable_Desc">Show your own background image in the chat list, profile and settings.</string>
     <string name="NM_BG_Pick">Choose image</string>
     <string name="NM_BG_Dim">Dimming</string>
+    <string name="NM_BG_Cards">Card readability</string>
     <string name="NM_BG_Remove">Remove image</string>
     <string name="NM_BG_Error">Failed to load image</string>
     <string name="NM_GLASS_Header">Glass interface</string>

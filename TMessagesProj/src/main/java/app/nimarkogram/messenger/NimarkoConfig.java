@@ -1709,8 +1709,13 @@ public final class NimarkoConfig {
     public static void toggleCustomBgEnabled() { customBgEnabled = !customBgEnabled; getEditor().putBoolean("customBgEnabled", customBgEnabled).apply(); }
     public static String customBgPath = getPreferences().getString("customBgPath", "");
     public static void setCustomBgPath(String path) { customBgPath = path == null ? "" : path; getEditor().putString("customBgPath", customBgPath).apply(); }
-    public static int customBgDim = getPreferences().getInt("customBgDim", 2);
-    public static void cycleCustomBgDim() { customBgDim = (customBgDim + 1) % 5; getEditor().putInt("customBgDim", customBgDim).apply(); }
+    /** Затемнение фоновой картинки, % (0..80). */
+    public static int customBgDimPercent = getPreferences().getInt("customBgDimPercent", 40);
+    public static void setCustomBgDimPercent(int v) { customBgDimPercent = Math.max(0, Math.min(80, v)); getEditor().putInt("customBgDimPercent", customBgDimPercent).apply(); }
+
+    /** Непрозрачность карточек поверх фона, % (30..100): меньше = фон виднее, 100 = текст максимально читаемый. */
+    public static int customBgCardAlpha = getPreferences().getInt("customBgCardAlpha", 80);
+    public static void setCustomBgCardAlpha(int v) { customBgCardAlpha = Math.max(30, Math.min(100, v)); getEditor().putInt("customBgCardAlpha", customBgCardAlpha).apply(); }
 
     public static final int ROUND_AUTO = 0;
     public static final int ROUND_SD = 1;

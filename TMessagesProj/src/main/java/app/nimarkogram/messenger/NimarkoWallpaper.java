@@ -152,7 +152,7 @@ public final class NimarkoWallpaper {
             canvas.clipRect(0, 0, vw, vh);
             dstRect.set(left, top, left + dw, top + dh);
             canvas.drawBitmap(bmp, null, dstRect, paint);
-            int dimPercent = NimarkoConfig.customBgDim;
+            int dimPercent = NimarkoConfig.customBgDimPercent;
             if (dimPercent > 0) {
                 scrimPaint.setColor(Color.argb(Math.min(230, (int) (dimPercent * 2.55f)), 0, 0, 0));
                 canvas.drawRect(0, 0, vw, vh, scrimPaint);

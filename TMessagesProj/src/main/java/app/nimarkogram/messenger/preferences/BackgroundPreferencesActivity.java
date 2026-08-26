@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.view.View;
+import android.view.ViewGroup;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
@@ -22,6 +23,7 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
     private static final int ID_ENABLE = 1;
     private static final int ID_PICK = 2;
     private static final int ID_DIM = 3;
+    private static final int ID_CARD_ALPHA = 7;
     private static final int ID_REMOVE = 4;
     private static final int ID_CHAT_GLASS = 5;
     private static final int ID_LIQUID_GLASS = 6;
@@ -36,7 +38,20 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
         arrayList.add(UItem.asShadow(LocaleController.getString(R.string.NM_BG_Enable_Desc)));
         if (NimarkoConfig.customBgEnabled) {
             arrayList.add(UItem.asButton(ID_PICK, LocaleController.getString(R.string.NM_BG_Pick)));
-            arrayList.add(UItem.asButton(ID_DIM, LocaleController.getString(R.string.NM_BG_Dim) + " · " + (NimarkoConfig.customBgDim * 20) + "%"));
+            arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_BG_Dim)));
+            arrayList.add(UItem.asIntSlideView(1, 0, NimarkoConfig.customBgDimPercent, 80,
+                    val -> val + "%",
+                    val -> {
+                        NimarkoConfig.setCustomBgDimPercent(val);
+                        invalidateWallpaperViews();
+                    }));
+            arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_BG_Cards)));
+            arrayList.add(UItem.asIntSlideView(1, 30, NimarkoConfig.customBgCardAlpha, 100,
+                    val -> val + "%",
+                    val -> {
+                        NimarkoConfig.setCustomBgCardAlpha(val);
+                        invalidateWallpaperViews();
+                    }));
             if (NimarkoWallpaper.hasImage()) {
                 arrayList.add(UItem.asButton(ID_REMOVE, R.drawable.msg_reset, LocaleController.getString(R.string.NM_BG_Remove)));
             }
@@ -80,12 +95,6 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
             rebuildAll();
         } else if (id == ID_PICK) {
             openChooser();
-        } else if (id == ID_DIM) {
-            NimarkoConfig.cycleCustomBgDim();
-            if (listView != null && listView.adapter != null) {
-                listView.adapter.update(true);
-            }
-            rebuildAll();
         } else if (id == ID_REMOVE) {
             NimarkoWallpaper.removeImage();
             NimarkoConfig.setCustomBgPath("");
@@ -133,6 +142,18 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
                 });
             }
         });
+    }
+
+    private void invalidateWallpaperViews() {
+        if (fragmentView instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) fragmentView;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                View c = vg.getChildAt(i);
+                if (c instanceof NimarkoWallpaper.WallpaperView) {
+                    c.invalidate();
+                }
+            }
+        }
     }
 
     private void rebuildAll() {

@@ -3594,7 +3594,8 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
         
         int sectionColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
         if (app.nimarkogram.messenger.NimarkoWallpaper.isEnabled()) {
-            sectionColor = (sectionColor & 0x00FFFFFF) | (205 << 24);
+            final int cardAlpha = Math.max(30, Math.min(100, app.nimarkogram.messenger.NimarkoConfig.customBgCardAlpha)) * 255 / 100;
+            sectionColor = (sectionColor & 0x00FFFFFF) | (cardAlpha << 24);
         }
         sectionBackgroundPaint.setColor(sectionColor);
         if (topRadius == bottomRadius) {

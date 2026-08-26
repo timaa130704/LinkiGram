@@ -8,6 +8,8 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <memory>
+#include <vector>
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <chrono>
@@ -136,24 +138,18 @@ ConnectionsManager::~ConnectionsManager() {
 }
 
 ConnectionsManager& ConnectionsManager::getInstance(int32_t instanceNum) {
-    switch (instanceNum) {
-        case 0:
-            static ConnectionsManager instance0(0);
-            return instance0;
-        case 1:
-            static ConnectionsManager instance1(1);
-            return instance1;
-        case 2:
-            static ConnectionsManager instance2(2);
-            return instance2;
-        case 3:
-            static ConnectionsManager instance3(3);
-            return instance3;
-        case 4:
-        default:
-            static ConnectionsManager instance4(4);
-            return instance4;
+    if (instanceNum < 0 || instanceNum >= MAX_ACCOUNT_COUNT) {
+        instanceNum = 0;
     }
+    static std::vector<std::unique_ptr<ConnectionsManager>> instances = [] {
+        std::vector<std::unique_ptr<ConnectionsManager>> v;
+        v.reserve(MAX_ACCOUNT_COUNT);
+        for (int a = 0; a < MAX_ACCOUNT_COUNT; a++) {
+            v.emplace_back(new ConnectionsManager(a));
+        }
+        return v;
+    }();
+    return *instances[instanceNum];
 }
 
 int ConnectionsManager::callEvents(int64_t now) {
