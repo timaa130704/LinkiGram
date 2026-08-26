@@ -33,7 +33,7 @@
         <item name="android:navigationBarColor">#000000</item>
         <item name="android:textViewStyle">@style/MyTextViewStyle</item>
         <item name="android:forceDarkAllowed">false</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_plane_avd</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_linki_avd</item>
         <item name="android:windowSplashScreenAnimationDuration">@integer/splash_screen_duration</item>
         <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_50</item>
     </style>

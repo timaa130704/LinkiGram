@@ -56,6 +56,87 @@ public class SeekBarView extends FrameLayout {
 
     private Paint innerPaint1;
     private Paint outerPaint1;
+
+    // --- Linki Ass: стеклянный вид ползунка ---
+    private Paint linkiGlassTrackPaint;
+    private Paint linkiGlassStrokePaint;
+    private Paint linkiGlassThumbPaint;
+    private Paint linkiGlassGlarePaint;
+    private final RectF linkiRect = new RectF();
+
+    private boolean linkiGlassEnabled() {
+        return app.nimarkogram.messenger.NimarkoConfig.linkiAss
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
+    }
+
+    private void linkiEnsurePaints() {
+        if (linkiGlassTrackPaint != null) {
+            return;
+        }
+        linkiGlassTrackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linkiGlassStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linkiGlassStrokePaint.setStyle(Paint.Style.STROKE);
+        linkiGlassThumbPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linkiGlassGlarePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    }
+
+    /**
+     * Рисует стеклянную дорожку: полупрозрачная подложка, стеклянная обводка и блик сверху.
+     */
+    private void linkiDrawGlassTrack(Canvas canvas, float left, float top, float right, float bottom, float fillRight) {
+        linkiEnsurePaints();
+        final float radius = (bottom - top) / 2f;
+        final boolean dark = AndroidUtilities.computePerceivedBrightness(
+                getThemedColor(Theme.key_windowBackgroundWhite)) < 0.721f;
+
+        linkiGlassTrackPaint.setColor(dark ? 0x2BFFFFFF : 0x1F000000);
+        linkiRect.set(left, top, right, bottom);
+        canvas.drawRoundRect(linkiRect, radius, radius, linkiGlassTrackPaint);
+
+        if (fillRight > left) {
+            final int accent = getThemedColor(Theme.key_player_progress);
+            linkiGlassTrackPaint.setColor(ColorUtils.setAlphaComponent(accent, dark ? 210 : 225));
+            linkiRect.set(left, top, fillRight, bottom);
+            canvas.drawRoundRect(linkiRect, radius, radius, linkiGlassTrackPaint);
+
+            linkiGlassGlarePaint.setColor(dark ? 0x33FFFFFF : 0x40FFFFFF);
+            linkiRect.set(left, top, fillRight, top + (bottom - top) * 0.45f);
+            canvas.drawRoundRect(linkiRect, radius, radius, linkiGlassGlarePaint);
+        }
+
+        linkiGlassStrokePaint.setStrokeWidth(AndroidUtilities.dpf2(0.66f));
+        linkiGlassStrokePaint.setColor(dark ? 0x26FFFFFF : 0x1AFFFFFF);
+        linkiRect.set(left, top, right, bottom);
+        canvas.drawRoundRect(linkiRect, radius, radius, linkiGlassStrokePaint);
+    }
+
+    /**
+     * Рисует стеклянную ручку: тень, стекло, обводка и блик — как на iOS.
+     */
+    private void linkiDrawGlassThumb(Canvas canvas, float cx, float cy, float radius, float alpha) {
+        if (radius <= 0 || alpha <= 0) {
+            return;
+        }
+        linkiEnsurePaints();
+        final boolean dark = AndroidUtilities.computePerceivedBrightness(
+                getThemedColor(Theme.key_windowBackgroundWhite)) < 0.721f;
+        final int a = (int) (255 * Math.min(1f, alpha));
+
+        linkiGlassThumbPaint.setShadowLayer(AndroidUtilities.dpf2(3f), 0, AndroidUtilities.dpf2(1f),
+                ColorUtils.setAlphaComponent(0x000000, (int) (dark ? 90 * alpha : 60 * alpha)));
+        linkiGlassThumbPaint.setColor(ColorUtils.setAlphaComponent(dark ? 0xFFF2F4F7 : 0xFFFFFFFF, a));
+        canvas.drawCircle(cx, cy, radius, linkiGlassThumbPaint);
+        linkiGlassThumbPaint.setShadowLayer(0, 0, 0, 0);
+
+        linkiGlassGlarePaint.setColor(ColorUtils.setAlphaComponent(0xFFFFFFFF, (int) (dark ? 70 * alpha : 130 * alpha)));
+        linkiRect.set(cx - radius * 0.72f, cy - radius * 0.86f, cx + radius * 0.72f, cy - radius * 0.1f);
+        canvas.drawRoundRect(linkiRect, radius, radius, linkiGlassGlarePaint);
+
+        linkiGlassStrokePaint.setStrokeWidth(AndroidUtilities.dpf2(0.66f));
+        linkiGlassStrokePaint.setColor(ColorUtils.setAlphaComponent(
+                dark ? 0xFFFFFFFF : 0xFF000000, (int) (dark ? 46 * alpha : 26 * alpha)));
+        canvas.drawCircle(cx, cy, radius, linkiGlassStrokePaint);
+    }
     private int thumbSize;
     private int selectorWidth;
     private int thumbX;
@@ -475,6 +556,52 @@ public class SeekBarView extends FrameLayout {
         float centerY = getMeasuredHeight() / 2f;
         float left = selectorWidth / 2f, right = getMeasuredWidth() - selectorWidth / 2;
         float top = centerY - AndroidUtilities.dp(lineWidthDp) / 2f, bottom = centerY + AndroidUtilities.dp(lineWidthDp) / 2f;
+
+        if (linkiGlassEnabled() && !twoSided && (timestamps == null || timestamps.isEmpty())) {
+            final int linkiTargetRadius = AndroidUtilities.dp(pressed ? 11 : 9);
+            final long linkiNow = SystemClock.elapsedRealtime();
+            long linkiDt = linkiNow - lastUpdateTime;
+            if (linkiDt > 18) {
+                linkiDt = 16;
+            }
+            lastUpdateTime = linkiNow;
+            boolean linkiInvalidate = false;
+            if (currentRadius != linkiTargetRadius) {
+                final float step = AndroidUtilities.dp(1) * (linkiDt / 60.0f);
+                if (currentRadius < linkiTargetRadius) {
+                    currentRadius = Math.min(linkiTargetRadius, currentRadius + step);
+                } else {
+                    currentRadius = Math.max(linkiTargetRadius, currentRadius - step);
+                }
+                linkiInvalidate = true;
+            }
+            if (transitionProgress < 1f) {
+                transitionProgress = Math.min(1f, transitionProgress + linkiDt / 225f);
+                linkiInvalidate = true;
+            }
+
+            final float linkiTop = centerY - AndroidUtilities.dpf2(2.66f);
+            final float linkiBottom = centerY + AndroidUtilities.dpf2(2.66f);
+            linkiDrawGlassTrack(canvas, left, linkiTop, right, linkiBottom, left + thumbX);
+
+            final float glassCy = y + thumbSize / 2f;
+            if (transitionProgress < 1f) {
+                final float oldP = 1f - Easings.easeInQuad.getInterpolation(Math.min(1f, transitionProgress * 3f));
+                final float newP = Easings.easeOutQuad.getInterpolation(transitionProgress);
+                if (oldP > 0f) {
+                    linkiDrawGlassThumb(canvas, transitionThumbX + selectorWidth / 2f, glassCy, currentRadius * oldP, oldP);
+                }
+                linkiDrawGlassThumb(canvas, thumbX + selectorWidth / 2f, glassCy, currentRadius * newP, newP);
+            } else {
+                linkiDrawGlassThumb(canvas, thumbX + selectorWidth / 2f, glassCy, currentRadius, 1f);
+            }
+
+            drawTimestampLabel(canvas);
+            if (linkiInvalidate) {
+                postInvalidateOnAnimation();
+            }
+            return;
+        }
 
         rect.set(left, top, right, bottom);
         drawProgressBar(canvas, rect, innerPaint1);
