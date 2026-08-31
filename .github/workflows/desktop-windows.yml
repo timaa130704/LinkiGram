@@ -34,11 +34,14 @@ jobs:
             throw 'TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets are required.'
           }
           if (Test-Path .\configure.bat) {
-            .\configure.bat
+            cmd /c configure.bat
           } elseif (Test-Path .\configure.py) {
-            python .\configure.py
+            python .\configure.py -D TDESKTOP_API_ID=$env:TELEGRAM_API_ID -D TDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
           } else {
             cmake -S . -B out -DTDESKTOP_API_ID=$env:TELEGRAM_API_ID -DTDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
+          }
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path .\out\CMakeCache.txt)) {
+            throw 'Telegram Desktop CMake configuration failed; see the configure output above.'
           }
           cmake --build out --config Release --parallel
 
