@@ -26,18 +26,24 @@ jobs:
           path: desktop/tdesktop
           submodules: recursive
 
+      - name: Prepare Telegram Desktop dependencies
+        working-directory: desktop/tdesktop/Telegram
+        shell: cmd
+        run: |
+          call build\prepare\win.bat
+
+      - name: Configure Telegram Desktop
+        working-directory: desktop/tdesktop/Telegram
+        shell: cmd
+        run: |
+          if "%TELEGRAM_API_ID%"=="" exit /b 1
+          if "%TELEGRAM_API_HASH%"=="" exit /b 1
+          call configure.bat x64 -D TDESKTOP_API_ID=%TELEGRAM_API_ID% -D TDESKTOP_API_HASH=%TELEGRAM_API_HASH%
+
       - name: Build Telegram Desktop
         working-directory: desktop/tdesktop/Telegram
-        shell: pwsh
+        shell: cmd
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:TELEGRAM_API_ID) -or [string]::IsNullOrWhiteSpace($env:TELEGRAM_API_HASH)) {
-            throw 'TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets are required.'
-          }
-          cmd /c build\prepare\win.bat
-          cmd /c configure.bat x64 -D TDESKTOP_API_ID=$env:TELEGRAM_API_ID -D TDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path ..\out\CMakeCache.txt)) {
-            throw 'Telegram Desktop CMake configuration failed; see the configure output above.'
-          }
           cmake --build ..\out --config Release --parallel
 
       - name: Upload Windows artifact
