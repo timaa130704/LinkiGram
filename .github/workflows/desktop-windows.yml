@@ -26,6 +26,11 @@ jobs:
           path: desktop/tdesktop
           submodules: recursive
 
+      - name: Initialize MSVC Native Tools (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Prepare Telegram Desktop dependencies
         working-directory: desktop/tdesktop/Telegram
         shell: cmd
