@@ -33,7 +33,13 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:TELEGRAM_API_ID) -or [string]::IsNullOrWhiteSpace($env:TELEGRAM_API_HASH)) {
             throw 'TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets are required.'
           }
-          .\configure.bat -D TDESKTOP_API_ID=$env:TELEGRAM_API_ID -D TDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
+          if (Test-Path .\configure.bat) {
+            .\configure.bat
+          } elseif (Test-Path .\configure.py) {
+            python .\configure.py
+          } else {
+            cmake -S . -B out -DTDESKTOP_API_ID=$env:TELEGRAM_API_ID -DTDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
+          }
           cmake --build out --config Release --parallel
 
       - name: Upload Windows artifact
