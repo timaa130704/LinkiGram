@@ -26,20 +26,14 @@ jobs:
           path: desktop/tdesktop
           submodules: recursive
 
-      - name: Configure API credentials
+      - name: Build Telegram Desktop
+        working-directory: desktop/tdesktop
         shell: pwsh
         run: |
           if ([string]::IsNullOrWhiteSpace($env:TELEGRAM_API_ID) -or [string]::IsNullOrWhiteSpace($env:TELEGRAM_API_HASH)) {
             throw 'TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets are required.'
           }
-          "set(TELEGRAM_API_ID $env:TELEGRAM_API_ID)" | Out-File desktop/tdesktop/Telegram/lib/td/CMakeListsSecrets.cmake -Encoding ascii
-          "set(TELEGRAM_API_HASH $env:TELEGRAM_API_HASH)" | Out-File desktop/tdesktop/Telegram/lib/td/CMakeListsSecrets.cmake -Append -Encoding ascii
-
-      - name: Build Telegram Desktop
-        working-directory: desktop/tdesktop
-        shell: pwsh
-        run: |
-          .\configure.bat
+          .\configure.bat -D TDESKTOP_API_ID=$env:TELEGRAM_API_ID -D TDESKTOP_API_HASH=$env:TELEGRAM_API_HASH
           cmake --build out --config Release --parallel
 
       - name: Upload Windows artifact
