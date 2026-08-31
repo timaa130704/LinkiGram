@@ -1,0 +1,50 @@
+name: Build LinkiGram Desktop (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tdesktop_ref:
+        description: Telegram Desktop tag or commit to build
+        required: false
+        default: dev
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+    steps:
+      - name: Checkout LinkiGram
+        uses: actions/checkout@v4
+
+      - name: Checkout Telegram Desktop
+        uses: actions/checkout@v4
+        with:
+          repository: telegramdesktop/tdesktop
+          ref: ${{ inputs.tdesktop_ref }}
+          path: desktop/tdesktop
+          submodules: recursive
+
+      - name: Configure API credentials
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TELEGRAM_API_ID) -or [string]::IsNullOrWhiteSpace($env:TELEGRAM_API_HASH)) {
+            throw 'TELEGRAM_API_ID and TELEGRAM_API_HASH repository secrets are required.'
+          }
+          "set(TELEGRAM_API_ID $env:TELEGRAM_API_ID)" | Out-File desktop/tdesktop/Telegram/lib/td/CMakeListsSecrets.cmake -Encoding ascii
+          "set(TELEGRAM_API_HASH $env:TELEGRAM_API_HASH)" | Out-File desktop/tdesktop/Telegram/lib/td/CMakeListsSecrets.cmake -Append -Encoding ascii
+
+      - name: Build Telegram Desktop
+        working-directory: desktop/tdesktop
+        shell: pwsh
+        run: |
+          .\configure.bat
+          cmake --build out --config Release --parallel
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkigram-desktop-windows
+          path: desktop/tdesktop/out/Release
+          if-no-files-found: error
