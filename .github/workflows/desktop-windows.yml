@@ -49,7 +49,9 @@ jobs:
         working-directory: desktop/tdesktop/Telegram
         shell: cmd
         run: |
-          cmake --build ..\out --config Release --parallel
+          set CL_MPCount=1
+          set UseMultiToolTask=false
+          cmake --build ..\out --config Release --parallel 2 -- /m:1 /p:TrackFileAccess=false
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
