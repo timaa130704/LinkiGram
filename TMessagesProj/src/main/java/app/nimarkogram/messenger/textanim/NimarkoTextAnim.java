@@ -407,7 +407,14 @@ public final class NimarkoTextAnim {
         final Runnable beat = new Runnable() {
             @Override public void run() {
                 if (!st.focused) { st.heartbeatRunning = false; return; }
-                if (!view.isShown() || view.getWindowToken() == null) {
+                // Perf: stop the per-frame invalidation loop when there is
+                // nothing left to animate, instead of redrawing at 60fps forever.
+                boolean needsFrame = smoothCursorEnabled
+                        || st.hasAnimatingChars
+                        || st.animationRunning
+                        || !st.particles.isEmpty()
+                        || !st.spoilerParticles.isEmpty();
+                if (!needsFrame || !view.isShown() || view.getWindowToken() == null) {
                     st.heartbeatRunning = false; return;
                 }
                 view.invalidate();
@@ -437,16 +444,18 @@ public final class NimarkoTextAnim {
         if (smoothCursorEnabled) setupCursor(edit, st);
         Editable text = edit.getText();
         if (text == null) return;
-        String now = text.toString();
-        int newLen = now.length();
+        // Perf: diff directly on the Editable instead of toString()-copying the
+        // whole draft on every frame (this hook runs in onDraw of all EditTexts).
+        CharSequence cs = text;
+        int newLen = cs.length();
 
         int minLen = Math.min(newLen, st.prevLen);
         int prefix = 0;
-        while (prefix < minLen && now.charAt(prefix) == st.prevText.charAt(prefix)) prefix++;
+        while (prefix < minLen && cs.charAt(prefix) == st.prevText.charAt(prefix)) prefix++;
         int suffix = 0;
         while (suffix < newLen - prefix
                 && suffix < st.prevLen - prefix
-                && now.charAt(newLen - 1 - suffix) == st.prevText.charAt(st.prevLen - 1 - suffix)) {
+                && cs.charAt(newLen - 1 - suffix) == st.prevText.charAt(st.prevLen - 1 - suffix)) {
             suffix++;
         }
         int oldEnd = st.prevLen - suffix;
@@ -488,9 +497,9 @@ public final class NimarkoTextAnim {
 
         if (insCount > 0 && insCount <= MASS_INSERT_THRESHOLD) {
             long nowMs = System.currentTimeMillis();
-            
+
             boolean isReplace = (delCount > 0 && insCount > 0);
-            String inserted = now.substring(prefix, newEnd);
+            String inserted = text.subSequence(prefix, newEnd).toString();
             Spannable spannable = (text instanceof Spannable) ? text : null;
             int i = 0;
             while (i < insCount) {
@@ -520,9 +529,10 @@ public final class NimarkoTextAnim {
                 updateHiddenSpan(edit, st);
                 startAnimationLoop(edit, st);
             }
+            // Perf: snapshot the draft only when it actually changed, not on every frame.
+            st.prevText = text.toString();
+            st.prevLen = newLen;
         }
-        st.prevText = now;
-        st.prevLen = newLen;
     }
 
     private static boolean isCjkOrSymbol(String s) {

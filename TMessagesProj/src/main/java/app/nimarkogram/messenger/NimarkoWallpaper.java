@@ -126,9 +126,10 @@ public final class NimarkoWallpaper {
     }
 
     public static class WallpaperView extends View {
-        private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
         private final Paint scrimPaint = new Paint();
         private final android.graphics.RectF dstRect = new android.graphics.RectF();
+        private int lastDimPercent = -1;
 
         public WallpaperView(android.content.Context context) {
             super(context);
@@ -154,7 +155,10 @@ public final class NimarkoWallpaper {
             canvas.drawBitmap(bmp, null, dstRect, paint);
             int dimPercent = NimarkoConfig.customBgDimPercent;
             if (dimPercent > 0) {
-                scrimPaint.setColor(Color.argb(Math.min(230, (int) (dimPercent * 2.55f)), 0, 0, 0));
+                if (lastDimPercent != dimPercent) {
+                    lastDimPercent = dimPercent;
+                    scrimPaint.setColor(Color.argb(Math.min(230, (int) (dimPercent * 2.55f)), 0, 0, 0));
+                }
                 canvas.drawRect(0, 0, vw, vh, scrimPaint);
             }
             canvas.restoreToCount(saveToRestore);

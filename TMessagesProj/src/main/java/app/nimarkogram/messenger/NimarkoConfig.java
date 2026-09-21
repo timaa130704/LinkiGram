@@ -1554,7 +1554,7 @@ public final class NimarkoConfig {
     public static void toggleSleepTimer() { sleepTimer = !sleepTimer; getEditor().putBoolean("sleepTimer", sleepTimer).apply(); }
     public static void setSleepTimer(boolean v) { sleepTimer = v; getEditor().putBoolean("sleepTimer", v).apply(); }
 
-    public static boolean nimarkoTextAnim = getPreferences().getBoolean("nimarkoTextAnim", true);
+    public static boolean nimarkoTextAnim = getPreferences().getBoolean("nimarkoTextAnim", false);
     public static void toggleNimarkoTextAnim() {
         nimarkoTextAnim = !nimarkoTextAnim;
         getEditor().putBoolean("nimarkoTextAnim", nimarkoTextAnim).apply();

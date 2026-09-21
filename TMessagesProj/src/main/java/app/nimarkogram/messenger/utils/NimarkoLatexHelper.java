@@ -58,8 +58,15 @@ public class NimarkoLatexHelper {
         }
         if (text == null || text.length() < 3) return text;
 
+        // Perf: scan for '$' without toString()-copying the whole message first;
+        // processLatex() is called from dialog/message cell bind paths.
+        boolean hasDollar = false;
+        for (int i = 0, n = text.length(); i < n; i++) {
+            if (text.charAt(i) == '$') { hasDollar = true; break; }
+        }
+        if (!hasDollar) return text;
+
         String raw = text.toString();
-        if (!raw.contains("$")) return text;
 
         SpannableStringBuilder ssb;
         if (text instanceof SpannableStringBuilder) {
