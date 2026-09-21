@@ -76,6 +76,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int ghostTypingRow = 21;
     private final int ghostOnlineRow = 22;
     private final int ghostReadReceiptsRow = 23;
+    private final int lastSeenCacheRow = 32;
     private final int saveDeletedMessagesRow = 24;
     private final int hideStoryViewsRow = 25;
     private final int hideIncomingTypingRow = 26;
@@ -223,6 +224,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         );
         items.add(SettingsHelper.asSwitchCG(ghostReadReceiptsRow, getString(R.string.NM_GhostReadReceipts), getString(R.string.NM_GhostReadReceipts_Desc))
                 .setChecked(NimarkoConfig.ghostReadReceipts)
+        );
+        items.add(SettingsHelper.asSwitchCG(lastSeenCacheRow, getString(R.string.NM_LastSeenCache), getString(R.string.NM_LastSeenCache_Desc))
+                .setChecked(NimarkoConfig.lastSeenCacheEnabled)
         );
         items.add(SettingsHelper.asSwitchCG(saveDeletedMessagesRow, getString(R.string.NM_SaveDeletedMessages), getString(R.string.NM_SaveDeletedMessages_Desc))
                 .setChecked(NimarkoConfig.saveDeletedMessages)
@@ -390,6 +394,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         } else if (item.id == ghostReadReceiptsRow) {
             NimarkoConfig.toggleGhostReadReceipts();
             SettingsHelper.updateCheckState(view, NimarkoConfig.ghostReadReceipts);
+        } else if (item.id == lastSeenCacheRow) {
+            NimarkoConfig.toggleLastSeenCacheEnabled();
+            SettingsHelper.updateCheckState(view, NimarkoConfig.lastSeenCacheEnabled);
         } else if (item.id == saveDeletedMessagesRow) {
             NimarkoConfig.toggleSaveDeletedMessages();
             SettingsHelper.updateCheckState(view, NimarkoConfig.saveDeletedMessages);

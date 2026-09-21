@@ -146,6 +146,24 @@ public final class LastSeenTracker {
         return LocaleController.getString(resId);
     }
 
+    public static long getLastSeenSec(int account, long userId) {
+        if (userId == 0) return 0;
+        long ownerUid = ownerUid(account);
+        if (ownerUid <= 0) return 0;
+        synchronized (LOCK) {
+            if (ownerUid(account) != ownerUid) return 0;
+            SharedPreferences preferences = prefs();
+            migrateIdentityLocked(preferences, account, ownerUid);
+            Deque<Long> window = parse(preferences.getString(keyFor(account, ownerUid, userId), ""));
+            if (pruneExpired(window, System.currentTimeMillis() / 1000L)
+                    && ownerUid(account) == ownerUid) {
+                if (window.isEmpty()) preferences.edit().remove(keyFor(account, ownerUid, userId)).apply();
+                else preferences.edit().putString(keyFor(account, ownerUid, userId), serialize(window)).apply();
+            }
+            return window.isEmpty() ? 0L : window.peekLast();
+        }
+    }
+
     public static void forget(int account, long userId) {
         if (userId == 0) return;
         long ownerUid = ownerUid(account);

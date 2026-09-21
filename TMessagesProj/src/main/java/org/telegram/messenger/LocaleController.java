@@ -3052,6 +3052,22 @@ public class LocaleController {
         return formatUserStatus(currentAccount, user, isOnline, null);
     }
 
+    // Nimarko: exact last-seen from local cache for users whose status is hidden ("recently"/"last week"/"last month").
+    private static String getExactCachedStatusText(int currentAccount, long userId, boolean[] madeShorter) {
+        if (!app.nimarkogram.messenger.NimarkoConfig.lastSeenCacheEnabled) {
+            return null;
+        }
+        long cachedSec = app.nimarkogram.messenger.utils.LastSeenTracker.getLastSeenSec(currentAccount, userId);
+        if (cachedSec <= 0) {
+            return null;
+        }
+        int currentTime = ConnectionsManager.getInstance(currentAccount).getCurrentTime();
+        if (cachedSec > currentTime) {
+            return null;
+        }
+        return formatDateOnline(cachedSec, madeShorter) + " (" + getString(R.string.NM_LastSeenCacheSuffix) + ")";
+    }
+
     public static String formatUserStatus(int currentAccount, TLRPC.User user, boolean[] isOnline, boolean[] madeShorter) {
         if (user != null && user.status != null && user.status.expires == 0) {
             if (user.status instanceof TLRPC.TL_userStatusRecently) {
@@ -3083,10 +3099,22 @@ public class LocaleController {
                 if (user.status.expires == -1) {
                     return getString("Invisible", R.string.Invisible);
                 } else if (user.status.expires == -100 || user.status.expires == -1000) {
+                    String cachedStatus = getExactCachedStatusText(currentAccount, user.id, madeShorter);
+                    if (cachedStatus != null) {
+                        return cachedStatus;
+                    }
                     return getString("Lately", R.string.Lately);
                 } else if (user.status.expires == -101 || user.status.expires == -1001) {
+                    String cachedStatus = getExactCachedStatusText(currentAccount, user.id, madeShorter);
+                    if (cachedStatus != null) {
+                        return cachedStatus;
+                    }
                     return getString("WithinAWeek", R.string.WithinAWeek);
                 } else if (user.status.expires == -102 || user.status.expires == -1002) {
+                    String cachedStatus = getExactCachedStatusText(currentAccount, user.id, madeShorter);
+                    if (cachedStatus != null) {
+                        return cachedStatus;
+                    }
                     return getString("WithinAMonth", R.string.WithinAMonth);
                 } else {
                     return formatDateOnline(user.status.expires, madeShorter);

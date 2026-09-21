@@ -11697,6 +11697,9 @@
     <string name="NM_GhostTyping_Desc">Don\'t send typing notifications to other users</string>
     <string name="NM_GhostOnline">Hide online status</string>
     <string name="NM_GhostOnline_Desc">Stay invisible, don\'t update online status</string>
+    <string name="NM_LastSeenCache">Show exact last seen</string>
+    <string name="NM_LastSeenCache_Desc">Show exact cached time instead of "last seen recently" (works for contacts whose last seen was visible before)</string>
+    <string name="NM_LastSeenCacheSuffix">cached</string>
     <string name="NM_GhostReadReceipts">Hide read receipts</string>
     <string name="NM_GhostReadReceipts_Desc">Don\'t send read receipts to other users</string>
     <string name="NM_SaveDeletedMessages">Save deleted messages</string>

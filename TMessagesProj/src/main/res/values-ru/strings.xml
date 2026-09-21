@@ -1044,6 +1044,9 @@
     <string name="NM_GhostTyping_Desc">Не отправлять уведомления о наборе текста другим пользователям</string>
     <string name="NM_GhostOnline">Скрыть статус «в сети»</string>
     <string name="NM_GhostOnline_Desc">Оставаться невидимым, не обновлять онлайн-статус</string>
+    <string name="NM_LastSeenCache">Показывать точный «был(а) в сети»</string>
+    <string name="NM_LastSeenCache_Desc">Показывать точное время из локального кэша вместо «был(а) недавно» (работает для контактов, чей last seen раньше был виден)</string>
+    <string name="NM_LastSeenCacheSuffix">по кэшу</string>
     <string name="NM_GhostReadReceipts">Скрыть подтверждения прочтения</string>
     <string name="NM_GhostReadReceipts_Desc">Не отправлять подтверждения прочтения другим пользователям</string>
     <string name="NM_SaveDeletedMessages">Сохранять удалённые сообщения</string>

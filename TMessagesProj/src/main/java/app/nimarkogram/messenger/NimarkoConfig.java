@@ -236,6 +236,12 @@ public final class NimarkoConfig {
         getEditor().putBoolean("ghostReadReceipts", ghostReadReceipts).apply();
     }
 
+    public static volatile boolean lastSeenCacheEnabled = getPreferences().getBoolean("lastSeenCacheEnabled", true);
+    public static void toggleLastSeenCacheEnabled() {
+        lastSeenCacheEnabled = !lastSeenCacheEnabled;
+        getEditor().putBoolean("lastSeenCacheEnabled", lastSeenCacheEnabled).apply();
+    }
+
     public static volatile boolean saveDeletedMessages = getPreferences().getBoolean("saveDeletedMessages", false);
     public static void toggleSaveDeletedMessages() {
         saveDeletedMessages = !saveDeletedMessages;

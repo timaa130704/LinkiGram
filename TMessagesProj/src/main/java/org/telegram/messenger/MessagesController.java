@@ -6883,6 +6883,10 @@ public class MessagesController extends BaseController implements NotificationCe
             return false;
         }
         fromCache = fromCache && user.id / 1000 != 333 && user.id != 777000;
+        if (!fromCache && user.status != null && user.id != 0 && user.id != getUserConfig().getClientUserId()) {
+            // Nimarko: record exact last-seen samples for the cache feature.
+            app.nimarkogram.messenger.utils.LastSeenTracker.recordStatus(currentAccount, user.id, user.status);
+        }
         TLRPC.User oldUser = users.get(user.id);
         if (oldUser == user && !force) {
             return false;
