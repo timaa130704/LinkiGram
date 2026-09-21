@@ -30,6 +30,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 'tools' package was removed from the SDK repository; installing it fails the step.
+          packages: platform-tools
 
       - name: Install NDK and CMake
         run: |
