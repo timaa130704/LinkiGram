@@ -836,7 +836,17 @@ public class ConnectionsManager extends BaseController {
             if (lastPauseTime == 0) {
                 lastPauseTime = System.currentTimeMillis();
             }
-            native_pauseNetwork(currentAccount);
+            if (value && SharedConfig.isProxyEnabled()) {
+                // Keep connections (and the push connection) alive in background
+                // so updates keep arriving through the proxy and notifications
+                // are delivered even without a working FCM push channel.
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.d("proxy enabled, keeping network alive in background");
+                }
+                native_resumeNetwork(currentAccount, false);
+            } else {
+                native_pauseNetwork(currentAccount);
+            }
         } else {
             if (appPaused) {
                 return;
@@ -1039,6 +1049,13 @@ public class ConnectionsManager extends BaseController {
                 accountInstance.getMessagesController().checkPromoInfo(true);
             }
         }
+
+        // Sync the background notification service state with the proxy state:
+        // when a proxy is enabled the service is kept running so that
+        // notifications are delivered through the proxied connection in background.
+        try {
+            org.telegram.messenger.ApplicationLoader.startPushService();
+        } catch (Throwable ignore) {}
     }
 
     public static native void native_switchBackend(int currentAccount, boolean restart);

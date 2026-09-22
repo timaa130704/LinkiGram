@@ -59,10 +59,22 @@ public class NotificationsService extends Service {
         return null;
     }
 
+    @Override
     public void onDestroy() {
         super.onDestroy();
-        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
-        if (preferences.getBoolean("pushService", false)) {
+        boolean pushServiceEnabled;
+        boolean proxyActive;
+        try {
+            pushServiceEnabled = MessagesController.getGlobalNotificationsSettings().getBoolean("pushService", false);
+        } catch (Throwable t) {
+            pushServiceEnabled = false;
+        }
+        try {
+            proxyActive = SharedConfig.isProxyEnabled();
+        } catch (Throwable t) {
+            proxyActive = false;
+        }
+        if (pushServiceEnabled || proxyActive) {
             Intent intent = new Intent("org.telegram.start");
             intent.setPackage(getPackageName());
             sendBroadcast(intent);
@@ -92,8 +104,14 @@ public class NotificationsService extends Service {
     }
 
     private boolean allowResidentNotification() {
+        boolean proxyActive;
+        try {
+            proxyActive = SharedConfig.isProxyEnabled();
+        } catch (Throwable t) {
+            proxyActive = false;
+        }
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && Build.VERSION.SDK_INT < 35
-                && app.nimarkogram.messenger.NimarkoConfig.residentNotification;
+                && (app.nimarkogram.messenger.NimarkoConfig.residentNotification || proxyActive);
     }
 }

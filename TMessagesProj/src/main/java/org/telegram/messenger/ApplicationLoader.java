@@ -1020,11 +1020,26 @@ public class ApplicationLoader extends Application {
         if (residentEnabled) {
             enabled = true;
         }
+        // When a proxy is enabled, background push channel (FCM) may be
+        // unreliable, so keep the background service alive to receive
+        // notifications through the proxied socket connection.
+        boolean proxyBackground = false;
+        try {
+            proxyBackground = SharedConfig.isProxyEnabled();
+        } catch (Throwable ignore) {}
+        if (proxyBackground) {
+            enabled = true;
+        }
         if (enabled) {
             try {
                 Intent svc = new Intent(applicationContext, NotificationsService.class);
-                
-                if (residentEnabled) {
+
+                // On Android 8-14 run the service in foreground when a proxy is
+                // enabled: a foreground service is much more reliable for
+                // background message delivery (survives Doze/OEM battery savers).
+                if (residentEnabled || (proxyBackground
+                        && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                        && Build.VERSION.SDK_INT < 35)) {
                     applicationContext.startForegroundService(svc);
                 } else {
                     applicationContext.startService(svc);
