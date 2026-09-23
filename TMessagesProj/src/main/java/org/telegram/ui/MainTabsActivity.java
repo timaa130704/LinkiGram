@@ -530,7 +530,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         }
         
-        tabsViewWrapper.setVisibility(app.nimarkogram.messenger.NimarkoConfig.showMainTabs ? View.VISIBLE : View.GONE);
+        tabsViewWrapper.setVisibility(app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible() ? View.VISIBLE : View.GONE);
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
 
         updateLayoutWrapper = new UpdateLayoutWrapper(context);
@@ -957,7 +957,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             bundle = new Bundle();
         }
 
-        bundle.putBoolean("hasMainTabs", app.nimarkogram.messenger.NimarkoConfig.showMainTabs);
+        bundle.putBoolean("hasMainTabs", app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible());
         dialogsActivity = new DialogsActivity(bundle);
         dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
         putFragmentAtPosition(posChats(), dialogsActivity);
@@ -966,7 +966,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     protected BaseFragment createBaseFragmentAt(int position) {
-        final boolean showTabsBar = app.nimarkogram.messenger.NimarkoConfig.showMainTabs;
+        final boolean showTabsBar = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
         
         app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType type = tabTypeAt(position);
         if (type == null) return null;
@@ -1094,12 +1094,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private boolean canScrollInternal(MotionEvent ev, boolean forward) {
         final BaseFragment fragment = getCurrentVisibleFragment();
 
-        if (app.nimarkogram.messenger.NimarkoConfig.showMainTabs) {
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
             if (fragment instanceof TabFragmentDelegate) {
                 final TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
                 return delegate.canParentTabsSlide(ev, forward);
             }
-        } else if (app.nimarkogram.messenger.NimarkoConfig.openSettingsBySwipe || !app.nimarkogram.messenger.NimarkoConfig.showMainTabs) {
+        } else if (app.nimarkogram.messenger.NimarkoConfig.openSettingsBySwipe || !app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
             
             final int pos = viewPager != null ? viewPager.getCurrentPosition() : 0;
             final int count = getFragmentsCount();
@@ -1149,7 +1149,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         ViewGroup.MarginLayoutParams lp;
         {
             
-            final int height = app.nimarkogram.messenger.NimarkoConfig.showMainTabs
+            final int height = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()
                     ? (navigationBarHeight + updateLayoutHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS))
                     : 0;
             lp = (ViewGroup.MarginLayoutParams) fadeView.getLayoutParams();
@@ -1237,7 +1237,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             }
         } else if (id == NotificationCenter.cgTabsUpdated) {
             
-            boolean showMainTabsFlag = app.nimarkogram.messenger.NimarkoConfig.showMainTabs;
+            boolean showMainTabsFlag = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
             if (tabsViewWrapper != null) {
                 tabsViewWrapper.setVisibility(showMainTabsFlag ? View.VISIBLE : View.GONE);
             }
@@ -1326,7 +1326,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return;
         }
 
-        final boolean showMainTabs = app.nimarkogram.messenger.NimarkoConfig.showMainTabs;
+        final boolean showMainTabs = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
 
         final float animatedPosition = viewPager.getPositionAnimated();
         final int profilePosition = posProfile();
@@ -1350,7 +1350,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private void checkUi_tabsPosition() {
         if (hiddenByOverlay) return;
         
-        if (!app.nimarkogram.messenger.NimarkoConfig.showMainTabs) {
+        if (!app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
             final View off = tabsContainer != null ? tabsContainer : tabsViewWrapper;
             off.setVisibility(View.GONE);
             off.setAlpha(0f);

@@ -11517,6 +11517,7 @@
     <string name="NM_BT_AppearanceHeader">Appearance</string>
     <string name="NM_BT_ActionsHeader">Actions</string>
     <string name="NM_BT_ShowTabs">Show tabs</string>
+    <string name="NM_BT_ClassicUiHint">The bottom tabs bar is hidden while the classic interface is enabled (Appearance → Interface style).</string>
     <string name="NM_BT_ShowTabsTitle">Show tabs titles</string>
     <string name="NM_BT_OpenSettingsBySwipe">Open settings by swipe</string>
     <string name="NM_BT_OpenSettingsBySwipe_Desc">Swipe from left to right on the tabs to open the settings, similar to a drawer when tabs are disabled.</string>
@@ -11541,7 +11542,7 @@
     <string name="NM_BG_Cards">Card readability</string>
     <string name="NM_ClassicUi_Header">Interface style</string>
     <string name="NM_ClassicUi">Classic interface</string>
-    <string name="NM_ClassicUi_Desc">Turns off the new iOS-like elements: the bottom tabs bar (Chats / Profile / Settings) and the split input bar with separated buttons. Brings back the classic Telegram layout with the side menu. Restart is recommended.</string>
+    <string name="NM_ClassicUi_Desc">Turns off the new iOS-like elements: the bottom tabs bar (Chats / Profile / Settings) and the split input bar with separated buttons. Brings back the classic Telegram layout with the hamburger menu (≡) in the chats list. Restart is recommended.</string>
     <string name="NM_BG_Remove">Remove image</string>
     <string name="NM_BG_Error">Failed to load image</string>
     <string name="NM_GLASS_Header">Glass interface</string>

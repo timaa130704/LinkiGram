@@ -755,6 +755,15 @@ public final class NimarkoConfig {
     public static boolean showMainTabs = getPreferences().getBoolean("showMainTabs", true);
     public static void toggleShowMainTabs() { showMainTabs = !showMainTabs; getEditor().putBoolean("showMainTabs", showMainTabs).apply(); }
 
+    /**
+     * LinkiGram: показывать ли нижнюю панель вкладок на самом деле.
+     * В классическом интерфейсе панель скрывается полностью, как в старом Telegram:
+     * навигация идёт через меню «три полоски» в шапке списка чатов.
+     */
+    public static boolean mainTabsVisible() {
+        return showMainTabs && !classicUi;
+    }
+
     public static boolean showMainTabsTitle = getPreferences().getBoolean("showMainTabsTitle", true);
     public static void toggleShowMainTabsTitle() { showMainTabsTitle = !showMainTabsTitle; getEditor().putBoolean("showMainTabsTitle", showMainTabsTitle).apply(); }
 
@@ -1712,14 +1721,15 @@ public final class NimarkoConfig {
     public static int chatGlassPercent() { return Math.round((1f - chatGlassAlphaMult()) * 100f); }
 
     /**
-     * Классический интерфейс: выключает iOS-элементы нового Telegram —
-     * нижнюю панель вкладок и разделённое поле ввода, возвращая старую раскладку.
+     * Классический интерфейс: выключает острова нового Telegram —
+     * нижнюю панель вкладок, стеклянную шапку и разделённое поле ввода,
+     * возвращая старую раскладку со меню «три полоски» в шапке списка чатов.
      */
     public static boolean classicUi = getPreferences().getBoolean("classicUi", false);
     public static void setClassicUi(boolean value) {
         classicUi = value;
         getEditor().putBoolean("classicUi", classicUi).apply();
-        // панель вкладок остаётся, но становится плоской; поле ввода — единой панелью
+        // нижняя панель вкладок скрывается полностью (mainTabsVisible); навигация — через меню «три полоски»
         iosStyleComposer = !value;
         getEditor().putBoolean("iosStyleComposer", iosStyleComposer).apply();
     }

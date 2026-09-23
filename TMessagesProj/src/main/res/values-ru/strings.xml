@@ -620,6 +620,7 @@
     <string name="NM_BT_AppearanceHeader">Внешний вид</string>
     <string name="NM_BT_ActionsHeader">Действия</string>
     <string name="NM_BT_ShowTabs">Показывать вкладки</string>
+    <string name="NM_BT_ClassicUiHint">Нижняя панель вкладок скрыта, пока включён классический интерфейс (Оформление → Стиль интерфейса).</string>
     <string name="NM_BT_DoubleTapDesc">Двойной тап по чатам открывает «Избранное». Двойной тап по профилю (или по настройкам, если профиль скрыт) — переключение аккаунтов.</string>
     <string name="NM_BT_ShowTabsTitle">Показывать названия вкладок</string>
     <string name="NM_BT_OpenSettingsBySwipe">Открывать настройки свайпом</string>
@@ -644,7 +645,7 @@
     <string name="NM_BG_Cards">Читаемость карточек</string>
     <string name="NM_ClassicUi_Header">Стиль интерфейса</string>
     <string name="NM_ClassicUi">Классический интерфейс</string>
-    <string name="NM_ClassicUi_Desc">Отключает новые iOS-элементы: нижнюю панель вкладок (Чаты / Профиль / Настройки) и разделённое поле ввода с отдельными кнопками. Возвращает привычную раскладку Telegram с боковым меню. Желателен перезапуск.</string>
+    <string name="NM_ClassicUi_Desc">Отключает новые iOS-элементы: нижнюю панель вкладок (Чаты / Профиль / Настройки) и разделённое поле ввода с отдельными кнопками. Возвращает привычную раскладку Telegram с меню «три полоски» в списке чатов. Желателен перезапуск.</string>
     <string name="NM_BG_Remove">Удалить изображение</string>
     <string name="NM_BG_Error">Не удалось загрузить изображение</string>
     <string name="NM_GLASS_Header">Стеклянный интерфейс</string>

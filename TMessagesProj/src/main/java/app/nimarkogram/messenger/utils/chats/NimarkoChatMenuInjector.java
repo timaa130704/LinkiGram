@@ -350,7 +350,7 @@ public final class NimarkoChatMenuInjector {
     public static void injectSaved(ItemOptions io, BaseFragment fragment) {
         if (io == null || fragment == null) return;
         io.addIf(
-                !NimarkoConfig.showMainTabs,
+                !NimarkoConfig.mainTabsVisible(),
                 R.drawable.msg_saved,
                 getString(R.string.SavedMessages),
                 () -> fragment.presentFragment(ChatActivity.of(NimarkoChatHelper2.getCustomChatID(fragment.getCurrentAccount())))

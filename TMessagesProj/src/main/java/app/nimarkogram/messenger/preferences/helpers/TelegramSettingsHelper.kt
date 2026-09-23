@@ -69,7 +69,7 @@ class TelegramSettingsHelper(
     }
 
     fun showMyProfile(): Boolean {
-        return !NimarkoConfig.showMainTabs || !MainTabsManager.hasTab(MainTabsManager.TabType.PROFILE)
+        return !NimarkoConfig.mainTabsVisible() || !MainTabsManager.hasTab(MainTabsManager.TabType.PROFILE)
     }
 
     fun showItemOptions(button: View) {

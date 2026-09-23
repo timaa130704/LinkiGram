@@ -86,6 +86,10 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
+        if (NimarkoConfig.classicUi) {
+            // LinkiGram: в классическом интерфейсе нижняя панель скрыта полностью
+            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_ClassicUiHint)));
+        }
         if (NimarkoConfig.showMainTabs) {
             if (editorCell == null && getContext() != null) {
                 editorCell = new MainTabsPreviewCell(getContext());

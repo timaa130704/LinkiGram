@@ -2979,7 +2979,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             closeFragment = arguments.getBoolean("closeFragment", true);
             allowGlobalSearch = arguments.getBoolean("allowGlobalSearch", true);
             
-            if (NimarkoConfig.showMainTabs) {
+            if (NimarkoConfig.mainTabsVisible()) {
                 hasMainTabs = arguments.getBoolean("hasMainTabs", false);
             } else {
                 hasMainTabs = false;
@@ -3400,7 +3400,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         ActionBarMenu menu = actionBar.createMenu();
         menu.setTranslationX(-dp(5));
-        boolean hideTopSearch = NimarkoConfig.showMainTabs && NimarkoConfig.showSearchInTabs && hasMainTabs;
+        boolean hideTopSearch = NimarkoConfig.mainTabsVisible() && NimarkoConfig.showSearchInTabs && hasMainTabs;
         searchItem = menu.addItem(0, R.drawable.outline_header_search).setIsSearchField(true, false);
         if (hideTopSearch) {
             searchItem.setVisibility(View.GONE);
@@ -3724,6 +3724,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 actionBar.setSupportsHolidayImage(true);
             }
         }
+        if (isClassicMainMenuButtonEnabled()) {
+            // LinkiGram: классическая кнопка-меню «три полоски», как в старом Telegram
+            actionBar.setBackButtonDrawable(new MenuDrawable());
+            if (actionBar.backButtonImageView != null) {
+                actionBar.backButtonImageView.setContentDescription(getString(R.string.AccDescrOpenMenu));
+            }
+        }
+
         
         if (
                 NimarkoConfig.hideArchiveFromChatsList
@@ -4110,6 +4118,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     return;
                 }
                 if (id == -1) {
+                    if (processClassicMainMenuButton()) {
+                        return;
+                    }
                     if (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()) {
                         if (actionBar.isActionModeShowed()) {
                             if (searchViewPager != null && searchViewPager.getVisibility() == View.VISIBLE && searchViewPager.actionModeShowing()) {
@@ -14370,6 +14381,123 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private ItemOptions nimarkoOpenItemOptions;
 
+    /**
+     * LinkiGram: показывать классическое меню «три полоски» — только в классическом
+     * интерфейсе и только на главном экране со списком чатов.
+     */
+    private boolean isClassicMainMenuButtonEnabled() {
+        return app.nimarkogram.messenger.NimarkoConfig.classicUi
+                && mainTabsActivityController != null
+                && initialDialogsType == DIALOGS_TYPE_DEFAULT
+                && !onlySelect && folderId == 0 && communityId == 0
+                && !inPreviewMode && !isArchive();
+    }
+
+    /**
+     * LinkiGram: клик по «трём полоскам» в классическом интерфейсе открывает главное меню вместо выхода.
+     */
+    private boolean processClassicMainMenuButton() {
+        if (!isClassicMainMenuButtonEnabled()) {
+            return false;
+        }
+        if (actionBar == null || actionBar.isActionModeShowed()) {
+            return false;
+        }
+        if (filterTabsView != null && filterTabsView.isEditing()) {
+            return false;
+        }
+        if (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()) {
+            return false;
+        }
+        showClassicMainMenu();
+        return true;
+    }
+
+    /**
+     * LinkiGram: главное меню классического интерфейса (как боковое меню в старом Telegram).
+     */
+    private void showClassicMainMenu() {
+        if (actionBar == null || actionBar.backButtonImageView == null) {
+            return;
+        }
+        final ItemOptions io = ItemOptions.makeOptions(this, actionBar.backButtonImageView);
+        io.setColors(getThemedColor(Theme.key_actionBarDefaultTitle), getThemedColor(Theme.key_actionBarDefaultTitle));
+        io.setDimAlpha(0x08);
+
+        io.add(R.drawable.msg_openprofile, getString(R.string.MyProfile), () -> {
+            Bundle args = new Bundle();
+            args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
+            args.putBoolean("my_profile", true);
+            presentFragment(new ProfileActivity(args));
+        });
+        app.nimarkogram.messenger.utils.chats.NimarkoChatMenuInjector.injectSaved(io, this);
+        io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> presentFragment(new GroupCreateActivity(new Bundle())));
+        app.nimarkogram.messenger.utils.chats.NimarkoChatMenuInjector.injectCreateChannel(io, this);
+        app.nimarkogram.messenger.utils.chats.NimarkoChatMenuInjector.injectArchived(io, this);
+
+        io.addGap();
+
+        io.add(R.drawable.msg_contacts, getString(R.string.Contacts), () -> presentFragment(new ContactsActivity(new Bundle())));
+        app.nimarkogram.messenger.utils.chats.NimarkoChatMenuInjector.injectCalls(io, this);
+
+        io.addGap();
+
+        io.add(R.drawable.msg_settings, getString(R.string.Settings), () -> presentFragment(new SettingsActivity()));
+        addThemeSwitchItem(io);
+
+        io.show();
+        io.setTranslationY(-dp(64));
+    }
+
+    /**
+     * LinkiGram: пункт переключения темы — вынесено из showItemOptions, чтобы
+     * использовать и в классическом главном меню.
+     */
+    private void addThemeSwitchItem(ItemOptions io) {
+        final boolean isCurrentThemeDark;
+        if (resourceProvider != null) {
+            isCurrentThemeDark = resourceProvider.isDark();
+        } else {
+            isCurrentThemeDark = Theme.isCurrentThemeDark();
+        }
+        io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
+                getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
+            if (switchingTheme) {
+                return;
+            }
+            switchingTheme = true;
+            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+            String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+            if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
+                dayThemeName = "Blue";
+            }
+            String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+            if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
+                nightThemeName = "Dark Blue";
+            }
+            Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
+            if (dayThemeName.equals(nightThemeName)) {
+                if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
+                    dayThemeName = "Blue";
+                } else {
+                    nightThemeName = "Dark Blue";
+                }
+            }
+
+            boolean toDark;
+            if (toDark = dayThemeName.equals(themeInfo.getKey())) {
+                themeInfo = Theme.getTheme(nightThemeName);
+            } else {
+                themeInfo = Theme.getTheme(dayThemeName);
+            }
+            switchTheme(themeInfo, toDark);
+            Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
+                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
+            });
+        });
+    }
+
+
     private void showItemOptions() {
         ItemOptions io = ItemOptions.makeOptions(this, optionsItem);
         nimarkoOpenItemOptions = io;
@@ -14423,47 +14551,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
 
-        final boolean isCurrentThemeDark;
-        if (resourceProvider != null) {
-            isCurrentThemeDark = resourceProvider.isDark();
-        } else {
-            isCurrentThemeDark = Theme.isCurrentThemeDark();
-        }
-        io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
-                getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
-            if (switchingTheme) {
-                return;
-            }
-            switchingTheme = true;
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-            String dayThemeName = preferences.getString("lastDayTheme", "Blue");
-            if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                dayThemeName = "Blue";
-            }
-            String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
-            if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                nightThemeName = "Dark Blue";
-            }
-            Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
-            if (dayThemeName.equals(nightThemeName)) {
-                if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                    dayThemeName = "Blue";
-                } else {
-                    nightThemeName = "Dark Blue";
-                }
-            }
-
-            boolean toDark;
-            if (toDark = dayThemeName.equals(themeInfo.getKey())) {
-                themeInfo = Theme.getTheme(nightThemeName);
-            } else {
-                themeInfo = Theme.getTheme(dayThemeName);
-            }
-            switchTheme(themeInfo, toDark);
-            Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
-            });
-        });
+        addThemeSwitchItem(io);
         io.addGap();
         io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
             Bundle args = new Bundle();
