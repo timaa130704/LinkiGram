@@ -31,15 +31,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # 'tools' package was removed from the SDK repository; installing it fails the step.
-          packages: |
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
+          # The runner already has platform-tools; install required packages explicitly below.
+          packages: ''
 
-      - name: Install NDK and CMake
+      - name: Install Android SDK, NDK and CMake
         run: |
-          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
