@@ -100,6 +100,7 @@ import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PaymentFormActivity;
 import org.telegram.ui.ProfileActivity;
+import org.telegram.ui.ReportBottomSheet;
 import org.telegram.ui.Stars.StarsController;
 import org.telegram.ui.web.BotWebViewContainer;
 
@@ -168,7 +169,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     public @interface WebViewType {}
 
     private final static int POLL_PERIOD = 60000;
-    private final static long RESTORE_TRANSITION_FALLBACK_MS = 1200L;
 
     private final static SimpleFloatPropertyCompat<BotWebViewSheet> ACTION_BAR_TRANSITION_PROGRESS_VALUE = new SimpleFloatPropertyCompat<BotWebViewSheet>("actionBarTransitionProgress", obj -> obj.actionBarTransitionProgress, (obj, value) -> {
         obj.actionBarTransitionProgress = value;
@@ -191,14 +191,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     
     private BottomSheetTabs bottomTabs;
     private BottomSheetTabs.ClipTools bottomTabsClip;
-    private boolean bottomTabsListening;
-    private final Runnable bottomTabsInvalidateListener = () -> {
-        if (windowView != null) {
-            windowView.invalidate();
-        }
-    };
-    private final Runnable bottomTabsRelayoutListener = this::relayout;
-    private boolean viewportUpdatePosted;
 
     private long lastSwipeTime;
 
@@ -217,6 +209,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     private long monoforumTopicId;
     private boolean silent;
     private String buttonText;
+
 
     private Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint dimPaint = new Paint();
@@ -239,12 +232,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     private TLRPC.BotApp currentWebApp;
 
     private boolean dismissed;
-    private final Runnable viewportUpdateRunnable = () -> {
-        viewportUpdatePosted = false;
-        if (!dismissed && webViewContainer != null) {
-            webViewContainer.invalidateViewPortHeight();
-        }
-    };
     private boolean fullscreen;
     private boolean fullscreenBlur;
     private float fullscreenProgress;
@@ -300,39 +287,8 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
     private int actionBarColorKey = -1;
     private WebViewRequestProps requestProps;
-    private int webViewRequestId;
-    private int webViewRequestGeneration;
-    private int webViewRequestRetryCount;
-    private Runnable webViewRequestRetryRunnable;
-    private BaseFragment webViewRequestFragment;
-    private boolean webViewRequestFailed;
-    private boolean restoringPreservedWebView;
-    private boolean restoreTransitionFinished;
-    private boolean restoreThemeUpdatePending;
-    private boolean sheetStarted;
-    private int restoreTransitionGeneration;
-    private int finishRestoreGeneration;
-    private Runnable restoreTransitionFallbackRunnable;
-    private final Runnable finishRestoreRunnable = this::finishRestoredWebViewResume;
     private boolean backButtonShown;
     private boolean forceExpnaded;
-
-    private void finishRestoredWebViewResume() {
-        if (finishRestoreGeneration != restoreTransitionGeneration || !restoringPreservedWebView || !restoreTransitionFinished || !sheetStarted || dismissed || webViewContainer == null || !isShowing()) {
-            return;
-        }
-        restoringPreservedWebView = false;
-        restoreTransitionFinished = false;
-        webViewContainer.setWebViewPaused(false);
-        webViewContainer.finishViewportUpdatesTransition();
-        if (sensors != null) {
-            sensors.resume();
-        }
-        if (restoreThemeUpdatePending) {
-            restoreThemeUpdatePending = false;
-            webViewContainer.notifyThemeChanged();
-        }
-    }
 
     private boolean defaultFullsize = false;
     private Boolean fullsize = null;
@@ -354,6 +310,8 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         tab.ready = webViewContainer != null && webViewContainer.isPageLoaded();
         tab.themeIsDark = Theme.isCurrentThemeDark();
         tab.lastUrl = webViewContainer != null ? webViewContainer.getUrlLoaded() : null;
+        tab.sameOrigin = webViewContainer != null && webViewContainer.isBridgeRestrictedToOrigin();
+        tab.trustedOrigin = webViewContainer != null ? webViewContainer.getTrustedOrigin() : null;
         tab.expanded = swipeContainer != null && swipeContainer.getSwipeOffsetY() < 0 || forceExpnaded || isFullSize() || fullscreen;
         tab.fullscreen = fullscreen;
         tab.fullscreenBlur = fullscreenBlur;
@@ -378,7 +336,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
             tab.viewWidth = webView.getWidth();
             tab.viewHeight = webView.getHeight();
             webView.onPause();
-
+//            webView.pauseTimers();
         }
         if (tab.error = errorShown) {
             tab.errorDescription = errorCode;
@@ -401,13 +359,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     public boolean restoreState(BaseFragment fragment, BottomSheetTabs.WebTabData tab) {
         if (tab == null || tab.props == null) return false;
         fromTab = true;
-        finishRestoreGeneration = ++restoreTransitionGeneration;
-        restoringPreservedWebView = tab.webView != null;
-        restoreTransitionFinished = false;
-        if (restoringPreservedWebView) {
-            webViewContainer.setViewportUpdatesSuppressed(true);
-            webViewContainer.setWebViewPaused(true);
-        }
         if (overrideBackgroundColor = tab.overrideBackgroundColor) {
             setBackgroundColor(tab.backgroundColor, true, false);
         }
@@ -425,22 +376,40 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         fullsize = tab.fullsize;
         needsContext = tab.needsContext;
         sensors = tab.sensors;
-        if (sensors != null && !restoringPreservedWebView) {
+        if (sensors != null) {
             sensors.resume();
         }
         if (tab.buttons != null) {
-
+//            setMainButton(tab.main);
             botButtons.setState(tab.buttons, false);
         }
         setFullscreen(tab.fullscreen, false, tab.fullscreenBlur);
         currentAccount = tab.props != null ? tab.props.currentAccount : UserConfig.selectedAccount;
         if (tab.webView != null) {
-
-            webViewContainer.replaceWebView(currentAccount, tab.webView, tab.proxy);
+//            tab.webView.resumeTimers();
+            tab.webView.onResume();
+            webViewContainer.replaceWebView(currentAccount, tab.webView, tab.proxy, tab.trustedOrigin, tab.sameOrigin);
             webViewContainer.setState(tab.ready || tab.webView.isPageLoaded(), tab.lastUrl);
             if (Theme.isCurrentThemeDark() != tab.themeIsDark) {
-                restoreThemeUpdatePending = true;
-
+                webViewContainer.notifyThemeChanged();
+//                if (webViewContainer.getWebView() != null) {
+//                    webViewContainer.getWebView().animate().cancel();
+//                    webViewContainer.getWebView().animate().alpha(0).start();
+//                }
+//
+//                progressView.setLoadProgress(0);
+//                progressView.setAlpha(1f);
+//                progressView.setVisibility(View.VISIBLE);
+//
+//                webViewContainer.setBotUser(MessagesController.getInstance(currentAccount).getUser(botId));
+//                webViewContainer.loadFlickerAndSettingsItem(currentAccount, botId, null);
+//                webViewContainer.setState(false, null);
+//                if (webViewContainer.getWebView() != null) {
+//                    webViewContainer.getWebView().loadUrl("about:blank");
+//                }
+//
+//                tab.props.response = null;
+//                tab.props.responseTime = 0;
             }
         } else {
             tab.props.response = null;
@@ -499,7 +468,9 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 }
                 if (botButtons != null && botButtons.getTotalHeight() > 0) {
                     height -= botButtons.getTotalHeight();
-
+//                    if (fullscreen) {
+//                        height -= insets.bottom;
+//                    }
                 }
                 height += dp(24);
                 super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
@@ -766,7 +737,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
             @Override
             public void onWebAppExpand() {
-                if (  swipeContainer.isSwipeInProgress()) {
+                if (/* System.currentTimeMillis() - lastSwipeTime <= 1000 || */ swipeContainer.isSwipeInProgress()) {
                     return;
                 }
                 swipeContainer.stickTo(-swipeContainer.getOffsetY() + swipeContainer.getTopActionBarOffsetY());
@@ -817,8 +788,11 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                                 overlayActionBarLayoutDialog.dismiss();
 
                                 dismissed = true;
-                                setOpen(false);
-                                cleanupSheet(true, true);
+                                AndroidUtilities.cancelRunOnUIThread(pollRunnable);
+
+                                webViewContainer.destroyWebView();
+                                NotificationCenter.getInstance(currentAccount).removeObserver(BotWebViewSheet.this, NotificationCenter.webViewResultSent);
+                                NotificationCenter.getGlobalInstance().removeObserver(BotWebViewSheet.this, NotificationCenter.didSetNewTheme);
                                 if (!superDismissed) {
                                     BotWebViewSheet.super.dismiss();
                                     superDismissed = true;
@@ -1008,10 +982,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 dimPaint.setAlpha(0x40);
             }
             windowView.invalidate();
-            if (!viewportUpdatePosted) {
-                viewportUpdatePosted = true;
-                windowView.postOnAnimation(viewportUpdateRunnable);
-            }
+            webViewContainer.invalidateViewPortHeight();
 
             if (springAnimation != null) {
                 float progress = (1f - Math.min(swipeContainer.getTopActionBarOffsetY(), swipeContainer.getTranslationY() - swipeContainer.getTopActionBarOffsetY()) / swipeContainer.getTopActionBarOffsetY());
@@ -1024,13 +995,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
             float offsetY = fullscreen ? insets.bottom : Math.max(0, swipeContainer.getSwipeOffsetY());
             lastSwipeTime = System.currentTimeMillis();
         });
-        swipeContainer.setScrollEndListener(() -> {
-            if (viewportUpdatePosted) {
-                windowView.removeCallbacks(viewportUpdateRunnable);
-                viewportUpdatePosted = false;
-            }
-            webViewContainer.invalidateViewPortHeight(true);
-        });
+        swipeContainer.setScrollEndListener(()-> webViewContainer.invalidateViewPortHeight(true));
         swipeContainer.setDelegate(byTap -> {
             if (fullscreen && byTap) return;
             dismiss(true, null);
@@ -1045,6 +1010,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
         bottomTabs = LaunchActivity.instance != null ? LaunchActivity.instance.getBottomSheetTabs() : null;
         if (bottomTabs != null) {
+            bottomTabs.listen(windowView::invalidate, this::relayout);
             bottomTabsClip = new BottomSheetTabs.ClipTools(bottomTabs);
         }
     }
@@ -1063,34 +1029,9 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         updateFullscreenLayout();
     }
 
-    private void startBottomTabsListening() {
-        if (bottomTabs != null && !bottomTabsListening) {
-            bottomTabs.listen(bottomTabsInvalidateListener, bottomTabsRelayoutListener);
-            bottomTabsListening = true;
-        }
-    }
-
-    private void stopBottomTabsListening() {
-        if (bottomTabs != null && bottomTabsListening) {
-            bottomTabs.stopListening(bottomTabsInvalidateListener, bottomTabsRelayoutListener);
-            bottomTabsListening = false;
-        }
-    }
-
     @Override
     protected void onStart() {
         super.onStart();
-        sheetStarted = true;
-
-        if (!dismissed && webViewContainer != null) {
-            if (restoringPreservedWebView) {
-                if (restoreTransitionFinished) {
-                    finishRestoredWebViewOpen(restoreTransitionGeneration);
-                }
-            } else {
-                webViewContainer.setWebViewPaused(false);
-            }
-        }
 
         Context context = getContext();
         if (context instanceof ContextWrapper && !(context instanceof LaunchActivity)) {
@@ -1103,10 +1044,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
     @Override
     protected void onStop() {
-        sheetStarted = false;
-        if (webViewContainer != null) {
-            webViewContainer.setWebViewPaused(true);
-        }
         super.onStop();
 
         Context context = getContext();
@@ -1247,7 +1184,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
             windowView.setPadding(insets.left, 0, insets.right, Math.max(this.keyboardInset, (bottomTabs != null ? bottomTabs.getHeight(false) : 0) + insets.bottom));
         }
         swipeContainerLayoutParams.topMargin = dp(24);
-
+//        botButtonsLayoutParams.bottomMargin = fullscreen ? insets.bottom : 0;
         actionBarLayoutParams.leftMargin = !fullscreen ? 0 : insets.left;
         actionBarLayoutParams.rightMargin = 0;
         bulletinContainerLayoutParams.leftMargin = !fullscreen ? 0 : insets.left;
@@ -1319,15 +1256,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         super.onDetachedFromWindow();
 
         setAttached(false);
-        stopBottomTabsListening();
-        restoreTransitionGeneration++;
-        if (windowView != null) {
-            windowView.removeCallbacks(finishRestoreRunnable);
-            if (restoreTransitionFallbackRunnable != null) {
-                windowView.removeCallbacks(restoreTransitionFallbackRunnable);
-            }
-        }
-        restoreTransitionFallbackRunnable = null;
 
         if (springAnimation != null) {
             springAnimation.cancel();
@@ -1423,105 +1351,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     Drawable verifiedDrawable;
 
     public void requestWebView(BaseFragment fragment, WebViewRequestProps props) {
-        requestWebView(fragment, props, false);
-    }
-
-    private void cancelPendingWebViewRequest() {
-        webViewRequestGeneration++;
-        if (webViewRequestId != 0) {
-            ConnectionsManager.getInstance(currentAccount).cancelRequest(webViewRequestId, true);
-            webViewRequestId = 0;
-        }
-        if (webViewRequestRetryRunnable != null) {
-            AndroidUtilities.cancelRunOnUIThread(webViewRequestRetryRunnable);
-            webViewRequestRetryRunnable = null;
-        }
-    }
-
-    private boolean isTransientWebViewRequestError(TLRPC.TL_error error) {
-        if (error == null) {
-            return true;
-        }
-        if (error.code < 0 || error.code >= 500) {
-            return true;
-        }
-        String text = error.text == null ? "" : error.text.toUpperCase(Locale.ROOT);
-        return text.contains("TIMEOUT") || text.contains("INTERNAL") || text.contains("NETWORK");
-    }
-
-    private void handleWebViewRequestResult(int generation, WebViewRequestProps expectedProps, TLObject response, TLRPC.TL_error error) {
-        if (generation != webViewRequestGeneration || dismissed || requestProps != expectedProps) {
-            return;
-        }
-        webViewRequestId = 0;
-        if (error != null || response == null) {
-            if (webViewRequestRetryCount == 0 && isTransientWebViewRequestError(error) && isShowing()) {
-                webViewRequestRetryCount++;
-                final int failedGeneration = generation;
-                webViewRequestRetryRunnable = () -> {
-                    webViewRequestRetryRunnable = null;
-                    if (failedGeneration == webViewRequestGeneration && !dismissed && requestProps == expectedProps) {
-                        requestWebView(webViewRequestFragment, expectedProps, true);
-                    }
-                };
-                AndroidUtilities.runOnUIThread(webViewRequestRetryRunnable, 350);
-                return;
-            }
-            showWebViewRequestError(error);
-            return;
-        }
-
-        webViewRequestFailed = false;
-        if (errorContainer != null && errorShown) {
-            AndroidUtilities.updateViewVisibilityAnimated(errorContainer, false, 1f, false);
-            errorShown = false;
-        }
-        expectedProps.applyResponse(response);
-        loadFromResponse();
-    }
-
-    private void showWebViewRequestError(TLRPC.TL_error error) {
-        if (dismissed) {
-            return;
-        }
-        webViewRequestFailed = true;
-        errorShown = true;
-        if (progressView != null) {
-            progressView.setVisibility(View.GONE);
-        }
-        ArticleViewer.ErrorContainer container = createErrorContainer();
-        TLRPC.User bot = MessagesController.getInstance(currentAccount).getUser(botId);
-        String description = error == null ? "EMPTY_RESPONSE" : (TextUtils.isEmpty(error.text) ? "RPC_ERROR_" + error.code : error.text);
-        container.set(UserObject.getUserName(bot), errorCode = description);
-        container.setDark(AndroidUtilities.computePerceivedBrightness(backgroundPaint.getColor()) <= .721f, false);
-        container.setBackgroundColor(backgroundPaint.getColor());
-        AndroidUtilities.updateViewVisibilityAnimated(container, true, 1f, false);
-    }
-
-    private void retryWebViewRequest() {
-        if (dismissed || requestProps == null || webViewRequestFragment == null) {
-            return;
-        }
-        webViewRequestRetryCount = 0;
-        webViewRequestFailed = false;
-        if (errorContainer != null) {
-            AndroidUtilities.updateViewVisibilityAnimated(errorContainer, false, 1f, false);
-        }
-        errorShown = false;
-        progressView.setLoadProgress(0);
-        progressView.setAlpha(1f);
-        progressView.setVisibility(View.VISIBLE);
-        requestProps.response = null;
-        requestProps.responseTime = 0;
-        requestWebView(webViewRequestFragment, requestProps, false);
-    }
-
-    private void requestWebView(BaseFragment fragment, WebViewRequestProps props, boolean retrying) {
-        cancelPendingWebViewRequest();
-        if (!retrying) {
-            webViewRequestRetryCount = 0;
-        }
-        webViewRequestFragment = fragment;
         this.requestProps = props;
         this.currentAccount = props.currentAccount;
         this.peerId = props.peerId;
@@ -1636,16 +1465,11 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         final JSONObject themeParams = makeThemeParams(resourcesProvider);
 
         webViewContainer.setBotUser(MessagesController.getInstance(currentAccount).getUser(botId));
-        if (fromTab && webViewContainer.getWebView() != null && webViewContainer.isPageLoaded()) {
-            webViewContainer.hideFlickerForRestoredPage();
-        } else {
-            webViewContainer.loadFlickerAndSettingsItem(currentAccount, botId, null);
-        }
+        webViewContainer.loadFlickerAndSettingsItem(currentAccount, botId, null);
         preloadShortcutBotIcon(props.botUser, currentBot);
         if (props.response != null) {
             loadFromResponse();
         } else {
-            final int requestGeneration = webViewRequestGeneration;
             switch (props.type) {
                 case TYPE_BOT_MENU_BUTTON: {
                     TLRPC.TL_messages_requestWebView req = new TLRPC.TL_messages_requestWebView();
@@ -1664,8 +1488,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.flags |= 4;
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() ->
-                            handleWebViewRequestResult(requestGeneration, props, response, error)));
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (error != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response);
+                            loadFromResponse();
+                        }
+                    }));
                     NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.webViewResultSent);
 
                     break;
@@ -1692,8 +1522,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.flags |= 16;
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() ->
-                            handleWebViewRequestResult(requestGeneration, props, response, error)));
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (error != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response);
+                            loadFromResponse();
+                        }
+                    }));
                     break;
                 }
                 case TYPE_WEB_VIEW_BUTTON: {
@@ -1727,8 +1563,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.flags |= 4;
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() ->
-                            handleWebViewRequestResult(requestGeneration, props, response, error)));
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (error != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response);
+                            loadFromResponse();
+                        }
+                    }));
                     NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.webViewResultSent);
                     break;
                 }
@@ -1757,8 +1599,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.flags |= 4;
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response2, error2) -> AndroidUtilities.runOnUIThread(() ->
-                            handleWebViewRequestResult(requestGeneration, props, response2, error2)), ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response2, error2) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (error2 != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response2);
+                            loadFromResponse();
+                        }
+                    }), ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
                     break;
                 }
                 case TYPE_WEB_VIEW_BOT_MAIN: {
@@ -1782,8 +1630,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.flags |= 1;
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response2, error2) -> AndroidUtilities.runOnUIThread(() ->
-                            handleWebViewRequestResult(requestGeneration, props, response2, error2)), ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
+                    ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response2, error2) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (error2 != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response2);
+                            loadFromResponse();
+                        }
+                    }), ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
                     break;
                 }
                 case TYPE_WEB_VIEW_GUARD: {
@@ -1795,9 +1649,14 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                         req.theme_params.data = themeParams.toString();
                     }
 
-                    webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, AndroidUtilities::runOnUIThread,
-                            (response2, error2) -> handleWebViewRequestResult(requestGeneration, props, response2, error2),
-                            ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
+                    ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, AndroidUtilities::runOnUIThread, (response2, error2) -> {
+                        if (error2 != null) {
+
+                        } else if (requestProps != null) {
+                            requestProps.applyResponse(response2);
+                            loadFromResponse();
+                        }
+                    }, ConnectionsManager.RequestFlagInvokeAfter | ConnectionsManager.RequestFlagFailOnServerErrors);
                 }
             }
         }
@@ -1865,6 +1724,9 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
             })
             .addIf(onVerifiedAge == null, R.drawable.menu_intro, LocaleController.getString(R.string.BotWebViewToS), () -> {
                 Browser.openUrl(getContext(), LocaleController.getString(R.string.BotWebViewToSLink));
+            })
+            .addIf(onVerifiedAge == null, R.drawable.msg_report, LocaleController.getString(R.string.BotWebViewReportBot), () -> {
+                ReportBottomSheet.openChat(currentAccount, getContext(), BulletinFactory.of(Bulletin.BulletinWindow.make(getContext()), resourcesProvider), botId);
             })
             .addIf(onVerifiedAge == null && currentBot != null && (currentBot.show_in_side_menu || currentBot.show_in_attach_menu), R.drawable.msg_delete, LocaleController.getString(R.string.BotWebViewDeleteBot), () -> {
                 deleteBot(currentAccount, botId, () -> dismiss());
@@ -2003,28 +1865,30 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     private void loadFromResponse() {
         if (requestProps == null) return;
         final long pollTimeout = Math.max(0, POLL_PERIOD - (System.currentTimeMillis() - requestProps.responseTime));
+        boolean sameOrigin = false;
         String url = null;
         fullsize = null;
         if (requestProps.response instanceof TLRPC.TL_webViewResultUrl) {
             TLRPC.TL_webViewResultUrl resultUrl = (TLRPC.TL_webViewResultUrl) requestProps.response;
             queryId = resultUrl.query_id;
             url = resultUrl.url;
+            sameOrigin = resultUrl.same_origin;
             fullsize = resultUrl.fullsize;
             if (!fromTab) {
                 setFullscreen(resultUrl.fullscreen, !fromTab);
             }
-        } else if (requestProps.response instanceof TLRPC.TL_appWebViewResultUrl) { 
+        } else if (requestProps.response instanceof TLRPC.TL_appWebViewResultUrl) { // deprecated
             TLRPC.TL_appWebViewResultUrl result = (TLRPC.TL_appWebViewResultUrl) requestProps.response;
             queryId = 0;
             url = result.url;
-        } else if (requestProps.response instanceof TLRPC.TL_simpleWebViewResultUrl) { 
+        } else if (requestProps.response instanceof TLRPC.TL_simpleWebViewResultUrl) { // deprecated
             TLRPC.TL_simpleWebViewResultUrl resultUrl = (TLRPC.TL_simpleWebViewResultUrl) requestProps.response;
             queryId = 0;
             url = resultUrl.url;
         }
         if (url != null && !fromTab) {
             MediaDataController.getInstance(currentAccount).increaseWebappRating(requestProps.botId);
-            webViewContainer.loadUrl(currentAccount, url);
+            webViewContainer.loadUrl(currentAccount, url, sameOrigin);
         }
         AndroidUtilities.runOnUIThread(pollRunnable, pollTimeout);
         if (swipeContainer != null) {
@@ -2087,43 +1951,10 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         return Theme.getColor(key, resourcesProvider);
     }
 
-    private void cleanupSheet(boolean destroyWebView, boolean stopTabListeners) {
-        restoreTransitionGeneration++;
-        if (windowView != null) {
-            windowView.removeCallbacks(finishRestoreRunnable);
-            if (restoreTransitionFallbackRunnable != null) {
-                windowView.removeCallbacks(restoreTransitionFallbackRunnable);
-            }
-        }
-        restoreTransitionFallbackRunnable = null;
-        cancelPendingWebViewRequest();
-        AndroidUtilities.cancelRunOnUIThread(pollRunnable);
-        if (viewportUpdatePosted && windowView != null) {
-            windowView.removeCallbacks(viewportUpdateRunnable);
-            viewportUpdatePosted = false;
-        }
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.webViewResultSent);
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.botDownloadsUpdate);
-        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewTheme);
-        activeSheets.remove(this);
-        if (stopTabListeners) {
-            stopBottomTabsListening();
-        }
-        if (destroyWebView && webViewContainer != null) {
-            webViewContainer.destroyWebView();
-        }
-        webViewRequestFragment = null;
-    }
-
     @Override
     public void show() {
-        if (!AndroidUtilities.isSafeToShow(getContext())) {
-            dismissed = true;
-            cleanupSheet(true, true);
-            return;
-        }
+        if (!AndroidUtilities.isSafeToShow(getContext())) return;
         setOpen(true);
-        final int showRestoreGeneration = restoreTransitionGeneration;
         windowView.setAlpha(0f);
         windowView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
@@ -2144,10 +1975,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 locker.lock();
 
                 if (showExpanded || isFullSize()) {
-                    swipeContainer.stickTo(-swipeContainer.getOffsetY() + swipeContainer.getTopActionBarOffsetY(), () -> {
-                        locker.unlock();
-                        finishRestoredWebViewOpen(showRestoreGeneration);
-                    });
+                    swipeContainer.stickTo(-swipeContainer.getOffsetY() + swipeContainer.getTopActionBarOffsetY(), locker::unlock);
                 } else {
                     new SpringAnimation(swipeContainer, ChatAttachAlertBotWebViewLayout.WebViewSwipeContainer.SWIPE_OFFSET_Y, 0)
                             .setSpring(new SpringForce(0)
@@ -2155,7 +1983,6 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                                     .setStiffness(500.0f)
                             ).addEndListener((animation, canceled, value, velocity) -> {
                                 locker.unlock();
-                                finishRestoredWebViewOpen(showRestoreGeneration);
                             }).start();
                 }
                 swipeContainer.opened = true;
@@ -2166,50 +1993,9 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 }
             }
         });
-        try {
-            super.show();
-        } catch (RuntimeException e) {
-            FileLog.e(e);
-            dismissed = true;
-            setOpen(false);
-            cleanupSheet(true, true);
-            return;
-        }
+        super.show();
         superDismissed = false;
-        startBottomTabsListening();
         activeSheets.add(this);
-        scheduleRestoreTransitionFallback(showRestoreGeneration);
-    }
-
-    private void scheduleRestoreTransitionFallback(int generation) {
-        if (!restoringPreservedWebView || windowView == null || generation != restoreTransitionGeneration) {
-            return;
-        }
-        if (restoreTransitionFallbackRunnable != null) {
-            windowView.removeCallbacks(restoreTransitionFallbackRunnable);
-        }
-        restoreTransitionFallbackRunnable = () -> {
-            restoreTransitionFallbackRunnable = null;
-            finishRestoredWebViewOpen(generation);
-        };
-        windowView.postDelayed(restoreTransitionFallbackRunnable, RESTORE_TRANSITION_FALLBACK_MS);
-    }
-
-    private void finishRestoredWebViewOpen(int generation) {
-        if (generation != restoreTransitionGeneration || !restoringPreservedWebView || windowView == null || dismissed) {
-            return;
-        }
-        if (restoreTransitionFallbackRunnable != null) {
-            windowView.removeCallbacks(restoreTransitionFallbackRunnable);
-            restoreTransitionFallbackRunnable = null;
-        }
-        restoreTransitionFinished = true;
-        if (!sheetStarted) {
-            return;
-        }
-        finishRestoreGeneration = generation;
-        windowView.removeCallbacks(finishRestoreRunnable);
-        windowView.postOnAnimation(finishRestoreRunnable);
     }
 
     @Override
@@ -2232,9 +2018,11 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         if (webViewContainer.onBackPressed()) {
             return;
         }
-
+//        if (can_minimize) {
             dismiss(true, null);
-
+//        } else {
+//            onCheckDismissByUser();
+//        }
     }
 
     @Override
@@ -2281,22 +2069,26 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
         dismissed = true;
         setOpen(false);
+        AndroidUtilities.cancelRunOnUIThread(pollRunnable);
+
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.webViewResultSent);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.botDownloadsUpdate);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewTheme);
 
         if (intoTabs && (LaunchActivity.instance == null || LaunchActivity.instance.getBottomSheetTabsOverlay() == null)) {
             intoTabs = false;
         }
         if (intoTabs) {
-            cleanupSheet(false, false);
             if (springAnimation != null) {
                 springAnimation.getSpring().setFinalPosition(0);
                 springAnimation.start();
             }
             LaunchActivity.instance.getBottomSheetTabsOverlay().dismissSheet(this);
         } else {
-            cleanupSheet(true, true);
             if (botButtons != null) {
                 botButtons.animate().translationY(botButtons.getTotalHeight()).alpha(0).setDuration(160).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).start();
             }
+            webViewContainer.destroyWebView();
             swipeContainer.stickTo(swipeContainer.getHeight() + (botButtons != null ? botButtons.getTotalHeight() : 0) + insets.top + insets.bottom + windowView.measureKeyboardHeight() + (isFullSize() ? dp(200) : 0), true, () -> {
                 if (!superDismissed) {
                     super.dismiss();
@@ -2307,6 +2099,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 }
             });
         }
+        activeSheets.remove(this);
     }
 
     public BulletinFactory getBulletinFactory() {
@@ -2315,16 +2108,11 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
     public void release() {
         if (superDismissed) return;
-        cleanupSheet(false, true);
-        if (webViewContainer != null) {
-            webViewContainer.destroyWebView();
-        }
         try {
             super.dismiss();
         } catch (Exception e) {
             FileLog.e(e);
         }
-        superDismissed = true;
         setOpen(false);
     }
 
@@ -2585,7 +2373,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
 
     public void setActionBarColor(int color, boolean isOverride, boolean animated) {
         int from = actionBarColor;
-
+//        int navBarFrom = navBarColor;
         int to = color;
         int navBarTo = navigationBarColor(color);
 
@@ -2601,7 +2389,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
             animator.addUpdateListener(animation -> {
                 float progress = (float) animation.getAnimatedValue();
                 actionBarColor = ColorUtils.blendARGB(from, to, progress);
-
+//                navBarColor = ColorUtils.blendARGB(navBarFrom, navBarTo, progress);
                 checkNavBarColor();
                 windowView.invalidate();
                 actionBar.setBackgroundColor(actionBarColor);
@@ -2616,7 +2404,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
                 public void onAnimationEnd(Animator animation) {
                     float progress = 1f;
                     actionBarColor = ColorUtils.blendARGB(from, to, progress);
-
+//                    navBarColor = ColorUtils.blendARGB(navBarFrom, navBarTo, progress);
                     checkNavBarColor();
                     windowView.invalidate();
                     actionBar.setBackgroundColor(actionBarColor);
@@ -2631,7 +2419,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
         } else {
             float progress = 1f;
             actionBarColor = to;
-
+//            navBarColor = navBarTo;
             checkNavBarColor();
             windowView.invalidate();
             actionBar.setBackgroundColor(actionBarColor);
@@ -2647,7 +2435,7 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     public void checkNavBarColor() {
         if (!superDismissed && LaunchActivity.instance != null) {
             LaunchActivity.instance.checkSystemBarColors(true, true, true);
-
+//            AndroidUtilities.setNavigationBarColor(getWindow(), navBarColor, false);
         }
         if (windowView != null) {
             windowView.invalidate();
@@ -2897,13 +2685,9 @@ public class BotWebViewSheet extends Dialog implements NotificationCenter.Notifi
     private ArticleViewer.ErrorContainer errorContainer;
     public ArticleViewer.ErrorContainer createErrorContainer() {
         if (errorContainer == null) {
-            swipeContainer.addView(errorContainer = new ArticleViewer.ErrorContainer(getContext(), currentAccount), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            swipeContainer.addView(errorContainer = new ArticleViewer.ErrorContainer(getContext()), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
             errorContainer.setTranslationY(-1);
             errorContainer.buttonView.setOnClickListener(v -> {
-                if (webViewRequestFailed) {
-                    retryWebViewRequest();
-                    return;
-                }
                 BotWebViewContainer.MyWebView webView = webViewContainer.getWebView();
                 if (webView != null) {
                     webView.reload();

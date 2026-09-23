@@ -68,7 +68,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.graphics.ColorUtils;
 
-import com.google.android.exoplayer2.ExoPlayer;
+import androidx.media3.exoplayer.ExoPlayer;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -797,7 +797,7 @@ public class InstantCameraView extends FrameLayout implements NotificationCenter
             flashButton.setContentDescription(LocaleController.getString(flashing ? R.string.AccDescrCameraFlashOff : R.string.AccDescrCameraFlashOn));
             if (!flashing) {
                 if (flashOnDrawable == null) {
-                    flashOnDrawable = new RLottieDrawable(R.raw.roundcamera_flash_on, "roundcamera_flash_on", buttonsSizePx, buttonsSizePx);
+                    flashOnDrawable = new RLottieDrawable(R.raw.roundcamera_flash_on, buttonsSizePx, buttonsSizePx);
                     flashOnDrawable.setCallback(flashButton);
                 }
                 flashButton.setImageDrawable(flashOnDrawable);
@@ -809,7 +809,7 @@ public class InstantCameraView extends FrameLayout implements NotificationCenter
                 }
             } else {
                 if (flashOffDrawable == null) {
-                    flashOffDrawable = new RLottieDrawable(R.raw.roundcamera_flash_off, "roundcamera_flash_off", buttonsSizePx, buttonsSizePx);
+                    flashOffDrawable = new RLottieDrawable(R.raw.roundcamera_flash_off, buttonsSizePx, buttonsSizePx);
                     flashOffDrawable.setCallback(flashButton);
                 }
                 flashButton.setImageDrawable(flashOffDrawable);
@@ -1091,7 +1091,7 @@ public class InstantCameraView extends FrameLayout implements NotificationCenter
         }
 
         if (switchCameraDrawable == null) {
-            switchCameraDrawable = new RLottieDrawable(R.raw.roundcamera_flip, "roundcamera_flip", buttonsSizePx, buttonsSizePx);
+            switchCameraDrawable = new RLottieDrawable(R.raw.roundcamera_flip, buttonsSizePx, buttonsSizePx);
             switchCameraDrawable.setCurrentFrame(0);
             switchCameraDrawable.setCallback(switchCameraButton);
         }
@@ -4959,16 +4959,6 @@ public class InstantCameraView extends FrameLayout implements NotificationCenter
 
                 @Override
                 public void onRenderedFirstFrame() {
-
-                }
-
-                @Override
-                public boolean onSurfaceDestroyed(SurfaceTexture surfaceTexture) {
-                    return false;
-                }
-
-                @Override
-                public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
 
                 }
             });

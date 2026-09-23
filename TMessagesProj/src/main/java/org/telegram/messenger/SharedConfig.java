@@ -24,11 +24,15 @@ import android.util.Base64;
 import android.webkit.WebView;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.pm.ShortcutManagerCompat;
 
 import org.json.JSONObject;
+import org.telegram.proxy.ProxySettings;
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.InputSerializedData;
+import org.telegram.tgnet.OutputSerializedData;
 import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -38,10 +42,8 @@ import org.telegram.ui.LaunchActivity;
 
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,11 +51,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class SharedConfig {
-     
+    /**
+     * V2: Ping and check time serialized
+     */
     private final static int PROXY_SCHEMA_V2 = 2;
-    private final static int PROXY_CURRENT_SCHEMA_VERSION = PROXY_SCHEMA_V2;
+    private final static int PROXY_SCHEMA_V3 = 3;
+    private final static int PROXY_CURRENT_SCHEMA_VERSION = PROXY_SCHEMA_V3;
 
     public final static int PASSCODE_TYPE_PIN = 0,
             PASSCODE_TYPE_PASSWORD = 1;
@@ -237,7 +243,7 @@ public class SharedConfig {
     public static boolean useFaceLock = true;
     public static int suggestStickers;
     public static boolean suggestAnimatedEmoji;
-    public static int keepMedia = CacheByChatsController.KEEP_MEDIA_ONE_MONTH; 
+    public static int keepMedia = CacheByChatsController.KEEP_MEDIA_ONE_MONTH; //deprecated
     public static int lastKeepMediaCheckTime;
     public static int lastLogsCheckTime;
     public static int textSelectionHintShows;
@@ -274,6 +280,7 @@ public class SharedConfig {
     private static final Object sync = new Object();
     private static final Object localIdSync = new Object();
 
+//    public static int saveToGalleryFlags;
     public static int mapPreviewType = 2;
     public static int searchEngineType = 0;
     public static String searchEngineCustomURLQuery, searchEngineCustomURLAutocomplete;
@@ -282,8 +289,6 @@ public class SharedConfig {
     public static boolean raiseToListen = true;
     public static boolean nextMediaTap = true;
     public static boolean recordViaSco = false;
-    public static boolean customTabs = true;
-    public static boolean inappBrowser = false;
     public static boolean adaptableColorInBrowser = true;
     public static boolean onlyLocalInstantView = false;
     public static boolean directShare = true;
@@ -352,17 +357,17 @@ public class SharedConfig {
     public static LiteMode liteMode;
 
     private static final int[] LOW_SOC = {
-            -1775228513, 
-            802464304,  
-            802464333,  
-            802464302,  
-            2067362118, 
-            2067362060, 
-            2067362084, 
-            2067362241, 
-            2067362117, 
-            2067361998, 
-            -1853602818 
+            -1775228513, // EXYNOS 850
+            802464304,  // EXYNOS 7872
+            802464333,  // EXYNOS 7880
+            802464302,  // EXYNOS 7870
+            2067362118, // MSM8953
+            2067362060, // MSM8937
+            2067362084, // MSM8940
+            2067362241, // MSM8992
+            2067362117, // MSM8952
+            2067361998, // MSM8917
+            -1853602818 // SDM439
     };
 
     static {
@@ -370,79 +375,63 @@ public class SharedConfig {
     }
 
     public static class ProxyInfo {
-
-        public String address;
-        public int port;
-        public String username;
-        public String password;
-        public String secret;
-
-        public long proxyCheckPingId;
+        public @NonNull ProxySettings settings;
         public long ping;
         public boolean checking;
         public boolean available;
         public long availableCheckTime;
 
-        public ProxyInfo(String address, int port, String username, String password, String secret) {
-            this.address = address;
-            this.port = port;
-            this.username = username;
-            this.password = password;
-            this.secret = secret;
-            if (this.address == null) {
-                this.address = "";
-            }
-            if (this.password == null) {
-                this.password = "";
-            }
-            if (this.username == null) {
-                this.username = "";
-            }
-            if (this.secret == null) {
-                this.secret = "";
-            }
+        public ProxyInfo(@NonNull ProxySettings proxySettings) {
+            settings = proxySettings;
         }
 
-        public String getLink() {
-            StringBuilder url = new StringBuilder(!TextUtils.isEmpty(secret) ? "https://t.me/proxy?" : "https://t.me/socks?");
-            try {
-                url.append("server=").append(URLEncoder.encode(address, "UTF-8")).append("&").append("port=").append(port);
-                if (!TextUtils.isEmpty(username)) {
-                    url.append("&user=").append(URLEncoder.encode(username, "UTF-8"));
-                }
-                if (!TextUtils.isEmpty(password)) {
-                    url.append("&pass=").append(URLEncoder.encode(password, "UTF-8"));
-                }
-                if (!TextUtils.isEmpty(secret)) {
-                    url.append("&secret=").append(URLEncoder.encode(secret, "UTF-8"));
-                }
-            } catch (UnsupportedEncodingException ignored) {}
-            return url.toString();
+        private static ProxyInfo fromSerializedData(int version, InputSerializedData data) {
+            ProxySettings.Builder builder = ProxySettings.builder()
+                    .setAddress(data.readString(false))
+                    .setPort(data.readInt32(false))
+                    .setUser(data.readString(false))
+                    .setPassword(data.readString(false));
+
+            final String secret = data.readString(false);
+            builder.setSecret(secret);
+
+            final long ping, availableCheckTime;
+            if (version >= PROXY_SCHEMA_V2) {
+                ping = data.readInt64(false);
+                availableCheckTime = data.readInt64(false);
+            } else {
+                ping = availableCheckTime = 0;
+            }
+
+            if (version >= PROXY_SCHEMA_V3) {
+                builder.setType(ProxySettings.intToType(data.readInt32(false)));
+            } else {
+                builder.setType(TextUtils.isEmpty(secret) ? ProxySettings.Type.SOCKS5 : ProxySettings.Type.MTPROTO);
+            }
+
+            final ProxyInfo info = new ProxyInfo(builder.build());
+            info.availableCheckTime = availableCheckTime;
+            info.ping = ping;
+            info.available = ping > 0;
+
+            return info;
+        }
+
+        private void toSerializedData(OutputSerializedData data) {
+            data.writeString(settings.getAddress());
+            data.writeInt32(settings.getPort());
+            data.writeString(settings.getUser());
+            data.writeString(settings.getPassword());
+            data.writeString(settings.getSecret());
+            data.writeInt64(ping);
+            data.writeInt64(availableCheckTime);
+            data.writeInt32(ProxySettings.typeToInt(settings.getType()));
         }
     }
 
     public static ArrayList<ProxyInfo> proxyList = new ArrayList<>();
     private static boolean proxyListLoaded;
-    public static volatile ProxyInfo currentProxy;
-     
-    private static final Object proxyListSync = new Object();
-    private static long proxyListRevision;
-
-    public static Object getProxyListSync() {
-        return proxyListSync;
-    }
-
-    public static long getProxyListRevision() {
-        synchronized (proxyListSync) {
-            return proxyListRevision;
-        }
-    }
-
-    public static long markProxyListChanged() {
-        synchronized (proxyListSync) {
-            return ++proxyListRevision;
-        }
-    }
+    public static ProxyInfo currentProxy;
 
     public static void saveConfig() {
         synchronized (sync) {
@@ -609,8 +598,6 @@ public class SharedConfig {
             raiseToSpeak = preferences.getBoolean("raise_to_speak", false);
             nextMediaTap = preferences.getBoolean("next_media_on_tap", true);
             recordViaSco = preferences.getBoolean("record_via_sco", false);
-            customTabs = preferences.getBoolean("custom_tabs", true);
-            inappBrowser = preferences.getBoolean("inapp_browser", false);
             adaptableColorInBrowser = preferences.getBoolean("adaptableBrowser", false);
             onlyLocalInstantView = preferences.getBoolean("onlyLocalInstantView", BuildVars.DEBUG_PRIVATE_VERSION);
             directShare = preferences.getBoolean("direct_share", true);
@@ -625,9 +612,7 @@ public class SharedConfig {
             bubbleRadius = preferences.getInt("bubbleRadius", 17);
             ivFontSize = preferences.getInt("iv_font_size", fontSize);
             allowBigEmoji = preferences.getBoolean("allowBigEmoji", true);
-            
-            useSystemEmoji = preferences.getBoolean("useSystemEmoji", false)
-                    || app.nimarkogram.messenger.NimarkoConfig.systemEmoji;
+            useSystemEmoji = preferences.getBoolean("useSystemEmoji", false);
             useSystemBoldFont = preferences.getBoolean("useSystemBoldFont", false);
             forceForumTabs = preferences.getBoolean("forceForumTabs", false);
             fastWallpaperDisabled = preferences.getBoolean("fastWallpaperDisabled", false);
@@ -829,6 +814,7 @@ public class SharedConfig {
         return true;
     }
 
+    // returns a >= b
     public static boolean versionBiggerOrEqual(String a, String b) {
         String[] partsA = a.split("\\.");
         String[] partsB = b.split("\\.");
@@ -1428,108 +1414,69 @@ public class SharedConfig {
     }
 
     public static void loadProxyList() {
-        synchronized (proxyListSync) {
-            if (proxyListLoaded) {
-                return;
-            }
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
-            String proxyAddress = preferences.getString("proxy_ip", "");
-            String proxyUsername = preferences.getString("proxy_user", "");
-            String proxyPassword = preferences.getString("proxy_pass", "");
-            String proxySecret = preferences.getString("proxy_secret", "");
-            int proxyPort = preferences.getInt("proxy_port", 1080);
-            proxyListRevision = Math.max(proxyListRevision,
-                    preferences.getLong("proxy_list_revision", 0L));
+        if (proxyListLoaded) {
+            return;
+        }
+        final SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+        final ProxySettings proxySettings = ProxySettings.fromSharedPreferences(preferences);
 
-            proxyListLoaded = true;
-            proxyList.clear();
-            currentProxy = null;
-            String list = preferences.getString("proxy_list", null);
-            if (!TextUtils.isEmpty(list)) {
-                byte[] bytes = Base64.decode(list, Base64.DEFAULT);
-                SerializedData data = new SerializedData(bytes);
-                int count = data.readInt32(false);
-                if (count == -1) { 
-                    int version = data.readByte(false);
+        proxyListLoaded = true;
+        proxyList.clear();
+        currentProxy = null;
+        String list = preferences.getString("proxy_list", null);
+        if (!TextUtils.isEmpty(list)) {
+            byte[] bytes = Base64.decode(list, Base64.DEFAULT);
+            SerializedData data = new SerializedData(bytes);
+            int count = data.readInt32(false);
+            if (count == -1) { // V2 or newer
+                int version = data.readByte(false);
 
-                    if (version == PROXY_SCHEMA_V2) {
-                        count = data.readInt32(false);
+                if (version == PROXY_SCHEMA_V2 || version == PROXY_SCHEMA_V3) {
+                    count = data.readInt32(false);
 
-                        for (int i = 0; i < count; i++) {
-                            ProxyInfo info = new ProxyInfo(
-                                    data.readString(false),
-                                    data.readInt32(false),
-                                    data.readString(false),
-                                    data.readString(false),
-                                    data.readString(false));
-
-                            info.ping = data.readInt64(false);
-                            info.availableCheckTime = data.readInt64(false);
-
-                            proxyList.add(0, info);
-                            if (currentProxy == null && !TextUtils.isEmpty(proxyAddress)) {
-                                if (proxyAddress.equals(info.address) && proxyPort == info.port && proxyUsername.equals(info.username) && proxyPassword.equals(info.password)) {
-                                    currentProxy = info;
-                                }
-                            }
-                        }
-                    } else {
-                        FileLog.e("Unknown proxy schema version: " + version);
-                    }
-                } else {
-                    for (int a = 0; a < count; a++) {
-                        ProxyInfo info = new ProxyInfo(
-                                data.readString(false),
-                                data.readInt32(false),
-                                data.readString(false),
-                                data.readString(false),
-                                data.readString(false));
+                    for (int i = 0; i < count; i++) {
+                        final ProxyInfo info = ProxyInfo.fromSerializedData(version, data);
                         proxyList.add(0, info);
-                        if (currentProxy == null && !TextUtils.isEmpty(proxyAddress)) {
-                            if (proxyAddress.equals(info.address) && proxyPort == info.port && proxyUsername.equals(info.username) && proxyPassword.equals(info.password)) {
+                        if (currentProxy == null && proxySettings.isValid()) {
+                            if (Objects.equals(proxySettings, info.settings)) {
                                 currentProxy = info;
                             }
                         }
                     }
+                } else {
+                    FileLog.e("Unknown proxy schema version: " + version);
                 }
-                data.cleanup();
+            } else {
+                for (int a = 0; a < count; a++) {
+                    final ProxyInfo info = ProxyInfo.fromSerializedData(0, data);
+                    proxyList.add(0, info);
+                    if (currentProxy == null && proxySettings.isValid()) {
+                        if (Objects.equals(proxySettings, info.settings)) {
+                            currentProxy = info;
+                        }
+                    }
+                }
             }
-            if (currentProxy == null && !TextUtils.isEmpty(proxyAddress)) {
-                ProxyInfo info = currentProxy = new ProxyInfo(proxyAddress, proxyPort, proxyUsername, proxyPassword, proxySecret);
-                proxyList.add(0, info);
-            }
-            proxyListRevision++;
+            data.cleanup();
+        }
+        if (currentProxy == null && proxySettings.isValid()) {
+            ProxyInfo info = currentProxy = new ProxyInfo(proxySettings);
+            proxyList.add(0, info);
         }
     }
 
     public static void saveProxyList() {
-        synchronized (proxyListSync) {
-            saveProxyListLocked(++proxyListRevision);
-        }
-    }
-
-    public static void saveProxyList(long expectedRevision) {
-        synchronized (proxyListSync) {
-            if (expectedRevision != proxyListRevision) {
-                return;
-            }
-            saveProxyListLocked(expectedRevision);
-        }
-    }
-
-    private static void saveProxyListLocked(long revision) {
         List<ProxyInfo> infoToSerialize = new ArrayList<>(proxyList);
-        ProxyInfo activeProxy = currentProxy;
-        HashMap<ProxyInfo, Long> sortKeys = new HashMap<>(infoToSerialize.size());
-        for (ProxyInfo info : infoToSerialize) {
-            long bias = activeProxy == info ? -200000 : 0;
-            if (!info.available) {
-                bias += 100000;
-            }
-            sortKeys.put(info, info.ping + bias);
-        }
         Collections.sort(infoToSerialize, (o1, o2) -> {
-            return Long.compare(sortKeys.get(o1), sortKeys.get(o2));
+            long bias1 = SharedConfig.currentProxy == o1 ? -200000 : 0;
+            if (!o1.available) {
+                bias1 += 100000;
+            }
+            long bias2 = SharedConfig.currentProxy == o2 ? -200000 : 0;
+            if (!o2.available) {
+                bias2 += 100000;
+            }
+            return Long.compare(o1.ping + bias1, o2.ping + bias2);
         });
         SerializedData serializedData = new SerializedData();
         serializedData.writeInt32(-1);
@@ -1538,37 +1485,25 @@ public class SharedConfig {
         serializedData.writeInt32(count);
         for (int a = count - 1; a >= 0; a--) {
             ProxyInfo info = infoToSerialize.get(a);
-            serializedData.writeString(info.address != null ? info.address : "");
-            serializedData.writeInt32(info.port);
-            serializedData.writeString(info.username != null ? info.username : "");
-            serializedData.writeString(info.password != null ? info.password : "");
-            serializedData.writeString(info.secret != null ? info.secret : "");
-
-            serializedData.writeInt64(info.ping);
-            serializedData.writeInt64(info.availableCheckTime);
+            info.toSerializedData(serializedData);
         }
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
-        preferences.edit()
-                .putString("proxy_list", Base64.encodeToString(serializedData.toByteArray(), Base64.NO_WRAP))
-                .putLong("proxy_list_revision", revision)
-                .apply();
+        preferences.edit().putString("proxy_list", Base64.encodeToString(serializedData.toByteArray(), Base64.NO_WRAP)).apply();
         serializedData.cleanup();
     }
 
     public static ProxyInfo addProxy(ProxyInfo proxyInfo) {
-        synchronized (proxyListSync) {
-            loadProxyList();
-            int count = proxyList.size();
-            for (int a = 0; a < count; a++) {
-                ProxyInfo info = proxyList.get(a);
-                if (proxyInfo.address.equals(info.address) && proxyInfo.port == info.port && proxyInfo.username.equals(info.username) && proxyInfo.password.equals(info.password) && proxyInfo.secret.equals(info.secret)) {
-                    return info;
-                }
+        loadProxyList();
+        int count = proxyList.size();
+        for (int a = 0; a < count; a++) {
+            ProxyInfo info = proxyList.get(a);
+            if (Objects.equals(proxyInfo.settings, info.settings)) {
+                return info;
             }
-            proxyList.add(0, proxyInfo);
-            saveProxyListLocked(++proxyListRevision);
-            return proxyInfo;
         }
+        proxyList.add(0, proxyInfo);
+        saveProxyList();
+        return proxyInfo;
     }
 
     public static boolean isProxyEnabled() {
@@ -1576,36 +1511,35 @@ public class SharedConfig {
     }
 
     public static void deleteProxy(ProxyInfo proxyInfo) {
-        synchronized (proxyListSync) {
-            if (currentProxy == proxyInfo) {
-                currentProxy = null;
-                SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-                boolean enabled = preferences.getBoolean("proxy_enabled", false);
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("proxy_ip", "");
-                editor.putString("proxy_pass", "");
-                editor.putString("proxy_user", "");
-                editor.putString("proxy_secret", "");
-                editor.putInt("proxy_port", 1080);
-                editor.putBoolean("proxy_enabled", false);
-                editor.putBoolean("proxy_enabled_calls", false);
-                editor.apply();
-                if (enabled) {
-                    ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
-                }
+        if (currentProxy == proxyInfo) {
+            currentProxy = null;
+            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+            boolean enabled = preferences.getBoolean("proxy_enabled", false);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("proxy_ip", "");
+            editor.putString("proxy_pass", "");
+            editor.putString("proxy_user", "");
+            editor.putString("proxy_secret", "");
+            editor.putInt("proxy_type", 0);
+            editor.putInt("proxy_port", 1080);
+            editor.putBoolean("proxy_enabled", false);
+            editor.putBoolean("proxy_enabled_calls", false);
+            editor.apply();
+            if (enabled) {
+                ConnectionsManager.setProxySettings(false, null);
             }
-            proxyList.remove(proxyInfo);
-            saveProxyListLocked(++proxyListRevision);
         }
+        proxyList.remove(proxyInfo);
+        saveProxyList();
     }
 
     public static void checkSaveToGalleryFiles() {
         Utilities.globalQueue.postRunnable(() -> {
             try {
-                File telegramPath = new File(Environment.getExternalStorageDirectory(), "LinkiGram");
-                File imagePath = new File(telegramPath, "LinkiGram Images");
+                File telegramPath = new File(Environment.getExternalStorageDirectory(), "Telegram");
+                File imagePath = new File(telegramPath, "Telegram Images");
                 imagePath.mkdir();
-                File videoPath = new File(telegramPath, "LinkiGram Video");
+                File videoPath = new File(telegramPath, "Telegram Video");
                 videoPath.mkdir();
 
                 if (!BuildVars.NO_SCOPED_STORAGE) {
@@ -1799,10 +1733,6 @@ public class SharedConfig {
     }
 
     public static boolean chatBlurEnabled() {
-        if (app.nimarkogram.messenger.NimarkoConfig.linkiAss && Build.VERSION.SDK_INT >= 31) {
-            // LinkiGram: liquid glass needs blur, force it on
-            return true;
-        }
         return canBlurChat() && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BLUR);
     }
 
@@ -1886,6 +1816,7 @@ public class SharedConfig {
                 .apply();
     }
 
+
     @Deprecated
     public static int getLegacyDevicePerformanceClass() {
         if (legacyDevicePerformanceClass == -1) {
@@ -1918,6 +1849,8 @@ public class SharedConfig {
         return legacyDevicePerformanceClass;
     }
 
+
+    //DEBUG
     public static boolean drawActionBarShadow = true;
 
     private static void loadDebugConfig(SharedPreferences preferences) {
@@ -1928,5 +1861,7 @@ public class SharedConfig {
         SharedPreferences pref = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
         pref.edit().putBoolean("drawActionBarShadow", drawActionBarShadow);
     }
+
+
 
 }

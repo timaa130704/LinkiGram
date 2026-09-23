@@ -19,8 +19,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -41,7 +39,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.provider.Settings;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -70,7 +67,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.C;
+import androidx.media3.common.C;
 import com.google.android.gms.cast.framework.CastContext;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -128,10 +125,6 @@ import org.telegram.ui.Stories.recorder.SelectAudioAlert;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import app.nimarkogram.messenger.NimarkoConfig;
-import app.nimarkogram.messenger.utils.SleepHelper;
 
 public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.NotificationCenterDelegate, DownloadController.FileDownloadProgressListener {
 
@@ -155,7 +148,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private FrameLayout playerLayout;
     private ButtonWithCounterView saveToProfileButton;
     private ButtonWithCounterView unsaveFromProfileButton;
-    private ButtonWithCounterView sleepTimerButton;
     private ItemTouchHelper itemTouchHelper;
     private CoverContainer coverContainer;
     private ClippingTextViewSwitcher titleTextView;
@@ -166,6 +158,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private ChooseQualityLayout.QualityIcon optionsIcon;
     private ActionBarMenuSubItem castItem;
     private CastMediaRouteButton castItemButton;
+    private boolean castAvailable;
     private LineProgressView progressView;
     private SeekBarView seekBarView;
     private SimpleTextView timeTextView;
@@ -288,6 +281,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
     public AudioPlayerAlert(final Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context, true, resourcesProvider);
+        doNotOverlayNavigationBar = true;
         fixNavigationBar();
 
         MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
@@ -364,7 +358,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                         padding = 0;
                     }
                 }
-
+//                if (isMyList()) {
+//                    padding = Math.min(padding/2, dp(240));
+//                }
                 if (padWithItem) {
                     padding = 0;
                 }
@@ -431,9 +427,10 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                     int height = getMeasuredHeight() + dp(15) + backgroundPaddingTop;
                     float rad = 1.0f;
 
+                    float moveProgress = 0;
                     if (!isProfilePlaylist && top + backgroundPaddingTop < ActionBar.getCurrentActionBarHeight()) {
                         float toMove = offset + dp(11 - 7);
-                        float moveProgress = Math.min(1.0f, (ActionBar.getCurrentActionBarHeight() - top - backgroundPaddingTop) / toMove);
+                        moveProgress = Math.min(1.0f, (ActionBar.getCurrentActionBarHeight() - top - backgroundPaddingTop) / toMove);
                         float availableToMove = ActionBar.getCurrentActionBarHeight() - toMove;
 
                         int diff = (int) (availableToMove * moveProgress);
@@ -443,8 +440,8 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                         rad = 1.0f - moveProgress;
                     }
 
-                    top += AndroidUtilities.statusBarHeight;
-                    y += AndroidUtilities.statusBarHeight;
+                    top += (int) (AndroidUtilities.statusBarHeight * (1f - moveProgress));
+                    y += (int) (AndroidUtilities.statusBarHeight * (1f - moveProgress));
 
                     shadowDrawable.setBounds(0, top, getMeasuredWidth(), height);
                     shadowDrawable.draw(canvas);
@@ -508,10 +505,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         actionBar.setTitleColor(getThemedColor(Theme.key_player_actionBarTitle));
         actionBar.setSubtitleColor(getThemedColor(Theme.key_player_actionBarSubtitle));
         actionBar.setOccupyStatusBar(true);
-        
-        actionBar.setForceDisableCenterTitle(true);
 
-        actionBar.menuOccupyBack = true;
         final ActionBarMenu menu = actionBar.createMenu();
         menu.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
         actionBarBackground = new View(context);
@@ -957,9 +951,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         };
         prevButton.setScaleType(ImageView.ScaleType.CENTER);
         prevButton.setAnimation(R.raw.player_prev, 20, 20);
-        prevButton.setLayerColor("Triangle 3.**", iconColor);
-        prevButton.setLayerColor("Triangle 4.**", iconColor);
-        prevButton.setLayerColor("Rectangle 4.**", iconColor);
+        prevButton.setLayerColor("Triangle 3", iconColor);
+        prevButton.setLayerColor("Triangle 4", iconColor);
+        prevButton.setLayerColor("Rectangle 4", iconColor);
         prevButton.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(22)));
         bottomView.addView(prevButton, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP));
         prevButton.setContentDescription(LocaleController.getString(R.string.AccDescrPrevious));
@@ -1076,9 +1070,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         };
         nextButton.setScaleType(ImageView.ScaleType.CENTER);
         nextButton.setAnimation(R.raw.player_prev, 20, 20);
-        nextButton.setLayerColor("Triangle 3.**", iconColor);
-        nextButton.setLayerColor("Triangle 4.**", iconColor);
-        nextButton.setLayerColor("Rectangle 4.**", iconColor);
+        nextButton.setLayerColor("Triangle 3", iconColor);
+        nextButton.setLayerColor("Triangle 4", iconColor);
+        nextButton.setLayerColor("Rectangle 4", iconColor);
         nextButton.setRotation(180f);
         nextButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(22)));
         bottomView.addView(nextButton, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP));
@@ -1087,21 +1081,12 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         buttons[4] = optionsButton = new ActionBarMenuItem(context, null, 0, iconColor, false, resourcesProvider);
         optionsButton.setIcon(optionsIcon = new ChooseQualityLayout.QualityIcon(context, R.drawable.ic_ab_other, resourcesProvider));
         optionsButton.setLongClickEnabled(false);
-        optionsButton.setShowSubmenuByMove(false);
-        optionsButton.setSubMenuOpenSide(2);
         optionsButton.setAdditionalYOffset(-dp(157 + 40));
         optionsButton.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, dp(18)));
+        optionsButton.setOnClickListener(this::showMenuOptions);
+
         bottomView.addView(optionsButton, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP));
 
-        optionsButton.addSubItem(1390, R.drawable.alarm_sleep_solar, getString(R.string.CG_Sleep));
-        optionsButton.setSubItemShown(1390, false);
-        optionsButton.addColoredGap(1391);
-        optionsButton.setSubItemShown(1391, false);
-
-        optionsButton.addSubItem(1, R.drawable.msg_forward, LocaleController.getString(R.string.Forward));
-        optionsButton.addSubItem(2, R.drawable.msg_shareout, LocaleController.getString(R.string.ShareFile));
-        optionsButton.addSubItem(5, R.drawable.msg_download, LocaleController.getString(R.string.SaveToMusic));
-        optionsButton.addSubItem(4, R.drawable.msg_message, LocaleController.getString(R.string.ShowInChat));
 
         castItemButton = new CastMediaRouteButton(context) {
             @Override
@@ -1112,7 +1097,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 }
             }
         };
-        boolean castAvailable = true;
+        castAvailable = true;
         try {
             castItemButton.setRouteSelector(CastContext.getSharedInstance(context).getMergedSelector());
         } catch (Exception e) {
@@ -1120,20 +1105,11 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             castAvailable = false;
         }
         castItemButton.setVisibility(View.INVISIBLE);
-        if (castAvailable) {
-            castItem = optionsButton.addSubItem(6, R.drawable.menu_video_chromecast, getString(R.string.VideoPlayerChromecast));
-            castItem.addView(castItemButton, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-            updateColors();
-        }
         if (optionsIcon != null) {
             optionsIcon.setCasting(CastSync.isActive(), true);
         }
 
-        optionsButton.addSubItem(7, R.drawable.msg_delete, getString(R.string.ProfilePlaylistRemoveFromProfile));
-        optionsButton.setSubItemShown(7, false);
-
         optionsButton.setShowedFromBottom(true);
-        optionsButton.setOnClickListener(v -> optionsButton.toggleSubMenu());
         optionsButton.setDelegate(this::onSubItemClick);
         optionsButton.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
 
@@ -1284,14 +1260,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         });
         playerLayout.addView(saveToProfileButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 12, 12, 12, 12));
 
-        sleepTimerButton = new ButtonWithCounterView(context, resourcesProvider).setRound();
-        SpannableStringBuilder sleepSb = new SpannableStringBuilder();
-        sleepSb.append("+");
-        sleepSb.setSpan(new ColoredImageSpan(R.drawable.alarm_sleep_filled_solar), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        sleepTimerButton.setText(sleepSb, false);
-        sleepTimerButton.setOnClickListener(v -> setSleepTimer());
-        playerLayout.addView(sleepTimerButton, LayoutHelper.createFrame(48, 42, Gravity.BOTTOM | Gravity.RIGHT, 0, 12, 12, 12));
-
         unsaveFromProfileButton = new ButtonWithCounterView(context, resourcesProvider).setRound().setNeutral();
         unsaveFromProfileButton.setText(getString(R.string.AudioRemoveFromProfile));
         unsaveFromProfileButton.setOnClickListener(v -> {
@@ -1309,12 +1277,16 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
         savedMusicList = MediaController.getInstance().currentSavedMusicList;
         isProfilePlaylist = savedMusicList != null;
+        actionBar.menuOccupyBack = isProfilePlaylist;
         padWithItem = isMyList();
         playlist = MediaController.getInstance().getPlaylist();
         if (isMyList()) {
             addItem = menu.addItem(8, R.drawable.msg_add);
         }
-        searchItem = menu.addItem(0, R.drawable.outline_header_search).setIsSearchField(true).setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
+        searchItem = menu.addItem(0, R.drawable.outline_header_search)
+            .setIsSearchField(true)
+            .setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
+
             @Override
             public void onSearchCollapse() {
                 if (searching) {
@@ -1409,7 +1381,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         if (isMyList()) {
             saveToProfileButton.setVisibility(View.GONE);
             unsaveFromProfileButton.setVisibility(View.GONE);
-            if (sleepTimerButton != null) sleepTimerButton.setVisibility(View.GONE);
 
             itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.Callback() {
                 @Override
@@ -1514,9 +1485,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         } else {
             int offset = dp(13);
             int top = scrollOffsetY - backgroundPaddingTop - offset;
-
+//            if (currentSheetAnimationType == 1) {
                 top += listView.getTranslationY();
-
+//            }
             if (top + backgroundPaddingTop < ActionBar.getCurrentActionBarHeight()) {
                 float toMove = offset + dp(11 - 7);
                 float moveProgress = Math.min(1.0f, (ActionBar.getCurrentActionBarHeight() - top - backgroundPaddingTop) / toMove);
@@ -1711,11 +1682,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
     private void onSubItemClick(int id) {
         final MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
         if (messageObject == null || parentActivity == null) {
-            return;
-        }
-        if (id == 1390) {
-            
-            setSleepTimer();
             return;
         }
         if (id == 1) {
@@ -2039,9 +2005,9 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
         int offset = dp(13);
         top = scrollOffsetY - backgroundPaddingTop - offset;
-
+//        if (currentSheetAnimationType == 1) {
             top += listView.getTranslationY();
-
+//        }
         float rad = 1.0f;
 
         if (top + backgroundPaddingTop < ActionBar.getCurrentActionBarHeight()) {
@@ -2313,13 +2279,6 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 optionsButton.showSubItem(2);
                 optionsButton.showSubItem(5);
                 optionsButton.setAdditionalYOffset(-dp(157 + 40));
-            }
-            optionsButton.setSubItemShown(4, messageObject.getId() > 0);
-            optionsButton.setSubItemShown(7, isMyList());
-            
-            if (optionsButton != null) {
-                optionsButton.setSubItemShown(1390, !isMyList() && !noforwards);
-                optionsButton.setSubItemShown(1391, !isMyList() && !noforwards);
             }
 
             checkIfMusicDownloaded(messageObject);
@@ -2710,6 +2669,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             optionsButton.redrawPopup(getThemedColor(Theme.key_actionBarDefaultSubmenuBackground));
         };
 
+//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogBackground));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, delegate, Theme.key_player_actionBarTitle));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_player_actionBarTitle));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SUBTITLECOLOR, null, null, null, null, Theme.key_player_actionBarTitle));
@@ -2906,6 +2866,86 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         });
     }
 
+    private void showMenuOptions(View v) {
+        final MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
+        if (messageObject == null) {
+            return;
+        }
+
+        final ItemOptions o = ItemOptions.makeOptions(container, resourcesProvider, v, true);
+        ItemOptions o2 = buildSaveOptions(o, messageObject);
+        if (!isMyList()) {
+            o.addIf(!noforwards, R.drawable.msg_stories_save, getString(R.string.AudioSaveTo), () -> o.openSwipeback(o2));
+            if (!noforwards && o.getLast() != null)
+                o.getLast().setRightIcon(R.drawable.msg_arrowright);
+            o.addGap();
+        }
+
+        o.addIf(!noforwards, R.drawable.msg_forward, getString(R.string.Forward), () -> {
+            o.dismiss();
+            onSubItemClick(1);
+        });
+        o.addIf(!noforwards, R.drawable.msg_shareout, getString(R.string.ShareFile), () -> {
+            o.dismiss();
+            onSubItemClick(2);
+        });
+        o.addIf(messageObject.getId() > 0, R.drawable.msg_message, getString(R.string.ShowInChat), () -> {
+            o.dismiss();
+            onSubItemClick(4);
+        });
+        if (castAvailable) {
+            castItem = o.add();
+            castItem.setTextAndIcon(getString(R.string.VideoPlayerChromecast), R.drawable.menu_video_chromecast);
+            castItem.setOnClickListener(v2 -> {
+                o.dismiss();
+                onSubItemClick(7);
+            });
+            AndroidUtilities.removeFromParent(castItemButton);
+            castItem.addView(castItemButton, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            updateColors();
+        }
+        o.addIf(isMyList(), R.drawable.msg_delete, getString(R.string.ProfilePlaylistRemoveFromProfile), true, () -> {
+            o.dismiss();
+            onSubItemClick(7);
+        });
+        o.setTranslationY(dp(64));
+        o.show();
+    }
+
+    private ItemOptions buildSaveOptions(ItemOptions o, MessageObject messageObject) {
+        final MessagesController.SavedMusicIds musicIds = MessagesController.getInstance(currentAccount).getSavedMusicIds();
+        final TLRPC.Document document = messageObject.getDocument();
+        final long documentId = document != null ? document.id : 0;
+
+        final ItemOptions o2 = o.makeSwipeback();
+        o2.add(R.drawable.ic_ab_back, getString(R.string.Back), o::closeSwipeback);
+        o2.addGap();
+        o2.addIf(!musicIds.ids.contains(documentId), R.drawable.left_status_profile, getString(R.string.AudioSaveToMyProfile), () -> {
+            saveToProfile(messageObject, true, () -> {
+                setVisibleInProfile(true);
+                BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
+                        .createSimpleBulletin(R.raw.saved_messages, getString(R.string.AudioSaveToMyProfileSaved))
+                        .show();
+                o.dismiss();
+            }, false);
+        });
+        o2.add(R.drawable.msg_saved, getString(R.string.AudioSaveToSavedMessages), () -> {
+            forward(messageObject, UserConfig.getInstance(currentAccount).getClientUserId());
+            o.dismiss();
+
+            BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
+                    .createSimpleBulletin(R.raw.saved_messages, getString(R.string.AudioSaveToSavedMessagesSaved))
+                    .show();
+        });
+        o2.add(R.drawable.menu_download_round, getString(R.string.AudioSaveToMusicFolder), () -> {
+            saveToMusic(messageObject);
+            o.dismiss();
+        });
+        o2.addGap();
+        o2.addText(getString(R.string.AudioSaveToInfo), 12, dp(200));
+        return o2;
+    }
+
     private void showOptions(AudioPlayerCell cell, MessageObject messageObject) {
         final ItemOptions o = ItemOptions.makeOptions(container, resourcesProvider, cell, true);
 
@@ -2932,36 +2972,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 }, false);
             });
         } else {
-            final MessagesController.SavedMusicIds musicIds = MessagesController.getInstance(currentAccount).getSavedMusicIds();
-            final TLRPC.Document document = messageObject.getDocument();
-            final long documentId = document != null ? document.id : 0;
-
-            final ItemOptions o2 = o.makeSwipeback();
-            o2.add(R.drawable.ic_ab_back, getString(R.string.Back), o::closeSwipeback);
-            o2.addGap();
-            o2.addIf(!musicIds.ids.contains(documentId), R.drawable.left_status_profile, getString(R.string.AudioSaveToMyProfile), () -> {
-                saveToProfile(messageObject, true, () -> {
-                    setVisibleInProfile(true);
-                    BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
-                        .createSimpleBulletin(R.raw.saved_messages, getString(R.string.AudioSaveToMyProfileSaved))
-                        .show();
-                    o.dismiss();
-                }, false);
-            });
-            o2.add(R.drawable.msg_saved, getString(R.string.AudioSaveToSavedMessages), () -> {
-                forward(messageObject, UserConfig.getInstance(currentAccount).getClientUserId());
-                o.dismiss();
-
-                BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
-                    .createSimpleBulletin(R.raw.saved_messages, getString(R.string.AudioSaveToSavedMessagesSaved))
-                    .show();
-            });
-            o2.add(R.drawable.menu_download_round, getString(R.string.AudioSaveToMusicFolder), () -> {
-                saveToMusic(messageObject);
-                o.dismiss();
-            });
-            o2.addGap();
-            o2.addText(getString(R.string.AudioSaveToInfo), 12, dp(200));
+            ItemOptions o2 = buildSaveOptions(o, messageObject);
 
             o.addIf(!noforwards, R.drawable.msg_stories_save, getString(R.string.AudioSaveTo), () -> o.openSwipeback(o2));
             if (!noforwards && o.getLast() != null)
@@ -3010,12 +3021,10 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         if (isMyList() || noforwards) {
             saveToProfileButton.setVisibility(View.GONE);
             unsaveFromProfileButton.setVisibility(View.GONE);
-            if (sleepTimerButton != null) sleepTimerButton.setVisibility(View.GONE);
             return;
         }
         saveToProfileButton.setVisibility(View.VISIBLE);
         unsaveFromProfileButton.setVisibility(View.VISIBLE);
-        if (sleepTimerButton != null) sleepTimerButton.setVisibility(View.VISIBLE);
         saveToProfileButton.animate()
             .alpha(visible ? 0.0f : 1.0f)
             .scaleX(visible ? 0.8f : 1.0f)
@@ -3126,7 +3135,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             document = null;
         }
         if (fmessages != null) {
-            SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, dialogId, false, false, true, 0, null, -1, 0);
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, dialogId, false, false, true, 0, 0);
         } else {
             SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of(document, null, messageObject.messageOwner.attachPath, dialogId, null, null, null, null, null, null, true, 0, 0, 0, savedMusicList, null, false, false));
         }
@@ -3175,7 +3184,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of(message.toString(), did, null, null, null, true, null, null, null, true, 0, 0, null, false));
                     }
                     if (fmessages != null) {
-                        SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, did, false, false, true, 0, null, -1, 0);
+                        SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, did, false, false, true, 0, 0);
                     } else {
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of(document, null, messageObject.messageOwner.attachPath, did, null, null, null, null, null, null, notify, scheduleDate, 0, 0, savedMusicList, null, false, false));
                     }
@@ -3434,7 +3443,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 }
             }
             if (clipProgress[index] > 0f || hasStableRect) {
-                final int width = Math.min(child.getWidth(), getWidth()); 
+                final int width = Math.min(child.getWidth(), getWidth()); // - rightPadding;
                 final int height = Math.min(child.getHeight(), getHeight());
                 final int saveCount = canvas.saveLayer(0, 0, width, height, null, Canvas.ALL_SAVE_FLAG);
                 result = super.drawChild(canvas, child, drawingTime);
@@ -3504,27 +3513,27 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             final int duration = 300;
 
             final ValueAnimator collapseAnimator = ValueAnimator.ofFloat(clipProgress[prevIndex], 0.75f);
-            collapseAnimator.setDuration(duration / 3 * 2); 
+            collapseAnimator.setDuration(duration / 3 * 2); // 0.66
             collapseAnimator.addUpdateListener(a -> {
                 clipProgress[prevIndex] = (float) a.getAnimatedValue();
                 invalidate();
             });
 
             final ValueAnimator expandAnimator = ValueAnimator.ofFloat(clipProgress[index], 0f);
-            expandAnimator.setStartDelay(duration / 3); 
-            expandAnimator.setDuration(duration / 3 * 2); 
+            expandAnimator.setStartDelay(duration / 3); // 0.33
+            expandAnimator.setDuration(duration / 3 * 2); // 0.66
             expandAnimator.addUpdateListener(a -> {
                 clipProgress[index] = (float) a.getAnimatedValue();
                 invalidate();
             });
 
             final ObjectAnimator fadeOutAnimator = ObjectAnimator.ofFloat(textViews[prevIndex], View.ALPHA, 0f);
-            fadeOutAnimator.setStartDelay(duration / 4); 
-            fadeOutAnimator.setDuration(duration / 2); 
+            fadeOutAnimator.setStartDelay(duration / 4); // 0.25
+            fadeOutAnimator.setDuration(duration / 2); // 0.5
 
             final ObjectAnimator fadeInAnimator = ObjectAnimator.ofFloat(textViews[index], View.ALPHA, 1f);
-            fadeInAnimator.setStartDelay(duration / 4); 
-            fadeInAnimator.setDuration(duration / 2); 
+            fadeInAnimator.setStartDelay(duration / 4); // 0.25
+            fadeInAnimator.setDuration(duration / 2); // 0.5
 
             animatorSet.playTogether(collapseAnimator, expandAnimator, fadeOutAnimator, fadeInAnimator);
             animatorSet.start();
@@ -3601,132 +3610,4 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         });
         rightPaddingAnimator.start();
     }
-
-    private void setSleepTimer() {
-        ArrayList<CharSequence> presets = new ArrayList<>();
-        ArrayList<Integer> presetValues = new ArrayList<>();
-
-        presets.add(LocaleController.formatPluralString("Minutes", 1));
-        presetValues.add(1);
-
-        presets.add(LocaleController.formatPluralString("Minutes", 5));
-        presetValues.add(5);
-
-        presets.add(LocaleController.formatPluralString("Minutes", 10));
-        presetValues.add(10);
-
-        presets.add(LocaleController.formatPluralString("Minutes", 20));
-        presetValues.add(20);
-
-        presets.add(LocaleController.formatPluralString("Minutes", 40));
-        presetValues.add(40);
-
-        presets.add(LocaleController.formatPluralString("Hours", 1));
-        presetValues.add(60);
-
-        presets.add(getString(R.string.AutoDownloadCustom));
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), getResourcesProvider());
-        builder.setTitle(getString(R.string.CG_Sleep));
-
-        builder.setItems(presets.toArray(new CharSequence[0]), (d, which) -> {
-            if (which < presetValues.size()) {
-                int minutes = presetValues.get(which);
-                setSleepIntent(minutes * 60);
-            } else {
-                AlertsCreator.createTimePickerDialog(
-                        getContext(),
-                        getString(R.string.CG_Sleep),
-                        0,
-                        0,
-                        12 * 60,
-                        pickedMinutes -> {
-                            int seconds = pickedMinutes * 60;
-                            setSleepIntent(seconds);
-                        }
-                );
-            }
-        });
-
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        builder.show();
-    }
-
-    private void setSleepIntent(int seconds) {
-        AlarmManager alarmManager = (AlarmManager) ApplicationLoader.applicationContext.getSystemService(Context.ALARM_SERVICE);
-        Intent myIntent = new Intent(ApplicationLoader.applicationContext, SleepHelper.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                ApplicationLoader.applicationContext, 1, myIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
-
-        alarmManager.cancel(pendingIntent);
-
-        if (seconds > 0) {
-            long triggerAtMillis = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(seconds);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (!alarmManager.canScheduleExactAlarms()) {
-                        AlertDialog.Builder permBuilder = new AlertDialog.Builder(getContext(), getResourcesProvider());
-                        permBuilder.setTopAnimation(R.raw.permission_request_apk, AlertsCreator.PERMISSIONS_REQUEST_TOP_ICON_SIZE, false, Theme.getColor(Theme.key_dialogTopBackground));
-                        permBuilder.setMessage(getString(R.string.CG_Sleep_Permission));
-                        permBuilder.setPositiveButton(getString(R.string.PermissionOpenSettings), (dialog, which) -> {
-                            Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                            intent.setData(Uri.parse("package:" + ApplicationLoader.applicationContext.getPackageName()));
-                            try {
-                                getContext().startActivity(intent);
-                            } catch (Exception x) {
-                                FileLog.e(x);
-                            }
-                        });
-                        permBuilder.setNegativeButton(getString(R.string.Cancel), null);
-                        permBuilder.show();
-                        return;
-                    } else {
-                        alarmManager.setExactAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP,
-                                triggerAtMillis,
-                                pendingIntent
-                        );
-                    }
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerAtMillis,
-                            pendingIntent
-                    );
-                }
-            } else {
-                alarmManager.set(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerAtMillis,
-                        pendingIntent
-                );
-            }
-
-            NimarkoConfig.setSleepTimer(true);
-
-            String formattedTime;
-            if (seconds < 3600) {
-                int minutes = seconds / 60;
-                formattedTime = LocaleController.formatPluralString("Minutes", minutes);
-            } else {
-                int hours = seconds / 3600;
-                formattedTime = LocaleController.formatPluralString("Hours", hours);
-            }
-
-            BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
-                    .createSimpleBulletin(R.raw.done, AndroidUtilities.replaceTags(LocaleController.formatString(R.string.CG_Sleep_Timer, formattedTime)))
-                    .show();
-        } else {
-            if (NimarkoConfig.sleepTimer) {
-                BulletinFactory.of((FrameLayout) containerView, resourcesProvider)
-                        .createSimpleBulletin(R.raw.done, getString(R.string.CG_Sleep_Disabled))
-                        .show();
-            }
-            NimarkoConfig.setSleepTimer(false);
-        }
-    }
-     
 }

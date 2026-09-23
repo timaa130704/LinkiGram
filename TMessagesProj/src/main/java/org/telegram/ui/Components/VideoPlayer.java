@@ -20,7 +20,6 @@ import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.net.Uri;
-import android.opengl.EGLContext;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,54 +30,52 @@ import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultLoadControl;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.PlaybackParameters;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SeekParameters;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
-import com.google.android.exoplayer2.audio.AudioAttributes;
-import com.google.android.exoplayer2.audio.AudioCapabilities;
-import com.google.android.exoplayer2.audio.AudioProcessor;
-import com.google.android.exoplayer2.audio.AudioSink;
-import com.google.android.exoplayer2.audio.DefaultAudioSink;
-import com.google.android.exoplayer2.audio.TeeAudioProcessor;
-import com.google.android.exoplayer2.mediacodec.MediaCodecDecoderException;
-import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
-import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
-import com.google.android.exoplayer2.source.LoopingMediaSource;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.ProgressiveMediaSource;
-import com.google.android.exoplayer2.source.TrackGroup;
-import com.google.android.exoplayer2.source.TrackGroupArray;
-import com.google.android.exoplayer2.source.dash.DashMediaSource;
-import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride;
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters;
-import com.google.android.exoplayer2.text.CueGroup;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.upstream.DefaultAllocator;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
-import com.google.android.exoplayer2.upstream.TransferListener;
-import com.google.android.exoplayer2.video.SurfaceNotValidException;
-import com.google.android.exoplayer2.video.VideoListener;
-import com.google.android.exoplayer2.video.VideoSize;
+import androidx.annotation.OptIn;
+import androidx.media3.common.C;
+import androidx.media3.common.VideoListener;
+import androidx.media3.common.audio.AudioProcessor;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DataSpec;
+import androidx.media3.datasource.TransferListener;
+import androidx.media3.exoplayer.DefaultLoadControl;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.common.Format;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.PlaybackParameters;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.SeekParameters;
+import androidx.media3.common.Tracks;
+import androidx.media3.exoplayer.analytics.AnalyticsListener;
+import androidx.media3.common.AudioAttributes;
+import androidx.media3.exoplayer.audio.AudioSink;
+import androidx.media3.exoplayer.audio.DefaultAudioSink;
+import androidx.media3.exoplayer.audio.TeeAudioProcessor;
+import androidx.media3.exoplayer.dash.DashMediaSource;
+import androidx.media3.exoplayer.hls.HlsMediaSource;
+import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException;
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer;
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil;
+import androidx.media3.exoplayer.source.LoopingMediaSource;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
+import androidx.media3.common.TrackGroup;
+import androidx.media3.exoplayer.source.TrackGroupArray;
+import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
+import androidx.media3.exoplayer.trackselection.MappingTrackSelector;
+import androidx.media3.common.TrackSelectionOverride;
+import androidx.media3.common.TrackSelectionParameters;
+import androidx.media3.exoplayer.upstream.DefaultAllocator;
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter;
+import androidx.media3.common.VideoSize;
+import androidx.media3.exoplayer.video.SurfaceNotValidException;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -110,8 +107,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @SuppressLint("NewApi")
+@OptIn(markerClass = UnstableApi.class)
 public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsListener, NotificationCenter.NotificationCenterDelegate {
 
     private static int lastPlayerId = 0;
@@ -130,8 +129,12 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         void onError(VideoPlayer player, Exception e);
         void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio);
         void onRenderedFirstFrame();
-        void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture);
-        boolean onSurfaceDestroyed(SurfaceTexture surfaceTexture);
+        default void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
+
+        }
+        default boolean onSurfaceDestroyed(SurfaceTexture surfaceTexture) {
+            return false;
+        }
         default void onRenderedFirstFrame(EventTime eventTime) {
 
         }
@@ -139,9 +142,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
         }
         default void onSeekFinished(AnalyticsListener.EventTime eventTime) {
-
-        }
-        default void onCues(CueGroup cueGroup) {
 
         }
     }
@@ -172,11 +172,10 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     private boolean audioPlayerReady;
     private boolean mixedPlayWhenReady;
 
-    private volatile VideoPlayerDelegate delegate;
-    private volatile AudioVisualizerDelegate audioVisualizerDelegate;
+    private VideoPlayerDelegate delegate;
+    private AudioVisualizerDelegate audioVisualizerDelegate;
     private int lastReportedPlaybackState;
     private boolean lastReportedPlayWhenReady;
-    private volatile boolean released;
 
     private ArrayList<Quality> videoQualities;
     private Quality videoQualityToSelect;
@@ -190,7 +189,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     private boolean shouldPauseOther;
     MediaSource.Factory dashMediaSourceFactory;
     HlsMediaSource.Factory hlsMediaSourceFactory;
-    SsMediaSource.Factory ssMediaSourceFactory;
     ProgressiveMediaSource.Factory progressiveMediaSourceFactory;
 
     Handler audioUpdateHandler = new Handler(Looper.getMainLooper());
@@ -232,36 +230,23 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         this.looper = looper;
     }
 
-    private EGLContext eglParentContext;
-    public void setEGLContext(EGLContext ctx) {
-        eglParentContext = ctx;
-    }
-
     private void ensurePlayerCreated() {
-        DefaultLoadControl loadControl;
-        if (isStory) {
-            loadControl = new DefaultLoadControl(
-                    new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE),
-                    DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                    DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                    1000,
-                    1000,
-                    DefaultLoadControl.DEFAULT_TARGET_BUFFER_BYTES,
-                    DefaultLoadControl.DEFAULT_PRIORITIZE_TIME_OVER_SIZE_THRESHOLDS,
-                    DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS,
-                    DefaultLoadControl.DEFAULT_RETAIN_BACK_BUFFER_FROM_KEYFRAME);
-        } else {
-            loadControl = new DefaultLoadControl(
-                    new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE),
-                    DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                    DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                    100,
-                    DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS,
-                    DefaultLoadControl.DEFAULT_TARGET_BUFFER_BYTES,
-                    DefaultLoadControl.DEFAULT_PRIORITIZE_TIME_OVER_SIZE_THRESHOLDS,
-                    DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS,
-                    DefaultLoadControl.DEFAULT_RETAIN_BACK_BUFFER_FROM_KEYFRAME);
-        }
+        DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
+            .setAllocator(new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE))
+            .setBufferDurationsMs(
+                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+                DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+                isStory ? 1000 : 100,
+                isStory ? 1000
+                        : DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+            .setTargetBufferBytes(DefaultLoadControl.DEFAULT_TARGET_BUFFER_BYTES)
+            .setPrioritizeTimeOverSizeThresholds(
+                DefaultLoadControl.DEFAULT_PRIORITIZE_TIME_OVER_SIZE_THRESHOLDS)
+            .setBackBuffer(
+                DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS,
+                DefaultLoadControl.DEFAULT_RETAIN_BACK_BUFFER_FROM_KEYFRAME)
+            .build();
+
         if (player == null) {
             DefaultRenderersFactory factory;
             if (audioVisualizerDelegate != null) {
@@ -270,16 +255,11 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                 factory = new DefaultRenderersFactory(ApplicationLoader.applicationContext);
             }
             factory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
-            
-            factory.setEnableDecoderFallback(true);
             ExoPlayer.Builder builder = new ExoPlayer.Builder(ApplicationLoader.applicationContext).setRenderersFactory(factory)
                     .setTrackSelector(trackSelector)
                     .setLoadControl(loadControl);
             if (looper != null) {
                 builder.setLooper(looper);
-            }
-            if (eglParentContext != null) {
-                builder.eglContext = eglParentContext;
             }
             player = builder.build();
 
@@ -300,7 +280,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
             if (audioPlayer == null) {
                 audioPlayer = new ExoPlayer.Builder(ApplicationLoader.applicationContext)
                         .setTrackSelector(trackSelector)
-                        .setLoadControl(loadControl).buildSimpleExoPlayer();
+                        .setLoadControl(loadControl).build();
                 audioPlayer.addListener(new Player.Listener() {
 
                     @Override
@@ -379,11 +359,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                     hlsMediaSourceFactory = new HlsMediaSource.Factory(mediaDataSourceFactory);
                 }
                 return hlsMediaSourceFactory.createMediaSource(mediaItem);
-            case "ss":
-                if (ssMediaSourceFactory == null) {
-                    ssMediaSourceFactory = new SsMediaSource.Factory(mediaDataSourceFactory);
-                }
-                return ssMediaSourceFactory.createMediaSource(mediaItem);
             default:
                 if (progressiveMediaSourceFactory == null) {
                     progressiveMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory);
@@ -489,7 +464,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         return preferences.getBoolean(key, false);
     }
 
-    public static final int QUALITY_AUTO = -1; 
+    public static final int QUALITY_AUTO = -1; // HLS
     private boolean autoIsOriginal = false;
     private int selectedQualityIndex = QUALITY_AUTO;
     private boolean currentStreamIsHls;
@@ -628,6 +603,42 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                     }
                 }
 
+//                final MappingTrackSelector.MappedTrackInfo mapTrackInfo = trackSelector.getCurrentMappedTrackInfo();
+//                for (int renderIndex = 0; renderIndex < mapTrackInfo.getRendererCount(); ++renderIndex) {
+//                    final TrackGroupArray trackGroups = mapTrackInfo.getTrackGroups(renderIndex);
+//                    for (int groupIndex = 0; groupIndex < trackGroups.length; ++groupIndex) {
+//                        final TrackGroup trackGroup = trackGroups.get(groupIndex);
+//                        for (int trackIndex = 0; trackIndex < trackGroup.length; ++trackIndex) {
+//                            final Format format = trackGroup.getFormat(trackIndex);
+//                            int formatIndex;
+//                            try {
+//                                formatIndex = Integer.parseInt(format.id);
+//                            } catch (Exception e) {
+//                                formatIndex = -1;
+//                            }
+//                            if (formatIndex >= 0) {
+//                                int formatOrder = 0;
+//                                for (int j = 0; j < getQualitiesCount(); ++j) {
+//                                    final Quality q = getQuality(j);
+//                                    for (int i = 0; i < q.uris.size(); ++i){
+//                                        if (q.uris.get(i).m3u8uri != null) {
+//                                            if (formatOrder == formatIndex) {
+//                                                return j;
+//                                            }
+//                                            formatOrder++;
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                            for (int j = 0; j < getQualitiesCount(); ++j) {
+//                                final Quality q = getQuality(j);
+//                                if (format.width == q.width && format.height == q.height) {
+//                                    return j;
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             } catch (Exception e) {
                 FileLog.e(e);
                 return -1;
@@ -704,7 +715,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         boolean reset = false;
 
         videoQualityToSelect = quality;
-        if (quality == null) { 
+        if (quality == null) { // AUTO
             final Uri hlsManifest = makeManifest(videoQualities);
             final Quality original = getOriginalQuality();
             if (original != null && original.uris.size() == 1 && original.uris.get(0).isCached()) {
@@ -1077,6 +1088,16 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                 }
             }
 
+//            if (BuildVars.LOGS_ENABLED) {
+//                for (Quality q : qualities) {
+//                    FileLog.d("debug_loading_player: Quality "+q.p()+"p (" + q.width + "x" + q.height + ")" + (q.original ? " (source)" : "") + ":");
+//                    for (VideoUri uri : q.uris) {
+//                        FileLog.d("debug_loading_player: - video " + uri.width + "x" + uri.height + ", codec=" + uri.codec + ", bitrate=" + (int) (uri.bitrate*8) + ", doc#" + uri.docId + (uri.isCached() ? " (cached)" : "") + ", manifest#" + uri.manifestDocId + (uri.isManifestCached() ? " (cached)" : ""));
+//                    }
+//                }
+//                FileLog.d("debug_loading_player: ");
+//            }
+
             return qualities;
         }
 
@@ -1304,78 +1325,53 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     }
 
     public void releasePlayer(boolean async) {
-        if (released) {
-            return;
-        }
-        released = true;
         activePlayers.remove(playerId);
-        audioUpdateHandler.removeCallbacksAndMessages(null);
-        audioVisualizerDelegate = null;
-        delegate = null;
-        seekFinishedListeners.clear();
         if (player != null) {
-            try {
-                player.release();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
+            player.release();
             player = null;
         }
         if (audioPlayer != null) {
-            try {
-                audioPlayer.release();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
+            audioPlayer.release();
             audioPlayer = null;
         }
-        textureView = null;
-        surfaceView = null;
-        surface = null;
         if (shouldPauseOther) {
             NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.playerDidStartPlaying);
         }
-        playerCounter = Math.max(0, playerCounter - 1);
+        playerCounter--;
     }
 
     @Override
     public void onSeekStarted(EventTime eventTime) {
-        if (released) {
-            return;
-        }
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (currentDelegate != null) {
-            currentDelegate.onSeekStarted(eventTime);
+        if (delegate != null) {
+            delegate.onSeekStarted(eventTime);
         }
     }
 
     private final ArrayList<Runnable> seekFinishedListeners = new ArrayList<>();
 
     @Override
-    public void onSeekProcessed(EventTime eventTime) {
-        if (released) {
-            return;
+    public void onPositionDiscontinuity(
+            EventTime eventTime,
+            Player.PositionInfo oldPosition,
+            Player.PositionInfo newPosition,
+            int reason) {
+        if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+            if (delegate != null) {
+                delegate.onSeekFinished(eventTime);
+            }
+            for (Runnable r : seekFinishedListeners) {
+                r.run();
+            }
+            seekFinishedListeners.clear();
         }
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (currentDelegate != null) {
-            currentDelegate.onSeekFinished(eventTime);
-        }
-        for (Runnable r : seekFinishedListeners) {
-            r.run();
-        }
-        seekFinishedListeners.clear();
     }
 
     @Override
     public void onRenderedFirstFrame(EventTime eventTime, Object output, long renderTimeMs) {
-        if (released) {
-            return;
-        }
         fallbackPosition = C.TIME_UNSET;
         fallbackDuration = C.TIME_UNSET;
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (!released && currentDelegate != null) {
-            currentDelegate.onRenderedFirstFrame(eventTime);
+        if (delegate != null) {
+            delegate.onRenderedFirstFrame(eventTime);
         }
     }
 
@@ -1454,10 +1450,9 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
             audioPlayer.setPlayWhenReady(false);
         }
 
-        AudioVisualizerDelegate visualizerDelegate = audioVisualizerDelegate;
-        if (visualizerDelegate != null) {
+        if (audioVisualizerDelegate != null) {
             audioUpdateHandler.removeCallbacksAndMessages(null);
-            visualizerDelegate.onVisualizerUpdate(false, true, null);
+            audioVisualizerDelegate.onVisualizerUpdate(false, true, null);
         }
     }
 
@@ -1527,11 +1522,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
     @Override
     public void onRepeatModeChanged(int repeatMode) {
-
-    }
-
-    @Override
-    public void onSurfaceSizeChanged(int width, int height) {
 
     }
 
@@ -1620,6 +1610,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         return player != null && lastReportedPlaybackState == ExoPlayer.STATE_BUFFERING;
     }
 
+
     private boolean handleAudioFocus = false;
     public void handleAudioFocus(boolean handleAudioFocus) {
         this.handleAudioFocus = handleAudioFocus;
@@ -1662,9 +1653,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        if (released) {
-            return;
-        }
         maybeReportPlayerState();
         if (playWhenReady && playbackState == Player.STATE_READY && !isMuted() && shouldPauseOther) {
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.playerDidStartPlaying, this);
@@ -1675,18 +1663,14 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         }
         if (playbackState != Player.STATE_READY) {
             audioUpdateHandler.removeCallbacksAndMessages(null);
-            AudioVisualizerDelegate visualizerDelegate = audioVisualizerDelegate;
-            if (visualizerDelegate != null) {
-                visualizerDelegate.onVisualizerUpdate(false, true, null);
+            if (audioVisualizerDelegate != null) {
+                audioVisualizerDelegate.onVisualizerUpdate(false, true, null);
             }
         }
     }
 
     @Override
     public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, @Player.DiscontinuityReason int reason) {
-        if (released) {
-            return;
-        }
         if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
             repeatCount++;
         }
@@ -1695,9 +1679,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     @Override
     public void onPlayerError(PlaybackException error) {
         AndroidUtilities.runOnUIThread(() -> {
-            if (released) {
-                return;
-            }
             Throwable cause = error.getCause();
             if (cause instanceof MediaCodecDecoderException) {
                 if (cause.toString().contains("av1") || cause.toString().contains("av01")) {
@@ -1714,51 +1695,45 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                     return;
                 }
             }
-            TextureView currentTextureView = textureView;
-            if (!triedReinit && currentTextureView != null
-                    && player != null
-                    && (cause instanceof MediaCodecRenderer.DecoderInitializationException
-                    || cause instanceof SurfaceNotValidException)) {
+            if (textureView != null && (!triedReinit && cause instanceof MediaCodecRenderer.DecoderInitializationException || cause instanceof SurfaceNotValidException)) {
                 triedReinit = true;
-                ViewParent textureParent = currentTextureView.getParent();
-                if (textureParent instanceof ViewGroup) {
-                    ViewGroup parent = (ViewGroup) textureParent;
-                    int i = parent.indexOfChild(currentTextureView);
-                    parent.removeView(currentTextureView);
-                    parent.addView(currentTextureView, i);
-                }
-                if (workerQueue != null) {
-                    workerQueue.postRunnable(() -> {
-                        if (!released && player != null && textureView == currentTextureView) {
-                            player.clearVideoTextureView(currentTextureView);
-                            player.setVideoTextureView(currentTextureView);
-                            if (videoQualities != null) {
-                                preparePlayer(videoQualities, videoQualityToSelect);
-                            } else if (loopingMediaSource) {
-                                preparePlayerLoop(videoUri, videoType, audioUri, audioType);
-                            } else {
-                                preparePlayer(videoUri, videoType);
-                            }
-                            play();
-                        }
-                    });
-                } else if (!released && player != null && textureView == currentTextureView) {
-                    player.clearVideoTextureView(currentTextureView);
-                    player.setVideoTextureView(currentTextureView);
-                    if (videoQualities != null) {
-                        preparePlayer(videoQualities, videoQualityToSelect);
-                    } else if (loopingMediaSource) {
-                        preparePlayerLoop(videoUri, videoType, audioUri, audioType);
-                    } else {
-                        preparePlayer(videoUri, videoType);
+                if (player != null) {
+                    ViewGroup parent = (ViewGroup) textureView.getParent();
+                    if (parent != null) {
+                        int i = parent.indexOfChild(textureView);
+                        parent.removeView(textureView);
+                        parent.addView(textureView, i);
                     }
-                    play();
+                    if (workerQueue != null) {
+                        workerQueue.postRunnable(() -> {
+                            if (player != null) {
+                                player.clearVideoTextureView(textureView);
+                                player.setVideoTextureView(textureView);
+                                if (videoQualities != null) {
+                                    preparePlayer(videoQualities, videoQualityToSelect);
+                                } else if (loopingMediaSource) {
+                                    preparePlayerLoop(videoUri, videoType, audioUri, audioType);
+                                } else {
+                                    preparePlayer(videoUri, videoType);
+                                }
+                                play();
+                            }
+                        });
+                    } else {
+                        player.clearVideoTextureView(textureView);
+                        player.setVideoTextureView(textureView);
+                        if (videoQualities != null) {
+                            preparePlayer(videoQualities, videoQualityToSelect);
+                        } else if (loopingMediaSource) {
+                            preparePlayerLoop(videoUri, videoType, audioUri, audioType);
+                        } else {
+                            preparePlayer(videoUri, videoType);
+                        }
+                        play();
+                    }
                 }
             } else {
-                VideoPlayerDelegate currentDelegate = delegate;
-                if (!released && currentDelegate != null) {
-                    currentDelegate.onError(this, error);
-                }
+                delegate.onError(this, error);
             }
         });
     }
@@ -1769,33 +1744,25 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
     @Override
     public void onVideoSizeChanged(VideoSize videoSize) {
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (!released && currentDelegate != null) {
-            currentDelegate.onVideoSizeChanged(videoSize.width, videoSize.height, videoSize.unappliedRotationDegrees, videoSize.pixelWidthHeightRatio);
+        if (!Objects.equals(videoSize, VideoSize.UNKNOWN)) {
+            delegate.onVideoSizeChanged(videoSize.width, videoSize.height, videoSize.unappliedRotationDegrees, videoSize.pixelWidthHeightRatio);
         }
         Player.Listener.super.onVideoSizeChanged(videoSize);
     }
 
     @Override
     public void onRenderedFirstFrame() {
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (!released && currentDelegate != null) {
-            currentDelegate.onRenderedFirstFrame();
-        }
+        delegate.onRenderedFirstFrame();
     }
 
     @Override
     public boolean onSurfaceDestroyed(SurfaceTexture surfaceTexture) {
-        VideoPlayerDelegate currentDelegate = delegate;
-        return !released && currentDelegate != null && currentDelegate.onSurfaceDestroyed(surfaceTexture);
+        return delegate.onSurfaceDestroyed(surfaceTexture);
     }
 
     @Override
     public void onSurfaceTextureUpdated(SurfaceTexture surfaceTexture) {
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (!released && currentDelegate != null) {
-            currentDelegate.onSurfaceTextureUpdated(surfaceTexture);
-        }
+        delegate.onSurfaceTextureUpdated(surfaceTexture);
     }
 
     @Override
@@ -1804,14 +1771,13 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     }
 
     private void maybeReportPlayerState() {
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (released || player == null || currentDelegate == null) {
+        if (player == null) {
             return;
         }
         boolean playWhenReady = player.getPlayWhenReady();
         int playbackState = player.getPlaybackState();
         if (lastReportedPlayWhenReady != playWhenReady || lastReportedPlaybackState != playbackState) {
-            currentDelegate.onStateChanged(playWhenReady, playbackState);
+            delegate.onStateChanged(playWhenReady, playbackState);
             lastReportedPlayWhenReady = playWhenReady;
             lastReportedPlaybackState = playbackState;
         }
@@ -1829,16 +1795,16 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
         @Nullable
         @Override
-        protected AudioSink buildAudioSink(Context context, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams, boolean enableOffload) {
-            return new DefaultAudioSink.Builder()
-                    .setAudioCapabilities(AudioCapabilities.getCapabilities(context))
+        protected AudioSink buildAudioSink(
+                @NonNull Context context,
+                boolean enableFloatOutput,
+                boolean enableAudioTrackPlaybackParams) {
+            return new DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(enableFloatOutput)
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                    .setAudioProcessors(new AudioProcessor[] {new TeeAudioProcessor(new VisualizerBufferSink())})
-                    .setOffloadMode(
-                            enableOffload
-                                    ? DefaultAudioSink.OFFLOAD_MODE_ENABLED_GAPLESS_REQUIRED
-                                    : DefaultAudioSink.OFFLOAD_MODE_DISABLED)
+                    .setAudioProcessors(new AudioProcessor[]{
+                            new TeeAudioProcessor(new VisualizerBufferSink())
+                    })
                     .build();
         }
     }
@@ -1862,35 +1828,35 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
         }
 
+
         long lastUpdateTime;
 
         @Override
         public void handleBuffer(ByteBuffer buffer) {
-            AudioVisualizerDelegate visualizerDelegate = audioVisualizerDelegate;
-            if (released || visualizerDelegate == null) {
+            if (audioVisualizerDelegate == null) {
                 return;
             }
             if (buffer == AudioProcessor.EMPTY_BUFFER || !mixedPlayWhenReady) {
                 audioUpdateHandler.postDelayed(() -> {
                     audioUpdateHandler.removeCallbacksAndMessages(null);
-                    AudioVisualizerDelegate currentDelegate = audioVisualizerDelegate;
-                    if (!released && currentDelegate != null) {
-                        currentDelegate.onVisualizerUpdate(false, true, null);
-                    }
+                    audioVisualizerDelegate.onVisualizerUpdate(false, true, null);
                 }, 80);
                 return;
             }
 
-            if (!visualizerDelegate.needUpdate()) {
+            if (!audioVisualizerDelegate.needUpdate()) {
                 return;
             }
 
             int len = buffer.limit();
             if (len > MAX_BUFFER_SIZE) {
                 audioUpdateHandler.removeCallbacksAndMessages(null);
-                visualizerDelegate.onVisualizerUpdate(false, true, null);
+                audioVisualizerDelegate.onVisualizerUpdate(false, true, null);
                 return;
-
+//                len = MAX_BUFFER_SIZE;
+//                byte[] bytes = new byte[BUFFER_SIZE];
+//                buffer.get(bytes);
+//                byteBuffer.put(bytes, 0, BUFFER_SIZE);
             } else {
                 byteBuffer.put(buffer);
             }
@@ -1950,12 +1916,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                 }
                 lastUpdateTime = System.currentTimeMillis();
 
-                audioUpdateHandler.postDelayed(() -> {
-                    AudioVisualizerDelegate currentDelegate = audioVisualizerDelegate;
-                    if (!released && currentDelegate != null) {
-                        currentDelegate.onVisualizerUpdate(true, true, partsAmplitude);
-                    }
-                }, 130);
+                audioUpdateHandler.postDelayed(() -> audioVisualizerDelegate.onVisualizerUpdate(true, true, partsAmplitude), 130);
             }
         }
     }
@@ -1977,12 +1938,13 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         return false;
     }
 
+
     public StoryEntry.HDRInfo getHDRStaticInfo(StoryEntry.HDRInfo hdrInfo) {
         if (hdrInfo == null) {
             hdrInfo = new StoryEntry.HDRInfo();
         }
         try {
-            MediaFormat mediaFormat = ((MediaCodecRenderer) player.getRenderer(0)).codecOutputMediaFormat;
+            MediaFormat mediaFormat = ((MediaCodecRenderer) player.getRenderer(0)).getCodecOutputMediaFormat();
             ByteBuffer byteBuffer = mediaFormat.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO);
             byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
             if (byteBuffer.get() == 0) {
@@ -2009,7 +1971,11 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
 
     public void setWorkerQueue(DispatchQueue dispatchQueue) {
         workerQueue = dispatchQueue;
-        player.setWorkerQueue(dispatchQueue);
+        if (dispatchQueue != null) {
+            player.setWorkerQueue(dispatchQueue::postRunnable);
+        } else {
+            player.setWorkerQueue(null);
+        }
     }
 
     public void setIsStory() {
@@ -2022,69 +1988,6 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         if (onQualityChangeListener != null) {
             AndroidUtilities.runOnUIThread(onQualityChangeListener);
         }
-    }
-
-    @Override
-    public void onCues(CueGroup cueGroup) {
-        VideoPlayerDelegate currentDelegate = delegate;
-        if (!released && currentDelegate != null) {
-            currentDelegate.onCues(cueGroup);
-        }
-    }
-
-    public static final class SubtitleTrack {
-        private final TrackGroup group;
-        private final int trackIndex;
-        public final String label;
-
-        private SubtitleTrack(TrackGroup group, int trackIndex, String label) {
-            this.group = group;
-            this.trackIndex = trackIndex;
-            this.label = label;
-        }
-    }
-
-    public ArrayList<SubtitleTrack> getSubtitleTracks() {
-        ArrayList<SubtitleTrack> result = new ArrayList<>();
-        MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
-        if (info == null) return result;
-        int fallbackIndex = 1;
-        for (int renderer = 0; renderer < info.getRendererCount(); renderer++) {
-            if (info.getRendererType(renderer) != C.TRACK_TYPE_TEXT) continue;
-            TrackGroupArray groups = info.getTrackGroups(renderer);
-            for (int groupIndex = 0; groupIndex < groups.length; groupIndex++) {
-                TrackGroup group = groups.get(groupIndex);
-                for (int trackIndex = 0; trackIndex < group.length; trackIndex++) {
-                    Format format = group.getFormat(trackIndex);
-                    String label = format.label;
-                    if (TextUtils.isEmpty(label)) label = format.language;
-                    if (TextUtils.isEmpty(label)) label = getString(R.string.ChooseSubtitles) + " " + fallbackIndex;
-                    result.add(new SubtitleTrack(group, trackIndex, label));
-                    fallbackIndex++;
-                }
-            }
-        }
-        return result;
-    }
-
-    public void selectSubtitleTrack(SubtitleTrack track) {
-        if (track == null) return;
-        TrackSelectionParameters.Builder parameters = trackSelector.getParameters().buildUpon()
-                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                .addOverride(new TrackSelectionOverride(track.group, track.trackIndex));
-        trackSelector.setParameters(parameters.build());
-    }
-
-    public void disableSubtitles() {
-        trackSelector.setParameters(trackSelector.getParameters().buildUpon()
-                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                .build());
-    }
-
-    public boolean isSubtitlesEnabled() {
-        return !trackSelector.getParameters().disabledTrackTypes.contains(C.TRACK_TYPE_TEXT);
     }
 
     public ChromecastMediaVariations getCurrentChromecastMedia(String defaultId, String title, String subtitle) {

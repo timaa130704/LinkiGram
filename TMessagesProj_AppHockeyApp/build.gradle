@@ -1,8 +1,9 @@
-apply plugin: 'com.android.application'
-if (file('google-services.json').isFile()) {
-    apply plugin: 'com.google.gms.google-services'
-    apply plugin: 'com.google.firebase.crashlytics'
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
 }
+apply plugin: 'org.telegram.build-app-plugin'
 
 repositories {
     mavenCentral()
@@ -25,17 +26,13 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation files('../TMessagesProj/libs/libgsaverification-client.aar')
 
-    implementation "com.microsoft.appcenter:appcenter-distribute:3.3.1"
-    implementation "com.microsoft.appcenter:appcenter-crashes:3.3.1"
-    implementation "com.microsoft.appcenter:appcenter-analytics:3.3.1"
-
     implementation platform("com.google.firebase:firebase-bom:32.7.0")
     implementation "com.google.firebase:firebase-crashlytics:18.6.0"
 }
 
 android {
-    compileSdkVersion 35
-    buildToolsVersion '35.0.0'
+    compileSdkVersion 36
+    buildToolsVersion '36.0.0'
 
     defaultConfig.applicationId = APP_PACKAGE
 
@@ -54,46 +51,62 @@ android {
         coreLibraryDesugaringEnabled true
     }
 
+    androidResources {
+        noCompress += "pack"
+        localeFilters += ["zz"]
+    }
+
     signingConfigs {
+        debug {
+            storeFile file("../TMessagesProj/config/release.keystore")
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+        }
+
         release {
-            if (rootProject.ext.hasReleaseSigning) {
-                storeFile rootProject.file(rootProject.ext.releaseSigning.storeFile)
-                storePassword rootProject.ext.releaseSigning.storePassword
-                keyAlias rootProject.ext.releaseSigning.keyAlias
-                keyPassword rootProject.ext.releaseSigning.keyPassword
-            }
+            storeFile file("../TMessagesProj/config/release.keystore")
+            storePassword RELEASE_STORE_PASSWORD
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
         }
     }
 
     buildTypes {
         HA_private {
+            matchingFallbacks = ['release']
             debuggable false
             jniDebuggable false
             signingConfig signingConfigs.debug
             applicationIdSuffix ".beta"
             minifyEnabled true
             multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
         HA_public {
+            matchingFallbacks = ['release']
             debuggable false
             jniDebuggable false
             signingConfig signingConfigs.debug
             applicationIdSuffix ".beta"
             minifyEnabled true
             multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
         HA_hardcore {
+            matchingFallbacks = ['release']
             debuggable false
             jniDebuggable false
             signingConfig signingConfigs.debug
             applicationIdSuffix ".beta"
             minifyEnabled true
             multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
     }
@@ -156,7 +169,7 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionName APP_VERSION_NAME
         ndkVersion "27.2.12479018"
 
@@ -166,8 +179,9 @@ android {
 
         externalNativeBuild {
             cmake {
-                version '3.10.2'
-                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' 
+                version '3.22.1'
+                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' // , '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                targets 'tmessages.49'
             }
         }
     }
