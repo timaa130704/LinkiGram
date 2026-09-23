@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.util.SparseIntArray;
 import android.view.Menu;
 import android.view.View;
@@ -15,9 +14,7 @@ import android.widget.FrameLayout;
 
 import androidx.core.util.Supplier;
 
-import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.BackButtonMenu;
-import org.telegram.ui.DialogsActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,9 +75,11 @@ public interface INavigationLayout {
     void onActionModeFinished(Object mode);
     void startActivityForResult(Intent intent, int requestCode);
 
-    Theme.MessageDrawable getMessageDrawableOutStart();
-    Theme.MessageDrawable getMessageDrawableOutMediaStart();
+    // TODO: Migrate them to be out of navigation layout
+    MessageDrawable getMessageDrawableOutStart();
+    MessageDrawable getMessageDrawableOutMediaStart();
 
+    // TODO: Make something like FieldsContainer and put them there?
     List<BackButtonMenu.PulledDialog> getPulledDialogs();
     void setPulledDialogs(List<BackButtonMenu.PulledDialog> pulledDialogs);
 
@@ -118,21 +117,30 @@ public interface INavigationLayout {
     }
 
     default void setBackgroundView(View backgroundView) {
-        
+        // Not always required
     }
 
     default void setUseAlphaAnimations(boolean useAlphaAnimations) {
-        
+        // Not always required
     }
 
+    /**
+     * @deprecated Should be replaced with {@link INavigationLayout#rebuildFragments(int)}
+     */
     @Deprecated
     default void rebuildLogout() {
-        
+        // No-op usually, can contain hackfixes
     }
 
+    /**
+     * @deprecated Should be replaced with {@link INavigationLayout#rebuildFragments(int)}
+     */
     @Deprecated
     default void showLastFragment() {}
 
+    /**
+     * @deprecated Should be replaced with {@link INavigationLayout#rebuildFragments(int)}
+     */
     @Deprecated
     default void rebuildAllFragmentViews(boolean last, boolean showLastAfter) {}
 
@@ -219,6 +227,9 @@ public interface INavigationLayout {
         init(stack);
     }
 
+    /**
+     * @deprecated This method was replaced with {@link INavigationLayout#setFragmentStack(List)}
+     */
     @Deprecated
     default void init(List<BaseFragment> stack) {
         throw new RuntimeException("Neither setFragmentStack(...) or init(...) were overriden!");
@@ -236,55 +247,6 @@ public interface INavigationLayout {
     }
 
     default boolean presentFragment(BaseFragment fragment) {
-        
-        if (fragment instanceof ChatActivity
-                && (app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenChat
-                    || app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenEncrypted)) {
-            Bundle args = fragment.getArguments();
-            if (args == null) {
-                return false;
-            }
-            long userID = args.getLong("user_id");
-            long chatID = args.getLong("chat_id");
-            int encID = args.getInt("enc_id");
-            boolean requiresBiometrics = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper
-                    .shouldRequireBiometrics(userID, chatID, encID, fragment.getCurrentAccount());
-            if (requiresBiometrics && getParentActivity() == null) return false;
-            if (requiresBiometrics
-                    && !app.nimarkogram.messenger.security.NimarkoBiometricPrompt.isRecentlyVerified(fragment.getCurrentAccount(), userID, chatID, encID)) {
-                final int acc = fragment.getCurrentAccount();
-                app.nimarkogram.messenger.security.NimarkoBiometricPrompt.prompt(getParentActivity(),
-                        () -> {
-                            app.nimarkogram.messenger.security.NimarkoBiometricPrompt.markVerified(acc, userID, chatID, encID);
-                            presentFragment(new NavigationParams(fragment));
-                        });
-                return true;
-            }
-            return presentFragment(new NavigationParams(fragment));
-        }
-
-        if (fragment instanceof DialogsActivity
-                && app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenArchive) {
-            Bundle args = fragment.getArguments();
-            if (args == null) {
-                return presentFragment(new NavigationParams(fragment));
-            }
-            int folderId = args.getInt("folderId");
-            if (folderId == 1) {
-                if (getParentActivity() == null) return false;
-                final int archiveAccount = fragment.getCurrentAccount();
-                if (app.nimarkogram.messenger.security.NimarkoBiometricPrompt.isArchiveRecentlyVerified(archiveAccount)) {
-                    return presentFragment(new NavigationParams(fragment));
-                }
-                app.nimarkogram.messenger.security.NimarkoBiometricPrompt.prompt(getParentActivity(), () -> {
-                    app.nimarkogram.messenger.security.NimarkoBiometricPrompt.markArchiveVerified(archiveAccount);
-                    presentFragment(new NavigationParams(fragment));
-                });
-                return true;
-            }
-            return presentFragment(new NavigationParams(fragment));
-        }
-
         return presentFragment(new NavigationParams(fragment));
     }
 
@@ -300,69 +262,19 @@ public interface INavigationLayout {
         return presentFragment(new NavigationParams(fragment).setPreview(true).setMenuView(menuView));
     }
 
+    /**
+     * @deprecated You should use {@link INavigationLayout.NavigationParams} for advanced params
+     */
     @Deprecated
     default boolean presentFragment(BaseFragment fragment, boolean removeLast, boolean forceWithoutAnimation, boolean check, boolean preview) {
-        
-        if (!(fragment instanceof ChatActivity) || check) {
-            return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview));
-        }
-        if (!(app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenChat
-                || app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenEncrypted)) {
-            return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview));
-        }
-        Bundle args = fragment.getArguments();
-        if (args == null) {
-            return false;
-        }
-        long userID = args.getLong("user_id");
-        long chatID = args.getLong("chat_id");
-        int encID = args.getInt("enc_id");
-        boolean requiresBiometrics = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper
-                .shouldRequireBiometrics(userID, chatID, encID, fragment.getCurrentAccount());
-        if (requiresBiometrics && getParentActivity() == null) return false;
-        if (requiresBiometrics
-                && !app.nimarkogram.messenger.security.NimarkoBiometricPrompt.isRecentlyVerified(fragment.getCurrentAccount(), userID, chatID, encID)) {
-            final int acc = fragment.getCurrentAccount();
-            app.nimarkogram.messenger.security.NimarkoBiometricPrompt.prompt(getParentActivity(),
-                    () -> {
-                        app.nimarkogram.messenger.security.NimarkoBiometricPrompt.markVerified(acc, userID, chatID, encID);
-                        presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview));
-                    });
-            return true;
-        }
         return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview));
     }
 
+    /**
+     * @deprecated You should use {@link INavigationLayout.NavigationParams} for advanced params
+     */
     @Deprecated
     default boolean presentFragment(BaseFragment fragment, boolean removeLast, boolean forceWithoutAnimation, boolean check, boolean preview, ActionBarPopupWindow.ActionBarPopupWindowLayout menuView) {
-        
-        if (!(fragment instanceof ChatActivity)) {
-            return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview).setMenuView(menuView));
-        }
-        if (!(app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenChat
-                || app.nimarkogram.messenger.NimarkoConfig.askBiometricsToOpenEncrypted)) {
-            return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview).setMenuView(menuView));
-        }
-        Bundle args = fragment.getArguments();
-        if (args == null) {
-            return false;
-        }
-        long userID = args.getLong("user_id");
-        long chatID = args.getLong("chat_id");
-        int encID = args.getInt("enc_id");
-        boolean requiresBiometrics = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper
-                .shouldRequireBiometrics(userID, chatID, encID, fragment.getCurrentAccount());
-        if (requiresBiometrics && getParentActivity() == null) return false;
-        if (requiresBiometrics
-                && !app.nimarkogram.messenger.security.NimarkoBiometricPrompt.isRecentlyVerified(fragment.getCurrentAccount(), userID, chatID, encID)) {
-            final int acc = fragment.getCurrentAccount();
-            app.nimarkogram.messenger.security.NimarkoBiometricPrompt.prompt(getParentActivity(),
-                    () -> {
-                        app.nimarkogram.messenger.security.NimarkoBiometricPrompt.markVerified(acc, userID, chatID, encID);
-                        presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview).setMenuView(menuView));
-                    });
-            return true;
-        }
         return presentFragment(new NavigationParams(fragment).setRemoveLast(removeLast).setNoAnimation(forceWithoutAnimation).setCheckPresentFromDelegate(check).setPreview(preview).setMenuView(menuView));
     }
 
@@ -398,6 +310,9 @@ public interface INavigationLayout {
             return needPresentFragment(params.fragment, params.removeLast, params.noAnimation, layout);
         }
 
+        /**
+         * @deprecated You should override {@link INavigationLayoutDelegate#needPresentFragment(INavigationLayout, NavigationParams)} for more fields
+         */
         default boolean needPresentFragment(BaseFragment fragment, boolean removeLast, boolean forceWithoutAnimation, INavigationLayout layout) {
             return true;
         }

@@ -16,7 +16,6 @@ import static org.telegram.messenger.MessageObject.POSITION_FLAG_BOTTOM;
 import static org.telegram.messenger.MessageObject.POSITION_FLAG_LEFT;
 import static org.telegram.messenger.MessageObject.POSITION_FLAG_RIGHT;
 import static org.telegram.messenger.MessageObject.POSITION_FLAG_TOP;
-import static org.telegram.ui.Components.MarkdownParser.richTextToString;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -48,7 +47,6 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.FileUtils;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.Layout;
@@ -107,7 +105,6 @@ import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
-import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -116,8 +113,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
-
-import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
@@ -129,7 +124,6 @@ import org.telegram.messenger.CodeHighlighting;
 import org.telegram.messenger.DownloadController;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
-import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.FileStreamLoadOperation;
 import org.telegram.messenger.ImageLoader;
@@ -167,7 +161,6 @@ import org.telegram.ui.ActionBar.BottomSheetTabDialog;
 import org.telegram.ui.ActionBar.BottomSheetTabs;
 import org.telegram.ui.ActionBar.BottomSheetTabsOverlay;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Cells.CheckBoxCell;
 import org.telegram.ui.Cells.HeaderCell;
 import org.telegram.ui.Cells.TextSelectionHelper;
 import org.telegram.ui.Components.AlertsCreator;
@@ -228,11 +221,7 @@ import org.telegram.ui.web.WebBrowserSettings;
 import org.telegram.ui.web.WebInstantView;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -243,7 +232,7 @@ import java.util.Stack;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import ru.noties.jlatexmath.JLatexMathDrawable;
+import org.telegram.ui.iv.Latex;
 
 public class ArticleViewer extends IArticleViewer implements NotificationCenter.NotificationCenterDelegate {
 
@@ -283,8 +272,6 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private boolean attachedToWindow;
 
     private int currentAccount;
-    private int notificationsAccount = -1;
-    private boolean notificationsRegistered;
     public int getCurrentAccount() {
         return currentAccount;
     }
@@ -313,11 +300,16 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private FrameLayout containerView;
     private WebActionBar actionBar;
     private AddressBarList addressBarList;
-
+//    private FrameLayout headerView;
+//    private SimpleTextView titleTextView;
+//    private LineProgressView lineProgressView;
     private Runnable lineProgressTickRunnable;
-
+//    private ImageView backButton;
+//    private ActionBarMenuItem menuButton;
+//    private ActionBarMenuItem collapseButton;
+//    private FrameLayout menuContainer;
     private ContextProgressView progressView;
-
+//    private BackDrawable backDrawable;
     private Dialog visibleDialog;
     private Paint backgroundPaint;
     private Drawable layerShadowDrawable;
@@ -327,6 +319,13 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private AnimatorSet runAfterKeyboardClose;
     private boolean keyboardVisible;
 
+//    private FrameLayout searchContainer;
+//    private ImageView clearButton;
+//    private EditTextBoldCursor searchField;
+//    private boolean animateClear = true;
+//    private boolean ignoreOnTextChange;
+//    private View searchShadow;
+
     private float searchPanelTranslation;
     private FrameLayout searchPanel;
     private ImageView searchUpButton;
@@ -335,6 +334,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
     private FrameLayout bulletinContainer;
     public PageLayout[] pages;
+//    private RecyclerListView[] listView;
+//    private LinearLayoutManager[] layoutManager;
+//    private WebpageAdapter[] adapter;
 
     private AnimatorSet pageSwitchAnimation;
 
@@ -350,11 +352,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private WebPlayerView currentPlayingVideo;
     private WebPlayerView fullscreenedVideo;
 
+
     private int openUrlReqId;
-    private int openUrlReqAccount = -1;
     private int previewsReqId;
-    private int previewsReqAccount = -1;
-    private int previewsReqGeneration;
     private int lastReqId;
 
     private int currentHeaderHeight;
@@ -751,9 +751,12 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 anchor = "";
             }
             if (index == 0 || url.toLowerCase().contains(webPageUrl)) {
-
+//                if (TextUtils.isEmpty(anchor)) {
+//                    pages[0].layoutManager.scrollToPositionWithOffset(0, 0);
+//                    checkScrollAnimated();
+//                } else {
                     scrollToAnchor(anchor, true);
-
+//                }
                 isAnchor = true;
             }
         } else {
@@ -998,7 +1001,8 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             } else {
                 setMeasuredDimension(widthSize, heightSize);
             }
-
+//            menuButton.setAdditionalYOffset(-(currentHeaderHeight - dp(56)) / 2 + (Build.VERSION.SDK_INT < 21 ? AndroidUtilities.statusBarHeight : 0));
+//            collapseButton.setAdditionalYOffset(-(currentHeaderHeight - dp(56)) / 2 + (Build.VERSION.SDK_INT < 21 ? AndroidUtilities.statusBarHeight : 0));
             if (sheet == null) {
                 keyboardVisible = heightSize < AndroidUtilities.displaySize.y - dp(100);
             }
@@ -1428,12 +1432,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (checkingForLongPress && windowView != null) {
                 checkingForLongPress = false;
                 if (pressedLink != null) {
-                    
-                    if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        try {
-                            windowView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                        } catch (Exception ignored) {}
-                    }
+                    try {
+                        windowView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    } catch (Exception ignored) {}
                     showCopyPopup(pressedLink.getSpan().getUrl());
                     pressedLink = null;
                     pressedLinkOwnerLayout = null;
@@ -1446,19 +1447,15 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                     } else {
                         textSelectionHelper.trySelect(pressedLinkOwnerView);
                     }
-                    if (textSelectionHelper.isInSelectionMode() && !app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        
+                    if (textSelectionHelper.isInSelectionMode()) {
                         try {
                             windowView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                         } catch (Exception ignored) {}
                     }
                 } else if (pressedLinkOwnerLayout != null && pressedLinkOwnerView != null) {
-                    
-                    if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        try {
-                            windowView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                        } catch (Exception ignored) {}
-                    }
+                    try {
+                        windowView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    } catch (Exception ignored) {}
 
                     int[] location = new int[2];
                     pressedLinkOwnerView.getLocationInWindow(location);
@@ -1929,11 +1926,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                     ObjectAnimator.ofFloat(pages[0], View.TRANSLATION_X, AndroidUtilities.displaySize.x, 0)
                 );
             } else if (order == -1) {
-
+//                pages[0].setAlpha(1.0f);
                 pages[0].setTranslationX(0.0f);
                 pageSwitchAnimation.playTogether(
-                    ObjectAnimator.ofFloat(pages[1], View.TRANSLATION_X, 0, AndroidUtilities.displaySize.x)
-
+                    ObjectAnimator.ofFloat(pages[1], View.TRANSLATION_X, 0, AndroidUtilities.displaySize.x)//,
+//                    ObjectAnimator.ofFloat(pages[1], View.ALPHA, 1.0f, 0.0f)
                 );
             }
             pageSwitchAnimation.setDuration(320);
@@ -2739,7 +2736,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             } else if ((flags & TEXT_FLAG_ITALIC) != 0) {
                 paint.setTypeface(typefaceItalic);
             } else if ((flags & TEXT_FLAG_MONO) != 0) {
-                
+                //change nothing
             } else {
                 paint.setTypeface(typefaceNormal);
             }
@@ -2760,6 +2757,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private static Paint preformattedBackgroundPaint;
     private static Paint quoteLinePaint;
 
+    // Draws one or more vertical blockquote lines on the left of any block cell.
+    // Decoded from block.quoteLevels: bit i set => draw a line at layer i (padx + i*14 dp).
+    // Legacy fallback: when quoteLevels==0 but level>0 (e.g. embedPost children), draws a single
+    // line at padx so existing behavior is preserved.
     public static void drawQuoteLines(Canvas canvas, IArticleViewer parent, TL_iv.PageBlock block, int height) {
         if (block == null || parent == null || quoteLinePaint == null) return;
         final int padxDp = parent.padx();
@@ -3035,28 +3036,12 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             final TL_iv.textMath textLatex = (TL_iv.textMath) richText;
             if (textLatex.bitmap == null && !textLatex.tried) {
                 textLatex.tried = true;
-                try {
-                    final JLatexMathDrawable drawable =
-                            JLatexMathDrawable.builder(textLatex.source)
-                                    .textSize(AndroidUtilities.dp(20))
-                                    .build();
-                    final int w = drawable.getIntrinsicWidth();
-                    final int h = drawable.getIntrinsicHeight();
-                    if (w > 0 && h > 0) {
-                        final Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8);
-                        drawable.setBounds(0, 0, w, h);
-                        drawable.draw(new Canvas(bm));
-                        textLatex.w = w;
-                        textLatex.h = h;
-                        try {
-                            textLatex.depth = drawable.icon().getIconDepth();
-                        } catch (Throwable t) {
-                            FileLog.e(t);
-                        }
-                        textLatex.bitmap = bm;
-                    }
-                } catch (Exception e) {
-                    FileLog.e(e);
+                final Latex r = Latex.render(textLatex.source, AndroidUtilities.dp(20), true);
+                if (r != null) {
+                    textLatex.w = r.width;
+                    textLatex.h = r.height;
+                    textLatex.depth = r.depth;
+                    textLatex.bitmap = r.bitmap;
                 }
             }
             if (textLatex.bitmap == null) {
@@ -3898,7 +3883,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             loadingProgress.cancel();
         }
         loadingProgress = progress;
-        cancelOpenUrlRequest(false);
+        if (openUrlReqId != 0) {
+            ConnectionsManager.getInstance(currentAccount).cancelRequest(openUrlReqId, false);
+            openUrlReqId = 0;
+        }
 
         final boolean[] forceBrowser = new boolean[1];
         if (Browser.openInExternalApp(parentActivity, url, false)) {
@@ -3932,35 +3920,28 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         };
 
         final int reqId = ++lastReqId;
-        final int requestAccount = currentAccount;
         showProgressView(true, true);
         final TLRPC.TL_messages_getWebPage req = new TLRPC.TL_messages_getWebPage();
         req.url = url;
         req.hash = 0;
-        openUrlReqAccount = requestAccount;
-        openUrlReqId = ConnectionsManager.getInstance(requestAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
-            if (openUrlReqId == 0 || reqId != lastReqId
-                    || openUrlReqAccount != requestAccount || currentAccount != requestAccount) {
+        openUrlReqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (openUrlReqId == 0 || reqId != lastReqId) {
                 return;
             }
             if (progress != null) {
                 progress.end();
             }
             openUrlReqId = 0;
-            openUrlReqAccount = -1;
-            if (loadingProgress == progress) {
-                loadingProgress = null;
-            }
             showProgressView(true, false);
             if (isVisible) {
                 if (response instanceof TLRPC.TL_messages_webPage) {
                     TLRPC.TL_messages_webPage res = (TLRPC.TL_messages_webPage) response;
-                    MessagesController.getInstance(requestAccount).putUsers(res.users, false);
-                    MessagesController.getInstance(requestAccount).putChats(res.chats, false);
+                    MessagesController.getInstance(currentAccount).putUsers(res.users, false);
+                    MessagesController.getInstance(currentAccount).putChats(res.chats, false);
                     if (res.webpage != null && res.webpage.cached_page instanceof TL_iv.TL_page) {
                         addPageToStack(res.webpage, anchor, 1);
                     } else if (!checkInternal.run()) {
-                        if (MessagesController.getInstance(requestAccount).isWebBrowserOpenInApp(req.url)) {
+                        if (MessagesController.getInstance(currentAccount).isWebBrowserOpenInApp(req.url)) {
                             addPageToStack(req.url, 1);
                         } else {
                             Browser.openUrl(parentActivity, req.url);
@@ -3969,7 +3950,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 } else if (response instanceof TLRPC.TL_webPage && ((TLRPC.TL_webPage) response).cached_page instanceof TL_iv.TL_page) {
                     addPageToStack((TLRPC.TL_webPage) response, anchor, 1);
                 } else if (!checkInternal.run()) {
-                    if (MessagesController.getInstance(requestAccount).isWebBrowserOpenInApp(req.url)) {
+                    if (MessagesController.getInstance(currentAccount).isWebBrowserOpenInApp(req.url)) {
                         addPageToStack(req.url, 1);
                     } else {
                         Browser.openUrl(parentActivity, req.url);
@@ -3979,8 +3960,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         }));
         if (progress != null) {
             progress.onCancel(() -> {
-                if (lastReqId == reqId && openUrlReqAccount == requestAccount) {
-                    cancelOpenUrlRequest(false);
+                if (lastReqId == reqId && openUrlReqId != 0) {
+                    ConnectionsManager.getInstance(currentAccount).cancelRequest(openUrlReqId, false);
+                    openUrlReqId = 0;
                 }
                 if (loadingProgress == progress) {
                     loadingProgress = null;
@@ -3991,80 +3973,15 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
     }
 
-    private void cancelOpenUrlRequest(boolean notifyServer) {
-        final int requestId = openUrlReqId;
-        final int requestAccount = openUrlReqAccount;
-        openUrlReqId = 0;
-        openUrlReqAccount = -1;
-        lastReqId++;
-        if (requestId != 0 && requestAccount >= 0) {
-            ConnectionsManager.getInstance(requestAccount).cancelRequest(requestId, notifyServer);
-        }
-    }
-
-    private void cancelPreviewsRequest(boolean notifyServer) {
-        final int requestId = previewsReqId;
-        final int requestAccount = previewsReqAccount;
-        previewsReqId = 0;
-        previewsReqAccount = -1;
-        previewsReqGeneration++;
-        if (requestId != 0 && requestAccount >= 0) {
-            ConnectionsManager.getInstance(requestAccount).cancelRequest(requestId, notifyServer);
-        }
-    }
-
-    private void registerNotificationObservers() {
-        if (notificationsRegistered && notificationsAccount == currentAccount) {
-            return;
-        }
-        if (pages == null) {
-            return;
-        }
-        for (PageLayout page : pages) {
-            if (page == null) {
-                return;
-            }
-        }
-        unregisterNotificationObservers();
-        NotificationCenter notificationCenter = NotificationCenter.getInstance(currentAccount);
-        notificationCenter.addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
-        notificationCenter.addObserver(this, NotificationCenter.messagePlayingDidReset);
-        notificationCenter.addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
-        notificationCenter.addObserver(this, NotificationCenter.messagePlayingDidStart);
-        notificationCenter.addObserver(this, NotificationCenter.emojiLoaded);
-        notificationsAccount = currentAccount;
-        notificationsRegistered = true;
-    }
-
-    private void unregisterNotificationObservers() {
-        if (!notificationsRegistered) {
-            return;
-        }
-        final int account = notificationsAccount;
-        notificationsRegistered = false;
-        notificationsAccount = -1;
-        NotificationCenter notificationCenter = NotificationCenter.getInstance(account);
-        notificationCenter.removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
-        notificationCenter.removeObserver(this, NotificationCenter.messagePlayingDidReset);
-        notificationCenter.removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
-        notificationCenter.removeObserver(this, NotificationCenter.messagePlayingDidStart);
-        notificationCenter.removeObserver(this, NotificationCenter.emojiLoaded);
-    }
-
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        
-        final PageLayout[] currentPages = pages;
-        if (!notificationsRegistered || account != notificationsAccount || currentPages == null) {
-            return;
-        }
         if (id == NotificationCenter.messagePlayingDidStart) {
             MessageObject messageObject = (MessageObject) args[0];
-            for (PageLayout page : currentPages) {
-                if (page != null) {
-                    int count = page.listView.getChildCount();
+            if (pages != null) {
+                for (int i = 0; i < pages.length; i++) {
+                    int count = pages[i].listView.getChildCount();
                     for (int a = 0; a < count; a++) {
-                        View view = page.listView.getChildAt(a);
+                        View view = pages[i].listView.getChildAt(a);
                         if (view instanceof BlockAudioCell) {
                             BlockAudioCell cell = (BlockAudioCell) view;
                             cell.updateButtonState(true);
@@ -4073,11 +3990,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 }
             }
         } else if (id == NotificationCenter.messagePlayingDidReset || id == NotificationCenter.messagePlayingPlayStateChanged) {
-            for (PageLayout page : currentPages) {
-                if (page != null) {
-                    int count = page.listView.getChildCount();
+            if (pages != null) {
+                for (int i = 0; i < pages.length; i++) {
+                    int count = pages[i].listView.getChildCount();
                     for (int a = 0; a < count; a++) {
-                        View view = page.listView.getChildAt(a);
+                        View view = pages[i].listView.getChildAt(a);
                         if (view instanceof BlockAudioCell) {
                             BlockAudioCell cell = (BlockAudioCell) view;
                             MessageObject messageObject = cell.getMessageObject();
@@ -4090,11 +4007,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             }
         } else if (id == NotificationCenter.messagePlayingProgressDidChanged) {
             Integer mid = (Integer) args[0];
-            for (PageLayout page : currentPages) {
-                if (page != null) {
-                    int count = page.listView.getChildCount();
+            if (pages != null) {
+                for (int i = 0; i < pages.length; i++) {
+                    int count = pages[i].listView.getChildCount();
                     for (int a = 0; a < count; a++) {
-                        View view = page.listView.getChildAt(a);
+                        View view = pages[i].listView.getChildAt(a);
                         if (view instanceof BlockAudioCell) {
                             BlockAudioCell cell = (BlockAudioCell) view;
                             MessageObject playing = cell.getMessageObject();
@@ -4113,11 +4030,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 }
             }
         } else if (id == NotificationCenter.emojiLoaded) {
-            for (PageLayout page : currentPages) {
-                if (page != null) {
-                    int count = page.listView.getChildCount();
+            if (pages != null) {
+                for (int i = 0; i < pages.length; i++) {
+                    int count = pages[i].listView.getChildCount();
                     for (int a = 0; a < count; a++) {
-                        View view = page.listView.getChildAt(a);
+                        View view = pages[i].listView.getChildAt(a);
                         if (view instanceof BlockTableCell) {
                             ((BlockTableCell) view).tableLayout.invalidate();
                         } else {
@@ -4185,8 +4102,6 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     private WindowVisibilityManager.Controller activityVisibilityController;
 
     public void setParentActivity(Activity activity, BaseFragment fragment) {
-        
-        unregisterNotificationObservers();
         if (activityVisibilityController != null) {
             activityVisibilityController.destroy();
             activityVisibilityController = null;
@@ -4194,23 +4109,13 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         activityVisibilityController = LaunchActivity.obtainActivityVisibilityController();
 
         parentFragment = fragment;
-        final int newAccount = fragment != null && !(fragment instanceof EmptyBaseFragment) ? fragment.getCurrentAccount() : UserConfig.selectedAccount;
-        if (currentAccount != newAccount) {
-            final boolean hadVisibleRequest = openUrlReqId != 0 || previewsReqId != 0;
-            if (loadingProgress != null) {
-                Browser.Progress progress = loadingProgress;
-                loadingProgress = null;
-                progress.cancel();
-            }
-            cancelOpenUrlRequest(false);
-            cancelPreviewsRequest(false);
-            if (hadVisibleRequest) {
-                showProgressView(true, false);
-            }
-        }
-        currentAccount = newAccount;
+        currentAccount = fragment != null && !(fragment instanceof EmptyBaseFragment) ? fragment.getCurrentAccount() : UserConfig.selectedAccount;
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingDidStart);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.emojiLoaded);
         if (parentActivity == activity || parentActivity != null && isSheet && sheet != null && sheet.dialog != null) {
-            registerNotificationObservers();
             updatePaintColors(this);
             refreshThemeColors();
             return;
@@ -4336,25 +4241,21 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                     if (object instanceof TLRPC.TL_user) {
                         openPreviewsChat((TLRPC.User) object, adapter.currentPage.id);
                     } else {
-                        final int requestAccount = currentAccount;
-                        final int requestGeneration = ++previewsReqGeneration;
+                        final int currentAccount = UserConfig.selectedAccount;
                         final long pageId = adapter.currentPage.id;
                         showProgressView(true, true);
                         TLRPC.TL_contacts_resolveUsername req = new TLRPC.TL_contacts_resolveUsername();
                         req.username = "previews";
-                        previewsReqAccount = requestAccount;
-                        previewsReqId = ConnectionsManager.getInstance(requestAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
-                            if (previewsReqId == 0 || previewsReqGeneration != requestGeneration
-                                    || previewsReqAccount != requestAccount || currentAccount != requestAccount) {
+                        previewsReqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                            if (previewsReqId == 0) {
                                 return;
                             }
                             previewsReqId = 0;
-                            previewsReqAccount = -1;
                             showProgressView(true, false);
                             if (response != null) {
                                 TLRPC.TL_contacts_resolvedPeer res = (TLRPC.TL_contacts_resolvedPeer) response;
-                                MessagesController.getInstance(requestAccount).putUsers(res.users, false);
-                                MessagesStorage.getInstance(requestAccount).putUsersAndChats(res.users, res.chats, false, true);
+                                MessagesController.getInstance(currentAccount).putUsers(res.users, false);
+                                MessagesStorage.getInstance(currentAccount).putUsersAndChats(res.users, res.chats, false, true);
                                 if (!res.users.isEmpty()) {
                                     openPreviewsChat(res.users.get(0), pageId);
                                 }
@@ -4791,6 +4692,71 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
             return true;
         });
+//        actionBar.forwardButton.setOnLongClickListener(v -> {
+//            if (pages[0] == null) return false;
+//            final BotWebViewContainer.MyWebView webView = pages[0].getWebView();
+//            if (webView == null) return false;
+//            final WebBackForwardList history = webView.copyBackForwardList();
+//            final int currentIndex = history.getCurrentIndex();
+//            if (history.getSize() - (currentIndex + 1) <= 0) return false;
+//
+//            ItemOptions options = ItemOptions.makeOptions(sheet != null ? sheet.windowView : windowView, v);
+//            final int textColor = AndroidUtilities.computePerceivedBrightness(pages[0].getBackgroundColor()) >= .721f ? Color.BLACK : Color.WHITE;
+//            final int subtextColor = Theme.multAlpha(textColor, .65f);
+//
+//            for (int i = currentIndex + 1; i < history.getSize(); ++i) {
+//                WebHistoryItem item = history.getItemAtIndex(i);
+//                final int index = i;
+//                options.add(item.getTitle(), () -> {
+//                    for (int j = 0; j < (index - currentIndex); ++j) webView.goForward();
+//                });
+//                ActionBarMenuSubItem menuItem = options.getLast();
+//                if (menuItem != null) {
+//                    menuItem.setSubtext(item.getUrl());
+//                    Bitmap bitmap = webView.getFavicon(item.getUrl());
+//                    if (bitmap == null) {
+//                        bitmap = item.getFavicon();
+//                    }
+//                    final Bitmap finalBitmap = bitmap;
+//                    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+//                    menuItem.setTextAndIcon(item.getTitle(), 0, new Drawable() {
+//                        @Override
+//                        public void draw(@NonNull Canvas canvas) {
+//                            if (finalBitmap != null) {
+//                                canvas.save();
+//                                canvas.translate(getBounds().left, getBounds().top);
+//                                canvas.scale(getBounds().width() / (float) finalBitmap.getWidth(), getBounds().height() / (float) finalBitmap.getHeight());
+//                                canvas.drawBitmap(finalBitmap, 0, 0, paint);
+//                                canvas.restore();
+//                            }
+//                        }
+//                        @Override
+//                        public void setColorFilter(@Nullable ColorFilter colorFilter) {}
+//                        @Override
+//                        public void setAlpha(int alpha) {}
+//                        @Override
+//                        public int getIntrinsicHeight() {
+//                            return dp(24);
+//                        }
+//                        @Override
+//                        public int getIntrinsicWidth() {
+//                            return dp(24);
+//                        }
+//                        @Override
+//                        public int getOpacity() {
+//                            return PixelFormat.TRANSPARENT;
+//                        }
+//                    });
+//                    menuItem.setColors(textColor, textColor);
+//                    menuItem.setSubtextColor(subtextColor);
+//                }
+//            }
+//            options.setScrimViewBackground(Theme.createCircleDrawable(dp(40), actionBar.getBackgroundColor()));
+//            options.setBackgroundColor(pages[0].getBackgroundColor());
+//            checkScrollAnimated(options::show);
+//
+//            return true;
+//        });
 
         actionBar.setMenuListener(id -> {
             if (pages[0].isArticle() && pages[0].adapter.currentPage == null || parentActivity == null) {
@@ -4952,9 +4918,13 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
         actionBar.forwardButton.setOnClickListener(v -> {
             if (sheet != null) {
-
+//                if (pages[0].hasForwardButton()) {
+//                    if (pages[0].getWebView() != null) {
+//                        pages[0].getWebView().goForward();
+//                    }
+//                } else {
                     sheet.dismiss(true);
-
+//                }
             }
         });
 
@@ -5056,7 +5026,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         if (MessagesController.getInstance(currentAccount).getTranslateController().isContextTranslateEnabled()) {
             textSelectionHelper.setOnTranslate((text, fromLang, toLang, onAlertDismiss) -> {
                 TranslateAlert2.showAlert(parentActivity, parentFragment, currentAccount, fromLang, toLang, text, null, false, null, onAlertDismiss);
-
+//                final TranslateAlert3 alert =
+//                    new TranslateAlert3(parentActivity, parentFragment != null ? parentFragment.getResourceProvider() : getResourcesProvider())
+//                        .setText(fromLang, text);
+//                alert.setOnDismissListener(onAlertDismiss);
+//                alert.show();
             });
         }
         textSelectionHelper.layoutManager = pages[0].layoutManager;
@@ -5092,8 +5066,6 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         });
         backgroundPaint.setColor(getThemedColor(Theme.key_iv_background));
         updatePaintColors(this);
-        
-        registerNotificationObservers();
     }
 
     public static void addBookmark(String url, int currentAccount, FrameLayout container, Sheet sheet, Theme.ResourcesProvider resourcesProvider) {
@@ -5219,7 +5191,17 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     }
 
     private void updateWindowLayoutParamsForSearch() {
-         
+        /*try {
+            WindowManager wm = (WindowManager) parentActivity.getSystemService(Context.WINDOW_SERVICE);
+            if (searchContainer.getTag() != null) {
+                windowLayoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
+            } else {
+                windowLayoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN;
+            }
+            wm.updateViewLayout(windowView, windowLayoutParams);
+        } catch (Exception e) {
+            FileLog.e(e);
+        }*/
     }
 
     private void updateSearchButtons() {
@@ -5503,9 +5485,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         Bundle args = new Bundle();
         args.putLong("user_id", user.id);
         args.putString("botUser", "webpage" + wid);
-        ChatActivity chatActivity = new ChatActivity(args);
-        chatActivity.setCurrentAccount(currentAccount);
-        ((LaunchActivity) parentActivity).presentFragment(chatActivity, false, true);
+        ((LaunchActivity) parentActivity).presentFragment(new ChatActivity(args), false, true);
         close(false, true);
     }
 
@@ -5596,9 +5576,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             windowView.setInnerTranslationX(0);
 
             pages[0].scrollToTop(false);
-            
+            //        if (first) {
             setCurrentHeaderHeight(dp(56));
-            
+            //        } else {
+            //            checkScrollAnimated();
+            //        }
         }
 
         boolean scrolledToAnchor;
@@ -5703,7 +5685,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 try {
                     wm.removeView(windowView);
                 } catch (Exception e) {
-                    
+                    //ignore
                 }
             }
             try {
@@ -5713,7 +5695,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 if (Build.VERSION.SDK_INT >= 28) {
                     windowLayoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                 }
-                
+                //windowLayoutParams.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN;
                 windowView.setFocusable(false);
                 containerView.setFocusable(false);
                 wm.addView(windowView, windowLayoutParams);
@@ -5738,7 +5720,23 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 }
             } else {
                 if (progress != null) {
-                    
+                    // feature: to show progress before opening webview
+//                    BotWebViewContainer.MyWebView webView = pages[0].getWebView();
+//                    if (webView != null) {
+//                        boolean[] cancelled = new boolean[] { false };
+//                        progress.onCancel(() -> {
+//                            cancelled[0] = true;
+//                            sheet.dismissInstant();
+//                        });
+//                        progress.init();
+//                        webView.whenPageLoaded(() -> {
+//                            progress.end();
+//                            if (!cancelled[0]) {
+//                                AndroidUtilities.runOnUIThread(sheet::show, 80);
+//                            }
+//                        }, 1200);
+//                        return true;
+//                    }
                 }
                 sheet.show();
             }
@@ -5803,19 +5801,31 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             progressViewAnimation = new AnimatorSet();
             if (show) {
                 progressView.setVisibility(View.VISIBLE);
-
+//                menuContainer.setEnabled(false);
                 progressViewAnimation.playTogether(
-
+//                        ObjectAnimator.ofFloat(menuButton, View.SCALE_X, 0.1f),
+//                        ObjectAnimator.ofFloat(menuButton, View.SCALE_Y, 0.1f),
+//                        ObjectAnimator.ofFloat(menuButton, View.ALPHA, 0.0f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.SCALE_X, 0.1f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.SCALE_Y, 0.1f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.ALPHA, 0.0f),
                         ObjectAnimator.ofFloat(progressView, View.SCALE_X, 1.0f),
                         ObjectAnimator.ofFloat(progressView, View.SCALE_Y, 1.0f),
                         ObjectAnimator.ofFloat(progressView, View.ALPHA, 1.0f));
             } else {
-
+//                menuButton.setVisibility(View.VISIBLE);
+//                collapseButton.setVisibility(View.VISIBLE);
+//                menuContainer.setEnabled(true);
                 progressViewAnimation.playTogether(
                         ObjectAnimator.ofFloat(progressView, View.SCALE_X, 0.1f),
                         ObjectAnimator.ofFloat(progressView, View.SCALE_Y, 0.1f),
-                        ObjectAnimator.ofFloat(progressView, View.ALPHA, 0.0f)
-
+                        ObjectAnimator.ofFloat(progressView, View.ALPHA, 0.0f)//,
+//                        ObjectAnimator.ofFloat(menuButton, View.SCALE_X, 1.0f),
+//                        ObjectAnimator.ofFloat(menuButton, View.SCALE_Y, 1.0f),
+//                        ObjectAnimator.ofFloat(menuButton, View.ALPHA, 1.0f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.SCALE_X, 1.0f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.SCALE_Y, 1.0f),
+//                        ObjectAnimator.ofFloat(collapseButton, View.ALPHA, 1.0f)
                 );
             }
             progressViewAnimation.addListener(new AnimatorListenerAdapter() {
@@ -5825,7 +5835,8 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                         if (!show) {
                             progressView.setVisibility(View.INVISIBLE);
                         } else {
-
+//                            menuButton.setVisibility(View.INVISIBLE);
+//                            collapseButton.setVisibility(View.INVISIBLE);
                         }
                     }
                 }
@@ -5920,21 +5931,14 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             actionBar.showAddress(false, true);
             return;
         }
-        final boolean hadOpenUrlRequest = openUrlReqId != 0;
-        if (loadingProgress != null) {
-            Browser.Progress progress = loadingProgress;
-            loadingProgress = null;
-            progress.cancel();
-        }
-        if (hadOpenUrlRequest && openUrlReqId == 0) {
-            showProgressView(true, false);
-        }
         if (openUrlReqId != 0) {
-            cancelOpenUrlRequest(true);
+            ConnectionsManager.getInstance(currentAccount).cancelRequest(openUrlReqId, true);
+            openUrlReqId = 0;
             showProgressView(true, false);
         }
         if (previewsReqId != 0) {
-            cancelPreviewsRequest(true);
+            ConnectionsManager.getInstance(currentAccount).cancelRequest(previewsReqId, true);
+            previewsReqId = 0;
             showProgressView(true, false);
         }
         saveCurrentPagePosition();
@@ -5944,7 +5948,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             }
         }
 
-        unregisterNotificationObservers();
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.emojiLoaded);
 
         if (activityVisibilityController != null) {
             activityVisibilityController.destroy();
@@ -6092,7 +6100,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                     BotGuardHelper.getInstance(currentAccount).openGuardBotWebApp(-channel.id,
                         resultWebView.bot_id, resultWebView.query_id);
                 });
-                hasJoinMessage = true; 
+                hasJoinMessage = true; // do not generate join message
             }
 
             if (!hasJoinMessage) {
@@ -6118,14 +6126,6 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     }
 
     public void destroyArticleViewer() {
-        unregisterNotificationObservers();
-        if (loadingProgress != null) {
-            Browser.Progress progress = loadingProgress;
-            loadingProgress = null;
-            progress.cancel();
-        }
-        cancelOpenUrlRequest(false);
-        cancelPreviewsRequest(false);
         if (parentActivity == null || windowView == null) {
             return;
         }
@@ -6268,16 +6268,6 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         public static boolean isVideo(TL_iv.RichMessage richMessage, TL_iv.PageBlock block) {
             if (block instanceof TL_iv.pageBlockVideo) {
                 TLRPC.Document document = getDocumentWithId(richMessage, ((TL_iv.pageBlockVideo) block).video_id);
-                if (BuildVars.LOGS_ENABLED) {
-                    StringBuilder attrs = new StringBuilder();
-                    if (document != null) {
-                        for (TLRPC.DocumentAttribute a : document.attributes) attrs.append(a.getClass().getSimpleName()).append(",");
-                    }
-                    FileLog.d("[richmedia] WebPageUtils.isVideo video_id=" + ((TL_iv.pageBlockVideo) block).video_id
-                        + (document == null
-                            ? " doc=NOT_FOUND documents.size=" + richMessage.documents.size()
-                            : " doc=" + document.id + " mime=" + document.mime_type + " attrs=[" + attrs + "] isVideoDocument=" + MessageObject.isVideoDocument(document) + " isGifDocument=" + MessageObject.isGifDocument(document)));
-                }
                 if (document != null) {
                     return MessageObject.isVideoDocument(document);
                 }
@@ -6322,39 +6312,31 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         }
 
         public static File getMediaFile(TLObject page, TL_iv.PageBlock block) {
-            return getMediaFile(page, block, UserConfig.selectedAccount);
-        }
-
-        public static File getMediaFile(TLObject page, TL_iv.PageBlock block, int currentAccount) {
-            if (page instanceof TL_iv.RichMessage) return getMediaFile((TL_iv.RichMessage) page, block, currentAccount);
-            if (page instanceof TLRPC.WebPage) return getMediaFile((TLRPC.WebPage) page, block, currentAccount);
+            if (page instanceof TL_iv.RichMessage) return getMediaFile((TL_iv.RichMessage) page, block);
+            if (page instanceof TLRPC.WebPage) return getMediaFile((TLRPC.WebPage) page, block);
             return null;
         }
 
         public static File getMediaFile(TLRPC.WebPage page, TL_iv.PageBlock block) {
-            return getMediaFile(page, block, UserConfig.selectedAccount);
-        }
-
-        public static File getMediaFile(TLRPC.WebPage page, TL_iv.PageBlock block, int currentAccount) {
             if (block instanceof TL_iv.pageBlockPhoto) {
                 TLRPC.Photo photo = getPhotoWithId(page, ((TL_iv.pageBlockPhoto) block).photo_id);
                 if (photo != null) {
                     TLRPC.PhotoSize sizeFull = FileLoader.getClosestPhotoSizeWithSize(photo.sizes, AndroidUtilities.getPhotoSize());
                     if (sizeFull != null) {
-                        return getExistingPathToAttach(sizeFull, currentAccount);
+                        return getExistingPathToAttach(sizeFull);
                     }
                 }
             } else if (block instanceof TL_iv.pageBlockVideo) {
                 TLRPC.Document document = getDocumentWithId(page, ((TL_iv.pageBlockVideo) block).video_id);
                 if (document != null) {
-                    return getExistingPathToAttach(document, currentAccount);
+                    return getExistingPathToAttach(document);
                 }
             }
             return null;
         }
 
-        private static File getExistingPathToAttach(TLObject attach, int currentAccount) {
-            final FileLoader fileLoader = FileLoader.getInstance(currentAccount);
+        private static File getExistingPathToAttach(TLObject attach) {
+            final FileLoader fileLoader = FileLoader.getInstance(UserConfig.selectedAccount);
             final File nonCache = fileLoader.getPathToAttach(attach, false);
             if (nonCache != null && nonCache.exists()) {
                 return nonCache;
@@ -6367,22 +6349,18 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         }
 
         public static File getMediaFile(TL_iv.RichMessage page, TL_iv.PageBlock block) {
-            return getMediaFile(page, block, UserConfig.selectedAccount);
-        }
-
-        public static File getMediaFile(TL_iv.RichMessage page, TL_iv.PageBlock block, int currentAccount) {
             if (block instanceof TL_iv.pageBlockPhoto) {
                 TLRPC.Photo photo = getPhotoWithId(page, ((TL_iv.pageBlockPhoto) block).photo_id);
                 if (photo != null) {
                     TLRPC.PhotoSize sizeFull = FileLoader.getClosestPhotoSizeWithSize(photo.sizes, AndroidUtilities.getPhotoSize());
                     if (sizeFull != null) {
-                        return getExistingPathToAttach(sizeFull, currentAccount);
+                        return getExistingPathToAttach(sizeFull);
                     }
                 }
             } else if (block instanceof TL_iv.pageBlockVideo) {
                 TLRPC.Document document = getDocumentWithId(page, ((TL_iv.pageBlockVideo) block).video_id);
                 if (document != null) {
-                    return getExistingPathToAttach(document, currentAccount);
+                    return getExistingPathToAttach(document);
                 }
             }
             return null;
@@ -6682,7 +6660,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 message.media.flags |= 3;
                 message.media.document = getDocumentWithId(blockAudio.audio_id);
                 message.flags |= TLRPC.MESSAGE_FLAG_HAS_MEDIA | TLRPC.MESSAGE_FLAG_HAS_FROM_ID;
-                MessageObject messageObject = new MessageObject(currentAccount, message, false, true);
+                MessageObject messageObject = new MessageObject(UserConfig.selectedAccount, message, false, true);
                 audioMessages.add(messageObject);
                 audioBlocks.put(blockAudio, messageObject);
 
@@ -6704,9 +6682,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 if (!pageBlockBlockquoteBlocks.blocks.isEmpty()) {
                     final int parentLayer = Math.max(0, block.level);
                     final int parentQuoteLevels = block.quoteLevels;
-                    
+                    // If nothing enclosing wrote block.bottom yet, this is the outermost quote — trim the
+                    // last leaf so the line gets a rounded end.
                     final boolean parentBottom = (block.quoteLevels == 0 && block.level <= 0) || block.bottom;
-                    block.level = -1; 
+                    block.level = -1; // skip drawing the wrapper itself
                     final int size = pageBlockBlockquoteBlocks.blocks.size();
                     for (int b = 0; b < size; b++) {
                         TL_iv.PageBlock innerBlock = pageBlockBlockquoteBlocks.blocks.get(b);
@@ -7672,7 +7651,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
     }
 
     public static interface IBlock {
-        
+        // returns -1 if not sure (then takes full 0 as left and getWidth() as right)
         public int getBoundLeft();
         public int getBoundRight();
         public int getLastLineBoundRight();
@@ -7756,7 +7735,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
         @Override
         protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-            
+            // TODO: pass pinchToZoomHelper in IArticleViewer
+//            if (child == aspectRationContainer && pinchToZoomHelper.isInOverlayModeFor(this)) {
+//                return true;
+//            }
             return super.drawChild(canvas, child, drawingTime);
         }
 
@@ -7779,7 +7761,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             } else {
                 currentDocument = null;
             }
-            isGif = MessageObject.isVideoDocument(currentDocument) || MessageObject.isGifDocument(currentDocument) ;
+            isGif = MessageObject.isVideoDocument(currentDocument) || MessageObject.isGifDocument(currentDocument)/* && currentBlock.autoplay*/;
             isFirst = first;
             channelCell.setVisibility(INVISIBLE);
             updateButtonState(false);
@@ -7817,12 +7799,17 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            
+            // TODO: pass pinchToZoomHelper in IArticleViewer
+//            if (pinchToZoomHelper.checkPinchToZoom(event, this, imageView, aspectRationContainer, textureView, null)) {
+//                return true;
+//            }
             float x = event.getX();
             float y = event.getY();
             if (channelCell.getVisibility() == VISIBLE && y > channelCell.getTranslationY() && y < channelCell.getTranslationY() + dp(39)) {
                 if (adapter != null && adapter.channelBlock != null && event.getAction() == MotionEvent.ACTION_UP) {
-                    
+                    // TODO
+                    // MessagesController.getInstance(parent.getCurrentAccount()).openByUserName(ChatObject.getPublicUsername(adapter.channelBlock.channel), parentFragment, 2);
+                    // close(false, true);
                 }
                 return true;
             }
@@ -7996,9 +7983,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (!imageView.hasBitmapImage() || imageView.getCurrentAlpha() != 1.0f) {
                 canvas.drawRect(imageView.getDrawRegion(), photoBackgroundPaint);
             }
-            
+            // TODO
+//            if (!pinchToZoomHelper.isInOverlayModeFor(this)) {
                 imageView.draw(canvas);
-
+//            }
             int count = 0;
             if (captionLayout != null) {
                 canvas.save();
@@ -8017,10 +8005,12 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             drawQuoteLines(canvas, parent, currentBlock, getMeasuredHeight());
             super.onDraw(canvas);
 
+            // TODO
+//            if (!pinchToZoomHelper.isInOverlayModeFor(this)) {
                 if (imageView.getVisible()) {
                     radialProgress.draw(canvas);
                 }
-
+//            }
         }
 
         private int getIconForCurrentState() {
@@ -8109,7 +8099,8 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 buttonState = -1;
                 radialProgress.setIcon(getIconForCurrentState(), false, animated);
             } else if (buttonState == 3) {
-                
+                // TODO
+//                openPhoto(currentBlock, adapter);
             }
         }
 
@@ -8141,6 +8132,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             DownloadController.getInstance(parent.getCurrentAccount()).removeLoadingFileObserver(this);
             firstFrameRendered = false;
         }
+
 
         @Override
         protected void onDetachedFromWindow() {
@@ -8181,7 +8173,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (currentDocument == null || parent.videoPlayer != null) {
                 return;
             }
-
+//            if (!firstFrameRendered) {
+//                textureView.setAlpha(0f);
+//            }
             parent.videoPlayer = new VideoPlayerHolderBase() {
                 @Override
                 public boolean needRepeat() {
@@ -8709,7 +8703,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             this.adapter = adapter;
 
             avatarImageView = new ImageReceiver(this);
-            avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+            avatarImageView.setRoundRadius(dp(20));
             avatarImageView.setImageCoords(dp(18 + 14), dp(8), dp(40), dp(40));
 
             avatarDrawable = new AvatarDrawable();
@@ -9572,7 +9566,8 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 public boolean onInterceptTouchEvent(MotionEvent ev) {
                     boolean intercept = super.onInterceptTouchEvent(ev);
                     if (tableLayout.getMeasuredWidth() > getMeasuredWidth() - dp(36) && intercept) {
-                        
+                        // TODO
+//                        parent.windowView.requestDisallowInterceptTouchEvent(true);
                     }
                     return intercept;
                 }
@@ -10282,6 +10277,8 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                         outRect.bottom = -h;
                     }
 
+                    //outRect.top = outRect.left = 0;
+                    //outRect.bottom = outRect.right = AndroidUtilities.dp(2);
                 }
             });
 
@@ -10350,7 +10347,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                         case 0: {
                             BlockPhotoCell cell = (BlockPhotoCell) holder.itemView;
                             cell.groupPosition = group.positions.get(pageBlock);
-                            
+                            // TODO
                             cell.setBlock((TL_iv.pageBlockPhoto) pageBlock, parentAdapter.currentPage.cached_page, null, false, true);
                             break;
                         }
@@ -10480,6 +10477,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 canvas.restore();
             }
         }
+
 
         @Override
         public void fillTextLayoutBlocks(ArrayList<TextSelectionHelper.TextLayoutBlock> blocks) {
@@ -12603,12 +12601,17 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            
+            // TODO
+//            if (pinchToZoomHelper.checkPinchToZoom(event, this, imageView, null, null, null)) {
+//                return true;
+//            }
             float x = event.getX();
             float y = event.getY();
             if (channelCell.getVisibility() == VISIBLE && y > channelCell.getTranslationY() && y < channelCell.getTranslationY() + dp(39)) {
                 if (adapter != null && adapter.channelBlock != null && event.getAction() == MotionEvent.ACTION_UP) {
-                    
+                    // TODO
+//                    MessagesController.getInstance(parent.getCurrentAccount()).openByUserName(ChatObject.getPublicUsername(adapter.channelBlock.channel), parentFragment, 2);
+//                    close(false, true);
                 }
                 return true;
             }
@@ -12765,7 +12768,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 if (!isFirst && currentType == 0 && currentBlock.level <= 0) {
                     height += dp(8);
                 }
-                
+                // TODO
                 boolean nextIsChannel = parentBlock instanceof TL_iv.pageBlockCover && adapter != null && adapter.blocks != null && adapter.blocks.size() > 1 && adapter.blocks.get(1) instanceof TL_iv.pageBlockChannel;
                 if (currentType != 2 && !nextIsChannel) {
                     height += dp(8);
@@ -12796,12 +12799,13 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (!imageView.hasBitmapImage() || imageView.getCurrentAlpha() != 1.0f) {
                 canvas.drawRect(imageView.getImageX(), imageView.getImageY(), imageView.getImageX2(), imageView.getImageY2(), photoBackgroundPaint);
             }
-            
+            // TODO
+//            if (!pinchToZoomHelper.isInOverlayModeFor(this)) {
                 imageView.draw(canvas);
                 if (imageView.getVisible()) {
                     radialProgress.draw(canvas);
                 }
-
+//            }
             if (!TextUtils.isEmpty(currentBlock.url) && !(currentPhoto instanceof WebInstantView.WebPhoto)) {
                 int x = getMeasuredWidth() - dp(11 + 24);
                 int y = (int) (imageView.getImageY() + dp(11));
@@ -12839,7 +12843,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (currentPhotoObject == null) return;
             if (buttonState == 0) {
                 radialProgress.setProgress(0, animated);
-                
+                // TODO
                 imageView.setImage(ImageLocation.getForPhoto(currentPhotoObject, currentPhoto), currentFilter, ImageLocation.getForPhoto(currentPhotoObjectThumb, currentPhoto), currentThumbFilter, currentPhotoObject.size, null, currentPage, 1);
                 buttonState = 1;
                 radialProgress.setIcon(getIconForCurrentState(), true, animated);
@@ -13901,7 +13905,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             scrollView = new HorizontalScrollView(context) {
                 @Override
                 public boolean onInterceptTouchEvent(MotionEvent ev) {
-
+//                    if (textContainer.getMeasuredWidth() > getMeasuredWidth()) {
+//                        windowView.requestDisallowInterceptTouchEvent(true);
+//                    }
                     return super.onInterceptTouchEvent(ev);
                 }
 
@@ -14198,22 +14204,10 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             imageView.setLayoutParams(new FrameLayout.LayoutParams(0, 0));
             width = dp(2 * parent.padx());
             if (block != null) {
-                try {
-                    final JLatexMathDrawable drawable =
-                        JLatexMathDrawable.builder(block.source)
-                            .textSize(dp(20))
-                            .build();
-                    final int w = drawable.getIntrinsicWidth();
-                    final int h = drawable.getIntrinsicHeight();
-                    if (w > 0 && h > 0) {
-                        final Bitmap bm = Bitmap.createBitmap(w, h, Bitmap.Config.ALPHA_8);
-                        drawable.setBounds(0, 0, w, h);
-                        drawable.draw(new Canvas(bm));
-                        imageView.setImageBitmap(bm);
-                        imageView.setLayoutParams(new FrameLayout.LayoutParams(width = w + dp(2 * parent.padx()), h));
-                    }
-                } catch (Exception e) {
-                    FileLog.e(e);
+                final Latex r = Latex.render(block.source, dp(20), false);
+                if (r != null) {
+                    imageView.setImageBitmap(r.bitmap);
+                    imageView.setLayoutParams(new FrameLayout.LayoutParams(width = r.width + dp(2 * parent.padx()), r.height));
                 }
             }
         }
@@ -14362,6 +14356,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         return false;
     }
 
+
     private class RealPageBlocksAdapter implements PhotoViewer.PageBlocksAdapter {
 
         private final TLRPC.WebPage page;
@@ -14410,7 +14405,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (index >= pageBlocks.size() || index < 0) {
                 return null;
             }
-            return WebPageUtils.getMediaFile(page, get(index), currentAccount);
+            return WebPageUtils.getMediaFile(page, get(index));
         }
 
         @Override
@@ -14664,7 +14659,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
     @Override
     public Theme.ResourcesProvider getResourcesProvider() {
-        return null; 
+        return null; // sheet != null ? sheet.resourcesProvider : null;
     }
 
     public boolean isFirstArticle() {
@@ -14689,12 +14684,12 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             if (isFirstArticle() || pagesStack.size() > 1) {
                 final float backButton = lerp(pages[0].hasBackButton() || pagesStack.size() > 1 ? 1f : 0, pages[1].hasBackButton() || pagesStack.size() > 2 ? 1f : 0, page1Alpha);
                 actionBar.backButtonDrawable.setRotation(1f - backButton, false);
-                actionBar.forwardButtonDrawable.setState(false); 
+                actionBar.forwardButtonDrawable.setState(false); // pages[0].hasForwardButton());
                 actionBar.setBackButtonCached(backButton > .5f);
             } else {
-
-                actionBar.forwardButtonDrawable.setState(false); 
-                actionBar.setBackButtonCached(false); 
+//                actionBar.backButtonDrawable.setRotation(1f - backButton, false);
+                actionBar.forwardButtonDrawable.setState(false); // pages[0].hasForwardButton());
+                actionBar.setBackButtonCached(false); // backButton > .5f);
             }
             actionBar.setHasForward(pages[0].hasForwardButton());
             actionBar.setIsLocal(pages[0].isLocal());
@@ -14861,7 +14856,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                         if (isFirstArticle() || pagesStack.size() > 1) {
                             actionBar.backButtonDrawable.setRotation(backButton || pagesStack.size() > 1 ? 0 : 1, true);
                             actionBar.setBackButtonCached(backButton || pagesStack.size() > 1);
-                            actionBar.forwardButtonDrawable.setState(false); 
+                            actionBar.forwardButtonDrawable.setState(false); // hasForwardButton());
                         } else {
                             actionBar.setBackButtonCached(false);
                             actionBar.forwardButtonDrawable.setState(false);
@@ -15016,7 +15011,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
                 updatePages();
             });
             swipeContainer.setTopActionBarOffsetY(dp(sheet != null && !sheet.halfSize() ? 0 : 56) + AndroidUtilities.statusBarHeight);
-
+//            swipeContainer.setIsKeyboardVisible(obj -> windowView.getKeyboardHeight() >= dp(20));
             addView(swipeContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
             cleanup();
@@ -15050,7 +15045,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
         public ErrorContainer createErrorContainer() {
             if (errorContainer == null) {
-                swipeContainer.addView(errorContainer = new ErrorContainer(getContext(), currentAccount), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                swipeContainer.addView(errorContainer = new ErrorContainer(getContext()), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
                 errorContainer.buttonView.setOnClickListener(v -> {
                     BotWebViewContainer.MyWebView webView = webViewContainer.getWebView();
                     if (webView != null) {
@@ -15264,7 +15259,23 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             progress = Utilities.clamp01(progress + delta);
             if (isArticle()) {
                 return;
-
+//                if (adapter.itemHeights == null) return;
+//                int row = 0;
+//                int offset = (int) (progress * Math.max(1, adapter.fullHeight - listView.getHeight()));
+//                while (offset >= 0 && row < adapter.getItemCount()) {
+//                    offset -= adapter.itemHeights[row];
+//                    row++;
+//                }
+//                overrideProgress = progress;
+//                layoutManager.scrollToPositionWithOffset(row + 1, offset);
+//                listView.invalidate();
+//                textSelectionHelper.onParentScrolled();
+//                if (sheet != null) {
+//                    sheet.windowView.invalidate();
+//                } else if (windowView != null) {
+//                    windowView.invalidate();
+//                }
+//                updatePages();
             } else if (isWeb()) {
                 BotWebViewContainer.MyWebView webView = webViewContainer.getWebView();
                 if (webView == null) return;
@@ -15469,11 +15480,11 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
 
             if (webView != null) {
                 webView.onResume();
-                pageLayout.webViewContainer.replaceWebView(currentAccount, webView, proxy);
+                pageLayout.webViewContainer.replaceWebView(UserConfig.selectedAccount, webView, proxy, lastUrl, false);
                 pageLayout.setWebBgColor(true, actionBarColor);
                 pageLayout.setWebBgColor(false, backgroundColor);
             } else if (lastUrl != null) {
-                pageLayout.webViewContainer.loadUrl(currentAccount, lastUrl);
+                pageLayout.webViewContainer.loadUrl(UserConfig.selectedAccount, lastUrl, false);
             }
         }
         
@@ -16348,11 +16359,9 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
         private final TextView descriptionView;
         private final TextView codeView;
         public final ButtonWithCounterView buttonView;
-        private final int account;
 
-        public ErrorContainer(Context context, int account) {
+        public ErrorContainer(Context context) {
             super(context);
-            this.account = account;
             setVisibility(GONE);
 
             layout = new LinearLayout(context);
@@ -16433,7 +16442,7 @@ public class ArticleViewer extends IArticleViewer implements NotificationCenter.
             super.setVisibility(visibility);
             if (visibility == VISIBLE && !imageViewSet) {
                 imageViewSet = true;
-                MediaDataController.getInstance(account).setPlaceholderImage(imageView, AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, "🧐", "100_100");
+                MediaDataController.getInstance(UserConfig.selectedAccount).setPlaceholderImage(imageView, AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, "🧐", "100_100");
             }
         }
     }
