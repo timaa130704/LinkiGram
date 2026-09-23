@@ -46,6 +46,8 @@ jobs:
       - name: Create private.properties
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 -d > release.keystore
+          mkdir -p TMessagesProj/config
+          cp release.keystore TMessagesProj/config/release.keystore
           cat > private.properties << 'EOF'
           TELEGRAM_API_ID=${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH=${{ secrets.TELEGRAM_API_HASH }}
