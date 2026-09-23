@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkiGram — открытый Telegram-клиент для Android</title>
+  <meta name="description" content="LinkiGram — бесплатный неофициальный клиент Telegram для Android с расширенной настройкой, приватностью, прокси в фоне и поддержкой плагинов. Скачайте APK.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#030805">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%233ddc84' d='M10 50 L90 12 L70 88 L50 62 Z'/></svg>">
+</head>
+<body>
+
+  <!-- свечения -->
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <!-- Хедер -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#top">
+        <svg class="logo__icon" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M10 50 L90 12 L70 88 L50 62 Z" />
+        </svg>
+        <span>Linki<span class="logo__accent">Gram</span></span>
+      </a>
+      <nav class="nav">
+        <a href="#features">Возможности</a>
+        <a href="#privacy">Приватность</a>
+        <a href="#download">Установка</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="header__actions">
+        <a class="btn btn--small" href="https://github.com/timaa130704/LinkiGram/releases/latest" target="_blank" rel="noopener">
+          Скачать APK
+        </a>
+        <button class="burger" type="button" aria-label="Меню" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Хиро -->
+  <section class="hero" id="top">
+    <div class="container hero__inner">
+      <div class="hero__badge" data-reveal>
+        <span class="hero__tag">v2.21</span>
+        <span>Прокси в фоне · уведомления всегда</span>
+      </div>
+      <h1 class="hero__title" data-reveal>
+        Telegram,<br>
+        <span class="gradient-text">которым удобно<br>управлять вам</span>
+      </h1>
+      <p class="hero__subtitle" data-reveal>
+        LinkiGram — открытый неофициальный клиент Telegram для Android
+        с гибкой настройкой, инструментами приватности, прокси в фоне
+        и полноценной платформой плагинов.
+      </p>
+      <div class="term" data-reveal>
+        <div class="term__bar">linkigram — bash — 80&times;24</div>
+        <div class="term__body">
+          <p class="term__line"><span class="term__ps">user@linkigram:~$</span><span class="term__cmd" data-cmd="git clone --depth 1 https://github.com/timaa130704/LinkiGram.git"></span></p>
+          <p class="term__line term__line--out">&#8627; клонировано · v2.21 · APK в releases &#10003;</p>
+        </div>
+      </div>
+      <div class="hero__cta" data-reveal>
+        <a class="btn btn--primary btn--large" href="https://github.com/timaa130704/LinkiGram/releases/latest" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Скачать APK
+        </a>
+        <a class="btn btn--ghost btn--large" href="https://github.com/timaa130704/LinkiGram" target="_blank" rel="noopener">
+          Исходный код
+        </a>
+      </div>
+      <div class="hero__meta" data-reveal>
+        <span>Android 7.0+</span><span class="sep"></span>
+        <span>ARM64 + ARMv7</span><span class="sep"></span>
+        <span>GPL-2.0</span><span class="sep"></span>
+        <span>Бесплатно</span>
+      </div>
+    </div>
+    <div class="hero__scroll" aria-hidden="true">
+      <span></span>
+    </div>
+  </section>
+
+  <!-- Возможности -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section__head" data-reveal>
+        <span class="eyebrow">Возможности</span>
+        <h2>Всё, чего не хватает<br><span class="gradient-text">официальному клиенту</span></h2>
+      </div>
+      <div class="cards">
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><circle class="dot" cx="8.8" cy="9.8" r="1.15"/><circle class="dot" cx="15.2" cy="9.8" r="1.15"/><circle class="dot" cx="12" cy="15.4" r="1.15"/><circle class="dot" cx="8.9" cy="15" r="1.05"/></svg></div>
+            <span class="card__num">01</span>
+          </div>
+          <h3>Гибкая настройка</h3>
+          <p>Цвета Monet, наборы иконок, вкладки, заголовки чатов и профилей — настройте интерфейс под себя до мелочей.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><rect x="3.2" y="7.4" width="17.6" height="12.6" rx="3.2"/><path d="M8.7 7.4l1.3-2.8h4l1.3 2.8"/><circle cx="12" cy="13.5" r="3.3"/><path d="M17.4 10.6h.01"/></svg></div>
+            <span class="card__num">02</span>
+          </div>
+          <h3>Улучшенная камера и медиа</h3>
+          <p>Сценарии CameraX, видеосообщения, истории и буфер обмена работают быстрее и аккуратнее.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M5.2 20.2V11a6.8 6.8 0 0 1 13.6 0v9.2l-2.3-1.9-2.3 1.9-2.3-1.9-2.3 1.9-2.3-1.9z"/><path d="M9.7 10.8v1.3M14.3 10.8v1.3"/></svg></div>
+            <span class="card__num">03</span>
+          </div>
+          <h3>Ghost mode</h3>
+          <p>Скрывайте последний просмотр, статус «печатает» и прочие индикаторы присутствия в любой момент.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M8.8 8.2L4.4 12.4l4.4 4.2"/><path d="M15.2 8.2l4.4 4.2-4.4 4.2"/><path d="M13.4 5.2l-2.8 13.6"/></svg></div>
+            <span class="card__num">04</span>
+          </div>
+          <h3>Плагины Python и DEX</h3>
+          <p>Полноценная платформа расширений: перехваты, зависимости, безопасный жизненный цикл и стабильное API.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4c2.5 2.4 3.8 5.3 3.8 8.6s-1.3 6.2-3.8 8.6c-2.5-2.4-3.8-5.3-3.8-8.6S9.5 5.8 12 3.4z"/></svg></div>
+            <span class="card__num">05</span>
+          </div>
+          <h3>Сетевые инструменты</h3>
+          <p>Настраиваемые адреса сервисов и параметры транспорта звонков — полный контроль над соединением.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head">
+            <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M12 3.6l7 2.7v5.1c0 4.3-2.8 7.5-7 8.9-4.2-1.4-7-4.6-7-8.9V6.3l7-2.7z"/><path d="M8.9 12.1l2.2 2.2 4-4.4"/></svg></div>
+            <span class="card__num">06</span>
+          </div>
+          <h3>Приватность и биометрия</h3>
+          <p>Дополнительные инструменты приватности, блокировка биометрией, фильтрация и управление чатами.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Прокси баннер -->
+  <section class="section section--proxy" id="privacy">
+    <div class="container">
+      <div class="proxy tilt" data-reveal>
+        <div class="proxy__text">
+          <span class="eyebrow">Новое в 2.21</span>
+          <h2>Прокси в фоне —<br>уведомления <span class="gradient-text">всегда приходят</span></h2>
+          <p>При уходе приложения в фон соединение через прокси больше не засыпает. Обновления и уведомления идут постоянно,
+             даже если push-канал FCM недоступен. Фоновый сервис самовосстанавливается после закрытия процесса.</p>
+          <ul class="proxy__list">
+            <li>Уведомления не зависят от FCM</li>
+            <li>Foreground-сервис на Android 8–14</li>
+            <li>Иконка LinkiGram в статус-баре при активном прокси</li>
+          </ul>
+        </div>
+        <div class="proxy__phone">
+          <div class="phone">
+            <div class="phone__notch"></div>
+            <div class="phone__screen">
+              <div class="chat-row"><div class="avatar a1"></div><div class="chat-lines"><b></b><i></i></div></div>
+              <div class="chat-row"><div class="avatar a2"></div><div class="chat-lines"><b></b><i></i></div></div>
+              <div class="chat-row"><div class="avatar a3"></div><div class="chat-lines"><b></b><i></i></div></div>
+              <div class="chat-row"><div class="avatar a4"></div><div class="chat-lines"><b></b><i></i></div></div>
+              <div class="notif">
+                <span class="notif__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2.5L2.8 9.7c-.7.3-.7 1.3 0 1.5l4.7 1.5 1.8 5.4c.2.7 1.1.9 1.6.3l2.4-2.5 4.6 3.4c.6.4 1.4.1 1.6-.6l3-15c.2-.8-.6-1.5-1.4-1.2z"/></svg></span>
+                <div class="chat-lines"><b></b><i class="long"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Скачивание -->
+  <section class="section" id="download">
+    <div class="container">
+      <div class="download" data-reveal>
+        <div class="download__glow"></div>
+        <span class="eyebrow">Установка</span>
+        <h2>Скачайте LinkiGram<br><span class="gradient-text">за три простых шага</span></h2>
+        <ol class="steps">
+          <li><span>1</span>Скачайте <code>LinkiGram.apk</code> с GitHub Releases</li>
+          <li><span>2</span>Разрешите установку из неизвестных источников</li>
+          <li><span>3</span>Откройте APK и подтвердите установку</li>
+        </ol>
+        <a class="btn btn--primary btn--large" href="https://github.com/timaa130704/LinkiGram/releases/latest" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Перейти к скачиванию
+        </a>
+        <p class="download__note">Ставится поверх 2.x без потери данных · Android 7.0+ · ARM64</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="container container--narrow">
+      <div class="section__head" data-reveal>
+        <span class="eyebrow">FAQ</span>
+        <h2>Частые вопросы</h2>
+      </div>
+      <details class="faq" data-reveal>
+        <summary>Это официальный клиент Telegram?</summary>
+        <p>Нет. LinkiGram — независимый открытый проект на основе официального исходного кода Telegram для Android. Проект не связан с Telegram Messenger Inc. и не одобрен этой компанией.</p>
+      </details>
+      <details class="faq" data-reveal>
+        <summary>Безопасно ли устанавливать APK?</summary>
+        <p>APK собирается из открытого исходного кода через GitHub Actions и подписывается ключом автора. Вы всегда можете проверить сборку и изменения в репозитории.</p>
+      </details>
+      <details class="faq" data-reveal>
+        <summary>Как обновляться?</summary>
+        <p>Скачивайте новые версии с GitHub Releases и устанавливайте поверх текущей версии — данные не потеряются.</p>
+      </details>
+      <details class="faq" data-reveal>
+        <summary>Какие архитектуры поддерживаются?</summary>
+        <p>Единый standalone APK поддерживает ARM64 и ARMv7. Требуется Android 7.0 или новее.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- Футер -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a class="logo" href="#top">
+        <svg class="logo__icon" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M10 50 L90 12 L70 88 L50 62 Z" />
+        </svg>
+        <span>Linki<span class="logo__accent">Gram</span></span>
+      </a>
+      <div class="footer__links">
+        <a href="https://github.com/timaa130704/LinkiGram/releases/latest" target="_blank" rel="noopener">Скачать</a>
+        <a href="https://github.com/timaa130704/LinkiGram" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/timaa130704/LinkiGram/issues" target="_blank" rel="noopener">Ошибки</a>
+        <a href="https://github.com/timaa130704/LinkiGram/blob/main/LICENSE" target="_blank" rel="noopener">GPL-2.0</a>
+      </div>
+      <p class="footer__copy">© 2026 LinkiGram. Открытый проект. Не связан с Telegram Messenger Inc.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
