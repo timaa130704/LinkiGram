@@ -15,8 +15,6 @@ import android.util.Pair;
 import java.util.HashMap;
 import java.util.Map;
 
-// 😡😡😡 some systems (especially samsung) put suggestions into the text
-// using editable.commitText, this completely removes all of our spans
 public class EditTextSuggestionsFix implements TextWatcher {
 
     private boolean ignore;
@@ -76,9 +74,14 @@ public class EditTextSuggestionsFix implements TextWatcher {
         if (saved == null) return;
         if (!(cs instanceof Spannable)) return;
         Spannable spannable = (Spannable) cs;
+        final int textLength = spannable.length();
         for (Map.Entry<Object, Pair<Integer, Integer>> e : saved.entrySet()) {
             if (spannable.getSpanStart(e.getKey()) != -1) continue;
-            spannable.setSpan(e.getKey(), e.getValue().first, e.getValue().second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            final int start = Math.max(0, Math.min(e.getValue().first, textLength));
+            final int end = Math.max(start, Math.min(e.getValue().second, textLength));
+            if (start < end) {
+                spannable.setSpan(e.getKey(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
         }
     }
 }

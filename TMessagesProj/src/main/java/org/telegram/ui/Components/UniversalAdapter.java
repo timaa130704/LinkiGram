@@ -239,11 +239,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
         }
         boolean fromItemHadDivider = hasDivider(fromPosition);
         boolean toItemHadDivider = hasDivider(toPosition);
-        // notifyItemMoved has MOVE semantics (remove at from, insert at to), not swap semantics.
-        // ItemTouchHelper.chooseDropTarget can return a non-adjacent target (especially while
-        // auto-scrolling at an edge, when several items pass under the finger per frame), so a
-        // plain items.set()/set() swap desyncs the adapter data from RecyclerView's bookkeeping
-        // -> duplicated/garbled rows. Move the element to match the notification for any distance.
+        
         UItem fromItem = items.remove(fromPosition);
         items.add(toPosition, fromItem);
         notifyItemMoved(fromPosition, toPosition);
@@ -401,9 +397,12 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 } else {
                     view = new HeaderCell(context, resourcesProvider);
                 }
+                
+                view.setTag(RecyclerListView.TAG_NOT_SECTION);
                 break;
             case VIEW_TYPE_ANIMATED_HEADER:
                 view = new HeaderCell(context, Theme.key_windowBackgroundWhiteBlueHeader, 21, 15, 0, false, true, resourcesProvider);
+                view.setTag(RecyclerListView.TAG_NOT_SECTION);
                 break;
             case VIEW_TYPE_TEXT_SETTINGS:
                 view = new TextSettingsCell(context, resourcesProvider);
@@ -420,7 +419,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 view = new TopViewCell(context, resourcesProvider);
                 break;
             case VIEW_TYPE_TEXT:
-                view = new TextCell(context, resourcesProvider);
+                view = new TextCell(context, 21, false, false, resourcesProvider);
                 break;
             case VIEW_TYPE_CHECK:
             case VIEW_TYPE_CHECKRIPPLE:
@@ -518,7 +517,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 view = new ChannelMonetizationLayout.ProceedOverviewCell(context, resourcesProvider);
                 break;
             case VIEW_TYPE_SPACE:
-                view = new SpaceView(context);
+                view = new View(context);
                 break;
             case VIEW_TYPE_BUSINESS_LINK:
                 view = new BusinessLinksActivity.BusinessLinkView(context, resourcesProvider);
@@ -573,7 +572,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 break;
             case VIEW_TYPE_SWITCH:
             case VIEW_TYPE_EXPANDABLE_SWITCH:
-                view = new TextCheckCell2(context);
+                view = new TextCheckCell2(context, resourcesProvider);
                 break;
         }
         if (shouldApplyBackground(viewType)) {
@@ -693,6 +692,10 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                         cell.setTextAndValueAndIcon(item.text, item.textValue, item.iconResId, divider);
                     }
                 }
+                
+                if (item.colorfulIcon && item.iconResId != 0) {
+                    cell.setColorfulIcon(item.iconColorTop, item.iconColorBottom, item.iconResId);
+                }
                 if (item.accent) {
                     cell.setColors(Theme.key_windowBackgroundWhiteBlueText4, Theme.key_windowBackgroundWhiteBlueText4);
                 } else if (item.red) {
@@ -705,11 +708,10 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
             case VIEW_TYPE_CHECK:
             case VIEW_TYPE_CHECKRIPPLE:
                 TextCheckCell checkCell = (TextCheckCell) holder.itemView;
-                if (checkCell.itemId == item.id) {
-                    checkCell.setChecked(item.checked);
-                }
+                final boolean sameCheckItem = checkCell.itemId == item.id;
                 checkCell.setEnabled(item.enabled, null);
-                checkCell.setTextAndCheck(item.text, item.checked, divider);
+                checkCell.setTextAndCheck(item.text, item.checked, divider, sameCheckItem);
+                checkCell.setCheckBoxIcon(item.locked ? R.drawable.permission_locked : 0);
                 checkCell.itemId = item.id;
                 if (viewType == VIEW_TYPE_CHECKRIPPLE) {
                     holder.itemView.setBackgroundColor(Theme.getColor(item.checked ? Theme.key_windowBackgroundChecked : Theme.key_windowBackgroundUnchecked));
@@ -739,11 +741,12 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
             }
             case VIEW_TYPE_TEXT_CHECK:
                 NotificationsCheckCell checkCell1 = (NotificationsCheckCell) holder.itemView;
-                final boolean multiline = item.subtext != null && item.subtext.toString().contains("\n");
+                
+                final boolean multiline = true;
                 checkCell1.setTextAndValueAndCheck(item.text, item.subtext, item.checked, 0, multiline, divider);
                 break;
             case VIEW_TYPE_ICON_TEXT_CHECK:
-                // TODO: image
+                
                 ((NotificationsCheckCell) holder.itemView).setTextAndValueAndCheck(item.text, item.subtext, item.checked, divider);
                 break;
             case VIEW_TYPE_SHADOW_COLLAPSE_BUTTON:
@@ -759,7 +762,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                         cell2.setFixedSize(0);
                         cell2.setText(item.text);
                     }
-                    if (item.accent) { // asCenterShadow
+                    if (item.accent) { 
                         cell2.setTextGravity(Gravity.CENTER);
                         cell2.getTextView().setWidth(Math.min(HintView2.cutInFancyHalf(cell2.getText(), cell2.getTextView().getPaint()), AndroidUtilities.displaySize.x - dp(60)));
                         cell2.getTextView().setPadding(0, dp(17), 0, dp(17));
@@ -782,29 +785,31 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                     }
                     cell3 = btn;
                 }
-                final boolean prev = prevItem != null && !isShadow(prevItem.viewType);
-                final boolean next = nextItem != null && !isShadow(nextItem.viewType);
-                if (listView.hasSections()) {
-                    cell3.setBackground(null);
-                } else {
-                    int drawable;
-                    if (prev && next) {
-                        drawable = R.drawable.greydivider;
-                    } else if (prev) {
-                        drawable = R.drawable.greydivider_bottom;
-                    } else if (next) {
-                        drawable = R.drawable.greydivider_top;
+                if (!app.nimarkogram.messenger.NimarkoConfig.disableDividers) {
+                    final boolean prev = prevItem != null && !isShadow(prevItem.viewType);
+                    final boolean next = nextItem != null && !isShadow(nextItem.viewType);
+                    if (listView.hasSections()) {
+                        cell3.setBackground(null);
                     } else {
-                        drawable = R.drawable.field_carret_empty;
-                    }
-                    Drawable shadowDrawable = Theme.getThemedDrawableByKey(context, drawable, Theme.key_windowBackgroundGrayShadow, resourcesProvider);
-                    if (dialog) {
-                        cell3.setBackground(new LayerDrawable(new Drawable[]{
-                                new ColorDrawable(getThemedColor(Theme.key_dialogBackgroundGray)),
-                                shadowDrawable
-                        }));
-                    } else {
-                        cell3.setBackground(shadowDrawable);
+                        int drawable;
+                        if (prev && next) {
+                            drawable = R.drawable.greydivider;
+                        } else if (prev) {
+                            drawable = R.drawable.greydivider_bottom;
+                        } else if (next) {
+                            drawable = R.drawable.greydivider_top;
+                        } else {
+                            drawable = R.drawable.field_carret_empty;
+                        }
+                        Drawable shadowDrawable = Theme.getThemedDrawableByKey(context, drawable, Theme.key_windowBackgroundGrayShadow, resourcesProvider);
+                        if (dialog) {
+                            cell3.setBackground(new LayerDrawable(new Drawable[]{
+                                    new ColorDrawable(getThemedColor(Theme.key_dialogBackgroundGray)),
+                                    shadowDrawable
+                            }));
+                        } else {
+                            cell3.setBackground(shadowDrawable);
+                        }
                     }
                 }
                 break;
@@ -814,31 +819,22 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 FrameLayout frameLayout = (FrameLayout) holder.itemView;
                 frameLayout.setClipChildren(!item.checked);
                 frameLayout.setClipToPadding(!item.checked);
-                if (frameLayout.getChildCount() != (item.view == null ? 0 : 1) || frameLayout.getChildAt(0) != item.view) {
-                    frameLayout.removeAllViews();
-                    if (item.view != null) {
-                        AndroidUtilities.removeFromParent(item.view);
-                        FrameLayout.LayoutParams lp;
-                        if (viewType == VIEW_TYPE_CUSTOM || viewType == VIEW_TYPE_CUSTOM_SHADOW) {
-                            lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, item.intValue);
-                        } else {
-                            lp = LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
-                        }
-                        frameLayout.addView(item.view, lp);
-                    }
+                FrameLayout.LayoutParams lp;
+                if (viewType == VIEW_TYPE_CUSTOM || viewType == VIEW_TYPE_CUSTOM_SHADOW) {
+                    lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, item.intValue);
+                } else {
+                    lp = LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
                 }
+                bindCustomView(frameLayout, item.view, lp);
                 break;
             case VIEW_TYPE_FULLSCREEN_CUSTOM:
                 FullscreenCustomFrameLayout frameLayout2 = (FullscreenCustomFrameLayout) holder.itemView;
                 frameLayout2.setMinusHeight(item.intValue);
                 frameLayout2.setMinusPadding(BitwiseUtils.hasFlag(item.flags, 1));
-                if (frameLayout2.getChildCount() != (item.view == null ? 0 : 1) || frameLayout2.getChildAt(0) != item.view) {
-                    frameLayout2.removeAllViews();
-                    if (item.view != null) {
-                        AndroidUtilities.removeFromParent(item.view);
-                        frameLayout2.addView(item.view, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-                    }
-                }
+                bindCustomView(
+                        frameLayout2,
+                        item.view,
+                        LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
                 break;
             case VIEW_TYPE_FILTER_CHAT:
             case VIEW_TYPE_FILTER_CHAT_CHECK:
@@ -926,7 +922,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                     holder.itemView.setBackgroundColor(item.iconResId);
                 }
                 holder.itemView.setId(item.id);
-                ((SpaceView) holder.itemView).setHeight(item.intValue);
+                holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, item.intValue));
                 break;
             case VIEW_TYPE_BUSINESS_LINK:
                 BusinessLinksActivity.BusinessLinkView businessLinkView = (BusinessLinksActivity.BusinessLinkView) holder.itemView;
@@ -952,7 +948,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 ProfileSearchCell profileCell = (ProfileSearchCell) holder.itemView;
                 Object object = item.object;
                 CharSequence s = "";
-                if (item.accent && object instanceof TLRPC.User && ((TLRPC.User) object).bot_active_users != 0) { // show bot mau
+                if (item.accent && object instanceof TLRPC.User && ((TLRPC.User) object).bot_active_users != 0) { 
                     TLRPC.User user = (TLRPC.User) object;
                     if (user.bot_active_users != 0) {
                         s = LocaleController.formatPluralStringSpaced("BotUsers", user.bot_active_users);
@@ -989,7 +985,7 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                     title = chat.title;
                 } else if (object instanceof TLRPC.User) {
                     TLRPC.User user = (TLRPC.User) object;
-                    // add status text
+                    
                     title = UserObject.getUserName(user);
                 }
                 profileCell.allowBotOpenButton(item.locked, item.object2 instanceof Utilities.Callback ? (Utilities.Callback) item.object2 : null);
@@ -1038,10 +1034,11 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
             case VIEW_TYPE_SWITCH:
             case VIEW_TYPE_EXPANDABLE_SWITCH:
                 TextCheckCell2 switchCell = (TextCheckCell2) holder.itemView;
-                switchCell.setTextAndCheck(item.text.toString(), item.checked, divider, switchCell.id == item.id);
-                switchCell.getCheckBox().setDrawIconType(item.intValue);
-                switchCell.getCheckBox().setColors(item.intValue == 0 ? Theme.key_switchTrack : Theme.key_fill_RedNormal,
+                
+                switchCell.getCheckBox().setColors(item.red ? Theme.key_fill_RedNormal : Theme.key_switchTrack,
                     Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
+                switchCell.getCheckBox().setDrawIconType(item.intValue);
+                switchCell.setTextAndCheck(item.text.toString(), item.checked, divider, switchCell.id == item.id);
                 switchCell.id = item.id;
                 switchCell.setIcon(item.locked ? R.drawable.permission_locked : 0);
                 if (viewType == VIEW_TYPE_EXPANDABLE_SWITCH) {
@@ -1058,6 +1055,29 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
         if (item.bind != null) {
             item.bind.run(holder.itemView);
         }
+    }
+
+    private static void bindCustomView(FrameLayout container, View child, FrameLayout.LayoutParams layoutParams) {
+        final Object bindToken = new Object();
+        container.setTag(R.id.view_reparent_token_tag, bindToken);
+
+        if (container.getChildCount() == (child == null ? 0 : 1)
+                && (child == null || container.getChildAt(0) == child)) {
+            return;
+        }
+
+        container.removeAllViews();
+        if (child == null) {
+            return;
+        }
+
+        AndroidUtilities.removeFromParent(child, () -> {
+            if (container.getTag(R.id.view_reparent_token_tag) != bindToken
+                    || child.getParent() != null) {
+                return;
+            }
+            container.addView(child, layoutParams);
+        });
     }
 
     private View findViewByItemObject(Object object) {
@@ -1086,6 +1106,21 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
     public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
         updateReorder(holder, allowReorder);
         updateColors(holder);
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        switch (holder.getItemViewType()) {
+            case VIEW_TYPE_CUSTOM:
+            case VIEW_TYPE_CUSTOM_SHADOW:
+            case VIEW_TYPE_FULLY_CUSTOM:
+            case VIEW_TYPE_FULLSCREEN_CUSTOM:
+                FrameLayout container = (FrameLayout) holder.itemView;
+                container.setTag(R.id.view_reparent_token_tag, null);
+                container.removeAllViews();
+                break;
+        }
+        super.onViewRecycled(holder);
     }
 
     private void updateColors(RecyclerView.ViewHolder holder) {
@@ -1177,7 +1212,6 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
         return Theme.getColor(key, resourcesProvider);
     }
 
-
     private static class FullscreenCustomFrameLayout extends FrameLayout {
         private int minusHeight = 0;
         private boolean minusPadding;
@@ -1234,26 +1268,4 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
         }
     }
 
-    public static class SpaceView extends View {
-
-        private int height;
-        public SpaceView(Context context) {
-            super(context);
-            setTag(RecyclerListView.TAG_NOT_SECTION);
-        }
-
-        public void setHeight(int height) {
-            if (this.height == height) return;
-            this.height = height;
-            requestLayout();
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(
-                MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-            );
-        }
-    }
 }

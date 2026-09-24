@@ -74,6 +74,8 @@ import org.telegram.ui.Components.EditTextCaption;
 import org.telegram.ui.Components.EditTextEmoji;
 import org.telegram.ui.Components.EditTextSuggestionsFix;
 import org.telegram.ui.Components.EmojiView;
+
+import app.nimarkogram.messenger.NimarkoConfig;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.MentionsContainerView;
 import org.telegram.ui.Components.ScaleStateListAnimator;
@@ -314,7 +316,7 @@ public class CaptionContainerView extends FrameLayout {
             }
         };
         editText.glassDesignForEmojiView = true;
-        editText.getEditText().addTextChangedListener(new EditTextSuggestionsFix());
+        if (NimarkoConfig.editTextSuggestionsFix) editText.getEditText().addTextChangedListener(new EditTextSuggestionsFix());
         editText.setFocusable(true);
         editText.setFocusableInTouchMode(true);
         editText.getEditText().hintLayoutYFix = true;
@@ -544,7 +546,6 @@ public class CaptionContainerView extends FrameLayout {
         this.factoryForMentions = factoryForMentions;
     }
 
-
     private void createMentionsContainer() {
         mentionContainer = new MentionsContainerView(getContext(), dialogId, 0, LaunchActivity.getLastFragment(), new DarkThemeResourceProvider()) {
             @Override
@@ -725,8 +726,7 @@ public class CaptionContainerView extends FrameLayout {
             keyboardAnimator.addUpdateListener(anm -> {
                 keyboardT = (float) anm.getAnimatedValue();
                 editText.getEditText().setTranslationX(lerp(dp(-44 + 18) + getEditTextLeft(), dp(2), keyboardT));
-                // editText.setTranslationX(lerp(0, dp(-8), keyboardT));
-                // editText.setTranslationY(lerp(0, dp(isAtTop() ? -10 : 10), keyboardT));
+                
                 limitTextContainer.setTranslationX(lerp(-dp(8), dp(2), keyboardT));
                 limitTextContainer.setTranslationY(lerp(-dp(8), 0, keyboardT));
                 editText.getEmojiButton().setAlpha(keyboardT);
@@ -767,8 +767,7 @@ public class CaptionContainerView extends FrameLayout {
         } else {
             keyboardT = show ? 1 : 0;
             editText.getEditText().setTranslationX(lerp(AndroidUtilities.dp(-44 + 18) + getEditTextLeft(), AndroidUtilities.dp(2), keyboardT));
-            // editText.setTranslationX(lerp(0, AndroidUtilities.dp(-8), keyboardT));
-            // editText.setTranslationY(lerp(0, AndroidUtilities.dp(isAtTop() ? -10 : 10), keyboardT));
+            
             limitTextContainer.setTranslationX(lerp(-dp(8), dp(2), keyboardT));
             limitTextContainer.setTranslationY(lerp(-dp(8), 0, keyboardT));
             editText.getEmojiButton().setAlpha(keyboardT);
@@ -852,7 +851,7 @@ public class CaptionContainerView extends FrameLayout {
     }
 
     protected void drawBlurBitmap(Bitmap bitmap, float amount) {
-        // do draw
+        
         Utilities.stackBlurBitmap(bitmap, (int) amount);
     }
 
@@ -994,7 +993,7 @@ public class CaptionContainerView extends FrameLayout {
             return;
         }
         int height = editText.getHeight();
-        // height = Math.max(dp(44), height);
+        
         if (collapsed) {
             height = dp(44);
         } else if (keyboardShown) {
@@ -1015,7 +1014,6 @@ public class CaptionContainerView extends FrameLayout {
         }
         updateMentionsLayoutPosition();
 
-        // final float pad = lerp(dp(12), 0, keyboardT * (1.0f - forceRound()));
         final int padH = dp(7);
         final int padV = dp(8);
         if (isAtTop()) {

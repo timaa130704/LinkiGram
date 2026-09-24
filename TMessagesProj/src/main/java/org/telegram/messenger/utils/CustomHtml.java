@@ -12,12 +12,41 @@ import org.telegram.ui.Components.URLSpanReplacement;
 
 public class CustomHtml {
 
+    public static final String TELEGRAM_ENTITIES_CLIPBOARD_MARKER = "<!--telegram-entities-v1-->";
+
+    private static volatile String lastTelegramClipboardPlain;
+    private static volatile String lastTelegramClipboardHtml;
+
     private CustomHtml() { }
 
     public static String toHtml(Spanned text) {
         StringBuilder out = new StringBuilder();
+        out.append(TELEGRAM_ENTITIES_CLIPBOARD_MARKER);
         toHTML_0_wrapQuote(out, text, 0, text.length());
         return out.toString();
+    }
+
+    public static boolean isTelegramEntitiesClipboardHtml(String html) {
+        return html != null && html.startsWith(TELEGRAM_ENTITIES_CLIPBOARD_MARKER);
+    }
+
+    public static void rememberTelegramEntitiesClipboard(CharSequence plain, String html) {
+        lastTelegramClipboardPlain = plain == null ? null : plain.toString();
+        lastTelegramClipboardHtml = html;
+    }
+
+    public static void clearTelegramEntitiesClipboard() {
+        lastTelegramClipboardPlain = null;
+        lastTelegramClipboardHtml = null;
+    }
+
+    public static boolean mayMatchTelegramEntitiesClipboard(CharSequence committedText) {
+        final String plain = lastTelegramClipboardPlain;
+        final String html = lastTelegramClipboardHtml;
+        return committedText != null
+                && plain != null
+                && isTelegramEntitiesClipboardHtml(html)
+                && TextUtils.equals(committedText, plain);
     }
 
     private static void toHTML_0_wrapQuote(StringBuilder out, Spanned text, int start, int end) {
@@ -32,7 +61,9 @@ public class CustomHtml {
 
             if (spans != null) {
                 for (int j = 0; j < spans.length; ++j) {
-                    out.append(spans[j].isCollapsing ? "<blockquote collapsed>" : "<blockquote>");
+                    out.append(spans[j].isCollapsing
+                            ? "<blockquote data-collapsed=\"true\">"
+                            : "<blockquote>");
                 }
             }
 

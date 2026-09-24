@@ -88,9 +88,12 @@ public class EntityView extends FrameLayout {
     private final Runnable longPressRunnable = () -> {
         recognizedLongPress = true;
         if (delegate != null) {
-            try {
-                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-            } catch (Exception ignored) {}
+            
+            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                try {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                } catch (Exception ignored) {}
+            }
             delegate.onEntityLongClicked(EntityView.this);
         }
     };
@@ -335,7 +338,7 @@ public class EntityView extends FrameLayout {
                 delegate.getTransformedTouch(event.getRawX(1), event.getRawY(1), xy2);
             } else {
                 isMultitouch = false;
-                // TODO
+                
             }
         }
         if (isMultitouch) {
@@ -363,7 +366,7 @@ public class EntityView extends FrameLayout {
         boolean handled = false;
 
         switch (action) {
-//            case MotionEvent.ACTION_POINTER_DOWN:
+
             case MotionEvent.ACTION_DOWN: {
                 hadMultitouch = false;
                 previousLocationX = xy[0];
@@ -390,7 +393,6 @@ public class EntityView extends FrameLayout {
             }
             break;
 
-//            case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
                 onTouchUp(action == MotionEvent.ACTION_CANCEL);
@@ -459,9 +461,12 @@ public class EntityView extends FrameLayout {
         if (stickyXRunnableValue == STICKY_NONE) {
             runStickyXAnimator(1, 0);
         } else {
-            try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-            } catch (Exception ignored) {}
+            
+            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                try {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                } catch (Exception ignored) {}
+            }
             runStickyXAnimator(0, 1);
         }
     }
@@ -481,9 +486,12 @@ public class EntityView extends FrameLayout {
         if (stickyYRunnableValue == STICKY_NONE) {
             runStickyYAnimator(1, 0);
         } else {
-            try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-            } catch (Exception ignored) {}
+            
+            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                try {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                } catch (Exception ignored) {}
+            }
             runStickyYAnimator(0, 1);
         }
     }
@@ -600,13 +608,16 @@ public class EntityView extends FrameLayout {
         float newScale = Math.max(this.scale, 0.1f);
         newScale = Utilities.clamp(newScale, getMaxScale(), getMinScale());
         if (allowHaptic() && (newScale >= getMaxScale() || newScale <= getMinScale()) != (oldScale >= getMaxScale() || oldScale <= getMinScale())) {
-            try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
-            } catch (Exception ignore) {}
+            
+            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                try {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+                } catch (Exception ignore) {}
+            }
         }
         setScaleX(newScale);
         setScaleY(newScale);
-//        updateSelectionView();
+
     }
 
     protected boolean allowHaptic() {
@@ -636,9 +647,12 @@ public class EntityView extends FrameLayout {
                         AndroidUtilities.runOnUIThread(setStickyAngleRunnable = () -> {
                             currentStickyAngle = stickyAngle;
                             hasStickyAngle = true;
-                            try {
-                                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                            } catch (Exception ignored) {}
+                            
+                            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                                try {
+                                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                                } catch (Exception ignored) {}
+                            }
 
                             if (angleAnimator != null) {
                                 angleAnimator.cancel();
@@ -863,7 +877,7 @@ public class EntityView extends FrameLayout {
                     delegate.getTransformedTouch(event.getRawX(1), event.getRawY(1), xy2);
                 } else {
                     isMultitouch = false;
-                    // TODO
+                    
                 }
             }
             if (isMultitouch) {
@@ -886,7 +900,7 @@ public class EntityView extends FrameLayout {
             float x = cxy[0];
             float y = cxy[1];
             switch (action) {
-//                case MotionEvent.ACTION_POINTER_DOWN:
+
                 case MotionEvent.ACTION_DOWN: {
                     hadMultitouch = false;
                     int handle = pointInsideHandle(event.getX(), event.getY());

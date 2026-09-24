@@ -89,6 +89,9 @@ public class ConnectionsManager extends BaseController {
     public final static int ConnectionTypePush = 8;
     public final static int ConnectionTypeDownload2 = ConnectionTypeDownload | (1 << 16);
 
+    public static final int ERROR_RESPONSE_DESERIALIZATION_FAILED = -1001;
+    public static final String RESPONSE_DESERIALIZATION_FAILED = "RESPONSE_DESERIALIZATION_FAILED";
+
     public final static int FileTypePhoto = 0x01000000;
     public final static int FileTypeVideo = 0x02000000;
     public final static int FileTypeAudio = 0x03000000;
@@ -145,7 +148,7 @@ public class ConnectionsManager extends BaseController {
         }
     };
 
-    private boolean forceTryIpV6;
+    private volatile boolean forceTryIpV6;
 
     static {
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS, sPoolWorkQueue, sThreadFactory);
@@ -161,8 +164,15 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void discardConnection(int dcId, int connectionType) {
+        discardConnection(dcId, connectionType, null);
+    }
+
+    public void discardConnection(int dcId, int connectionType, Runnable afterDiscard) {
         Utilities.stageQueue.postRunnable(() -> {
             native_discardConnection(currentAccount, dcId, connectionType);
+            if (afterDiscard != null) {
+                afterDiscard.run();
+            }
         });
     }
 
@@ -288,7 +298,7 @@ public class ConnectionsManager extends BaseController {
     public boolean isPushConnectionEnabled() {
         SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
         if (preferences.contains("pushConnection")) {
-            return preferences.getBoolean("pushConnection", true);
+            return preferences.getBoolean("pushConnection", false);
         } else {
             return MessagesController.getMainSettings(UserConfig.selectedAccount).getBoolean("backgroundConnection", false);
         }
@@ -335,8 +345,6 @@ public class ConnectionsManager extends BaseController {
         }, null, null, null, requestFlags, dcId, ConnectionTypeGeneric, true);
     }
 
-
-
     public int sendRequestTypedAndProcessUpdates(TLMethod<TLRPC.Updates> method, Executor executor, Utilities.Callback2<TLRPC.Updates, TLRPC.TL_error> completionBlock) {
         return sendRequestTypedAndProcessUpdates(method, executor, completionBlock, DEFAULT_DATACENTER_ID, 0);
     }
@@ -353,7 +361,6 @@ public class ConnectionsManager extends BaseController {
             }
         }, dcId, requestFlags);
     }
-
 
     public int sendRequest(TLObject object, RequestDelegate completionBlock) {
         return sendRequest(object, completionBlock, null, 0);
@@ -393,7 +400,41 @@ public class ConnectionsManager extends BaseController {
         return requestToken;
     }
 
-    private void sendRequestInternal(TLObject object, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+    private void sendRequestInternal(TLObject objectIn, RequestDelegate onCompleteIn, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+        
+        TLObject hookedObject = objectIn;
+        String requestName = "";
+        try {
+            requestName = objectIn != null ? objectIn.getClass().getSimpleName() : "";
+            TLObject pre = app.nimarkogram.messenger.plugins.PluginsController.getInstance()
+                    .executePreRequestHook(requestName, currentAccount, objectIn);
+            if (pre == null) {
+                return;
+            }
+            hookedObject = pre;
+        } catch (Throwable t) {
+            FileLog.e("nimarko: pre-request hook threw", t);
+        }
+        
+        final RequestDelegate userOnComplete = onCompleteIn;
+        final String finalRequestName = requestName;
+        final TLObject object = hookedObject;
+        final RequestDelegate onComplete = (userOnComplete == null) ? null : (response, error) -> {
+            try {
+                app.nimarkogram.messenger.plugins.hooks.PluginsHooks.PostRequestResult post =
+                        app.nimarkogram.messenger.plugins.PluginsController.getInstance()
+                                .executePostRequestHook(finalRequestName, currentAccount, response, error);
+                if (post != null) {
+                    userOnComplete.run(post.response, post.error);
+                    return;
+                } else {
+                    return;
+                }
+            } catch (Throwable t) {
+                FileLog.e("nimarko: post-request hook threw", t);
+            }
+            userOnComplete.run(response, error);
+        };
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("send request " + object + " with token = " + requestToken);
         }
@@ -417,15 +458,23 @@ public class ConnectionsManager extends BaseController {
                         buff.setDataSourceType(TLDataSourceType.NETWORK);
                         buff.reused = true;
                         responseSize = buff.limit();
-                        int magic = buff.readInt32(true);
                         try {
+                            int magic = buff.readInt32(true);
                             resp = object.deserializeResponse(buff, magic, true);
                         } catch (Exception e2) {
-                            if (BuildVars.DEBUG_PRIVATE_VERSION) {
+                            
+                            boolean downloadConn = (connectionType & ConnectionTypeDownload) != 0;
+                            if (BuildVars.DEBUG_PRIVATE_VERSION && !downloadConn) {
                                 throw e2;
                             }
-                            FileLog.fatal(e2);
-                            return;
+                            if (downloadConn) {
+                                FileLog.e("Unable to deserialize download response", e2);
+                            } else {
+                                FileLog.fatal(e2);
+                            }
+                            error = new TLRPC.TL_error();
+                            error.code = ERROR_RESPONSE_DESERIALIZATION_FAILED;
+                            error.text = RESPONSE_DESERIALIZATION_FAILED;
                         }
                     } else if (errorText != null) {
                         error = new TLRPC.TL_error();
@@ -433,6 +482,21 @@ public class ConnectionsManager extends BaseController {
                         error.text = errorText;
                         if (BuildVars.LOGS_ENABLED && error.code != -2000) {
                             FileLog.e(object + " got error " + error.code + " " + error.text);
+                        }
+                        
+                        if (app.nimarkogram.messenger.NimarkoConfig.showRPCErrors && error.code != -2000) {
+                            final int dbgCode = error.code;
+                            final String dbgText = error.text;
+                            final String dbgObj = object.toString();
+                            AndroidUtilities.runOnUIThread(() -> {
+                                try {
+                                    android.widget.Toast.makeText(
+                                            ApplicationLoader.applicationContext,
+                                            dbgObj + ": " + dbgCode + " " + dbgText,
+                                            android.widget.Toast.LENGTH_SHORT
+                                    ).show();
+                                } catch (Throwable ignored) {}
+                            });
                         }
                     }
                     if ((connectionType & ConnectionTypeDownload) != 0 && VideoPlayer.activePlayers.isEmpty()) {
@@ -482,11 +546,11 @@ public class ConnectionsManager extends BaseController {
     }
 
     private final ConcurrentHashMap<Integer, RequestCallbacks> requestCallbacks = new ConcurrentHashMap<>();
-    private static class RequestCallbacks {
-        public RequestDelegateInternal onComplete;
-        public QuickAckDelegate onQuickAck;
-        public WriteToSocketDelegate onWriteToSocket;
-        public Runnable onCancelled;
+    private static final class RequestCallbacks {
+        public final RequestDelegateInternal onComplete;
+        public final QuickAckDelegate onQuickAck;
+        public final WriteToSocketDelegate onWriteToSocket;
+        public volatile Runnable onCancelled;
         public RequestCallbacks(RequestDelegateInternal onComplete, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket) {
             this.onComplete = onComplete;
             this.onQuickAck = onQuickAck;
@@ -496,16 +560,16 @@ public class ConnectionsManager extends BaseController {
 
     private void listen(int requestToken, RequestDelegateInternal onComplete, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket) {
         requestCallbacks.put(requestToken, new RequestCallbacks(onComplete, onQuickAck, onWriteToSocket));
-//        FileLog.d("{rc} listen(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
+
     }
 
     private void listenCancel(int requestToken, Runnable onCancelled) {
         RequestCallbacks callbacks = requestCallbacks.get(requestToken);
         if (callbacks != null) {
             callbacks.onCancelled = onCancelled;
-//            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
+
         } else {
-//            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): callback not found, " + requestCallbacks.size() + " requests' callbacks");
+
         }
     }
 
@@ -519,13 +583,13 @@ public class ConnectionsManager extends BaseController {
                     callbacks.onCancelled.run();
                 }
                 connectionsManager.requestCallbacks.remove(requestToken);
-//                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
             } else {
-//                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is not found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
             }
         } else if (callbacks != null) {
             connectionsManager.requestCallbacks.remove(requestToken);
-//            FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         }
     }
 
@@ -538,9 +602,9 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onComplete != null) {
                 callbacks.onComplete.run(response, errorCode, errorText, networkType, timestamp, requestMsgId, dcId);
             }
-//            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         } else {
-//            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         }
     }
 
@@ -552,9 +616,9 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onQuickAck != null) {
                 callbacks.onQuickAck.run();
             }
-//            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         } else {
-//            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         }
     }
 
@@ -566,9 +630,9 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onWriteToSocket != null) {
                 callbacks.onWriteToSocket.run();
             }
-//            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         } else {
-//            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+
         }
     }
 
@@ -625,7 +689,9 @@ public class ConnectionsManager extends BaseController {
             FileLog.d("selected ip strategy " + selectedStrategy);
         }
         native_setIpStrategy(currentAccount, selectedStrategy);
-        native_setNetworkAvailable(currentAccount, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(), ApplicationLoader.isConnectionSlow());
+        
+        native_setNetworkAvailable(currentAccount, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(),
+                ApplicationLoader.isConnectionSlow() || app.nimarkogram.messenger.NimarkoConfig.slowNetworkMode);
     }
 
     public void setPushConnectionEnabled(boolean value) {
@@ -774,7 +840,17 @@ public class ConnectionsManager extends BaseController {
             if (lastPauseTime == 0) {
                 lastPauseTime = System.currentTimeMillis();
             }
-            native_pauseNetwork(currentAccount);
+            if (value && SharedConfig.isProxyEnabled()) {
+                // Keep connections (and the push connection) alive in background
+                // so updates keep arriving through the proxy and notifications
+                // are delivered even without a working FCM push channel.
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.d("proxy enabled, keeping network alive in background");
+                }
+                native_resumeNetwork(currentAccount, false);
+            } else {
+                native_pauseNetwork(currentAccount);
+            }
         } else {
             if (appPaused) {
                 return;
@@ -982,6 +1058,13 @@ public class ConnectionsManager extends BaseController {
                 accountInstance.getMessagesController().checkPromoInfo(true);
             }
         }
+
+        // Sync the background notification service state with the proxy state:
+        // when a proxy is enabled the service is kept running so that
+        // notifications are delivered through the proxied connection in background.
+        try {
+            org.telegram.messenger.ApplicationLoader.startPushService();
+        } catch (Throwable ignore) {}
     }
 
     public static native void native_switchBackend(int currentAccount, boolean restart);
@@ -1022,7 +1105,6 @@ public class ConnectionsManager extends BaseController {
     public static native void native_receivedCaptchaResult(int currentAccount, int[] requestTokens, String token);
     public static native boolean native_isGoodPrime(byte[] prime, int g);
 
-
     public static boolean testNativeTlScheme(NativeByteBuffer buffer, INativeTlTest test) {
         return test.test(buffer.address);
     }
@@ -1031,7 +1113,6 @@ public class ConnectionsManager extends BaseController {
     public interface INativeTlTest {
         boolean test(long address);
     }
-
 
     public static int generateClassGuid() {
         return lastClassGuid++;

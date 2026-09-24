@@ -29,6 +29,30 @@ public abstract class UniversalFragment extends BaseFragment {
 
     public UniversalRecyclerView listView;
 
+    public void setMD3(boolean enabled) {
+        
+    }
+
+    public void updateCheckState(View view, boolean isChecked) {
+        if (view instanceof org.telegram.ui.Cells.NotificationsCheckCell) {
+            ((org.telegram.ui.Cells.NotificationsCheckCell) view).setChecked(isChecked);
+        } else if (view instanceof org.telegram.ui.Cells.TextCheckCell) {
+            ((org.telegram.ui.Cells.TextCheckCell) view).setChecked(isChecked);
+        }
+    }
+
+    public void showRestartBulletin() {
+        org.telegram.ui.Components.BulletinFactory.of(this).createSimpleBulletin(
+                org.telegram.messenger.R.raw.info,
+                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.NM_RestartRequired),
+                org.telegram.messenger.LocaleController.getString(org.telegram.messenger.R.string.NM_Restart),
+                () -> {
+                    android.content.Context ctx = getParentActivity() != null ? getParentActivity() : getContext();
+                    app.nimarkogram.messenger.utils.AppRestartHelper.triggerRebirth(ctx);
+                }
+        ).show();
+    }
+
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonDrawable(new BackDrawable(false));
@@ -57,7 +81,7 @@ public abstract class UniversalFragment extends BaseFragment {
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, this::onLongClick) {
             @Override
             protected void onMeasure(int widthSpec, int heightSpec) {
-//                applyScrolledPosition();
+
                 super.onMeasure(widthSpec, heightSpec);
             }
 
@@ -69,7 +93,28 @@ public abstract class UniversalFragment extends BaseFragment {
         };
         contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
+        listView.setSections(true);
+        listView.adapter.setApplyBackground(false);
+        actionBar.setAdaptiveBackground(listView);
+
         return fragmentView = contentView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        
+        org.telegram.ui.Components.Bulletin.addDelegate(this, new org.telegram.ui.Components.Bulletin.Delegate() {
+            @Override
+            public int getBottomOffset(int tag) {
+                return 0;
+            }
+
+            @Override
+            public int getTopOffset(int tag) {
+                return org.telegram.messenger.AndroidUtilities.statusBarHeight;
+            }
+        });
     }
 
     protected abstract CharSequence getTitle();

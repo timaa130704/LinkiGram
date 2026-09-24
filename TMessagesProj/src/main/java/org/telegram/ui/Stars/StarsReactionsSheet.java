@@ -123,9 +123,9 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
     private final FrameLayout dialogSelectorInnerLayout;
     private final BackupImageView dialogImageView;
     private final ImageView dialogSelectorIconView;
-//    private final Space beforeTitleSpace;
+
     private final TextView titleView;
-//    private final StarsIntroActivity.StarsBalanceView balanceView;
+
     private final ImageView closeView;
     private final TextView statusView;
     private final ButtonWithCounterView buttonView;
@@ -194,7 +194,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         container.addView(balanceCloud, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 48, 0, 0));
         ScaleStateListAnimator.apply(balanceCloud);
         balanceCloud.setOnClickListener(v -> {
-            new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
+            new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show();
         });
 
         TLRPC.MessageReactor me = null;
@@ -221,7 +221,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                     }
                 }
             }
-            peer = sendAs; // myReactor != null ? DialogObject.getPeerDialogId(myReactor.peer_id) : UserConfig.getInstance(currentAccount).getClientUserId();
+            peer = sendAs; 
         } else {
             peer = StarsController.getInstance(currentAccount).getPaidReactionsDialogId(messageObject);
         }
@@ -266,7 +266,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                 }
             }
         };
-        int[] steps_arr = new int[] { 1, 50, 100, /*250,*/ 500, 1_000, 2_000, 5_000, 7_500, 10_000 };
+        int[] steps_arr = new int[] { 1, 50, 100,   500, 1_000, 2_000, 5_000, 7_500, 10_000 };
         final long max = MessagesController.getInstance(currentAccount).starsPaidReactionAmountMax;
         ArrayList<Integer> steps = new ArrayList<>();
         for (int i = 0; i < steps_arr.length; ++i) {
@@ -292,9 +292,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         if (!liveStories) {
             topLayout.addView(toptopLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.FILL_HORIZONTAL, 0, 0, 0, 0));
         }
-//
-//        balanceView = new StarsIntroActivity.StarsBalanceView(context, currentAccount);
-//        balanceView.setDialogId(selfId);
 
         dialogSelectorLayout = new FrameLayout(context);
         dialogSelectorInnerLayout = new FrameLayout(context);
@@ -327,9 +324,9 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         titleView.setText(getString(R.string.StarsReactionTitle2));
         titleView.setTypeface(AndroidUtilities.bold());
         titleView.setEllipsize(TextUtils.TruncateAt.END);
-//        toptopLayout.addView(beforeTitleSpace = new Space(context), LayoutHelper.createLinear(0, 0, 1, Gravity.FILL));
+
         toptopLayout.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 1, Gravity.FILL, 2, 0, 2, 0));
-//        toptopLayout.addView(new Space(context), LayoutHelper.createLinear(0, 0, 1, Gravity.FILL));
+
         updateCanSwitchPeer(false);
 
         closeView = new ImageView(context);
@@ -339,20 +336,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         ScaleStateListAnimator.apply(closeView);
         closeView.setOnClickListener(v -> dismiss());
 
-//        ScaleStateListAnimator.apply(balanceView);
-//        balanceView.setOnClickListener(v -> {
-//            dismiss();
-//            chatActivity.presentFragment(new StarsIntroActivity() {
-//                @Override
-//                public void onFragmentDestroy() {
-//                    super.onFragmentDestroy();
-//                    if (chatActivity.isFullyVisible) {
-//                        StarsReactionsSheet.this.show();
-//                    }
-//                }
-//            });
-//        });
-//        toptopLayout.addView(balanceView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, Gravity.TOP | Gravity.RIGHT, 6, 0, 6, 0));
         toptopLayout.addView(closeView, LayoutHelper.createLinear(48, 48, 0, Gravity.TOP | Gravity.RIGHT, 0, 6, 6, 0));
 
         LinearLayout topLayoutTextLayout = new LinearLayout(context);
@@ -562,9 +545,9 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
 
                 if (starsController.balanceAvailable() && starsController.getBalance().amount < totalStars) {
                     if (liveStories) {
-                        new StarsIntroActivity.StarsNeededSheet(context, resourcesProvider, totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_LIVE_COMMENTS, DialogObject.getShortName(currentAccount, dialogId), send, dialogId).show();
+                        new StarsIntroActivity.StarsNeededSheet(context, currentAccount, resourcesProvider, totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_LIVE_COMMENTS, DialogObject.getShortName(currentAccount, dialogId), send, dialogId).show();
                     } else {
-                        new StarsIntroActivity.StarsNeededSheet(context, resourcesProvider, totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_REACTIONS, chat == null ? "" : chat.title, send, dialogId).show();
+                        new StarsIntroActivity.StarsNeededSheet(context, currentAccount, resourcesProvider, totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_REACTIONS, chat == null ? "" : chat.title, send, dialogId).show();
                     }
                 } else {
                     send.run();
@@ -719,7 +702,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
 
     private void updateCanSwitchPeer(boolean animated) {
         if ((dialogSelectorLayout.getVisibility() == View.VISIBLE) != canSwitchPeer()) {
-//            beforeTitleSpace.setVisibility(canSwitchPeer() ? View.VISIBLE : View.GONE);
+
             dialogSelectorLayout.setVisibility(canSwitchPeer() ? View.VISIBLE : View.GONE);
             if (animated) {
                 if (canSwitchPeer()) {
@@ -1303,7 +1286,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                 lerp(sliderCircleRect.left, sliderCircleRect.right, roundedValue),
                 lerp(sliderCircleRect.left + dp(9), sliderCircleRect.right - dp(9), roundedValue),
                 Math.min(Utilities.clamp01(roundedValue / slide), Utilities.clamp01((1f - roundedValue) / slide))
-            ); // slide < dp(12) ? sliderInnerRect.left + dp(12) : slide > (sliderInnerRect.width() - dp(12)) ? sliderInnerRect.right - dp(12) : sliderCircleRect.centerX();
+            ); 
             final float textWidth = Math.max(counterSubText.getCurrentWidth() + dp(20), counterText.getCurrentWidth() + dp(24 + 26));
             final float textHeight = dp(44);
             final float left = Utilities.clamp(pointerX - textWidth / 2f, sliderInnerRect.right - textWidth - dp(4), sliderInnerRect.left + dp(4));
@@ -1314,7 +1297,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             final float px = Utilities.clamp(pointerX, textRect.right, textRect.left);
             final float lpx = Utilities.clamp(px - dp(9), textRect.right, textRect.left);
             final float rpx = Utilities.clamp(px + dp(9), textRect.right, textRect.left);
-
 
             final float rotate = Utilities.clamp(progress - aprogress, 1, -1) * 60;
             final float rotateCx = px, rotateCy = textRect.bottom + dp(8);
@@ -1350,7 +1332,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             textParticles.setSpeed(1f + progress * 15f);
             textParticles.process();
             canvas.save();
-//            canvas.translate(textRect.centerX(), textRect.centerY());
+
             textParticles.draw(canvas, particlesColor);
             canvas.restore();
 
@@ -1367,7 +1349,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             canvas.save();
             canvas.clipPath(textPath);
             canvas.rotate(-rotate, rotateCx, rotateCy);
-//            canvas.translate(textRect.centerX(), textRect.centerY());
+
             textParticles.draw(canvas, Color.WHITE);
             canvas.restore();
 
@@ -1442,7 +1424,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
                 if (!tracking && event.getPointerId(0) == pointerId && MathUtils.distance(lastX, lastY, event.getX(), event.getY()) < AndroidUtilities.touchSlop && System.currentTimeMillis() - pressTime <= ViewConfiguration.getTapTimeout() * 1.5f) {
                     if (!onTapCustom(event.getX(), event.getY())) {
-                        // tap
+                        
                         float newProgress = Utilities.clamp01((event.getX() - sliderInnerRect.left) / (float) sliderInnerRect.width());
                         if (currentTop > 0 && Math.abs(getProgress((int) currentTop) - newProgress) < 0.035f) {
                             newProgress = Utilities.clamp01(getProgress((int) currentTop));
@@ -1658,12 +1640,11 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         static boolean isValidPoint(PointF[][] grid, int width, int height, float cellsize,
                                     int gwidth, int gheight,
                                     PointF p, float radius) {
-            /* Make sure the point is on the screen */
+             
             final int gp = dp(15) / 2;
             if ((p.x < gp) || (p.x >= (width - gp)) || (p.y < gp) || (p.y >= (height - gp)))
                 return false;
 
-            /* Check neighboring eight cells */
             int xindex = (int)Math.floor(p.x / cellsize);
             int yindex = (int)Math.floor(p.y / cellsize);
             int i0 = Math.max(xindex - 1, 0);
@@ -1677,7 +1658,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                         if (MathUtils.distance(grid[i][j].x, grid[i][j].y, p.x, p.y) < radius)
                             return false;
 
-            /* If we get here, return true */
             return true;
         }
 
@@ -1687,14 +1667,13 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             grid[xindex][yindex] = point;
         }
 
-
         private static ArrayList<PointF> poissonDiskSampling(float radius, int width, int height, int k) {
             int N = 2;
-            /* The final set of points to return */
+             
             ArrayList<PointF> points = new ArrayList<PointF>();
-            /* The currently "active" set of points */
+             
             ArrayList<PointF> active = new ArrayList<PointF>();
-            /* Initial point p0 */
+             
             PointF p0 = new PointF(
                 lerp(0, width, Utilities.fastRandom.nextFloat()),
                 lerp(0, height, Utilities.fastRandom.nextFloat())
@@ -1702,11 +1681,9 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             PointF[][] grid;
             float cellsize = (float) Math.floor(radius/Math.sqrt(N));
 
-            /* Figure out no. of cells in the grid for our canvas */
             int ncells_width = (int)Math.ceil(width/cellsize) + 1;
             int ncells_height = (int)Math.ceil(height/cellsize) + 1;
 
-            /* Allocate the grid an initialize all elements to null */
             grid = new PointF[ncells_width][ncells_height];
             for (int i = 0; i < ncells_width; i++)
                 for (int j = 0; j < ncells_height; j++)
@@ -1740,7 +1717,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                     break;
                 }
 
-                /* If no point was found after k tries, remove p */
                 if (!found)
                     active.remove(random_index);
             }
@@ -1760,9 +1736,11 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
             final int particlesCount = Math.min(visibleCount, particles.size());
             final boolean useBatchRender = batchParticlesBuffer != null;
             if (useBatchRender) {
+                
+                final int batchCount = Math.min(batchParticlesBuffer.vertexCount, particlesCount);
                 final float bWidth = b.getWidth();
                 final float bHeight = b.getHeight();
-                for (int i = 0; i < particlesCount; ++i) {
+                for (int i = 0; i < batchCount; ++i) {
                     final Particle p = particles.get(i);
                     final float pAlpha = p.a * p.s * alpha;
                     final float halfWidth = bWidth / 2f * pAlpha;
@@ -1770,7 +1748,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                     batchParticlesBuffer.setParticleVertexCords(i, p.x - halfWidth, p.y - halfHeight, p.x + halfWidth, p.y + halfHeight);
                     batchParticlesBuffer.setParticleColor(i, ColorUtils.setAlphaComponent(color, (int) (0xFF * Utilities.clamp01(p.la * alpha))));
                 }
-                BatchParticlesDrawHelper.draw(canvas, batchParticlesBuffer, particlesCount, batchParticlesPaint);
+                BatchParticlesDrawHelper.draw(canvas, batchParticlesBuffer, batchCount, batchParticlesPaint);
             } else {
                 if (bPaintColor != color) {
                     bPaint.setColorFilter(new PorterDuffColorFilter(bPaintColor = color, PorterDuff.Mode.SRC_IN));
@@ -1932,7 +1910,7 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
         }
 
         public void setSenders(ArrayList<SenderData> senders) {
-            // remove old
+            
             for (int i = 0; i < this.senders.size(); ++i) {
                 Sender sender = this.senders.get(i);
                 SenderData senderData = null;
@@ -1952,7 +1930,6 @@ public class StarsReactionsSheet extends BottomSheet implements NotificationCent
                 }
             }
 
-            // insert new, update existing
             for (int i = 0; i < senders.size(); ++i) {
                 SenderData senderData = senders.get(i);
                 Sender sender = null;

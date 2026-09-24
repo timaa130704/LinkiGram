@@ -120,6 +120,8 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     Theme.ResourcesProvider resourcesProvider = new DarkThemeResourceProvider();
     private boolean opening;
     ValueAnimator openCloseAnimator;
+    private boolean openCloseNotificationsLocked;
+    private boolean bannerOverlayPaused;
     ValueAnimator swipeToDissmissBackAnimator;
     ValueAnimator swipeToReplyBackAnimator;
 
@@ -154,7 +156,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     float progressToSelfStoryViewsViews;
     float selfStoriesViewsOffset;
 
-
     boolean allowIntercept;
     boolean verticalScrollDetected;
     boolean allowSwipeToDissmiss;
@@ -177,10 +178,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     boolean openedFromLightNavigationBar;
     ArrayList<Runnable> doOnAnimationReadyRunnables = new ArrayList<>();
 
-    // to prevent attach/detach textureView in view pager and
-    // ensure that player is singleton
-    // create and attach texture view in contentView
-    // draw it in page
     AspectRatioFrameLayout aspectRatioFrameLayout;
     VideoPlayerHolder playerHolder;
     LivePlayer livePlayer;
@@ -194,6 +191,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     private boolean isClosed = true;
     private boolean isRecording;
     AnimationNotificationsLocker locker = new AnimationNotificationsLocker();
+    private final AnimationNotificationsLocker swipeToViewsLocker = new AnimationNotificationsLocker();
     private boolean isWaiting;
     private boolean fullyVisible;
     private boolean isCaption;
@@ -298,18 +296,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         currentSpeed = speed;
         if (playerHolder != null) {
             playerHolder.setSpeed(speed);
-            // TODO: storyViewerStack
-//            StoryViewer otherStoryViewer = null;
-//            if (fragment != null) {
-//                if (fragment.overlayStoryViewer != this) {
-//                    otherStoryViewer = fragment.overlayStoryViewer;
-//                } else if (fragment.storyViewer != this) {
-//                    otherStoryViewer = fragment.storyViewer;
-//                }
-//            }
-//            if (otherStoryViewer != null && otherStoryViewer.playerHolder != null) {
-//                otherStoryViewer.playerHolder.setSpeed(speed);
-//            }
+            
         }
     }
 
@@ -377,14 +364,12 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             doOnAnimationReadyRunnables.clear();
             return;
         }
-        if (openCloseAnimator != null) {
-            openCloseAnimator.cancel();
-            openCloseAnimator = null;
-        }
         if (isShowing) {
             doOnAnimationReadyRunnables.clear();
             return;
         }
+        cancelOpenCloseAnimator();
+        acquireBannerOverlay();
         setSpeed(1f);
         ATTACH_TO_FRAGMENT = !AndroidUtilities.isTablet() && !fromBottomSheet;
         USE_SURFACE_VIEW = SharedConfig.useSurfaceInStories && ATTACH_TO_FRAGMENT;
@@ -575,7 +560,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                     return super.drawChild(canvas, child, drawingTime);
                 }
 
-
                 @Override
                 protected void dispatchDraw(Canvas canvas) {
                     float blackoutAlpha = getBlackoutAlpha();
@@ -619,8 +603,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                             outFromRectContainer.set(0, currentView.getTop() + currentView.storyContainer.getTop(), containerView.getMeasuredWidth(), containerView.getMeasuredHeight());
                             containerView.getMatrix().mapRect(outFromRectAvatar);
                             containerView.getMatrix().mapRect(outFromRectContainer);
-                            //outFromRectContainer.offset(containerView.getX(), containerView.getY());
-                          //  outFromRect.offset(-containerView.getTranslationX(), -containerView.getTranslationY());
+                            
                         }
                     }
 
@@ -643,9 +626,9 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                         float progress2 = progressToOpen;
                         float progressToCircle = progressToOpen;
                         if (isClosed && animateAvatar) {
-                          //  progress2 = 1f - Utilities.clamp((1f - progressToOpen) / 0.8f, 1f, 0);
+                          
                             progress2 = progressToOpen;
-                            progressToCircle = progressToOpen;//(float) Math.pow(progressToOpen, 1.4f);//progressToOpen;//1f - Utilities.clamp((1f - progressToOpen) / 0.85f, 1f, 0);
+                            progressToCircle = progressToOpen;
                             float startAlpha = 0.8f;
                             float endAlpha = startAlpha  + 0.1f;
                             float alpha = 1f - Utilities.clamp(((1f - progressToOpen) - startAlpha) / (endAlpha - startAlpha), 1f, 0f);
@@ -657,7 +640,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                         if (isClosed && transitionViewHolder != null && transitionViewHolder.storyImage != null) {
                             containerView.setAlpha(containerView.getAlpha() * (float) Math.pow(progress2, .2f));
                         } else if (isClosed) {
-                           // containerView.setAlpha(Utilities.clamp(progressToOpen / 0.7f, 1f, 0));
+                           
                         }
                         containerView.setTranslationX((fromX - containerView.getLeft() - containerView.getMeasuredWidth() / 2f) * (1f - progressToOpen) + swipeToDismissHorizontalOffset * progressToOpen);
                         containerView.setTranslationY((fromY - containerView.getTop() - containerView.getMeasuredHeight() / 2f) * (1f - progressToOpen) + swipeToDismissOffset * progressToOpen);
@@ -813,7 +796,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                                     headerView.backupImageView.getImageReceiver().setVisible(false, false);
                                     if (transitionViewHolder != null && transitionViewHolder.params != null && transitionViewHolder.params.drawnLive) {
                                         AndroidUtilities.rectTmp.set(rect3);
-//                                        AndroidUtilities.scaleRect(AndroidUtilities.rectTmp, transitionViewHolder.params.getScale());
+
                                         StoriesUtilities.drawLive(canvas, AndroidUtilities.rectTmp, 1.0f - progressToOpen, true, 0);
                                         canvas.restore();
                                     }
@@ -836,7 +819,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                                     transitionViewHolder.crossfadeToAvatarImage.setVisible(isVisible, false);
                                     transitionViewHolder.crossfadeToAvatarImage.setImageCoords(avatarRectTmp);
                                     transitionViewHolder.crossfadeToAvatarImage.setRoundRadius(oldRadius);
-                                   // transitionViewHolder.crossfadeToAvatarImage.setVisible(false, false);
+                                   
                                 }
 
                                 if (transitionViewHolder != null && transitionViewHolder.drawAbove != null) {
@@ -845,7 +828,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                             }
                             canvas.restoreToCount(r);
                         }
-
 
                         if (animateFromCell != null) {
                             float progressHalf = Utilities.clamp(progressToOpen / 0.4f, 1f, 0);
@@ -1046,8 +1028,9 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                                     delayedTapRunnable = null;
                                 }
                                 AndroidUtilities.cancelRunOnUIThread(longPressRunnable);
+                                
+                                layoutAndFindView();
                             }
-                            layoutAndFindView();
                         }
                     } else if (ev.getAction() == MotionEvent.ACTION_UP || ev.getAction() == MotionEvent.ACTION_CANCEL) {
                         AndroidUtilities.cancelRunOnUIThread(longPressRunnable);
@@ -1222,35 +1205,49 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
                         pivotY = peerStoriesView.getTop() + peerStoriesView.storyContainer.getTop();
 
-                        float progressHalf = selfStoryViewsView.progressToOpen;//Utilities.clamp((selfStoryViewsView.progressToOpen - 0.8f) / 0.2f, 1f, 0);
-                        float fromScale = (getMeasuredHeight() - selfStoriesViewsOffset) / getMeasuredHeight();
+                        float progressHalf = selfStoryViewsView.progressToOpen;
                         if (peerStoriesView.storyContainer.getMeasuredHeight() > 0) {
                             lastStoryContainerHeight = peerStoriesView.storyContainer.getMeasuredHeight();
                         }
-                        float toScale = selfStoryViewsView.toHeight / lastStoryContainerHeight;
+                        float storyContainerHeight = lastStoryContainerHeight > 0
+                                ? lastStoryContainerHeight
+                                : Math.max(1f, selfStoryViewsView.toHeight);
+                        float toScale = selfStoryViewsView.toHeight / storyContainerHeight;
                         float s = lerp(1f, toScale, progressHalf);
+                        float translationY = (selfStoryViewsView.toY - pivotY) * progressHalf;
+                        boolean transformChanged =
+                                Float.compare(storiesViewPager.getPivotY(), pivotY) != 0 ||
+                                Float.compare(storiesViewPager.getPivotX(), getMeasuredWidth() / 2f) != 0 ||
+                                Float.compare(storiesViewPager.getScaleX(), s) != 0 ||
+                                Float.compare(storiesViewPager.getScaleY(), s) != 0 ||
+                                Float.compare(storiesViewPager.getTranslationY(), translationY) != 0;
                         storiesViewPager.setPivotY(pivotY);
                         storiesViewPager.setPivotX(getMeasuredWidth() / 2f);
                         storiesViewPager.setScaleX(s);
                         storiesViewPager.setScaleY(s);
-                        peerStoriesView.forceUpdateOffsets = true;
 
                         if (selfStoriesViewsOffset == 0) {
                             peerStoriesView.setViewsThumbImageReceiver(0, 0, 0, null);
                         } else {
                             peerStoriesView.setViewsThumbImageReceiver(progressHalf, s, pivotY, selfStoryViewsView.getCrossfadeToImage());
                         }
-                        peerStoriesView.invalidate();
-                        peerStoriesView.outlineProvider.radiusInDp = (int) lerp(10f, 6f / toScale, selfStoryViewsView.progressToOpen);
-                        peerStoriesView.storyContainer.invalidateOutline();
-                        storiesViewPager.setTranslationY((selfStoryViewsView.toY - pivotY) * progressHalf);
+                        if (transformChanged) {
+                            peerStoriesView.forceUpdateOffsets = true;
+                            peerStoriesView.invalidate();
+                        }
+                        int outlineRadius = (int) lerp(10f, 6f / toScale, selfStoryViewsView.progressToOpen);
+                        if (peerStoriesView.outlineProvider.radiusInDp != outlineRadius) {
+                            peerStoriesView.outlineProvider.radiusInDp = outlineRadius;
+                            peerStoriesView.storyContainer.invalidateOutline();
+                        }
+                        storiesViewPager.setTranslationY(translationY);
 
                     }
                     if (peerStoriesView != null) {
                         volumeControl.setTranslationY(peerStoriesView.getY() + peerStoriesView.storyContainer.getY() - volumeControl.getTop() - dp(4));
                     }
                     super.dispatchDraw(canvas);
-                  // canvas.drawRect(0, pivotY, getMeasuredWidth(), pivotY + 1, Theme.DEBUG_RED);
+                  
                 }
             };
             storiesViewPager = new HwStoriesViewPager(currentAccount, context, this, resourcesProvider) {
@@ -1280,7 +1277,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                 public void onCloseLongClick() {
 
                 }
-
 
                 @Override
                 public void onEnterViewClick() {
@@ -1352,7 +1348,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
                 @Override
                 public void updatePeers() {
-                    //storiesViewPager.setPeerIds();
+                    
                 }
 
                 @Override
@@ -1381,16 +1377,14 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
                 @Override
                 public void setAllowTouchesByViewPager(boolean b) {
-                    StoryViewer.this.allowTouchesByViewpager = allowTouchesByViewpager;
+                    StoryViewer.this.allowTouchesByViewpager = b;
                     updatePlayingMode();
                 }
 
                 @Override
                 public void requestPlayer(TL_stories.StoryItem storyItem, long dialogId, int storyId, boolean rtmp_stream, TLRPC.InputGroupCall call, PeerStoriesView.VideoPlayerSharedScope scope) {
                     switchToLive(true, true);
-//                    call = new TLRPC.TL_inputGroupCall();
-//                    call.access_hash = -1333869356067995675L;
-//                    call.id = -226646545204766746L;
+
                     if (livePlayer == null || livePlayer.dialogId != dialogId || !livePlayer.equals(call)) {
                         if (liveView != null) {
                             liveView.setScope(dialogId, null);
@@ -1508,13 +1502,12 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                             }
                             if (playerHolder == null) {
                                 playerHolder = new VideoPlayerHolder(surfaceView, textureView);
-                                playerHolder.document = document;
                             }
-//                            if (surfaceView != null) {
-//                                AndroidUtilities.removeFromParent(surfaceView);
-//                                aspectRatioFrameLayout.addView(surfaceView = new SurfaceView(context));
-//                            }
+                            
+                            playerHolder.document = document;
+
                             playerHolder.uri = uri;
+                            playerHolder.bindScope(scope);
                             playerHolder.setSpeed(currentSpeed);
                             currentPlayerScope.player = playerHolder;
                             currentPlayerScope.firstFrameRendered = false;
@@ -1526,7 +1519,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                             FileLoader.getInstance(currentAccount).changePriority(FileLoader.PRIORITY_HIGH, playerHolder.document, null, null, null, null, null);
                             if (t == 0 && playerSavedPosition != 0) {
                                 t = playerSavedPosition;
-                                currentPlayerScope.firstFrameRendered = true;
                             }
                             FileLog.d("StoryViewer requestPlayer: currentPlayerScope.player start " + uri);
                             currentPlayerScope.player.start(false, isPaused(), uri, t, isInSilentMode, currentSpeed);
@@ -1537,6 +1529,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                     } else if (sameUri) {
                         currentPlayerScope = scope;
                         currentPlayerScope.player = playerHolder;
+                        playerHolder.bindScope(scope);
                         currentPlayerScope.livePlayer = null;
                         playerHolder.setSpeed(currentSpeed);
                         currentPlayerScope.firstFrameRendered = playerHolder.firstFrameRendered;
@@ -1667,15 +1660,17 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                         return;
                     }
                     for (int i = 0; i < preparedPlayers.size(); i++) {
-                        boolean found = false;
-                        for (int j = 0; j < uries.size(); j++) {
+                        for (int j = uries.size() - 1; j >= 0; j--) {
                             if (uries.get(j).equals(preparedPlayers.get(i).uri)) {
-                                found = true;
                                 uries.remove(j);
+                                if (j < documents.size()) {
+                                    documents.remove(j);
+                                }
                             }
                         }
                     }
-                    for (int i = 0; i < uries.size(); i++) {
+                    final int count = Math.min(uries.size(), documents.size());
+                    for (int i = 0; i < count; i++) {
                         Uri uri = uries.get(i);
                         VideoPlayerHolder playerHolder = new VideoPlayerHolder(surfaceView, textureView);
                         playerHolder.setOnSeekUpdate(() -> {
@@ -1702,7 +1697,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                 surfaceView = new SurfaceView(context);
                 surfaceView.setZOrderMediaOverlay(false);
                 surfaceView.setZOrderOnTop(false);
-                //surfaceView.setZOrderMediaOverlay(true);
+                
                 aspectRatioFrameLayout.addView(surfaceView);
             } else {
                 textureView = new HwTextureView(context) {
@@ -1836,51 +1831,77 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     ValueAnimator swipeToViewsAnimator;
+    private boolean swipeToViewsAnimatorOpening;
 
     public void cancelSwipeToViews(boolean open) {
+        cancelSwipeToViews(open, false);
+    }
+
+    private void cancelSwipeToViews(boolean open, boolean forceRetarget) {
         if (swipeToViewsAnimator != null) {
-            return;
+            if (swipeToViewsAnimatorOpening == open || !forceRetarget) {
+                return;
+            }
+            cancelSwipeToViewsAnimation();
         }
         if (realKeyboardHeight != 0) {
             AndroidUtilities.hideKeyboard(selfStoryViewsView);
             return;
         }
         if (allowSelfStoriesView || selfStoriesViewsOffset != 0) {
-            locker.lock();
-            if (!open && selfStoriesViewsOffset == selfStoryViewsView.maxSelfStoriesViewsOffset) {
-                selfStoriesViewsOffset = selfStoryViewsView.maxSelfStoriesViewsOffset - 1;
-                selfStoryViewsView.setOffset(selfStoryViewsView.maxSelfStoriesViewsOffset - 1);
+            final float targetOffset = open ? selfStoryViewsView.maxSelfStoriesViewsOffset : 0;
+            if (Math.abs(selfStoriesViewsOffset - targetOffset) <= 0.5f) {
+                setSelfStoriesViewsOffset(targetOffset);
+                return;
             }
-            swipeToViewsAnimator = ValueAnimator.ofFloat(selfStoriesViewsOffset, open ? selfStoryViewsView.maxSelfStoriesViewsOffset : 0);
-            swipeToViewsAnimator.addUpdateListener(animation -> {
-                selfStoriesViewsOffset = (float) animation.getAnimatedValue();
-//                final PeerStoriesView peerStoriesView = storiesViewPager.getCurrentPeerView();
-//                if (peerStoriesView != null) {
-//                    peerStoriesView.invalidate();
-//                }
-                containerView.invalidate();
+            swipeToViewsLocker.lock();
+            if (!open && selfStoriesViewsOffset == selfStoryViewsView.maxSelfStoriesViewsOffset) {
+                setSelfStoriesViewsOffset(selfStoryViewsView.maxSelfStoriesViewsOffset - 1);
+            }
+            final ValueAnimator animator = ValueAnimator.ofFloat(selfStoriesViewsOffset, targetOffset);
+            swipeToViewsAnimator = animator;
+            swipeToViewsAnimatorOpening = open;
+            animator.addUpdateListener(animation -> {
+                if (swipeToViewsAnimator == animation) {
+                    setSelfStoriesViewsOffset((float) animation.getAnimatedValue());
+                }
             });
-            swipeToViewsAnimator.addListener(new AnimatorListenerAdapter() {
+            animator.addListener(new AnimatorListenerAdapter() {
+                private boolean cancelled;
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    cancelled = true;
+                }
+
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    locker.unlock();
-                    selfStoriesViewsOffset = open ? selfStoryViewsView.maxSelfStoriesViewsOffset : 0;
-                    final PeerStoriesView peerStoriesView = storiesViewPager.getCurrentPeerView();
-                    if (peerStoriesView != null) {
-                        peerStoriesView.invalidate();
+                    swipeToViewsLocker.unlock();
+                    if (swipeToViewsAnimator != animation) {
+                        return;
                     }
-                    containerView.invalidate();
                     swipeToViewsAnimator = null;
+                    if (!cancelled) {
+                        setSelfStoriesViewsOffset(targetOffset);
+                    }
                 }
             });
             if (open) {
-                swipeToViewsAnimator.setDuration(350);
-                swipeToViewsAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                animator.setDuration(350);
+                animator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
             } else {
-                swipeToViewsAnimator.setDuration(350);
-                swipeToViewsAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
+                animator.setDuration(350);
+                animator.setInterpolator(CubicBezierInterpolator.DEFAULT);
             }
-            swipeToViewsAnimator.start();
+            animator.start();
+        }
+    }
+
+    private void cancelSwipeToViewsAnimation() {
+        final ValueAnimator animator = swipeToViewsAnimator;
+        if (animator != null) {
+            swipeToViewsAnimator = null;
+            animator.cancel();
         }
     }
 
@@ -1934,7 +1955,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
     @Override
     public void setOnDismissListener(Runnable onDismiss) {
-        // not used
+        
     }
 
     public void cancelSwipeToReply() {
@@ -2298,8 +2319,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         }
         final PeerStoriesView currentPeerView = storiesViewPager.getCurrentPeerView();
         if (currentPeerView != null) {
-            //fix view pager strange coordinates
-            //just skip page.getX()
+            
             float x1 = x - containerView.getX() - storiesViewPager.getX() - currentPeerView.getX();
             float y1 = y - containerView.getY() - storiesViewPager.getY() - currentPeerView.getY();
             if (currentPeerView.findClickableView(currentPeerView, x1, y1, swipeToDissmiss)) {
@@ -2359,7 +2379,57 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         showViewsAfterOpening = true;
     }
 
+    private void acquireBannerOverlay() {
+        if (bannerOverlayPaused || !app.nimarkogram.messenger.banners.NimarkoBannerConfig.enabled) {
+            return;
+        }
+        try {
+            app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance().onOverlayOpen();
+            bannerOverlayPaused = true;
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void releaseBannerOverlay() {
+        if (!bannerOverlayPaused) {
+            return;
+        }
+        bannerOverlayPaused = false;
+        try {
+            app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance().onOverlayClose();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void lockOpenCloseNotifications() {
+        if (!openCloseNotificationsLocked) {
+            openCloseNotificationsLocked = true;
+            locker.lock();
+        }
+    }
+
+    private void unlockOpenCloseNotifications() {
+        if (openCloseNotificationsLocked) {
+            openCloseNotificationsLocked = false;
+            locker.unlock();
+        }
+    }
+
+    private void cancelOpenCloseAnimator() {
+        ValueAnimator animator = openCloseAnimator;
+        openCloseAnimator = null;
+        if (animator != null) {
+            
+            animator.removeAllUpdateListeners();
+            animator.removeAllListeners();
+            animator.cancel();
+        }
+        unlockOpenCloseNotifications();
+        animationInProgress = false;
+    }
+
     private void startOpenAnimation() {
+        cancelOpenCloseAnimator();
         updateTransitionParams();
         progressToOpen = 0f;
         setNavigationButtonsColor(true);
@@ -2373,8 +2443,12 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
         opening = true;
-        openCloseAnimator = ValueAnimator.ofFloat(0, 1f);
-        openCloseAnimator.addUpdateListener(animation -> {
+        final ValueAnimator animator = ValueAnimator.ofFloat(0, 1f);
+        openCloseAnimator = animator;
+        animator.addUpdateListener(animation -> {
+            if (openCloseAnimator != animation) {
+                return;
+            }
             progressToOpen = (float) animation.getAnimatedValue();
             if (containerView != null) {
                 containerView.checkHwAcceleration(progressToOpen);
@@ -2387,13 +2461,17 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                 windowView.invalidate();
             }
         });
-        locker.lock();
+        lockOpenCloseNotifications();
         if (containerView != null) {
             containerView.enableHwAcceleration();
         }
-        openCloseAnimator.addListener(new AnimatorListenerAdapter() {
+        animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
+                if (openCloseAnimator != animation) {
+                    return;
+                }
+                openCloseAnimator = null;
                 progressToOpen = 1f;
                 checkNavBarColor();
                 animationInProgress = false;
@@ -2465,14 +2543,14 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                     SharedConfig.setStoriesIntroShown(true);
                 }
                 updatePlayingMode();
-                locker.unlock();
+                unlockOpenCloseNotifications();
             }
         });
 
-        openCloseAnimator.setStartDelay(40);
-        openCloseAnimator.setDuration(250);
-        openCloseAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
-        openCloseAnimator.start();
+        animator.setStartDelay(40);
+        animator.setDuration(250);
+        animator.setInterpolator(CubicBezierInterpolator.DEFAULT);
+        animator.start();
 
         if (!doOnAnimationReadyRunnables.isEmpty()) {
             for (int i = 0; i < doOnAnimationReadyRunnables.size(); i++) {
@@ -2486,6 +2564,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         if (!isShowing) {
             return;
         }
+        cancelOpenCloseAnimator();
         AndroidUtilities.hideKeyboard(windowView);
         isClosed = true;
         fullyVisible = false;
@@ -2504,7 +2583,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         if (containerView != null) {
             containerView.disableHwAcceleration();
         }
-        locker.unlock();
         if (currentPlayerScope != null) {
             currentPlayerScope.invalidate();
         }
@@ -2525,13 +2603,18 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     private void startCloseAnimation(boolean backAnimation) {
+        cancelOpenCloseAnimator();
         setNavigationButtonsColor(false);
         updateTransitionParams();
-        locker.lock();
+        lockOpenCloseNotifications();
         fromDismissOffset = swipeToDismissOffset;
         opening = false;
-        openCloseAnimator = ValueAnimator.ofFloat(progressToOpen, 0);
-        openCloseAnimator.addUpdateListener(animation -> {
+        final ValueAnimator animator = ValueAnimator.ofFloat(progressToOpen, 0);
+        openCloseAnimator = animator;
+        animator.addUpdateListener(animation -> {
+            if (openCloseAnimator != animation) {
+                return;
+            }
             progressToOpen = (float) animation.getAnimatedValue();
             checkNavBarColor();
             if (windowView != null) {
@@ -2555,21 +2638,25 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             layoutAndFindView();
         }
         AndroidUtilities.runOnUIThread(() -> {
-            if (openCloseAnimator == null) {
+            if (openCloseAnimator != animator) {
                 return;
             }
             if (containerView != null) {
                 containerView.enableHwAcceleration();
             }
-            openCloseAnimator.addListener(new AnimatorListenerAdapter() {
+            animator.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
+                    if (openCloseAnimator != animation) {
+                        return;
+                    }
+                    openCloseAnimator = null;
                     super.onAnimationEnd(animation);
                     if (containerView != null) {
                         containerView.disableHwAcceleration();
                     }
                     checkNavBarColor();
-                    locker.unlock();
+                    unlockOpenCloseNotifications();
                     if (storiesIntro != null) {
                         storiesIntro.stopAnimation();
                         AndroidUtilities.removeFromParent(storiesIntro);
@@ -2623,14 +2710,16 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                     }
                 }
             });
-            openCloseAnimator.setDuration(320);
-            openCloseAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
-            openCloseAnimator.start();
+            animator.setDuration(320);
+            animator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            animator.start();
         }, 16);
     }
 
     @Override
     public void release() {
+        cancelOpenCloseAnimator();
+        releaseBannerOverlay();
         lastUri = null;
         setInTouchMode(false);
         allowScreenshots(true);
@@ -2664,10 +2753,14 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         globalInstances.remove(this);
         doOnAnimationReadyRunnables.clear();
         selfStoriesViewsOffset = 0;
+        if (selfStoryViewsView != null) {
+            selfStoryViewsView.reset();
+        }
         lastStoryItem = null;
     }
 
     public void close(boolean backAnimation) {
+        cancelSwipeToViewsAnimation();
         AndroidUtilities.hideKeyboard(windowView);
         isClosed = true;
         invalidateOutRect = true;
@@ -2675,7 +2768,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         startCloseAnimation(backAnimation);
         if (unreadStateChanged) {
             unreadStateChanged = false;
-            //MessagesController.getInstance(currentAccount).getStoriesController().scheduleSort();
+            
         }
     }
 
@@ -2705,11 +2798,11 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
     @Override
     public boolean onAttachedBackPressed() {
-        if (selfStoriesViewsOffset != 0) {
+        if (selfStoriesViewsOffset != 0 || swipeToViewsAnimator != null && swipeToViewsAnimatorOpening) {
             if (selfStoryViewsView.onBackPressed()) {
                 return true;
             }
-            cancelSwipeToViews(false);
+            cancelSwipeToViews(false, true);
             return true;
         } else if (closeKeyboardOrEmoji()) {
             return true;
@@ -2727,14 +2820,10 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     public void checkNavBarColor() {
         if (ATTACH_TO_FRAGMENT && LaunchActivity.instance != null) {
             LaunchActivity.instance.checkSystemBarColors(true, true, true);
-            //LaunchActivity.instance.setNavigationBarColor(fragment.getNavigationBarColor(), false);
+            
         }
     }
 
-    /**
-     * Changing the color of buttons in the navigation bar is a difficult task for weak devices.
-     * It's better to change the color before the animation starts.
-     */
     private void setNavigationButtonsColor(boolean isOpening) {
         LaunchActivity activity = LaunchActivity.instance;
         if (ATTACH_TO_FRAGMENT && activity != null) {
@@ -2847,6 +2936,9 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
 
     public void setSelfStoriesViewsOffset(float currentTranslation) {
         selfStoriesViewsOffset = currentTranslation;
+        if (selfStoryViewsView != null) {
+            selfStoryViewsView.setOffset(currentTranslation);
+        }
         final PeerStoriesView peerStoriesView = storiesViewPager.getCurrentPeerView();
         if (peerStoriesView != null) {
             peerStoriesView.invalidate();
@@ -3138,6 +3230,9 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     public class VideoPlayerHolder extends VideoPlayerHolderBase {
 
         boolean logBuffering;
+        private volatile PeerStoriesView.VideoPlayerSharedScope boundScope;
+        private volatile Uri boundUri;
+        private volatile long bindingGeneration;
 
         public VideoPlayerHolder(SurfaceView surfaceView, TextureView textureView) {
             if (USE_SURFACE_VIEW) {
@@ -3147,6 +3242,15 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
 
+        void bindScope(PeerStoriesView.VideoPlayerSharedScope scope) {
+            Uri newUri = uri;
+            boolean mediaChanged = boundUri == null ? newUri != null : !boundUri.equals(newUri);
+            boundScope = scope;
+            boundUri = newUri;
+            if (mediaChanged) {
+                bindingGeneration++;
+            }
+        }
 
         @Override
         public boolean needRepeat() {
@@ -3154,12 +3258,24 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         }
 
         @Override
-        public void onRenderedFirstFrame() {
-            if (currentPlayerScope == null) {
+        protected long getRenderedFrameToken() {
+            return bindingGeneration;
+        }
+
+        @Override
+        protected boolean isRenderedFrameTokenValid(long frameToken) {
+            return frameToken == bindingGeneration;
+        }
+
+        @Override
+        public void onRenderedFirstFrame(long frameToken) {
+            
+            PeerStoriesView.VideoPlayerSharedScope scope = boundScope;
+            if (frameToken != bindingGeneration || scope == null || currentPlayerScope != scope || scope.player != this || released) {
                 return;
             }
-            firstFrameRendered = currentPlayerScope.firstFrameRendered = true;
-            currentPlayerScope.invalidate();
+            firstFrameRendered = scope.firstFrameRendered = true;
+            scope.invalidate();
             if (paused && surfaceView != null) {
                 prepareStub();
             }
@@ -3191,28 +3307,7 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     private void updatePipSource() {
-//        if (pipIsAvailable() != (pipSource != null)) {
-//            if (pipIsAvailable()) {
-//                final PeerStoriesView peerView = getCurrentPeerView();
-//                final Activity activity = AndroidUtilities.findActivity(fragment.getContext());
-//                if (PipUtils.checkPermissions(activity) == PipPermissions.PIP_GRANTED_PIP && peerView != null && peerView.storyContainer != null) {
-//                    pipSource = new PipSource.Builder(activity, this)
-//                        .setTagPrefix("live-story-pip")
-//                        .setPriority(1)
-//                        .setCornerRadius(dp(10))
-//                        .setContentView(peerView.storyContainer)
-//                        .build();
-//                } else if (pipSource != null) {
-//                    pipSource.destroy();
-//                    pipSource = null;
-//                }
-//            } else {
-//                if (pipSource != null) {
-//                    pipSource.destroy();
-//                    pipSource = null;
-//                }
-//            }
-//        }
+
     }
 
     public void switchToPip() {
@@ -3287,7 +3382,6 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
             pipLiveView = null;
         }
 
-//        windowViewSkipRender = false;
         windowView.invalidate();
 
         livePlayer.setDisplaySink(liveView.getSink());

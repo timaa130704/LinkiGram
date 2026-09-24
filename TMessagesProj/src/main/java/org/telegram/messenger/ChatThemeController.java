@@ -148,11 +148,9 @@ public class ChatThemeController extends BaseController {
                     }
                     editor.apply();
                 } else if (response instanceof TL_account.TL_themesNotModified) {
-                   // if (allChatThemes == null || allChatThemes.isEmpty()) {
+                   
                         chatThemes = getAllChatThemesFromPrefs();
-//                    } else {
-//                   //     return;
-//                    }
+
                 } else {
                     chatThemes = null;
                     isError = true;
@@ -238,7 +236,6 @@ public class ChatThemeController extends BaseController {
         }, false);
     }
 
-
     private static final ChatThemeController[] instances = new ChatThemeController[UserConfig.MAX_ACCOUNT_COUNT];
 
     public static ChatThemeController getInstance(int accountNum) {
@@ -254,7 +251,6 @@ public class ChatThemeController extends BaseController {
         }
         return local;
     }
-
 
     private final LongSparseArray<ThemeKey> dialogEmoticonsMap = new LongSparseArray<>();
 
@@ -369,18 +365,24 @@ public class ChatThemeController extends BaseController {
     }
 
     public TLRPC.WallPaper getDialogWallpaper(long dialogId) {
+        
+        boolean custom = app.nimarkogram.messenger.NimarkoConfig.customWallpapers;
         if (dialogId >= 0) {
             TLRPC.UserFull userFull = getMessagesController().getUserFull(dialogId);
-            if (userFull != null) {
-                return userFull.wallpaper;
+            if (userFull != null && userFull.wallpaper != null) {
+                if (custom || userFull.wallpaper.creator) {
+                    return userFull.wallpaper;
+                }
             }
         } else {
             TLRPC.ChatFull chatFull = getMessagesController().getChatFull(-dialogId);
-            if (chatFull != null) {
+            if (chatFull != null && custom) {
                 return chatFull.wallpaper;
             }
         }
-        String wallpaperString = getEmojiSharedPreferences().getString("chatWallpaper_" + currentAccount + "_" + dialogId, null);
+        String wallpaperString = custom
+                ? getEmojiSharedPreferences().getString("chatWallpaper_" + currentAccount + "_" + dialogId, null)
+                : (Theme.getActiveTheme() != null ? Theme.getActiveTheme().pathToWallpaper : null);
         if (wallpaperString != null) {
             SerializedData serializedData = new SerializedData(Utilities.hexToBytes(wallpaperString));
             try {
@@ -471,9 +473,6 @@ public class ChatThemeController extends BaseController {
         });
     }
 
-
-
-
     public void saveWallpaperBitmap(WallpaperBitmapHolder wallpaper, long wallpaperId) {
         final Bitmap bitmap = wallpaper.bitmap;
         final int mode = wallpaper.mode;
@@ -498,8 +497,6 @@ public class ChatThemeController extends BaseController {
             loadWallpaperPatternBitmap(wallpaperId, callback);
         }
     }
-
-
 
     private void loadWallpaperPatternBitmap(long wallpaperId, Utilities.Callback<WallpaperBitmapHolder> callback) {
         final File file = new File(
@@ -578,8 +575,6 @@ public class ChatThemeController extends BaseController {
             }
         });
     }
-
-
 
     public Bitmap getWallpaperThumbBitmap(long themeId) {
         return themeIdWallpaperThumbMap.get(themeId);
@@ -799,7 +794,6 @@ public class ChatThemeController extends BaseController {
         req.flags |= 4;
         req.settings = MessagesController.getWallpaperSetting(wallpaperInfo);
 
-
         boolean finalApplyOnRequest = applyOnRequest;
         return ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
             if (response instanceof TLRPC.Updates) {
@@ -893,10 +887,6 @@ public class ChatThemeController extends BaseController {
         return 0;
     }
 
-
-
-
-
     public static final int THEME_LIST_WITH_DEFAULT = 1;
     public static final int THEME_LIST_WITH_EMOJI = 1 << 1;
     public static final int THEME_LIST_WITH_GIFTS = 1 << 2;
@@ -935,7 +925,7 @@ public class ChatThemeController extends BaseController {
 
     private void requestNextChatThemes(ResultCallback<Void> callback) {
         if (giftsThemeList.hash == 0 || giftsThemeList.lastReloadTimeMs == 0) {
-            // init();
+            
         }
 
         final boolean needReload = System.currentTimeMillis() - giftsThemeList.lastReloadTimeMs > reloadTimeoutMs;
@@ -976,8 +966,6 @@ public class ChatThemeController extends BaseController {
                         chatTheme.preloadWallpaper();
                         chatThemes.add(chatTheme);
                     }
-
-                    // todo save themes
 
                     AndroidUtilities.runOnUIThread(() -> {
                         giftsThemeList.offset = t.next_offset;

@@ -151,6 +151,10 @@ public class LiteMode {
             // always enabled for tablets
             return true;
         }
+        if (flag == FLAG_LIQUID_GLASS && app.nimarkogram.messenger.NimarkoConfig.linkiAss) {
+            // LinkiGram: iOS-style liquid glass forced on regardless of lite mode migration
+            return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S;
+        }
         return (getValue() & preprocessFlag(flag)) > 0;
     }
 

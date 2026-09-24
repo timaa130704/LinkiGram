@@ -3,7 +3,6 @@ package org.telegram.ui.Components;
 import static org.telegram.messenger.AndroidUtilities.dp;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -26,11 +25,6 @@ public class ChatScrimPopupContainerLayout extends LinearLayout {
     public ChatScrimPopupContainerLayout(Context context) {
         super(context);
         setOrientation(LinearLayout.VERTICAL);
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        super.onLayout(changed, l, t, r, b);
     }
 
     @Override
@@ -135,6 +129,7 @@ public class ChatScrimPopupContainerLayout extends LinearLayout {
 
     public void applyViewBottom(FrameLayout bottomView) {
         this.bottomView = bottomView;
+        updateSwipeBackGravityOffsets();
     }
 
     public void setReactionsLayout(ReactionsContainerLayout reactionsLayout) {
@@ -142,16 +137,12 @@ public class ChatScrimPopupContainerLayout extends LinearLayout {
         if (reactionsLayout != null) {
             reactionsLayout.setChatScrimView(this);
         }
+        updateSwipeBackGravityOffsets();
     }
 
     public void setPopupWindowLayout(ActionBarPopupWindow.ActionBarPopupWindowLayout popupWindowLayout) {
         this.popupWindowLayout = popupWindowLayout;
-        popupWindowLayout.setOnSizeChangedListener(() -> {
-            if (bottomView != null) {
-                bottomViewYOffset = popupWindowLayout.getVisibleHeight() - popupWindowLayout.getMeasuredHeight();
-                updateBottomViewPosition();
-            }
-        });
+        popupWindowLayout.setOnSizeChangedListener(this::updateSwipeBackGravityOffsets);
         if (popupWindowLayout.getSwipeBack() != null) {
             popupWindowLayout.getSwipeBack().addOnSwipeBackProgressListener((layout, toProgress, progress) -> {
                 if (bottomView != null) {
@@ -159,7 +150,41 @@ public class ChatScrimPopupContainerLayout extends LinearLayout {
                 }
                 progressToSwipeBack = progress;
                 updatePopupTranslation();
+                updateSwipeBackGravityOffsets();
             });
+        }
+        updateSwipeBackGravityOffsets();
+    }
+
+    public int getVisibleHeight() {
+        int visibleHeight = getMeasuredHeight();
+        if (popupWindowLayout != null && popupWindowLayout.getMeasuredHeight() > 0) {
+            visibleHeight += popupWindowLayout.getVisibleHeight()
+                    - popupWindowLayout.getMeasuredHeight();
+        }
+        return Math.max(0, Math.min(getMeasuredHeight(), visibleHeight));
+    }
+
+    public void setSwipeBackGravityVerticalFactor(float factor) {
+        if (popupWindowLayout == null) {
+            return;
+        }
+        popupWindowLayout.setSwipeBackGravityVerticalFactor(factor);
+        updateSwipeBackGravityOffsets();
+    }
+
+    private void updateSwipeBackGravityOffsets() {
+        if (popupWindowLayout == null) {
+            return;
+        }
+        float gravityOffset = popupWindowLayout.getSwipeBackGravityVerticalOffset();
+        if (reactionsLayout != null) {
+            reactionsLayout.setTranslationY(gravityOffset);
+        }
+        if (bottomView != null) {
+            bottomViewYOffset = popupWindowLayout.getVisibleHeight()
+                    - popupWindowLayout.getMeasuredHeight() + gravityOffset;
+            updateBottomViewPosition();
         }
     }
 
@@ -174,8 +199,8 @@ public class ChatScrimPopupContainerLayout extends LinearLayout {
     }
 
     public void setExpandSize(float expandSize) {
-        popupWindowLayout.setTranslationY(expandSize);
         this.expandSize = expandSize;
+        popupWindowLayout.setSwipeBackAdditionalTranslationY(expandSize);
         updateBottomViewPosition();
     }
 

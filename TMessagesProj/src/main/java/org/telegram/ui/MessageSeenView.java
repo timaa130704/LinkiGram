@@ -282,7 +282,7 @@ public class MessageSeenView extends FrameLayout {
         flickerLoadingView.animate().alpha(0f).setDuration(220).setListener(new HideViewAfterAnimation(flickerLoadingView)).start();
 
         if (listView != null && listView.getAdapter() != null) {
-//            listView.getAdapter().notifyDataSetChanged();
+
         }
     }
 
@@ -362,7 +362,7 @@ public class MessageSeenView extends FrameLayout {
         public UserCell(Context context) {
             super(context);
             avatarImageView = new BackupImageView(context);
-            avatarImageView.setRoundRadius(AndroidUtilities.dp(18));
+            avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(36));
 
             nameView = new SimpleTextView(context);
             nameView.setTextSize(16);

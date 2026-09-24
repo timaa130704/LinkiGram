@@ -519,7 +519,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
             }
         });
         onShownCustomEmojiReactionDialog();
-        //animatePullingBack();
+        
     }
 
     public View getWindowView() {
@@ -608,7 +608,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
         }
         allReactionsList.clear();
         allReactionsList.addAll(visibleReactionsList);
-        // checkPremiumReactions(this.visibleReactionsList);
+        
         int size = getLayoutParams().height - (int) getTopOffset() - getPaddingTop() - getPaddingBottom();
         if (size * visibleReactionsList.size() < dp(200)) {
             getLayoutParams().width = ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -679,7 +679,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                 invalidate();
             }
         }
-
 
         if (pressedReaction != null && pressedReaction.isStar) {
             pressedViewScale = 1f;
@@ -1068,8 +1067,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
             view.setPivotY(view.enterImageView.getY() + view.enterImageView.getMeasuredHeight());
             view.setScaleX(otherViewsScale);
             view.setScaleY(otherViewsScale);
-//            view.enterImageView.setScaleX(view.sideScale);
-//            view.enterImageView.setScaleY(view.sideScale);
+
             view.pressedBackupImageView.setVisibility(View.INVISIBLE);
 
             view.enterImageView.setAlpha(1f);
@@ -1086,9 +1084,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
         invalidateShaders();
     }
 
-    /**
-     * Invalidates shaders
-     */
     private void invalidateShaders() {
         int dp = dp(24);
         float cy = getHeight() / 2f;
@@ -1202,7 +1197,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
         }
         listAdapter.notifyDataSetChanged();
     }
-
 
     public void setSelectedReaction(ReactionsLayoutInBubble.VisibleReaction visibleReaction) {
         selectedReactions.clear();
@@ -1382,7 +1376,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                     }
                 }
             } else {
-                //fill default reactions
+                
                 List<TLRPC.TL_availableReaction> enabledReactions = MediaDataController.getInstance(currentAccount).getEnabledReactionsList();
                 for (int i = 0; i < enabledReactions.size(); i++) {
                     ReactionsLayoutInBubble.VisibleReaction visibleReaction = ReactionsLayoutInBubble.VisibleReaction.fromEmojicon(enabledReactions.get(i));
@@ -1442,9 +1436,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                     visibleReactions.add(visibleReaction);
                     added++;
                 }
-                //            if (added == 16) {
-                //                break;
-                //            }
+                
             }
         }
 
@@ -1458,7 +1450,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                 }
             }
 
-            //fill default reactions
             List<TLRPC.TL_availableReaction> enabledReactions = MediaDataController.getInstance(currentAccount).getEnabledReactionsList();
             for (int i = 0; i < enabledReactions.size(); i++) {
                 ReactionsLayoutInBubble.VisibleReaction visibleReaction = ReactionsLayoutInBubble.VisibleReaction.fromEmojicon(enabledReactions.get(i));
@@ -1605,7 +1596,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
         invalidate();
     }
 
-
     public void onCustomEmojiWindowClosing() {
         if (pullingDownBackAnimator != null) {
             pullingDownBackAnimator.cancel();
@@ -1707,7 +1697,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
         ((LayoutParams) nextRecentReaction.getLayoutParams()).topMargin = dp(20);
         ((LayoutParams) recyclerListView.getLayoutParams()).topMargin = dp(20);
     }
-
 
     private boolean hintMeasured;
     public void measureHint() {
@@ -2068,7 +2057,7 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                 }
             }
             setFocusable(true);
-            shouldSwitchToLoopView = hasEnterAnimation;// && !allReactionsIsDefault;
+            shouldSwitchToLoopView = hasEnterAnimation;
             if (!hasEnterAnimation) {
                 enterImageView.setVisibility(View.GONE);
                 loopImageView.setVisibility(View.VISIBLE);
@@ -2078,13 +2067,10 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
                 enterImageView.setVisibility(View.VISIBLE);
                 loopImageView.setVisibility(View.GONE);
             }
-//            if (selected) {
-//                loopImageView.getLayoutParams().width = loopImageView.getLayoutParams().height = dp(26);
-//                enterImageView.getLayoutParams().width = enterImageView.getLayoutParams().height = dp(26);
-//            } else {
+
                 loopImageView.getLayoutParams().width = loopImageView.getLayoutParams().height = dp(34);
                 enterImageView.getLayoutParams().width = enterImageView.getLayoutParams().height = dp(34);
-//            }
+
         }
 
         private void updateImage(ReactionsLayoutInBubble.VisibleReaction react) {
@@ -2100,11 +2086,9 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
             } else if (currentReaction.isEffect) {
                 TLRPC.Document document = MessagesController.getInstance(currentAccount).getEffectDocument(currentReaction.documentId);
                 SvgHelper.SvgDrawable svgThumb = DocumentObject.getSvgThumb(document, Theme.key_windowBackgroundWhiteGrayIcon, 0.2f);
-//                if (!LiteMode.isEnabled(LiteMode.FLAG_ANIMATED_EMOJI_REACTIONS)) {
+
                     loopImageView.getImageReceiver().setImage(ImageLocation.getForDocument(document), "60_60_firstframe", null, null, hasEnterAnimation ? null : svgThumb, 0, "tgs", currentReaction, 0);
-//                } else {
-//                    loopImageView.getImageReceiver().setImage(ImageLocation.getForDocument(document), ReactionsUtils.SELECT_ANIMATION_FILTER, null, null, hasEnterAnimation ? null : svgThumb, 0, "tgs", currentReaction, 0);
-//                }
+
             } else if (currentReaction.emojicon != null) {
                 TLRPC.TL_availableReaction defaultReaction = MediaDataController.getInstance(currentAccount).getReactionsMap().get(currentReaction.emojicon);
                 if (defaultReaction != null) {
@@ -2660,7 +2644,6 @@ public class ReactionsContainerLayout extends FrameLayout implements Notificatio
             reactionsWindow.getSelectAnimatedEmojiDialog().setPaused(this.paused, this.pausedExceptSelected);
         }
     }
-
 
     private Paint starSelectedGradientPaint;
     private Matrix starSelectedGradientMatrix;

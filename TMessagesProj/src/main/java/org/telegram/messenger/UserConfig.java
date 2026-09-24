@@ -25,7 +25,7 @@ public class UserConfig extends BaseController {
 
     public static int selectedAccount;
     public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
-    public final static int MAX_ACCOUNT_COUNT = 4;
+    public final static int MAX_ACCOUNT_COUNT = 16;
 
     private final Object sync = new Object();
     private volatile boolean configLoaded;
@@ -82,7 +82,6 @@ public class UserConfig extends BaseController {
     LongSparseArray<SaveToGallerySettingsHelper.DialogException> userSaveGalleryExceptions;
     LongSparseArray<SaveToGallerySettingsHelper.DialogException> chanelSaveGalleryExceptions;
     LongSparseArray<SaveToGallerySettingsHelper.DialogException> groupsSaveGalleryExceptions;
-
 
     private static volatile UserConfig[] Instance = new UserConfig[UserConfig.MAX_ACCOUNT_COUNT];
     public static UserConfig getInstance(int num) {
@@ -328,7 +327,6 @@ public class UserConfig extends BaseController {
             genericAnimationsStickerPack = preferences.getString("genericAnimationsStickerPack", null);
             lastUpdatedGenericAnimations = preferences.getLong("lastUpdatedGenericAnimations", 0);
 
-
             try {
                 String terms = preferences.getString("terms", null);
                 if (terms != null) {
@@ -459,12 +457,19 @@ public class UserConfig extends BaseController {
     }
 
     public void clearConfig() {
+        
+        app.nimarkogram.messenger.security.NimarkoBiometricPrompt.clearVerifiedForAccount(currentAccount);
+        app.nimarkogram.messenger.utils.LockedChats.onAccountLoggedOut(currentAccount, clientUserId);
+        app.nimarkogram.messenger.wsbypass.WsRelayAuth.onAccountLoggedOut(currentAccount, clientUserId);
+        app.nimarkogram.messenger.wsbypass.voip.VoipRelayAuth.onAccountLoggedOut(currentAccount, clientUserId);
         getPreferences().edit().clear().apply();
 
         sharingMyLocationUntil = 0;
         lastMyLocationShareTime = 0;
         currentUser = null;
         clientUserId = 0;
+        app.nimarkogram.messenger.security.NimarkoBiometricPrompt.onAccountOwnerCleared(currentAccount);
+        app.nimarkogram.messenger.utils.LockedChats.onAccountOwnerCleared(currentAccount);
         registeredForPush = false;
         contactsSavedCount = 0;
         lastSendMessageId = -210000;
@@ -582,7 +587,6 @@ public class UserConfig extends BaseController {
     public Long getEmojiStatus() {
         return UserObject.getEmojiStatusDocumentId(currentUser);
     }
-
 
     int globalTtl = 0;
     boolean ttlIsLoading = false;

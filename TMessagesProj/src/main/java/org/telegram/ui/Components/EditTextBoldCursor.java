@@ -85,6 +85,8 @@ public class EditTextBoldCursor extends EditTextEffects {
     private static Class editorClass;
     private static Field mCursorDrawableResField;
     private static Method mEditorInvalidateDisplayList;
+    private static Field mShowSuggestionRunnableField;
+    private static boolean mShowSuggestionRunnableFieldFetched;
 
     private Drawable mCursorDrawable;
     private Object editor;
@@ -94,6 +96,45 @@ public class EditTextBoldCursor extends EditTextEffects {
     float rightHintOffset;
 
     private final Choreographer60FpsContent.FrameCallback invalidateCallback = d -> invalidate();
+
+    @SuppressLint("PrivateApi")
+    private void cancelStaleSuggestionsPopup() {
+        try {
+            if (editorClass == null || mEditor == null) {
+                editorClass = Class.forName("android.widget.Editor");
+                mEditor = TextView.class.getDeclaredField("mEditor");
+                mEditor.setAccessible(true);
+            }
+            if (!mShowSuggestionRunnableFieldFetched) {
+                mShowSuggestionRunnableFieldFetched = true;
+                mShowSuggestionRunnableField = editorClass.getDeclaredField("mShowSuggestionRunnable");
+                mShowSuggestionRunnableField.setAccessible(true);
+            }
+            if (mShowSuggestionRunnableField == null) {
+                return;
+            }
+            Object currentEditor = editor != null ? editor : mEditor.get(this);
+            if (currentEditor == null) {
+                return;
+            }
+            Runnable pendingShow = (Runnable) mShowSuggestionRunnableField.get(currentEditor);
+            if (pendingShow != null) {
+                removeCallbacks(pendingShow);
+                mShowSuggestionRunnableField.set(currentEditor, null);
+            }
+        } catch (Throwable ignore) {
+            
+        }
+    }
+
+    @Override
+    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+        cancelStaleSuggestionsPopup();
+        super.onTextChanged(text, start, lengthBefore, lengthAfter);
+        if (transformHintToHeader && !transformHintToHeaderOnFocus) {
+            checkHeaderVisibility(true);
+        }
+    }
 
     private Paint linePaint;
     private Paint activeLinePaint;
@@ -262,9 +303,6 @@ public class EditTextBoldCursor extends EditTextEffects {
         super.removeTextChangedListener(watcher);
     }
 
-    /**
-     * Dispatches text changed event to all text watchers
-     */
     public void dispatchTextWatchersTextChanged() {
         for (TextWatcher w : registeredTextWatchers) {
             w.beforeTextChanged("", 0, length(), length());
@@ -273,12 +311,6 @@ public class EditTextBoldCursor extends EditTextEffects {
         }
     }
 
-    /**
-     * Sets text watchers suppress state
-     *
-     * @param textWatchersSuppressed    Suppress flag
-     * @param dispatchChanged           If we should notify watchers about text changed. Works only if textWatchersSuppressed = false
-     */
     public void setTextWatchersSuppressed(boolean textWatchersSuppressed, boolean dispatchChanged) {
         if (isTextWatchersSuppressed == textWatchersSuppressed) return;
         isTextWatchersSuppressed = textWatchersSuppressed;
@@ -299,9 +331,6 @@ public class EditTextBoldCursor extends EditTextEffects {
         }
     }
 
-    /**
-     * @return  If text watchers are suppressed (Not listening to events)
-     */
     public boolean isTextWatchersSuppressed() {
         return isTextWatchersSuppressed;
     }
@@ -366,7 +395,6 @@ public class EditTextBoldCursor extends EditTextEffects {
 
             setTextCursorDrawable(cursorDrawable);
         }
-
 
         try {
             if (!mScrollYGet && mScrollYField == null) {
@@ -697,14 +725,6 @@ public class EditTextBoldCursor extends EditTextEffects {
         }
     }
 
-    @Override
-    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-        super.onTextChanged(text, start, lengthBefore, lengthAfter);
-        if (transformHintToHeader && !transformHintToHeaderOnFocus) {
-            checkHeaderVisibility(true);
-        }
-    }
-
     @Keep
     public void setHeaderAnimationProgress(float value) {
         headerAnimationProgress = value;
@@ -755,7 +775,7 @@ public class EditTextBoldCursor extends EditTextEffects {
             return;
         }
         try {
-            // on hardware accelerated edittext to invalidate imagespan display list must be invalidated
+            
             if (mEditorInvalidateDisplayList != null) {
                 if (editor == null) {
                     editor = mEditor.get(this);
@@ -1057,12 +1077,7 @@ public class EditTextBoldCursor extends EditTextEffects {
             canvas.restore();
             canvas.restore();
         }
-        /*if (errorLayout != null) {
-            canvas.save();
-            canvas.translate(getScrollX(), lineY + AndroidUtilities.dp(3));
-            errorLayout.draw(canvas);
-            canvas.restore();
-        }*/
+         
     }
 
     public void setWindowView(View view) {

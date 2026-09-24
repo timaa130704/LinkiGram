@@ -166,7 +166,6 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
         selectorDrawable = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, null);
         float rad = AndroidUtilities.dpf2(14);
         selectorDrawable.setCornerRadii(new float[]{rad, rad, rad, rad, rad, rad, rad, rad});
-//        selectorDrawable.setCornerRadii(new float[]{rad, rad, rad, rad, 0, 0, 0, 0});
 
         setFillViewport(true);
         setWillNotDraw(false);
@@ -549,7 +548,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
             tab.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             tab.setSingleLine();
             tab.setMaxLines(1);
-//            tab.setMaxLines(2);
+
             tab.setTypeface(AndroidUtilities.bold());
             tab.setPadding(dp(16), 0, dp(16), 0);
             tab.setOnClickListener(v -> {
@@ -563,7 +562,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
         }
         text = Emoji.replaceEmoji(text, tab.getPaint().getFontMetricsInt(), false);
         tab.setText(text);
-        int tabWidth = (int) Math.ceil(HintView2.measureCorrectly(text, tab.getPaint())) + dp(32);// + tab.getPaddingLeft() + tab.getPaddingRight();
+        int tabWidth = (int) Math.ceil(HintView2.measureCorrectly(text, tab.getPaint())) + dp(32);
         tabsContainer.addView(tab, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT));
         allTextWidth += tabWidth;
         positionToWidth.put(position, tabWidth);
@@ -654,7 +653,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
         for (int a = 0; a < count; a++) {
             TextView tab = (TextView) tabsContainer.getChildAt(a);
             tab.setTextColor(processColor(Theme.getColor(currentPosition == a ? activeTextColorKey : unactiveTextColorKey, resourcesProvider)));
-//            tab.setBackground(Theme.createSelectorDrawable(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f), 3));
+
             tab.setBackground(
                 new InsetDrawable(
                     Theme.createSelectorDrawable(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f), Theme.RIPPLE_MASK_ROUNDRECT_6DP, dp(14)),
@@ -662,7 +661,7 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
                 )
             );
         }
-//        selectorDrawable.setColor(processColor(Theme.getColor(tabLineColorKey, resourcesProvider)));
+
         selectorDrawable.setColor(Theme.multAlpha(processColor(Theme.getColor(activeTextColorKey, resourcesProvider)), .15f));
         invalidate();
     }
@@ -692,7 +691,6 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
     public int getFirstTabId() {
         return positionToId.get(0, 0);
     }
-
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
@@ -749,18 +747,17 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
             }
             int wasAlpha = selectorDrawable.getAlpha();
             selectorDrawable.setAlpha((int) (wasAlpha * tabsContainer.getAlpha()));
-//            selectorDrawable.setBounds(
-//                (int) l,
-//                height - dpr(4),
-//                (int) r,
-//                height
-//            );
+
             selectorDrawable.setBounds(
                 getPaddingLeft() + (int) l + dp(4),
                 getPaddingTop() + dp(4),
                 getPaddingLeft() + (int) r - dp(4),
                 height - getPaddingBottom() - dp(4)
             );
+            
+            if (app.nimarkogram.messenger.NimarkoConfig.tabStyleStroke) {
+                selectorDrawable.setStroke(AndroidUtilities.dp(1), processColor(Theme.getColor(activeTextColorKey, resourcesProvider)));
+            }
             selectorDrawable.draw(canvas);
             selectorDrawable.setAlpha(wasAlpha);
 
@@ -938,11 +935,9 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
 
     private int getChildWidth(TextView child) {
         Layout layout = child.getLayout();
-//        if (layout != null) {
-//            return (int) Math.ceil(layout.getLineWidth(0)) + dp(2);
-//        } else {
+
             return child.getMeasuredWidth();
-//        }
+
     }
 
     public void onPageScrolled(int position, int first) {

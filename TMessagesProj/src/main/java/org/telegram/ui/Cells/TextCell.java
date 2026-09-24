@@ -10,6 +10,8 @@ package org.telegram.ui.Cells;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 
+import android.animation.Animator;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -47,14 +49,17 @@ import org.telegram.ui.PeerColorActivity;
 import org.telegram.ui.SettingsActivity;
 import org.telegram.ui.Stories.recorder.HintView2;
 
+import java.util.ArrayList;
+
 public class TextCell extends FrameLayout {
 
     public final SimpleTextView textView;
-    private final SimpleTextView subtitleView;
+    
+    public final SimpleTextView subtitleView;
     public final AnimatedTextView valueTextView;
     public final SimpleTextView valueSpoilersTextView;
     public final RLottieImageView imageView;
-    private Switch checkBox;
+    public Switch checkBox;
     private ImageView valueImageView;
     public int leftPadding;
     private boolean needDivider;
@@ -137,7 +142,7 @@ public class TextCell extends FrameLayout {
         if (needCheck) {
             checkBox = new Switch(context, resourcesProvider);
             checkBox.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
-            addView(checkBox, LayoutHelper.createFrame(37, 20, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
+            addView(checkBox, LayoutHelper.createFrame(39, 40, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
         }
 
         setFocusable(true);
@@ -208,7 +213,7 @@ public class TextCell extends FrameLayout {
             valueImageView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST));
         }
         if (checkBox != null) {
-            checkBox.measure(MeasureSpec.makeMeasureSpec(dp(37), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.EXACTLY));
+            checkBox.measure(MeasureSpec.makeMeasureSpec(dp(39), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(30), MeasureSpec.EXACTLY));
         }
         setMeasuredDimension(width, height + (needDivider ? 1 : 0));
     }
@@ -616,12 +621,18 @@ public class TextCell extends FrameLayout {
     }
 
     public void setColorfulIcon(int colorTop, int colorBottom, int resId) {
+        
+        colorTop = app.nimarkogram.messenger.utils.ui.MonetHelper.getSettingsIconBackgroundColor(colorTop);
+        colorBottom = app.nimarkogram.messenger.utils.ui.MonetHelper.getSettingsIconBackgroundColor(colorBottom);
+        final int foreground = app.nimarkogram.messenger.utils.ui.MonetHelper
+                .getSettingsIconForegroundColor(Color.WHITE);
+
         offsetFromImage = getOffsetFromImage(true);
         imageView.setVisibility(VISIBLE);
         imageView.setPadding(dp(2), dp(2), dp(2), dp(2));
         imageView.setTranslationX(dp(LocaleController.isRTL ? 0 : -3));
         imageView.setImageResource(resId);
-        imageView.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        imageView.setColorFilter(new PorterDuffColorFilter(foreground, PorterDuff.Mode.SRC_IN));
 
         final boolean border = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
         SettingsActivity.SettingCell.Background drawable = new SettingsActivity.SettingCell.Background();
@@ -660,9 +671,13 @@ public class TextCell extends FrameLayout {
             checkBox.setVisibility(VISIBLE);
             checkBox.setChecked(checked, false);
         }
-        imageView.setVisibility(VISIBLE);
-        imageView.setPadding(0, dp(7), 0, 0);
-        imageView.setImageResource(resId);
+        if (resId != 0) {
+            imageView.setVisibility(VISIBLE);
+            imageView.setPadding(0, dp(7), 0, 0);
+            imageView.setImageResource(resId);
+        } else {
+            imageView.setVisibility(GONE);
+        }
         needDivider = divider;
         setWillNotDraw(!needDivider);
         if (emojiDrawable != null) {
@@ -918,7 +933,7 @@ public class TextCell extends FrameLayout {
                 paint = new Paint(Paint.ANTI_ALIAS_FLAG);
                 paint.setColor(Theme.getColor(Theme.key_dialogSearchBackground, resourcesProvider));
             }
-            //LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT;
+            
             if (incrementLoadingProgress) {
                 loadingProgress += 16 / 1000f;
                 if (loadingProgress > 1f) {
@@ -978,6 +993,31 @@ public class TextCell extends FrameLayout {
             subtitleView.setText(charSequence);
         } else {
             subtitleView.setVisibility(View.GONE);
+        }
+    }
+
+    public void setCheckBoxIcon(int icon) {
+        if (checkBox != null) checkBox.setIcon(icon);
+    }
+
+    public void setEnabled(boolean value, ArrayList<Animator> animators) {
+        super.setEnabled(value);
+        if (animators != null) {
+            if (textView != null) animators.add(ObjectAnimator.ofFloat(textView, View.ALPHA, value ? 1.0f : 0.5f));
+            if (subtitleView != null) animators.add(ObjectAnimator.ofFloat(subtitleView, View.ALPHA, value ? 1.0f : 0.5f));
+            if (valueTextView != null) animators.add(ObjectAnimator.ofFloat(valueTextView, View.ALPHA, value ? 1.0f : 0.5f));
+            if (valueSpoilersTextView != null) animators.add(ObjectAnimator.ofFloat(valueSpoilersTextView, View.ALPHA, value ? 1.0f : 0.5f));
+            if (imageView != null) animators.add(ObjectAnimator.ofFloat(imageView, View.ALPHA, value ? 1.0f : 0.5f));
+            if (checkBox != null) animators.add(ObjectAnimator.ofFloat(checkBox, View.ALPHA, value ? 1.0f : 0.5f));
+            if (valueImageView != null) animators.add(ObjectAnimator.ofFloat(valueImageView, View.ALPHA, value ? 1.0f : 0.5f));
+        } else {
+            if (textView != null) textView.setAlpha(value ? 1.0f : 0.5f);
+            if (subtitleView != null) subtitleView.setAlpha(value ? 1.0f : 0.5f);
+            if (valueTextView != null) valueTextView.setAlpha(value ? 1.0f : 0.5f);
+            if (valueSpoilersTextView != null) valueSpoilersTextView.setAlpha(value ? 1.0f : 0.5f);
+            if (imageView != null) imageView.setAlpha(value ? 1.0f : 0.5f);
+            if (checkBox != null) checkBox.setAlpha(value ? 1.0f : 0.5f);
+            if (valueImageView != null) valueImageView.setAlpha(value ? 1.0f : 0.5f);
         }
     }
 }

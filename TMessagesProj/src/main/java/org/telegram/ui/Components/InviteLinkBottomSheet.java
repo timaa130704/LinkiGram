@@ -322,7 +322,7 @@ public class InviteLinkBottomSheet extends BottomSheet {
             boolean isJoinedUserRow = position >= joinedStartRow && position < joinedEndRow;
             boolean isExpiredUserRow = position >= expiredStartRow && position < expiredEndRow;
             boolean isRequestedUserRow = position >= requestedStartRow && position < requestedEndRow;
-            if ((position == creatorRow || isJoinedUserRow || isRequestedUserRow) && users != null) {
+            if ((position == creatorRow || isJoinedUserRow || isExpiredUserRow || isRequestedUserRow) && users != null) {
                 long userId = invite.admin_id;
                 TLRPC.TL_chatInviteImporter importer = null;
                 if (isJoinedUserRow) {
@@ -355,18 +355,9 @@ public class InviteLinkBottomSheet extends BottomSheet {
                             final TLRPC.TL_chatInviteImporter finalImporter = importer;
                             MessagesController.getInstance(currentAccount).getChannelParticipant(chat, user, participant -> AndroidUtilities.runOnUIThread(() -> {
                                 progressDialog.dismissUnless(400);
-//                                if (participant != null) {
+
                                     showSubscriptionSheet(context, currentAccount, -chatId, invite.subscription_pricing, finalImporter, participant, resourcesProvider);
-//                                } else {
-//                                    AndroidUtilities.runOnUIThread(() -> {
-//                                        Bundle bundle = new Bundle();
-//                                        bundle.putLong("user_id", user.id);
-//                                        ProfileActivity profileActivity = new ProfileActivity(bundle);
-//                                        fragment.presentFragment(profileActivity);
-//                                        isNeedReopen = true;
-//                                    }, 100);
-//                                    dismiss();
-//                                }
+
                             }));
                         } else {
                             showSubscriptionSheet(context, currentAccount, -chatId, invite.subscription_pricing, importer, part, resourcesProvider);
@@ -438,7 +429,6 @@ public class InviteLinkBottomSheet extends BottomSheet {
         listView.setGlowColor(Theme.getColor(Theme.key_dialogScrollGlow));
         shadow.setBackgroundColor(Theme.getColor(Theme.key_dialogShadowLine));
         setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
-
 
         int count = listView.getHiddenChildCount();
 
@@ -528,39 +518,40 @@ public class InviteLinkBottomSheet extends BottomSheet {
         if (invite.subscription_pricing != null) {
             revenueHeaderRow = rowCount++;
             revenueRow = rowCount++;
+            
+            divider3Row = rowCount++;
         }
         creatorHeaderRow = rowCount++;
         creatorRow = rowCount++;
-//        emptyView = rowCount++;
 
         boolean needUsers = invite.usage > 0 || invite.usage_limit > 0 || invite.requested > 0 || invite.subscription_expired > 0;
         boolean needLoadUsers = invite.usage > joinedUsers.size() || invite.subscription_expired > expiredUsers.size() || invite.request_needed && invite.requested > requestedUsers.size();
         boolean usersLoaded = false;
         if (!joinedUsers.isEmpty()) {
-//            dividerRow = rowCount++;
+
             joinedHeaderRow = rowCount++;
             joinedStartRow = rowCount;
             rowCount += joinedUsers.size();
             joinedEndRow = rowCount;
-//            emptyView2 = rowCount++;
+
             usersLoaded = true;
         }
         if (!expiredUsers.isEmpty()) {
-//            dividerRow = rowCount++;
+
             expiredHeaderRow = rowCount++;
             expiredStartRow = rowCount;
             rowCount += expiredUsers.size();
             expiredEndRow = rowCount;
-//            emptyView2 = rowCount++;
+
             usersLoaded = true;
         }
         if (!requestedUsers.isEmpty()) {
-//            divider2Row = rowCount++;
+
             requestedHeaderRow = rowCount++;
             requestedStartRow = rowCount;
             rowCount += requestedUsers.size();
             requestedEndRow = rowCount;
-//            emptyView3 = rowCount++;
+
             usersLoaded = true;
         }
         if (needUsers || needLoadUsers) {
@@ -571,7 +562,7 @@ public class InviteLinkBottomSheet extends BottomSheet {
             }
         }
         if (emptyHintRow == -1) {
-//            divider3Row = rowCount++;
+
         }
 
         adapter.notifyDataSetChanged();
@@ -581,9 +572,14 @@ public class InviteLinkBottomSheet extends BottomSheet {
 
         @Override
         public int getItemViewType(int position) {
-            if (position == creatorHeaderRow || position == requestedHeaderRow || position == joinedHeaderRow || position == revenueHeaderRow) {
+            if (position == creatorHeaderRow) {
+                return 10;
+            } else if (position == requestedHeaderRow || position == joinedHeaderRow || position == expiredHeaderRow || position == revenueHeaderRow) {
                 return 0;
-            } else if (position == creatorRow || position >= requestedStartRow && position < requestedEndRow || position >= joinedStartRow && position < joinedEndRow) {
+            } else if (position == creatorRow
+                    || position >= requestedStartRow && position < requestedEndRow
+                    || position >= joinedStartRow && position < joinedEndRow
+                    || position >= expiredStartRow && position < expiredEndRow) {
                 return 1;
             } else if (position == dividerRow || position == divider2Row) {
                 return 2;
@@ -754,6 +750,10 @@ public class InviteLinkBottomSheet extends BottomSheet {
                 case 9:
                     view = new RevenueCell(context);
                     break;
+                case 10:
+                    
+                    view = new HeaderCell(context, resourcesProvider);
+                    break;
             }
             view.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             return new RecyclerListView.Holder(view);
@@ -762,12 +762,12 @@ public class InviteLinkBottomSheet extends BottomSheet {
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             switch (holder.getItemViewType()) {
+                case 10:
+                    ((HeaderCell) holder.itemView).setText(LocaleController.getString(R.string.LinkCreatedeBy));
+                    break;
                 case 0:
                     GraySectionCell headerCell = (GraySectionCell) holder.itemView;
-                    if (position == creatorHeaderRow) {
-                        headerCell.setText(LocaleController.getString(R.string.LinkCreatedeBy));
-                        headerCell.setRightText(null);
-                    } else if (position == revenueHeaderRow) {
+                    if (position == revenueHeaderRow) {
                         headerCell.setText(LocaleController.getString(R.string.LinkRevenue));
                         headerCell.setRightText(null);
                     } else if (position == joinedHeaderRow) {
@@ -925,8 +925,9 @@ public class InviteLinkBottomSheet extends BottomSheet {
                             privacyCell.setText(LocaleController.formatString("LinkExpiresInTime", R.string.LinkExpiresInTime, time));
                         }
                     } else {
-                        privacyCell.setFixedSize(-1);
                         privacyCell.setText(null);
+                        
+                        privacyCell.setFixedSize(12);
                     }
                     break;
                 case 8:
@@ -957,7 +958,9 @@ public class InviteLinkBottomSheet extends BottomSheet {
                     return false;
                 }
                 return true;
-            } else if (position >= joinedStartRow && position < joinedEndRow || position >= requestedStartRow && position < requestedEndRow) {
+            } else if (position >= joinedStartRow && position < joinedEndRow
+                    || position >= expiredStartRow && position < expiredEndRow
+                    || position >= requestedStartRow && position < requestedEndRow) {
                 return true;
             }
             return false;

@@ -206,6 +206,9 @@ class ChatsRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
                     messageString = "";
                 } else {
                     messageString = message.messageText;
+                    if (messageString != null && messageString.toString().contains("$")) {
+                        messageString = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(messageString.toString());
+                    }
                 }
                 textColor = mContext.getResources().getColor(R.color.widget_action_text);
             } else {
@@ -222,6 +225,9 @@ class ChatsRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
                     String messageFormat = "%2$s: \u2068%1$s\u2069";
                     if (message.caption != null) {
                         String mess = message.caption.toString();
+                        if (mess.contains("$")) {
+                            mess = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(mess);
+                        }
                         if (mess.length() > 150) {
                             mess = mess.substring(0, 150);
                         }
@@ -262,6 +268,9 @@ class ChatsRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
                             }
                         } else {
                             innerMessage = message.messageText.toString();
+                            if (innerMessage.contains("$")) {
+                                innerMessage = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(innerMessage);
+                            }
                         }
                         innerMessage = innerMessage.replace('\n', ' ');
                         stringBuilder = SpannableStringBuilder.valueOf(String.format(messageFormat, innerMessage, messageNameString));
@@ -272,6 +281,9 @@ class ChatsRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
                         }
                     } else if (message.messageOwner.message != null) {
                         String mess = message.messageOwner.message;
+                        if (mess.contains("$")) {
+                            mess = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(mess);
+                        }
                         if (mess.length() > 150) {
                             mess = mess.substring(0, 150);
                         }
@@ -315,6 +327,9 @@ class ChatsRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
                             messageString = String.format("\uD83C\uDFA7 %s - %s", message.getMusicAuthor(), message.getMusicTitle());
                         } else {
                             messageString = message.messageText;
+                            if (messageString != null && messageString.toString().contains("$")) {
+                                messageString = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(messageString.toString());
+                            }
                             AndroidUtilities.highlightText(messageString, message.highlightedWords, null);
                         }
                         if (message.messageOwner.media != null && !message.isMediaEmpty()) {

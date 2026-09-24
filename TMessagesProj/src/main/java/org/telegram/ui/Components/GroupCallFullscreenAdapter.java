@@ -128,7 +128,6 @@ public class GroupCallFullscreenAdapter extends RecyclerListView.SelectionAdapte
         }
     }
 
-
     public void scrollTo(ChatObject.VideoParticipant videoParticipant, RecyclerListView fullscreenUsersListView) {
         LinearLayoutManager layoutManager = (LinearLayoutManager)fullscreenUsersListView.getLayoutManager();
         if (layoutManager == null) {
@@ -184,7 +183,7 @@ public class GroupCallFullscreenAdapter extends RecyclerListView.SelectionAdapte
             super(context);
             avatarDrawable.setTextSize((int) (AndroidUtilities.dp(18) / 1.15f));
             avatarImageView = new BackupImageView(context);
-            avatarImageView.setRoundRadius(AndroidUtilities.dp(20));
+            avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
             addView(avatarImageView, LayoutHelper.createFrame(40, 40, Gravity.CENTER_HORIZONTAL, 0, 9, 0, 9));
             setWillNotDraw(false);
 
@@ -320,7 +319,6 @@ public class GroupCallFullscreenAdapter extends RecyclerListView.SelectionAdapte
 
             avatarWavesDrawable.update();
             avatarWavesDrawable.draw(canvas, cx, cy, this);
-
 
             float scaleFrom = AndroidUtilities.dp(46) / (float) AndroidUtilities.dp(40);
             float s = scaleFrom * (1f - progress) + 1f * progress;
@@ -481,7 +479,6 @@ public class GroupCallFullscreenAdapter extends RecyclerListView.SelectionAdapte
         int lastWavesColor;
         ValueAnimator colorAnimator;
 
-
         public void updateState(boolean animated) {
             if (statusIcon == null) {
                 return;
@@ -497,7 +494,6 @@ public class GroupCallFullscreenAdapter extends RecyclerListView.SelectionAdapte
                 newColor = Theme.getColor(Theme.key_voipgroup_nameText);
                 newWavesColor = Theme.getColor(Theme.key_voipgroup_listeningText);
             }
-
 
             if (!animated) {
                 if (colorAnimator != null) {

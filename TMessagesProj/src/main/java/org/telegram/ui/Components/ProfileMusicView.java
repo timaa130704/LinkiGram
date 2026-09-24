@@ -92,8 +92,11 @@ public class ProfileMusicView extends View {
     private float parentExpanded;
     private int backgroundColor;
     private boolean withShadows;
+    private boolean bannerMode;
 
     public void setColor(MessagesController.PeerColor peerColor) {
+        
+        if (!app.nimarkogram.messenger.NimarkoConfig.profileBackgroundColor) peerColor = null;
         int color1, color2;
         if (peerColor == null) {
             color1 = color2 = Theme.getColor(Theme.key_actionBarDefault, resourcesProvider);
@@ -109,12 +112,13 @@ public class ProfileMusicView extends View {
             backgroundColor = Theme.adaptHSV(ColorUtils.blendARGB(color1, color2, .15f), +.04f, -.09f);
             withShadows = false;
         }
-        backgroundPaint.setColor(backgroundColor);
+        backgroundPaint.setColor(bannerMode ? 0x40000000 : backgroundColor);
         checkTextColor();
     }
 
     private void checkTextColor() {
-        final boolean useBlackText = parentExpanded < 0.8f && AndroidUtilities.computePerceivedBrightness(backgroundColor) > 0.85f;
+        final boolean useBlackText = !bannerMode && parentExpanded < 0.8f
+                && AndroidUtilities.computePerceivedBrightness(backgroundColor) > 0.85f;
         textColor = useBlackText ? Color.BLACK : Color.WHITE;
         icon.setColorFilter(useBlackText ? filterColorBlack : filterColorWhite);
         iconPaint.setColor(textColor);
@@ -129,8 +133,6 @@ public class ProfileMusicView extends View {
             invalidate();
         }
     }
-
-
 
     public void setMusicDocument(TLRPC.Document document) {
         CharSequence author = getAuthor(document);
@@ -168,7 +170,7 @@ public class ProfileMusicView extends View {
         if (!TextUtils.isEmpty(fileName)) {
             return fileName;
         }
-//        return getString(R.string.AudioUnknownTitle);
+
         return null;
     }
 
@@ -210,6 +212,10 @@ public class ProfileMusicView extends View {
     }
 
     public void drawingBlur(RenderNode renderNode, ProfileActivity.AvatarImageView avatarView, float scale, float dy) {
+        
+        if (app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor) {
+            return;
+        }
         this.ignoreRect = false;
         this.renderNode = renderNode;
         this.avatarView = avatarView;
@@ -250,6 +256,13 @@ public class ProfileMusicView extends View {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         if (this.author == null || this.title == null) return;
+
+        boolean nextBannerMode = app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor;
+        if (bannerMode != nextBannerMode) {
+            bannerMode = nextBannerMode;
+            backgroundPaint.setColor(bannerMode ? 0x40000000 : backgroundColor);
+            checkTextColor();
+        }
 
         final float alpha = Utilities.clamp01((currentHeight) / dp(21));
         final float scale = bounce.getScale(0.02f);
@@ -303,7 +316,6 @@ public class ProfileMusicView extends View {
 
         canvas.translate((getWidth() - width) / 2f, 0);
 
-//        final long now = System.currentTimeMillis();
         final float cy = getHeight() / 2f, hh = dp(6), w = dp(2);
 
         final int iconSz = dp(13);

@@ -124,7 +124,6 @@ public class StorageUsageView extends FrameLayout {
         };
         linearLayout.addView(legendLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 21, 40, 21, 16));
 
-
         calculatingTextView = new TextView(context);
         calculatingTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
 
@@ -138,7 +137,6 @@ public class StorageUsageView extends FrameLayout {
         } else {
             calculatingTextView.setText(calculatingString);
         }
-
 
         telegramCacheTextView = new TextView(context);
         telegramCacheTextView.setCompoundDrawablePadding(AndroidUtilities.dp(6));
@@ -156,7 +154,6 @@ public class StorageUsageView extends FrameLayout {
         totlaSizeTextView.setCompoundDrawablePadding(AndroidUtilities.dp(6));
         totlaSizeTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
 
-
         lastProgressColor = Theme.getColor(Theme.key_player_progress);
 
         telegramCacheTextView.setCompoundDrawablesWithIntrinsicBounds(Theme.createCircleDrawable(AndroidUtilities.dp(10), lastProgressColor), null, null, null);
@@ -173,7 +170,6 @@ public class StorageUsageView extends FrameLayout {
         legendLayout.addView(telegramCacheTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
         legendLayout.addView(totlaSizeTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
         legendLayout.addView(freeSizeTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-
 
         divider = new View(getContext());
         linearLayout.addView(divider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 21, 0, 0, 0));
@@ -213,7 +209,7 @@ public class StorageUsageView extends FrameLayout {
             }
             calculatingTextView.setVisibility(View.GONE);
             if (totalSize > 0) {
-                divider.setVisibility(VISIBLE);
+                divider.setVisibility(app.nimarkogram.messenger.NimarkoConfig.disableDividers ? GONE : VISIBLE);
                 textSettingsCell.setVisibility(VISIBLE);
                 telegramCacheTextView.setVisibility(View.VISIBLE);
                 telegramDatabaseTextView.setVisibility(GONE);
@@ -336,8 +332,7 @@ public class StorageUsageView extends FrameLayout {
                     }
                 }
                 invalidate();
-//                paintCalculcating.setColor(ColorUtils.setAlphaComponent(Color.WHITE, (int) (150 * calculatingProgress)));
-//                canvas.drawLine(AndroidUtilities.dp(24), AndroidUtilities.dp(20), getMeasuredWidth() - AndroidUtilities.dp(24), AndroidUtilities.dp(20), paintCalculcating);
+
                 AndroidUtilities.rectTmp.set(AndroidUtilities.dp(24), AndroidUtilities.dp(17), getMeasuredWidth() - AndroidUtilities.dp(24), AndroidUtilities.dp(23));
                 cellFlickerDrawable.setParentWidth(getMeasuredWidth());
                 cellFlickerDrawable.draw(canvas, AndroidUtilities.rectTmp, AndroidUtilities.dp(3), null);

@@ -45,6 +45,8 @@ import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.EditTextSuggestionsFix;
 import org.telegram.ui.Components.LayoutHelper;
+
+import app.nimarkogram.messenger.NimarkoConfig;
 import org.telegram.ui.Components.OutlineTextContainerView;
 import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.LaunchActivity;
@@ -134,44 +136,6 @@ public class BotVerifySheet {
         linearLayout.setClipChildren(false);
         linearLayout.setClipToPadding(false);
 
-//        FrameLayout topView = new FrameLayout(context);
-//
-//        BackupImageView imageView1 = new BackupImageView(context);
-//        imageView1.setRoundRadius(dp(30));
-//        AvatarDrawable avatarDrawable = new AvatarDrawable();
-//        avatarDrawable.setInfo(botUser);
-//        imageView1.setForUserOrChat(botUser, avatarDrawable);
-//        topView.addView(imageView1, LayoutHelper.createFrame(60, 60, Gravity.CENTER_VERTICAL | Gravity.LEFT, 0, 0, 0, 0));
-//
-//        ImageView arrowView = new ImageView(context);
-//        arrowView.setImageResource(R.drawable.msg_arrow_avatar);
-//        arrowView.setScaleType(ImageView.ScaleType.CENTER);
-//        arrowView.setTranslationX(-dp(8.33f / 4));
-//        arrowView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), PorterDuff.Mode.SRC_IN));
-//        topView.addView(arrowView, LayoutHelper.createFrame(36, 60, Gravity.CENTER, 60, 0, 60, 0));
-//
-//        BackupImageView imageView2 = new BackupImageView(context);
-//        imageView2.setRoundRadius(dp(30));
-//        avatarDrawable = new AvatarDrawable();
-//        avatarDrawable.setInfo(dialog);
-//        imageView2.setForUserOrChat(dialog, avatarDrawable);
-//        topView.addView(imageView2, LayoutHelper.createFrame(60, 60, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 5.66f, 0));
-//
-//        BackupImageView iconBgView = new BackupImageView(context);
-////        iconBgView.setAnimatedEmojiDrawable(AnimatedEmojiDrawable.make(currentAccount, AnimatedEmojiDrawable.CACHE_TYPE_ALERT_PREVIEW, settings.icon));
-////        iconBgView.setEmojiColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogBackground), PorterDuff.Mode.SRC_IN));
-//        iconBgView.setScaleX(1.25f);
-//        iconBgView.setScaleY(1.25f);
-//        iconBgView.setBackground(Theme.createCircleDrawable(dp(24), Theme.getColor(Theme.key_dialogBackground)));
-//        topView.addView(iconBgView, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 18, 1.66f, 0));
-//
-//        BackupImageView iconFgView = new BackupImageView(context);
-//        iconFgView.setAnimatedEmojiDrawable(AnimatedEmojiDrawable.make(currentAccount, AnimatedEmojiDrawable.CACHE_TYPE_ALERT_PREVIEW, settings.icon));
-//        iconFgView.setEmojiColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_verifiedBackground), PorterDuff.Mode.SRC_IN));
-//        topView.addView(iconFgView, LayoutHelper.createFrame(24, 24, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 18, 1.66f, 0));
-//
-//        linearLayout.addView(topView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
-
         FrameLayout chipLayout = new FrameLayout(context);
         chipLayout.setBackground(Theme.createRoundRectDrawable(dp(28), dp(28), Theme.getColor(Theme.key_groupcreate_spanBackground)));
 
@@ -243,7 +207,7 @@ public class BotVerifySheet {
         editTextContainer.attachEditText(editText);
         editTextContainer.addView(editText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 12, 4, 12, 4));
         linearLayout.addView(editTextContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        editText.addTextChangedListener(new EditTextSuggestionsFix());
+        if (NimarkoConfig.editTextSuggestionsFix) editText.addTextChangedListener(new EditTextSuggestionsFix());
         editText.addTextChangedListener(new TextWatcher() {
             boolean ignoreEditText;
             @Override

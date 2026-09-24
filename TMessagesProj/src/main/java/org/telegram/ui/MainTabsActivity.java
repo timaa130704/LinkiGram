@@ -67,6 +67,7 @@ import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.FolderDrawable;
 import org.telegram.ui.Components.HintsController;
 import org.telegram.ui.Components.ItemOptions;
+import app.nimarkogram.messenger.preferences.BottomTabsPreferencesActivity;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Premium.LimitReachedBottomSheet;
 import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
@@ -88,27 +89,75 @@ import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
+    
+    public static final int TABS_COUNT = 3;
+    private static final int FALLBACK_CHATS = 1;
+    private static final int FALLBACK_SETTINGS = 2;
 
-    public static final int TABS_COUNT = 4;
-    private static final int POSITION_CHATS = 0;
-    private static final int POSITION_CONTACTS = 1;
-    private static final int POSITION_CALLS_OR_SETTINGS = 2;
-    private static final int POSITION_PROFILE = 3;
-
-    private static final int INDEX_CHATS = 0;
-    private static final int INDEX_CONTACTS = 1;
+    private static final int INDEX_PROFILE = 0;
+    private static final int INDEX_CHATS = 1;
     private static final int INDEX_SETTINGS = 2;
     private static final int INDEX_CALLS = 3;
-    private static final int INDEX_PROFILE = 4;
+
+    private static int posProfile() {
+        return app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                .getPosition(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.PROFILE);
+    }
+
+    private static int posChats() {
+        int p = app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                .getPosition(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.CHATS);
+        return p >= 0 ? p : FALLBACK_CHATS;
+    }
+
+    private static int posSettings() {
+        int p = app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                .getPosition(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.SETTINGS);
+        return p >= 0 ? p : FALLBACK_SETTINGS;
+    }
+
+    private static app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType tabTypeAt(int position) {
+        java.util.List<app.nimarkogram.messenger.utils.ui.MainTabsManager.Tab> enabled =
+                app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE.getEnabledTabs();
+        if (position < 0 || position >= enabled.size()) return null;
+        return enabled.get(position).getType();
+    }
 
     private static int indexToPosition(int index) {
-        return index > 2 ? index - 1 : index;
+        switch (index) {
+            case INDEX_PROFILE:  return posProfile();
+            case INDEX_CHATS:    return posChats();
+            case INDEX_SETTINGS:
+            case INDEX_CALLS:    return posSettings();
+            default:             return Math.min(index, 2);
+        }
+    }
+
+    private boolean visualDirectionMismatchesPager(int tappedTabIndex, int targetPagerPosition, int currentPagerPosition) {
+        if (tabsView == null || tabs == null) return false;
+        
+        GlassTabView currentTab = null;
+        for (int i = 0; i < tabs.length; i++) {
+            if (i == tappedTabIndex) continue;
+            if (tabs[i] == null || tabs[i].getParent() != tabsView) continue;
+            if (tabs[i].getVisibility() != View.VISIBLE) continue;
+            if (indexToPosition(i) == currentPagerPosition) {
+                currentTab = tabs[i];
+                break;
+            }
+        }
+        if (currentTab == null) return false;
+        final float tappedCenter = tabs[tappedTabIndex].getX() + tabs[tappedTabIndex].getWidth() / 2f;
+        final float currentCenter = currentTab.getX() + currentTab.getWidth() / 2f;
+        if (tappedCenter == currentCenter) return false;
+        final boolean visualForward = tappedCenter > currentCenter; 
+        final boolean pagerForward = targetPagerPosition > currentPagerPosition; 
+        return visualForward != pagerForward;
     }
 
     private static final int ANIMATOR_ID_TABS_VISIBLE = 0;
     private final BoolAnimator animatorTabsVisible = new BoolAnimator(ANIMATOR_ID_TABS_VISIBLE,
         this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
-
 
     private IUpdateLayout updateLayout;
     private boolean dropCallsFragmentAfterPageScroll;
@@ -118,6 +167,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
+
+    private LinearLayout tabsContainer;
+    private GlassTabView searchButton;
+    private BlurredBackgroundDrawable searchButtonBackground;
 
     public MainTabsActivity() {
         super();
@@ -232,34 +285,19 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private int getEstBackgroundColor() {
+        
+        final float whiteSurfaceVisibility = viewPager == null ? 1f : Math.max(
+                viewPager.getPositionVisibility(posChats()),
+                viewPager.getPositionVisibility(posSettings()));
         return ColorUtils.blendARGB(
                 getThemedColor(Theme.key_windowBackgroundGray),
                 getThemedColor(Theme.key_windowBackgroundWhite),
-                viewPager != null ? viewPager.getPositionVisibility(0) : 1);
+                whiteSurfaceVisibility);
     }
 
     private boolean tabletLayout;
     public void updateLayout() {
-//        if (tabletLayout == AndroidUtilities.isTablet()) return;
-//        tabletLayout = AndroidUtilities.isTablet();
-//
-//        final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
-//        final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
-//        int bottomMargin = isUpdateLayoutVisible ? (navigationBarHeight + updateLayoutHeight) : 0;
-//        if (tabletLayout) {
-//            bottomMargin = Math.max(bottomMargin, navigationBarHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
-//        }
-//        final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL);
-//        if (tabletLayout) {
-//            lp.leftMargin = dp(6);
-//            lp.rightMargin = dp(6);
-//            lp.topMargin = dp(6);
-//        }
-//        lp.bottomMargin = bottomMargin;
-//
-//        viewPager.setLayoutParams(lp);
-//        viewPager.setTabletLayout(tabletLayout);
-//        checkUi_fadeView();
+
     }
 
     @Override
@@ -272,24 +310,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public void onResume() {
         super.onResume();
         blur3_updateColors();
-        checkContactsTabBadge();
         checkUnreadCount(true);
 
         showAccountChangeHint();
-    }
-
-    private void checkContactsTabBadge() {
-        if (tabsView != null && tabs[INDEX_CONTACTS] != null) {
-            final boolean hasPermission = Build.VERSION.SDK_INT >= 23 && ContactsController.hasContactsPermission();
-            if (hasPermission) {
-                MessagesController.getGlobalNotificationsSettings().edit().putBoolean("askAboutContacts2", true).apply();
-            }
-            if (Build.VERSION.SDK_INT >= 23 && UserConfig.getInstance(currentAccount).syncContacts && !hasPermission && MessagesController.getGlobalNotificationsSettings().getBoolean("askAboutContacts2", true)) {
-                tabs[INDEX_CONTACTS].setCounter("!", true, true);
-            } else {
-                tabs[INDEX_CONTACTS].setCounter(null, true, true);
-            }
-        }
     }
 
     @Override
@@ -305,33 +328,77 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         super.createView(context);
         tabletLayout = false;
 
+        if (viewPager != null) {
+            viewPager.setSwipeTargetResolver((current, physicalForward) -> {
+                if (tabsView == null || tabs == null) return -1;
+                GlassTabView currentTab = null;
+                for (int j = 0; j < tabs.length; j++) {
+                    if (tabs[j] != null && indexToPosition(j) == current
+                            && tabs[j].getVisibility() == View.VISIBLE
+                            && tabs[j].getParent() == tabsView) {
+                        currentTab = tabs[j];
+                        break;
+                    }
+                }
+                if (currentTab == null) return -1;
+                float currentCenter = currentTab.getX() + currentTab.getWidth() / 2f;
+                GlassTabView neighbour = null;
+                float bestDelta = Float.MAX_VALUE;
+                for (int j = 0; j < tabs.length; j++) {
+                    if (tabs[j] == null || tabs[j] == currentTab) continue;
+                    if (tabs[j].getParent() != tabsView || tabs[j].getVisibility() != View.VISIBLE) continue;
+                    float center = tabs[j].getX() + tabs[j].getWidth() / 2f;
+                    float delta = physicalForward ? (center - currentCenter) : (currentCenter - center);
+                    if (delta > 0 && delta < bestDelta) {
+                        bestDelta = delta;
+                        neighbour = tabs[j];
+                    }
+                }
+                if (neighbour == null) return -1;
+                for (int j = 0; j < tabs.length; j++) {
+                    if (tabs[j] == neighbour) return indexToPosition(j);
+                }
+                return -1;
+            });
+        }
+
         tabsView = new MainTabsLayout(context, resourceProvider);
         tabsView.setClipChildren(false);
-        tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
-        tabsView.setMaxWidth(dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая панель — во всю ширину, без внутренних отступов пилюли
+            final int vPad = dp(4);
+            tabsView.setPadding(0, vPad, 0, vPad);
+            tabsView.setMaxWidth(0);
+        } else {
+            tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
+            tabsView.setMaxWidth(dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        }
 
-        tabs = new GlassTabView[5];
+        tabs = new GlassTabView[4];
+        tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
-        tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
         tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
-        tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
+        
         tabs[INDEX_CHATS].setOnLongClickListener(this::openFoldersSelector);
-        tabs[INDEX_CONTACTS].setOnLongClickListener(this::openContactsSelector);
         tabs[INDEX_CALLS].setOnLongClickListener(this::openCallsSelector);
         tabs[INDEX_PROFILE].setOnLongClickListener(this::openAccountSelector);
 
         tabsView.addTabToIgnoreClick(tabs[INDEX_CHATS]);
-        tabsView.addTabToIgnoreClick(tabs[INDEX_CONTACTS]);
         tabsView.addTabToIgnoreClick(tabs[INDEX_PROFILE]);
         tabsView.addTabToIgnoreClick(tabs[INDEX_CALLS]);
 
         for (int index = 0; index < tabs.length; index++) {
             final GlassTabView view = tabs[index];
 
-            final int position = indexToPosition(index);
+            final int tabIndex = index;
             tabs[index].setOnClickListener(v -> {
                 if (viewPager.isManualScrolling() || viewPager.isTouch()) {
+                    return;
+                }
+
+                final int position = indexToPosition(tabIndex);
+                if (position < 0 || position >= getFragmentsCount()) {
                     return;
                 }
 
@@ -344,13 +411,35 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 }
 
                 selectTab(position, true);
-                viewPager.scrollToPosition(position);
+                Boolean forwardVisual = null;
+                if (tabsView != null) {
+                    int currentPos = viewPager.getCurrentPosition();
+                    GlassTabView currentTab = null;
+                    for (int j = 0; j < tabs.length; j++) {
+                        if (tabs[j] != null && indexToPosition(j) == currentPos
+                                && tabs[j].getVisibility() == View.VISIBLE
+                                && tabs[j].getParent() == tabsView) {
+                            currentTab = tabs[j];
+                            break;
+                        }
+                    }
+                    if (currentTab != null) {
+                        float currentCenter = currentTab.getX() + currentTab.getWidth() / 2f;
+                        float tappedCenter = view.getX() + view.getWidth() / 2f;
+                        if (currentCenter != tappedCenter) {
+                            forwardVisual = tappedCenter > currentCenter;
+                        }
+                    }
+                }
+                viewPager.scrollToPosition(position, forwardVisual);
             });
 
             tabsView.addView(tabs[index]);
             tabsView.setViewVisible(view, true, false);
+            tabs[index].setTitleVisible(app.nimarkogram.messenger.NimarkoConfig.showMainTabsTitle);
         }
         checkUi_callTabVisible(getUserConfig().showCallsTab, false);
+        applyEditorTabsVisibility(false);
 
         selectTab(viewPager.getCurrentPosition(), false);
 
@@ -362,10 +451,19 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
         iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
+        final boolean classicTabs = app.nimarkogram.messenger.NimarkoConfig.classicUi;
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
-        tabsViewBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
-        tabsViewBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+        // LinkiGram: классическая панель — плоская полоса без скруглений и отступов
+        tabsViewBackground.setRadius(classicTabs ? 0 : dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
+        tabsViewBackground.setPadding(classicTabs ? 0 : dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+        applyTabsBackgroundStyle(tabsViewBackground);
         tabsView.setBackground(tabsViewBackground);
+        tabsView.setLiquidDragListener(stretch -> {
+            // стекло реагирует на движение: усиливается преломление, как на iOS
+            try {
+                tabsViewBackground.setIntensity(0.75f + 0.45f * stretch);
+            } catch (Throwable ignored) {}
+        });
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
         iBlur3FactoryFade.setSourceRootView(viewPositionWatcher, contentView);
@@ -379,8 +477,60 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsViewWrapper = new FrameLayout(context);
         tabsViewWrapper.setOnClickListener(v -> {});
-        tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         tabsViewWrapper.setClipToPadding(false);
+        
+        if (app.nimarkogram.messenger.NimarkoConfig.showSearchInTabs) {
+            tabsContainer = new LinearLayout(context);
+            tabsContainer.setOrientation(LinearLayout.HORIZONTAL);
+            tabsContainer.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+            tabsContainer.setPadding(dp(2), dp(2), dp(2), dp(2));
+
+            LinearLayout.LayoutParams tabsParams = LayoutHelper.createLinear(
+                    0, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, 1.0f);
+            tabsContainer.addView(tabsView, tabsParams);
+
+            searchButton = GlassTabView.createStaticTab(
+                    context,
+                    resourceProvider,
+                    R.drawable.outline_header_search,
+                    R.string.Search,
+                    false
+            );
+            searchButton.setOnClickListener(v -> onSearchButtonClick());
+            
+            searchButton.setOnLongClickListener(v -> {
+                app.nimarkogram.messenger.chats.CGChatMenuInjector.INSTANCE.openArchivedChats(this);
+                return true;
+            });
+            searchButtonBackground = iBlur3FactoryGlass.create(
+                    searchButton, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
+            searchButtonBackground.setRadius(dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f));
+            searchButtonBackground.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+            applyTabsBackgroundStyle(searchButtonBackground);
+            searchButton.setBackground(searchButtonBackground);
+
+            int searchSize = DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS;
+            tabsContainer.addView(searchButton,
+                    LayoutHelper.createLinear(searchSize, searchSize, -8f, 0f, 0f, 0f));
+
+            tabsViewWrapper.addView(tabsContainer,
+                    LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT,
+                            DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
+                            Gravity.BOTTOM));
+        } else if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // LinkiGram: классическая панель занимает всю ширину экрана
+            tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(
+                    LayoutHelper.MATCH_PARENT,
+                    DialogsActivity.MAIN_TABS_HEIGHT,
+                    Gravity.BOTTOM));
+        } else {
+            tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(
+                    328 + DialogsActivity.MAIN_TABS_MARGIN * 2,
+                    DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
+                    Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        }
+        
+        tabsViewWrapper.setVisibility(app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible() ? View.VISIBLE : View.GONE);
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
 
         updateLayoutWrapper = new UpdateLayoutWrapper(context);
@@ -401,6 +551,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return;
         }
 
+        if (app.nimarkogram.messenger.NimarkoConfig.tabsNoUnread) return;
+
         final int unreadCount = MessagesStorage.getInstance(currentAccount).getMainUnreadCount();
         if (unreadCount > 0) {
             final String unreadCountFmt = LocaleController.formatNumber(unreadCount, ',');
@@ -408,27 +560,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         } else {
             tabs[INDEX_CHATS].setCounter(null, false, animated);
         }
-    }
-
-    public boolean openContactsSelector(View anchor) {
-        if (getContext() == null || getParentActivity() == null) return false;
-        final ItemOptions o = ItemOptions.makeOptions(this, anchor);
-        o.add(R.drawable.msg_contact_add, getString(R.string.NewContact), () -> {
-            new NewContactBottomSheet(this, getContext()).show();
-        });
-        o.add(R.drawable.msg_calls, getString(R.string.VoipChatRecentCalls), () -> {
-            Bundle args = new Bundle();
-            args.putBoolean("needFinishFragment", false);
-            presentFragment(new CallLogActivity(args));
-        });
-        o.setBlur(true);
-        o.translate(0, -dp(4));
-        o.setGravity(Gravity.LEFT);
-        final ShapeDrawable bg = Theme.createRoundRectDrawable(dp(28), getThemedColor(Theme.key_windowBackgroundWhite));
-        bg.getPaint().setShadowLayer(dp(6), 0, dp(1), Theme.multAlpha(0xFF000000, 0.15f));
-        o.setScrimViewBackground(bg);
-        o.show();
-        return true;
     }
 
     public boolean openCallsSelector(View anchor) {
@@ -462,10 +593,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private boolean openFoldersSelector(View anchor) {
         if (getContext() == null || getParentActivity() == null) return false;
         final ArrayList<MessagesController.DialogFilter> filters = getMessagesController().getDialogFilters();
-        if (filters == null || filters.size() <= 1) return false;
+        final boolean hasFolders = filters != null && filters.size() > 1;
 
         final ItemOptions o = ItemOptions.makeOptions(this, anchor);
-        for (int i = 0; i < filters.size(); i++) {
+        if (hasFolders) for (int i = 0; i < filters.size(); i++) {
             final MessagesController.DialogFilter folder = filters.get(i);
             final ActionBarMenuSubItem folderItem = new ActionBarMenuSubItem(getParentActivity(), 2, false, false, getResourceProvider());
             folderItem.setPadding(dp(18), 0, dp(18), 0);
@@ -498,7 +629,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             }
             folderItem.setEmojiCacheType(folder.title_noanimate ? AnimatedEmojiDrawable.CACHE_TYPE_NOANIMATE_FOLDER : AnimatedEmojiDrawable.CACHE_TYPE_MESSAGES);
             final int color = getMessagesController().folderTags ? folder.color : -1;
-            folderItem.setTextAndIcon(title, 0, new FolderDrawable(getContext(), R.drawable.msg_folders, color));
+            
+            String nmEmoticon = folder.isDefault() ? null : folder.emoticon;
+            int nmFolderIcon = (nmEmoticon != null && !nmEmoticon.isEmpty())
+                    ? app.nimarkogram.messenger.preferences.folders.helpers.FolderIconHelper.getTabIcon(nmEmoticon)
+                    : R.drawable.msg_folders;
+            folderItem.setTextAndIcon(title, 0, new FolderDrawable(getContext(), nmFolderIcon, color));
             folderItem.getTextView().setEmojiColor(getThemedColor(Theme.key_featuredStickers_addButton));
             folderItem.setMinimumWidth(160);
             folderItem.setOnClickListener(e -> {
@@ -507,7 +643,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             });
             o.addView(folderItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         }
-//        o.setBlur(true);
+        if (o.getItemsCount() == 0) return false;
+
         o.translate(-dp(8), -dp(4));
         o.setMaxHeight(dp(400));
         final ShapeDrawable bg = Theme.createRoundRectDrawable(dp(28), getThemedColor(Theme.key_windowBackgroundWhite));
@@ -588,15 +725,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void openFolder(int folderId) {
-        if (viewPager.getCurrentPosition() == POSITION_CHATS && dialogsActivity != null) {
+        if (viewPager.getCurrentPosition() == posChats() && dialogsActivity != null) {
             dialogsActivity.scrollToFolder(folderId);
         } else {
             if (dialogsActivity == null) {
                 prepareDialogsActivity(null);
             }
             pendingFolderId = folderId;
-            selectTab(POSITION_CHATS, true);
-            viewPager.scrollToPosition(POSITION_CHATS);
+            selectTab(posChats(), true);
+            viewPager.scrollToPosition(posChats());
         }
     }
 
@@ -633,13 +770,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                         }
                     }
                 }
-                if (!UserConfig.hasPremiumOnAccounts()) {
-                    freeAccounts -= (UserConfig.MAX_ACCOUNT_COUNT - UserConfig.MAX_ACCOUNT_DEFAULT_COUNT);
-                }
+                // LinkiGram: все слоты аккаунтов доступны без Premium
                 if (freeAccounts > 0 && availableAccount != null) {
                     presentFragment(new LoginActivity(availableAccount));
-                } else if (!UserConfig.hasPremiumOnAccounts()) {
-                    showDialog(new LimitReachedBottomSheet(this, getContext(), TYPE_ACCOUNTS, currentAccount, null));
                 }
             });
         }
@@ -663,6 +796,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 o.addView(btn, LayoutHelper.createLinear(230, 48));
             }
         }
+
+        if (o.getItemsCount() > 0) o.addGap();
+        o.add(R.drawable.tabs_reorder, getString(R.string.NM_BT_OpenEditor),
+                () -> presentFragment(new BottomTabsPreferencesActivity()));
 
         o.setBlur(true);
         o.translate(0, -dp(4));
@@ -732,16 +869,24 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         if (viewPager != null) {
             final int currentPosition = viewPager.getCurrentPosition();
-            if (currentPosition != POSITION_CALLS_OR_SETTINGS && dropCallsFragmentAfterPageScroll) {
-                dropFragmentAtPosition(POSITION_CALLS_OR_SETTINGS);
+            if (currentPosition != posSettings() && dropCallsFragmentAfterPageScroll) {
+                dropFragmentAtPosition(posSettings());
                 dropCallsFragmentAfterPageScroll = false;
             }
-            if (currentPosition != POSITION_PROFILE) {
-                dropFragmentAtPosition(POSITION_PROFILE);
+            int profilePosition = posProfile();
+            if (profilePosition >= 0 && currentPosition != profilePosition) {
+                dropFragmentAtPosition(profilePosition);
             }
-            if (pendingFolderId != null && currentPosition == POSITION_CHATS && dialogsActivity != null) {
+            if (pendingFolderId != null && currentPosition == posChats() && dialogsActivity != null) {
                 dialogsActivity.scrollToFolder(pendingFolderId);
                 pendingFolderId = null;
+            }
+            
+            if (app.nimarkogram.messenger.banners.NimarkoBannerConfig.enabled) {
+                try {
+                    app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance()
+                            .onTabVisibilityChanged(currentPosition == posProfile() ? 1f : 0f);
+                } catch (Throwable ignored) {}
             }
         }
 
@@ -755,8 +900,21 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             final float position = viewPager.getPositionAnimated();
             setGestureSelectedOverride(position, isDragByGesture);
             if (isDragByGesture) {
-                selectTab(Math.round(position), true);
+                
+                final int target = viewPager.getNextPositionAlpha() > viewPager.getCurrentPositionAlpha()
+                        ? viewPager.getNextPosition()
+                        : viewPager.getCurrentPosition();
+                selectTab(target, true);
             }
+        }
+
+        if (app.nimarkogram.messenger.banners.NimarkoBannerConfig.enabled) {
+            try {
+                float pos = viewPager.getPositionAnimated();
+                int profilePosition = posProfile();
+                float vis = profilePosition < 0 ? 0f : Math.max(0f, 1f - Math.abs(profilePosition - pos));
+                app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance().onTabVisibilityChanged(vis);
+            } catch (Throwable ignored) {}
         }
 
         checkUi_fadeView();
@@ -764,15 +922,17 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         contentView.invalidate();
     }
 
-
     @Override
     protected int getFragmentsCount() {
-        return TABS_COUNT;
+        
+        return app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                .getEnabledTabs().size();
     }
 
     @Override
     protected int getStartPosition() {
-        return POSITION_CHATS;
+        
+        return posChats();
     }
 
     private DialogsActivity dialogsActivity;
@@ -797,53 +957,85 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             bundle = new Bundle();
         }
 
-        bundle.putBoolean("hasMainTabs", true);
+        bundle.putBoolean("hasMainTabs", app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible());
         dialogsActivity = new DialogsActivity(bundle);
         dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
-        putFragmentAtPosition(POSITION_CHATS, dialogsActivity);
+        putFragmentAtPosition(posChats(), dialogsActivity);
         return dialogsActivity;
     }
 
     @Override
     protected BaseFragment createBaseFragmentAt(int position) {
-        if (position == POSITION_CONTACTS) {
-            Bundle args = new Bundle();
-            args.putBoolean("needPhonebook", true);
-            args.putBoolean("needFinishFragment", false);
-            args.putBoolean("hasMainTabs", true);
-            return new ContactsActivity(args);
-        } else if (position == POSITION_CALLS_OR_SETTINGS) {
-            if (getUserConfig().showCallsTab) {
-                Bundle args = new Bundle();
-                args.putBoolean("needFinishFragment", false);
-                args.putBoolean("hasMainTabs", true);
-                return new CallLogActivity(args);
-            }
-            Bundle args = new Bundle();
-            args.putBoolean("hasMainTabs", true);
-            return new SettingsActivity(args);
-        } else if (position == POSITION_CHATS) {
-            Bundle args = new Bundle();
-            args.putBoolean("hasMainTabs", true);
-            dialogsActivity = new DialogsActivity(args);
-            dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
-            return dialogsActivity;
-        } else if (position == POSITION_PROFILE) {
-            Bundle args = new Bundle();
-            args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
-            args.putBoolean("my_profile", true);
-            // args.putBoolean("expandPhoto", true);
-            args.putBoolean("hasMainTabs", true);
-            return new ProfileActivity(args);
+        final boolean showTabsBar = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
+        
+        app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType type = tabTypeAt(position);
+        if (type == null) return null;
+        Bundle args = new Bundle();
+        args.putBoolean("hasMainTabs", showTabsBar);
+        switch (type) {
+            case CHATS:
+                
+                dialogsActivity = new DialogsActivity(args);
+                dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
+                return dialogsActivity;
+            case PROFILE:
+                args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                args.putBoolean("my_profile", true);
+                return new ProfileActivity(args);
+            case SETTINGS:
+                if (getUserConfig().showCallsTab) {
+                    args.putBoolean("needFinishFragment", false);
+                    return new CallLogActivity(args);
+                }
+                return new SettingsActivity(args);
+            default:
+                return null;
         }
-        return null;
     }
 
     public DialogsActivity getDialogsActivity() {
         return dialogsActivity;
     }
 
-    /* */
+    private void syncFragmentsWithSettings() {
+        if (viewPager == null) return;
+        java.util.List<app.nimarkogram.messenger.utils.ui.MainTabsManager.Tab> enabled =
+                app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE.getEnabledTabs();
+        
+        app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType currentType = null;
+        if (viewPager != null) {
+            org.telegram.ui.ViewPagerActivity.FragmentState curState =
+                    fragmentsArr.get(viewPager.getCurrentPosition());
+            if (curState != null && curState.fragment != null) {
+                org.telegram.ui.ActionBar.BaseFragment f = curState.fragment;
+                if (f instanceof DialogsActivity) {
+                    currentType = app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.CHATS;
+                } else if (f instanceof ProfileActivity) {
+                    currentType = app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.PROFILE;
+                } else if (f instanceof SettingsActivity || f instanceof CallLogActivity) {
+                    currentType = app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.SETTINGS;
+                }
+            }
+        }
+        
+        for (int i = 0, n = Math.max(enabled.size(), TABS_COUNT); i < n; i++) {
+            dropFragmentAtPosition(i);
+        }
+        dialogsActivity = null;
+        
+        int targetPos = posChats();
+        if (currentType != null) {
+            int p = app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                    .getPosition(currentType);
+            if (p >= 0) targetPos = p;
+        }
+        viewPager.setPosition(targetPos);
+        viewPager.rebuild(false);
+        
+        if (tabs != null) {
+            selectTab(targetPos, false);
+        }
+    }
 
     public GlassTabView[] tabs;
 
@@ -855,16 +1047,25 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     public void setGestureSelectedOverride(float animatedPosition, boolean allow) {
+        
+        final float curAlpha = viewPager.getCurrentPositionAlpha();
+        final float nextAlpha = viewPager.getNextPositionAlpha();
+        final int curPagerPos = viewPager.getCurrentPosition();
+        final int nextPagerPos = viewPager.getNextPosition();
         for (int index = 0; index < tabs.length; index++) {
             final int position = indexToPosition(index);
-            final float visibility = Math.max(0, 1f - Math.abs(position - animatedPosition));
+            float visibility;
+            if (position == curPagerPos) {
+                visibility = curAlpha;
+            } else if (position == nextPagerPos) {
+                visibility = nextAlpha;
+            } else {
+                visibility = 0f;
+            }
             tabs[index].setGestureSelectedOverride(visibility, allow);
         }
         tabsView.invalidate();
     }
-
-
-    /* * */
 
     public interface TabFragmentDelegate {
         default boolean canParentTabsSlide(MotionEvent ev, boolean forward) {
@@ -892,17 +1093,41 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     private boolean canScrollInternal(MotionEvent ev, boolean forward) {
         final BaseFragment fragment = getCurrentVisibleFragment();
-        if (fragment instanceof TabFragmentDelegate) {
-            final TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
-            return delegate.canParentTabsSlide(ev, forward);
 
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
+            if (fragment instanceof TabFragmentDelegate) {
+                final TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
+                return delegate.canParentTabsSlide(ev, forward);
+            }
+        } else if (app.nimarkogram.messenger.NimarkoConfig.openSettingsBySwipe || !app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
+            
+            final int pos = viewPager != null ? viewPager.getCurrentPosition() : 0;
+            final int count = getFragmentsCount();
+            if (fragment instanceof DialogsActivity) {
+                final DialogsActivity da = getDialogsActivity();
+                if (da == null) return false;
+                if (da.getRightSlidingProgress() > 0.5f) return false;
+                if (da.isSearchVisible()) return false;
+
+                final org.telegram.ui.Components.FilterTabsView ftv = da.getFilterTabsView();
+                final boolean isFirstTab = ftv == null
+                        || ftv.getTabsCount() < 2
+                        || ftv.getCurrentTabId() == ftv.getFirstTabId();
+                final boolean isLastTab = ftv == null
+                        || ftv.getTabsCount() < 2
+                        || ftv.getCurrentTabId() == ftv.getLastTabId();
+                if (forward) {
+                    return isLastTab && pos < count - 1;
+                } else {
+                    return isFirstTab && pos > 0;
+                }
+            }
+            
+            return forward ? (pos < count - 1) : (pos > 0);
         }
 
         return false;
     }
-
-
-    /* * */
 
     private int navigationBarHeight;
     private int insetLeft;
@@ -923,7 +1148,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         ViewGroup.MarginLayoutParams lp;
         {
-            final int height = navigationBarHeight + updateLayoutHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+            
+            final int height = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()
+                    ? (navigationBarHeight + updateLayoutHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS))
+                    : 0;
             lp = (ViewGroup.MarginLayoutParams) fadeView.getLayoutParams();
             if (lp.height != height) {
                 lp.height = height;
@@ -957,6 +1185,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
+        if (lifecycleDestroyed) {
+            return;
+        }
         if (id == NotificationCenter.notificationsCountUpdated || id == NotificationCenter.updateInterfaces) {
             checkUnreadCount(fragmentView != null && fragmentView.isAttachedToWindow());
         } else if (id == NotificationCenter.appUpdateLoading) {
@@ -993,28 +1224,47 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         } else if (id == NotificationCenter.callTabsVisibleToggled) {
             final boolean callTabsVisible = getUserConfig().showCallsTab;
             checkUi_callTabVisible(callTabsVisible, true);
-            if (viewPager != null && viewPager.getCurrentPosition() == POSITION_CALLS_OR_SETTINGS) {
-                viewPager.scrollToPosition(POSITION_CHATS);
-                selectTab(POSITION_CHATS, true);
+            if (viewPager != null && viewPager.getCurrentPosition() == posSettings()) {
+                viewPager.scrollToPosition(posChats());
+                selectTab(posChats(), true);
                 dropCallsFragmentAfterPageScroll = true;
             } else {
-                dropFragmentAtPosition(POSITION_CALLS_OR_SETTINGS);
+                dropFragmentAtPosition(posSettings());
             }
         } else if (id == NotificationCenter.mainUserInfoChanged) {
             if (tabs != null && tabs[INDEX_PROFILE] != null) {
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
             }
-        } else if (id == NotificationCenter.contactsPermissionBadgeCheck) {
-            checkContactsTabBadge();
+        } else if (id == NotificationCenter.cgTabsUpdated) {
+            
+            boolean showMainTabsFlag = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
+            if (tabsViewWrapper != null) {
+                tabsViewWrapper.setVisibility(showMainTabsFlag ? View.VISIBLE : View.GONE);
+            }
+            
+            syncFragmentsWithSettings();
+            applyEditorTabsVisibility(true);
+            if (tabs != null) {
+                for (GlassTabView t : tabs) {
+                    if (t != null) {
+                        t.setTitleVisible(app.nimarkogram.messenger.NimarkoConfig.showMainTabsTitle);
+                    }
+                }
+            }
+            
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
         }
     }
 
     private NotificationCenter.ObserversGroup observersGroup;
     private NotificationCenter.ObserversGroup globalObserversGroup;
-
+    private boolean lifecycleDestroyed;
 
     @Override
     public boolean onFragmentCreate() {
+        lifecycleDestroyed = false;
         observersGroup = NotificationCenter.getInstance(currentAccount).createObserversGroup(this)
             .add(NotificationCenter.fileLoaded)
             .add(NotificationCenter.fileLoadProgressChanged)
@@ -1028,13 +1278,27 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         globalObserversGroup = NotificationCenter.getGlobalInstance().createObserversGroup(this)
             .add(NotificationCenter.appUpdateAvailable)
             .add(NotificationCenter.appUpdateLoading)
-            .add(NotificationCenter.needSetDayNightTheme);
+            .add(NotificationCenter.needSetDayNightTheme)
+            .add(NotificationCenter.cgTabsUpdated);
 
         return super.onFragmentCreate();
     }
 
     @Override
     public void onFragmentDestroy() {
+        lifecycleDestroyed = true;
+        if (accountChangeHintRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(accountChangeHintRunnable);
+            accountChangeHintRunnable = null;
+        }
+        if (openSearchChatsRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(openSearchChatsRunnable);
+            openSearchChatsRunnable = null;
+        }
+        if (accountSwitchHint != null) {
+            accountSwitchHint.hide();
+            accountSwitchHint = null;
+        }
         Bulletin.removeDelegate(this);
         Bulletin.removeDelegate(contentView);
 
@@ -1062,10 +1326,16 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return;
         }
 
+        final boolean showMainTabs = app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible();
+
         final float animatedPosition = viewPager.getPositionAnimated();
-        final float isProfile = 1f - MathUtils.clamp(Math.abs(POSITION_PROFILE - animatedPosition), 0, 1);
+        final int profilePosition = posProfile();
+        final float isProfile = profilePosition < 0 ? 0f
+                : 1f - MathUtils.clamp(Math.abs(profilePosition - animatedPosition), 0, 1);
         final float hide = 1f - AndroidUtilities.getNavigationBarThirdButtonsFactor(0, 1f, navigationBarHeight);
-        float alpha = (1f - isProfile * hide) * animatorTabsVisible.getFloatValue();
+        float alpha = showMainTabs
+                ? (1f - isProfile * hide) * animatorTabsVisible.getFloatValue()
+                : 0f;
         if (tabletLayout) {
             alpha = 0.0f;
         }
@@ -1075,26 +1345,72 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         fadeView.setVisibility(alpha > 0 ? View.VISIBLE : View.GONE);
     }
 
+    private boolean hiddenByOverlay = false;
+
     private void checkUi_tabsPosition() {
+        if (hiddenByOverlay) return;
+        
+        if (!app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()) {
+            final View off = tabsContainer != null ? tabsContainer : tabsViewWrapper;
+            off.setVisibility(View.GONE);
+            off.setAlpha(0f);
+            off.setClickable(false);
+            off.setEnabled(false);
+            if (tabsViewWrapper != off) {
+                tabsViewWrapper.setVisibility(View.GONE);
+            }
+            return;
+        }
         final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
         final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
         final int normalY = -(updateLayoutHeight);
         final int hiddenY = normalY + dp(40);
 
         final float factor = animatorTabsVisible.getFloatValue();
-        final float scale = lerp(0.85f, 1f, factor);
 
-        tabsViewWrapper.setTranslationY(lerp(hiddenY, normalY, factor));
-        tabsView.setClickable(factor > 1);
-        tabsView.setEnabled(factor > 1);
-        tabsView.setAlpha(factor);
-        tabsView.setVisibility(factor > 0 ? View.VISIBLE : View.GONE);
+        final View surface = tabsContainer != null ? tabsContainer : tabsViewWrapper;
+        surface.setTranslationY(lerp(hiddenY, normalY, factor));
+        surface.setAlpha(factor);
+        surface.setClickable(factor >= 1);
+        surface.setEnabled(factor >= 1);
+        surface.setVisibility(factor > 0 ? View.VISIBLE : View.GONE);
+        if (tabsViewWrapper != surface) {
+            tabsViewWrapper.setTranslationY(lerp(hiddenY, normalY, factor));
+        }
     }
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
         if (tabsView != null) {
-            tabsView.setViewVisible(tabs[INDEX_SETTINGS], !callTabsVisible, animated);
-            tabsView.setViewVisible(tabs[INDEX_CALLS], callTabsVisible, animated);
+            boolean settingsAllowed = app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE
+                    .hasTab(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.SETTINGS);
+            tabsView.setViewVisible(tabs[INDEX_SETTINGS], settingsAllowed, animated);
+            tabsView.setViewVisible(tabs[INDEX_CALLS], false, animated);
+        }
+    }
+
+    private void applyEditorTabsVisibility(boolean animated) {
+        if (tabsView == null || tabs == null) return;
+        app.nimarkogram.messenger.utils.ui.MainTabsManager mgr =
+                app.nimarkogram.messenger.utils.ui.MainTabsManager.INSTANCE;
+        tabsView.setViewVisible(tabs[INDEX_PROFILE],
+                mgr.hasTab(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.PROFILE), animated);
+        tabsView.setViewVisible(tabs[INDEX_CHATS],
+                mgr.hasTab(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType.CHATS), animated);
+        checkUi_callTabVisible(getUserConfig().showCallsTab, animated);
+        for (app.nimarkogram.messenger.utils.ui.MainTabsManager.Tab t : mgr.getAllTabs()) {
+            GlassTabView view = tabForType(t.getType());
+            if (view != null && view.getParent() == tabsView) {
+                tabsView.bringChildToFront(view);
+            }
+        }
+    }
+
+    private GlassTabView tabForType(app.nimarkogram.messenger.utils.ui.MainTabsManager.TabType type) {
+        switch (type) {
+            case PROFILE: return tabs[INDEX_PROFILE];
+            case CHATS: return tabs[INDEX_CHATS];
+            case SETTINGS: return tabs[INDEX_SETTINGS];
+            default: return null;
         }
     }
 
@@ -1109,17 +1425,36 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         return themeDescriptions;
     }
 
-    /* * */
-
     private class MainTabsActivityControllerImpl implements MainTabsActivityController {
         @Override
         public void setTabsVisible(boolean visible) {
             animatorTabsVisible.setValue(visible, true);
         }
+
+        @Override
+        public void setTabsHiddenByOverlay(boolean hidden) {
+            if (tabsViewWrapper == null) return;
+            hiddenByOverlay = hidden;
+            if (hidden) {
+                tabsViewWrapper.animate().cancel();
+                tabsViewWrapper.animate()
+                        .alpha(0f)
+                        .translationY(dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS + 16))
+                        .setDuration(200)
+                        .withEndAction(() -> tabsViewWrapper.setVisibility(View.GONE))
+                        .start();
+            } else {
+                tabsViewWrapper.setVisibility(View.VISIBLE);
+                tabsViewWrapper.animate().cancel();
+                tabsViewWrapper.animate()
+                        .alpha(1f)
+                        .translationY(0f)
+                        .setDuration(200)
+                        .withEndAction(() -> checkUi_tabsPosition())
+                        .start();
+            }
+        }
     }
-
-
-    /* Slide */
 
     @Override
     public boolean canBeginSlide() {
@@ -1158,41 +1493,54 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
     }
 
-
     private HintView2 accountSwitchHint;
     private boolean accountSwitchHintShown;
+    private Runnable accountChangeHintRunnable;
+    private Runnable openSearchChatsRunnable;
 
     private void showAccountChangeHint() {
         if (accountSwitchHintShown) return;
 
         if (accountSwitchHint == null && HintsController.Hint.AccountSwitchHint.show()) {
-            AndroidUtilities.runOnUIThread(() -> {
-                if (getContext() == null || tabs == null) return;
+            accountChangeHintRunnable = () -> {
+                accountChangeHintRunnable = null;
+                if (lifecycleDestroyed || isFinished || fragmentView == null || getContext() == null
+                        || tabs == null || INDEX_PROFILE < 0 || INDEX_PROFILE >= tabs.length
+                        || tabsView == null || contentView == null) {
+                    return;
+                }
 
                 final View v = tabs[INDEX_PROFILE];
+                if (v == null || !v.isAttachedToWindow()) {
+                    return;
+                }
                 final float translate = (contentView.getWidth() - ((tabsView.getX() + v.getX()) + v.getWidth()) + v.getWidth() / 2f) / AndroidUtilities.density;
 
-                accountSwitchHint = new HintView2(getContext(), HintView2.DIRECTION_BOTTOM);
-                accountSwitchHint.setTranslationY(-navigationBarHeight + dp(4));
-                accountSwitchHint.setPadding(dp(7.33f), 0, dp(7.33f), 0);
-                accountSwitchHint.setMultilineText(false);
-                accountSwitchHint.setCloseButton(true);
-                accountSwitchHint.setText(getString(R.string.SwitchAccountHint));
-                accountSwitchHint.setJoint(1, -translate + 7.33f);
-                contentView.addView(accountSwitchHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 100, Gravity.BOTTOM | Gravity.FILL_HORIZONTAL, 0, 0, 0, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
-                accountSwitchHint.setOnHiddenListener(() -> AndroidUtilities.removeFromParent(accountSwitchHint));
-                accountSwitchHint.setDuration(8000);
-                accountSwitchHint.show();
+                final HintView2 hint = new HintView2(getContext(), HintView2.DIRECTION_BOTTOM);
+                accountSwitchHint = hint;
+                hint.setTranslationY(-navigationBarHeight + dp(4));
+                hint.setPadding(dp(7.33f), 0, dp(7.33f), 0);
+                hint.setMultilineText(false);
+                hint.setCloseButton(true);
+                hint.setText(getString(R.string.SwitchAccountHint));
+                hint.setJoint(1, -translate + 7.33f);
+                contentView.addView(hint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 100, Gravity.BOTTOM | Gravity.FILL_HORIZONTAL, 0, 0, 0, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
+                hint.setOnHiddenListener(() -> {
+                    AndroidUtilities.removeFromParent(hint);
+                    if (accountSwitchHint == hint) {
+                        accountSwitchHint = null;
+                    }
+                });
+                hint.setDuration(8000);
+                hint.show();
 
                 HintsController.Hint.AccountSwitchHint.increment();
-            }, 1500);
+            };
+            AndroidUtilities.runOnUIThread(accountChangeHintRunnable, 1500);
         }
 
         accountSwitchHintShown = true;
     }
-
-
-    /* * */
 
     private final @NonNull BlurredBackgroundSourceColor iBlur3SourceColor;
     private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceTabGlass;
@@ -1217,10 +1565,30 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
     }
 
+    private static void applyTabsBackgroundStyle(android.graphics.drawable.Drawable d) {
+        if (d == null) return;
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsSemiTransparent) {
+            d.setAlpha(app.nimarkogram.messenger.NimarkoConfig.MAIN_TABS_SEMI_TRANSPARENT_ALPHA);
+        } else {
+            d.setAlpha(255);
+        }
+        int tint = app.nimarkogram.messenger.NimarkoConfig.mainTabsTintColor;
+        if (tint != 0) {
+            d.setColorFilter(tint, android.graphics.PorterDuff.Mode.SRC_ATOP);
+        } else {
+            d.setColorFilter(null);
+        }
+    }
+
     private void blur3_updateColors() {
         blur3_updateFadeColors();
         if (tabsViewBackground != null) {
             tabsViewBackground.updateColors();
+            applyTabsBackgroundStyle(tabsViewBackground);
+        }
+        if (searchButtonBackground != null) {
+            searchButtonBackground.updateColors();
+            applyTabsBackgroundStyle(searchButtonBackground);
         }
         blur3_invalidateBlur();
         if (fadeView != null) {
@@ -1234,6 +1602,47 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 tabView.updateColorsLottie();
             }
         }
+        if (searchButton != null) {
+            searchButton.invalidate();
+            searchButton.updateColorsLottie();
+        }
+    }
+
+    private void onSearchButtonClick() {
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsForceOpenChats) {
+            openSearchChats();
+            return;
+        }
+        BaseFragment fragment = getCurrentVisibleFragment();
+        if (fragment instanceof SettingsActivity) {
+            ((SettingsActivity) fragment).openSearch();
+            return;
+        }
+        
+        openSearchChats();
+    }
+
+    private void openSearchChats() {
+        if (viewPager == null) return;
+        if (viewPager.getCurrentPosition() != posChats()) {
+            selectTab(posChats(), true);
+            viewPager.scrollToPosition(posChats());
+        }
+        
+        if (openSearchChatsRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(openSearchChatsRunnable);
+        }
+        openSearchChatsRunnable = () -> {
+            openSearchChatsRunnable = null;
+            if (lifecycleDestroyed || isFinished || fragmentView == null) {
+                return;
+            }
+            final DialogsActivity da = getDialogsActivity();
+            if (da != null) {
+                da.search("", true);
+            }
+        };
+        AndroidUtilities.runOnUIThread(openSearchChatsRunnable, 100);
     }
 
     @Override

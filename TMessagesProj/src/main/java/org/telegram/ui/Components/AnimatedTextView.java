@@ -198,9 +198,31 @@ public class AnimatedTextView extends View {
 
         public boolean centerY = true;
 
+        private static boolean hasEllipsizedPart(Part[] parts) {
+            if (parts == null) {
+                return false;
+            }
+            for (Part part : parts) {
+                if (part != null && part.layout != null && part.layout.getLineCount() > 0
+                        && part.layout.getEllipsisCount(0) > 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean needsEllipsizeGradient() {
+            if (!ellipsizeByGradient) {
+                return false;
+            }
+            return hasEllipsizedPart(currentParts)
+                    || (oldParts != null && t < 1f && hasEllipsizedPart(oldParts));
+        }
+
         @Override
         public void draw(@NonNull Canvas canvas) {
-            if (ellipsizeByGradient) {
+            final boolean drawEllipsizeGradient = needsEllipsizeGradient();
+            if (drawEllipsizeGradient) {
                 AndroidUtilities.rectTmp.set(bounds);
                 AndroidUtilities.rectTmp.right -= rightPadding;
                 canvas.saveLayerAlpha(AndroidUtilities.rectTmp, 255, Canvas.ALL_SAVE_FLAG);
@@ -319,7 +341,7 @@ public class AnimatedTextView extends View {
                 }
             }
             canvas.restore();
-            if (ellipsizeByGradient) {
+            if (drawEllipsizeGradient) {
                 final float w = AndroidUtilities.dp(16);
                 if (ellipsizeGradient == null) {
                     ellipsizeGradient = new LinearGradient(0, 0, w, 0, new int[] {0x00ff0000, 0xffff0000}, new float[] {0, 1}, Shader.TileMode.CLAMP);
@@ -397,7 +419,6 @@ public class AnimatedTextView extends View {
                 oldWidth = oldHeight = 0;
                 isRTL = AndroidUtilities.isRTL(currentText);
 
-                // order execution matters
                 RegionCallback onEqualRegion = (part, from, to) -> {
                     StaticLayout layout = makeLayout(part, width - (int) Math.ceil(Math.min(currentWidth, oldWidth)));
                     final Part currentPart = new Part(layout, currentWidth, oldParts.size());
@@ -429,7 +450,6 @@ public class AnimatedTextView extends View {
                 CharSequence to = splitByWords ? new WordSequence(currentText) : currentText;
 
                 diff(from, to, onEqualRegion, onNewPart, onOldPart);
-//                betterDiff(from, to, onEqualRegion, onNewPart, onOldPart);
 
                 clearCurrentParts();
                 if (this.currentParts == null || this.currentParts.length != currentParts.size()) {
@@ -882,15 +902,15 @@ public class AnimatedTextView extends View {
                         int alen = a - astart, blen = b - bstart;
                         if (alen > 0 || blen > 0) {
                             if (alen == blen && equal) {
-                                // equal part on [astart, a)
+                                
                                 onEqualPart.run(newText.subSequence(astart, a), astart, a);
                             } else {
                                 if (alen > 0) {
-                                    // new part on [astart, a)
+                                    
                                     part(onNewPart, newText.subSequence(astart, a), astart, a);
                                 }
                                 if (blen > 0) {
-                                    // old part on [bstart, b)
+                                    
                                     part(onOldPart, oldText.subSequence(bstart, b), bstart, b);
                                 }
                             }
@@ -912,7 +932,7 @@ public class AnimatedTextView extends View {
             if (Math.abs(lastTextPaint - textSizePx) > 0.5f) {
                 final int width = overrideFullWidth > 0 ? overrideFullWidth : bounds.width();
                 if (currentParts != null) {
-                    // relayout parts:
+                    
                     currentWidth = 0;
                     currentHeight = 0;
                     for (int i = 0; i < currentParts.length; ++i) {
@@ -1147,7 +1167,7 @@ public class AnimatedTextView extends View {
         drawable.setCallback(this);
         drawable.setOnAnimationFinishListener(() -> {
             if (toSetText != null) {
-                // wrapped toSetText here to do requestLayout()
+                
                 AnimatedTextView.this.setText(toSetText, toSetMoveDown, true);
                 toSetText = null;
                 toSetMoveDown = false;

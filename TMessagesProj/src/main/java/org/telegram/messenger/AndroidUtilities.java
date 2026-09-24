@@ -89,6 +89,7 @@ import android.util.DisplayMetrics;
 import android.util.Pair;
 import android.util.StateSet;
 import android.util.TypedValue;
+import android.view.Choreographer;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -237,6 +238,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -250,6 +252,7 @@ public class AndroidUtilities {
     public final static int REPLACING_TAG_TYPE_LINK_NBSP = 3;
     public final static int REPLACING_TAG_TYPE_UNDERLINE = 4;
 
+    public final static String TYPEFACE_ROBOTO_REGULAR = "fonts/rregular.ttf";
     public final static String TYPEFACE_ROBOTO_MEDIUM = "fonts/rmedium.ttf";
     public final static String TYPEFACE_ROBOTO_EXTRA_BOLD = "fonts/rextrabold.ttf";
     public final static String TYPEFACE_ROBOTO_MEDIUM_ITALIC = "fonts/rmediumitalic.ttf";
@@ -378,8 +381,8 @@ public class AndroidUtilities {
                             + "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
                             + "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
                             + "(?:" + DOMAIN_NAME + ")"
-                            + "(?:\\:\\d{1,5})?)" // plus option port number
-                            + "(\\/(?:(?:[" + GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~"  // plus option query params
+                            + "(?:\\:\\d{1,5})?)" 
+                            + "(\\/(?:(?:[" + GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~"  
                             + "\\-\\.\\+\\!\\*\\'\\(\\)\\,\\_])|(?:\\%[a-fA-F0-9]{2}))*)?"
                             + "(?:\\b|$)");
         } catch (Exception e) {
@@ -584,7 +587,7 @@ public class AndroidUtilities {
             index = startIndex;
         }
         SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(str);
-        if (/*runnable != null &&*/ index >= 0) {
+        if (  index >= 0) {
             if (type == REPLACING_TAG_TYPE_LINK_NBSP) {
                 spannableStringBuilder.replace(index, index + len, AndroidUtilities.replaceMultipleCharSequence(" ", spannableStringBuilder.subSequence(index, index + len), " "));
             }
@@ -661,7 +664,6 @@ public class AndroidUtilities {
     public static SpannableStringBuilder makeClickable(CharSequence str, Runnable runnable) {
         return makeClickable(str, 0, runnable, null);
     }
-
 
     public static SpannableStringBuilder replaceMultipleTags(String str, Runnable ...runnables) {
         SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(str);
@@ -818,10 +820,6 @@ public class AndroidUtilities {
             span.useLinkPaintColor = link;
         }
 
-//        SpannableString leftArrow = new SpannableString("< ");
-//        leftArrow.setSpan(span, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-//        text = AndroidUtilities.replaceMultipleCharSequence("< ", text, leftArrow);
-
         SpannableString leftArrow = new SpannableString("<");
         leftArrow.setSpan(span, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         text = AndroidUtilities.replaceMultipleCharSequence("<", text, leftArrow);
@@ -831,13 +829,7 @@ public class AndroidUtilities {
 
     public static void recycleBitmaps(List<Bitmap> bitmapToRecycle) {
         if (Build.VERSION.SDK_INT <= 23) {
-            // cause to crash:
-            // /system/lib/libskia.so (SkPixelRef::unlockPixels()+3)
-            // /system/lib/libskia.so (SkBitmap::freePixels()+14)
-            // /system/lib/libskia.so (SkBitmap::setPixelRef(SkPixelRef*, int, int)+50)
-            // /system/lib/libhwui.so (android::uirenderer::ResourceCache::recycleLocked(SkBitmap*)+30)
-            // /system/lib/libhwui.so (android::uirenderer::ResourceCache::recycle(SkBitmap*)+20)
-            // gc recycle it automatically
+            
             return;
         }
         if (bitmapToRecycle != null && !bitmapToRecycle.isEmpty()) {
@@ -932,8 +924,61 @@ public class AndroidUtilities {
     }
 
     public static void removeFromParent(View child) {
-        if (child != null && child.getParent() != null) {
-            ((ViewGroup) child.getParent()).removeView(child);
+        removeFromParent(child, null);
+    }
+
+    public static void removeFromParent(View child, Runnable afterRemoval) {
+        if (child == null) {
+            if (afterRemoval != null) {
+                if (Looper.myLooper() == Looper.getMainLooper()) {
+                    afterRemoval.run();
+                } else {
+                    runOnUIThread(afterRemoval);
+                }
+            }
+            return;
+        }
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            runOnUIThread(() -> removeFromParent(child, afterRemoval));
+            return;
+        }
+
+        ViewParent viewParent = child.getParent();
+        if (!(viewParent instanceof ViewGroup)) {
+            if (afterRemoval != null && viewParent == null) {
+                afterRemoval.run();
+            }
+            return;
+        }
+        ViewGroup parent = (ViewGroup) viewParent;
+
+        final boolean isDirectWindowChild =
+                parent == child.getRootView() && parent.isAttachedToWindow();
+        if (isDirectWindowChild) {
+            final int previousVisibility = child.getVisibility();
+            child.setVisibility(View.GONE);
+            Runnable removeIfStillOwned = () -> {
+                if (child.getParent() == parent) {
+                    parent.removeView(child);
+                }
+                if (afterRemoval != null && child.getParent() != parent) {
+                    
+                    child.setVisibility(previousVisibility);
+                    afterRemoval.run();
+                }
+            };
+            try {
+                Choreographer.getInstance().postFrameCallback(
+                        frameTimeNanos -> parent.post(removeIfStillOwned));
+            } catch (Throwable t) {
+                
+                parent.postOnAnimation(() -> parent.post(removeIfStillOwned));
+            }
+        } else {
+            parent.removeView(child);
+            if (afterRemoval != null && child.getParent() != parent) {
+                afterRemoval.run();
+            }
         }
     }
 
@@ -1031,7 +1076,7 @@ public class AndroidUtilities {
         }
         View currentView = view;
         while (currentView != parent) {
-            //fix strange offset inside view pager
+            
             if (!(currentView.getParent() instanceof ViewPager)) {
                 pointPosition[0] += currentView.getX();
                 pointPosition[1] += currentView.getY();
@@ -1050,18 +1095,38 @@ public class AndroidUtilities {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     public static void getBitmapFromSurface(SurfaceView surfaceView, Bitmap surfaceBitmap) {
+        getBitmapFromSurfaceChecked(surfaceView, surfaceBitmap);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public static boolean getBitmapFromSurfaceChecked(SurfaceView surfaceView, Bitmap surfaceBitmap) {
         if (surfaceView == null || !surfaceView.getHolder().getSurface().isValid()) {
-            return;
+            return false;
         }
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        PixelCopy.request(surfaceView, surfaceBitmap, copyResult -> {
-            countDownLatch.countDown();
-        }, Utilities.searchQueue.getHandler());
+        final int[] result = {PixelCopy.ERROR_UNKNOWN};
         try {
-            countDownLatch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            PixelCopy.request(surfaceView, surfaceBitmap, copyResult -> {
+                result[0] = copyResult;
+                countDownLatch.countDown();
+            }, Utilities.searchQueue.getHandler());
+        } catch (IllegalArgumentException e) {
+            return false;
         }
+        boolean interrupted = false;
+        while (true) {
+            try {
+                countDownLatch.await();
+                break;
+            } catch (InterruptedException e) {
+                
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        return result[0] == PixelCopy.SUCCESS;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
@@ -1267,7 +1332,7 @@ public class AndroidUtilities {
             s = new SpannableStringBuilder(s.toString().replace('─', ' '));
         }
         if (!TextUtils.isEmpty(s) && TextUtils.lastIndexOf(s, '_') == s.length() - 1) {
-            //fix infinity loop regex
+            
             SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(s.toString());
             s = spannableStringBuilder.replace(s.length() - 1, s.length(), "a");
         }
@@ -1302,12 +1367,12 @@ public class AndroidUtilities {
         return true;
     };
 
-    @Deprecated // use addLinksSafe
+    @Deprecated 
     public static boolean addLinks(Spannable text, int mask) {
         return addLinks(text, mask, false);
     }
 
-    @Deprecated // use addLinksSafe
+    @Deprecated 
     public static boolean addLinks(Spannable text, int mask, boolean internalOnly) {
         return addLinks(text, mask, internalOnly, true);
     }
@@ -1361,7 +1426,7 @@ public class AndroidUtilities {
         return success;
     }
 
-    @Deprecated // use addLinksSafe
+    @Deprecated 
     public static boolean addLinks(Spannable text, int mask, boolean internalOnly, boolean removeOldReplacements) {
         if (text == null || containsUnsupportedCharacters(text.toString()) || mask == 0) {
             return false;
@@ -1450,6 +1515,24 @@ public class AndroidUtilities {
             }
             i++;
         }
+    }
+
+    public static boolean isColorSpaceDrawCrash(IllegalArgumentException e) {
+        if (e == null) {
+            return false;
+        }
+        if (e.getMessage() != null && e.getMessage().contains("Invalid ID")) {
+            return true;
+        }
+        StackTraceElement[] trace = e.getStackTrace();
+        if (trace != null) {
+            for (StackTraceElement el : trace) {
+                if (el.getClassName() != null && el.getClassName().contains("ColorSpace")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static void fillStatusBarHeight(Context context, boolean force) {
@@ -1847,7 +1930,7 @@ public class AndroidUtilities {
             if (pathString == null) {
                 return false;
             }
-            // Allow sending VoIP logs from cache/voip_logs
+            
             if (pathString.matches(Pattern.quote(new File(ApplicationLoader.applicationContext.getCacheDir(), "voip_logs").getAbsolutePath()) + "/\\d+\\.log")) {
                 return false;
             }
@@ -1902,7 +1985,7 @@ public class AndroidUtilities {
                 }
             } catch (Exception e) {
                 pathString.replace("/./", "/");
-                //igonre
+                
             }
         }
         if (pathString.endsWith(".attheme")) {
@@ -1953,7 +2036,6 @@ public class AndroidUtilities {
             FileLog.e(e);
         }
     }
-
 
     @SuppressLint("WrongConstant")
     public static void lockOrientation(Activity activity, int orientation) {
@@ -2391,34 +2473,37 @@ public class AndroidUtilities {
     }
 
     public static Typeface getTypeface(String assetPath) {
+        
         synchronized (typefaceCache) {
-            if (!typefaceCache.containsKey(assetPath)) {
-                try {
-                    Typeface t;
-                    if (Build.VERSION.SDK_INT >= 26) {
-                        Typeface.Builder builder = new Typeface.Builder(ApplicationLoader.applicationContext.getAssets(), assetPath);
-                        if (assetPath.contains("rextrabold")) {
-                            builder.setWeight(800);
-                        }
-                        if (assetPath.contains("medium") || assetPath.contains("rbold")) {
-                            builder.setWeight(700);
-                        }
-                        if (assetPath.contains("italic")) {
-                            builder.setItalic(true);
-                        }
-                        t = builder.build();
-                    } else {
-                        t = Typeface.createFromAsset(ApplicationLoader.applicationContext.getAssets(), assetPath);
-                    }
-                    typefaceCache.put(assetPath, t);
-                } catch (Exception e) {
-                    if (BuildVars.LOGS_ENABLED) {
-                        FileLog.e("Could not get typeface '" + assetPath + "' because " + e.getMessage());
-                    }
-                    return null;
+            Typeface cached = typefaceCache.get(assetPath);
+            if (cached != null) return cached;
+            try {
+                Typeface t;
+                if (app.nimarkogram.messenger.NimarkoConfig.systemFonts) {
+                    t = app.nimarkogram.messenger.utils.ui.FontHelper.createTypeface(assetPath);
+                } else {
+                    t = app.nimarkogram.messenger.utils.ui.FontHelper.createTypefaceFromAsset(assetPath);
                 }
+                String customFont = app.nimarkogram.messenger.NimarkoConfig.customFontPath;
+                if (customFont != null && !customFont.isEmpty()) {
+                    try {
+                        java.io.File fontFile = new java.io.File(customFont);
+                        if (fontFile.exists() && fontFile.isFile()) {
+                            Typeface customT = Typeface.createFromFile(fontFile);
+                            if (customT != null && !assetPath.contains("mono") && !assetPath.contains("emoji")) {
+                                t = customT;
+                            }
+                        }
+                    } catch (Throwable ignored) {}
+                }
+                if (t != null) typefaceCache.put(assetPath, t);
+                return t;
+            } catch (Exception e) {
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.e("Could not get typeface '" + assetPath + "' because " + e.getMessage());
+                }
+                return null;
             }
-            return typefaceCache.get(assetPath);
         }
     }
 
@@ -2450,6 +2535,9 @@ public class AndroidUtilities {
     }
 
     public static int getShadowHeight() {
+        if (app.nimarkogram.messenger.NimarkoConfig.disableDividers) {
+            return 0;
+        }
         if (density >= 4.0f) {
             return 3;
         } else if (density >= 2.0f) {
@@ -2659,15 +2747,7 @@ public class AndroidUtilities {
 
                 FileLog.d("check dir " + (file == null ? null : file.getPath()) + " ");
                 if (file != null && (file.exists() || file.mkdirs()) && file.canWrite()) {
-//                    boolean canWrite = true;
-//                    try {
-//                        AndroidUtilities.createEmptyFile(new File(file, ".nomedia"));
-//                    } catch (Exception e) {
-//                        canWrite = false;
-//                    }
-//                    if (canWrite) {
-//                        return file;
-//                    }
+
                     return file;
                 } else if (file != null) {
                     FileLog.d("check dir file exist " + file.exists() + " can write " + file.canWrite());
@@ -2758,7 +2838,7 @@ public class AndroidUtilities {
             if (configuration == null) {
                 configuration = context.getResources().getConfiguration();
             }
-            // usingHardwareInput = false; just for test
+            
             usingHardwareInput = configuration.keyboard != Configuration.KEYBOARD_NOKEYS && configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
             WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
             if (manager != null) {
@@ -2946,6 +3026,11 @@ public class AndroidUtilities {
     }
 
     public static boolean isTabletForce() {
+        
+        int mode = app.nimarkogram.messenger.NimarkoConfig.tabletMode;
+        if (mode != app.nimarkogram.messenger.NimarkoConfig.TABLET_AUTO) {
+            return mode == app.nimarkogram.messenger.NimarkoConfig.TABLET_ENABLE;
+        }
         return ApplicationLoader.applicationContext != null && ApplicationLoader.applicationContext.getResources().getBoolean(R.bool.isTablet);
     }
 
@@ -2973,7 +3058,7 @@ public class AndroidUtilities {
     }
 
     public static boolean isTablet() {
-        return isTabletInternal() && !SharedConfig.forceDisableTabletMode;
+        return isTabletInternal()  ;
     }
 
     public static boolean isFold() {
@@ -3017,7 +3102,7 @@ public class AndroidUtilities {
     }
 
     public static int getPhotoSize(boolean highQuality) {
-        if (highQuality) {
+        if (highQuality || app.nimarkogram.messenger.NimarkoConfig.largePhotos) {
             if (highQualityPhotoSize == null) {
                 highQualityPhotoSize = 2560;
             }
@@ -3029,19 +3114,6 @@ public class AndroidUtilities {
             return photoSize;
         }
     }
-
-    /*public static void clearCursorDrawable(EditText editText) {
-        if (editText == null) {
-            return;
-        }
-        try {
-            Field mCursorDrawableRes = TextView.class.getDeclaredField("mCursorDrawableRes");
-            mCursorDrawableRes.setAccessible(true);
-            mCursorDrawableRes.setInt(editText, 0);
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-    }*/
 
     private static Runnable unregisterRunnable;
     private static boolean hasCallPermissions = Build.VERSION.SDK_INT >= 23;
@@ -3518,6 +3590,11 @@ public class AndroidUtilities {
         if (view == null) {
             return;
         }
+        
+        if (!app.nimarkogram.messenger.NimarkoConfig.isSpringAnimationEnabled()) {
+            if (endCallback != null) endCallback.run();
+            return;
+        }
         int shift = dp(shiftDp);
         if (view.getTag(R.id.spring_tag) != null) {
             ((SpringAnimation) view.getTag(R.id.spring_tag)).cancel();
@@ -3543,55 +3620,6 @@ public class AndroidUtilities {
         springAnimation.start();
     }
 
-    /*public static String ellipsize(String text, int maxLines, int maxWidth, TextPaint paint) {
-        if (text == null || paint == null) {
-            return null;
-        }
-        int count;
-        int offset = 0;
-        StringBuilder result = null;
-        TextView
-        for (int a = 0; a < maxLines; a++) {
-            count = paint.breakText(text, true, maxWidth, null);
-            if (a != maxLines - 1) {
-                if (result == null) {
-                    result = new StringBuilder(count * maxLines + 1);
-                }
-                boolean foundSpace = false;
-                for (int c = count - 1; c >= offset; c--) {
-                    if (text.charAt(c) == ' ') {
-                        foundSpace = true;
-                        result.append(text.substring(offset, c - 1));
-                        offset = c - 1;
-                    }
-                }
-                if (!foundSpace) {
-                    offset = count;
-                }
-                text = text.substring(0, offset);
-            } else if (maxLines == 1) {
-                return text.substring(0, count);
-            } else {
-                result.append(text.substring(0, count));
-            }
-        }
-        return result.toString();
-    }*/
-
-    /*public static void turnOffHardwareAcceleration(Window window) {
-        if (window == null || Build.MODEL == null) {
-            return;
-        }
-        if (Build.MODEL.contains("GT-S5301") ||
-                Build.MODEL.contains("GT-S5303") ||
-                Build.MODEL.contains("GT-B5330") ||
-                Build.MODEL.contains("GT-S5302") ||
-                Build.MODEL.contains("GT-S6012B") ||
-                Build.MODEL.contains("MegaFon_SP-AI")) {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
-        }
-    }*/
-
     public static void appCenterLog(Throwable e) {
         ApplicationLoader.appCenterLog(e);
     }
@@ -3606,6 +3634,7 @@ public class AndroidUtilities {
             android.content.ClipboardManager clipboard = (android.content.ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
             android.content.ClipData clip = android.content.ClipData.newHtmlText("label", plain, html);
             clipboard.setPrimaryClip(clip);
+            CustomHtml.clearTelegramEntitiesClipboard();
             return true;
         } catch (Exception e) {
             FileLog.e(e);
@@ -3618,12 +3647,15 @@ public class AndroidUtilities {
             android.content.ClipboardManager clipboard = (android.content.ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
 
             if (str instanceof Spanned) {
-                android.content.ClipData clip = android.content.ClipData.newHtmlText("label", str, CustomHtml.toHtml((Spanned) str));
+                final String html = CustomHtml.toHtml((Spanned) str);
+                android.content.ClipData clip = android.content.ClipData.newHtmlText("label", str, html);
                 clipboard.setPrimaryClip(clip);
+                CustomHtml.rememberTelegramEntitiesClipboard(str, html);
                 return true;
             } else {
                 android.content.ClipData clip = android.content.ClipData.newPlainText("label", str);
                 clipboard.setPrimaryClip(clip);
+                CustomHtml.clearTelegramEntitiesClipboard();
                 return true;
             }
         } catch (Exception e) {
@@ -3670,7 +3702,7 @@ public class AndroidUtilities {
         }
         File storageDir = null;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-            storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Telegram");
+            storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "LinkiGram");
             if (!storageDir.mkdirs()) {
                 if (!storageDir.exists()) {
                     if (BuildVars.LOGS_ENABLED) {
@@ -3790,9 +3822,16 @@ public class AndroidUtilities {
         return null;
     }
 
+    private static final AtomicLong lastGeneratedMediaPathTime = new AtomicLong();
+
+    private static long nextGeneratedMediaPathTime() {
+        long now = System.currentTimeMillis();
+        return lastGeneratedMediaPathTime.updateAndGet(previous -> Math.max(now, previous + 1));
+    }
+
     public static String generateFileName(int type, String ext) {
         Date date = new Date();
-        date.setTime(System.currentTimeMillis() + Utilities.random.nextInt(1000) + 1);
+        date.setTime(nextGeneratedMediaPathTime());
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(date);
         if (type == 0) {
             return "IMG_" + timeStamp + "." + (TextUtils.isEmpty(ext) ? "jpg" : ext);
@@ -3869,17 +3908,13 @@ public class AndroidUtilities {
         return generateVideoPath(false);
     }
 
-    private static SimpleDateFormat generatingVideoPathFormat;
-
     public static File generateVideoPath(boolean secretChat) {
         try {
             File storageDir = getAlbumDir(secretChat);
             Date date = new Date();
-            date.setTime(System.currentTimeMillis() + Utilities.random.nextInt(1000) + 1);
-            if (generatingVideoPathFormat == null) {
-                generatingVideoPathFormat = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US);
-            }
-            String timeStamp = generatingVideoPathFormat.format(date);
+            date.setTime(nextGeneratedMediaPathTime());
+            
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(date);
             return new File(storageDir, "VID_" + timeStamp + ".mp4");
         } catch (Exception e) {
             FileLog.e(e);
@@ -4320,6 +4355,17 @@ public class AndroidUtilities {
     }
 
     public static boolean openForView(MessageObject message, Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict) {
+        try {
+            if (app.nimarkogram.messenger.plugins.PluginsController.isPlugin(message)) {
+                org.telegram.ui.ActionBar.BaseFragment fragment = org.telegram.ui.LaunchActivity.getLastFragment();
+                if (fragment != null) {
+                    app.nimarkogram.messenger.plugins.PluginsController.getInstance().showInstallDialog(fragment, message);
+                    return true;
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e("nimarko: plugin install dialog hook failed", t);
+        }
         File f = null;
         if (message.messageOwner.attachPath != null && message.messageOwner.attachPath.length() != 0) {
             f = new File(message.messageOwner.attachPath);
@@ -4328,6 +4374,20 @@ public class AndroidUtilities {
             f = FileLoader.getInstance(message.currentAccount).getPathToMessage(message.messageOwner);
         }
         String mimeType = message.type == MessageObject.TYPE_FILE || message.type == MessageObject.TYPE_TEXT ? message.getMimeType() : null;
+        
+        try {
+            if (com.chaquo.python.Python.isStarted() && f != null) {
+                com.chaquo.python.PyObject consumed = com.chaquo.python.Python.getInstance()
+                        .getModule("file_utils")
+                        .callAttr("_dispatch_open_from_java", f.getAbsolutePath(),
+                                message.getFileName(), mimeType);
+                boolean handled = consumed != null && consumed.toBoolean();
+                if (consumed != null) consumed.close();
+                if (handled) return true;
+            }
+        } catch (Throwable t) {
+            FileLog.e("nimarko: file-hook dispatch failed", t);
+        }
         return openForView(f, message.getFileName(), mimeType, activity, resourcesProvider, restrict);
     }
 
@@ -4781,7 +4841,7 @@ public class AndroidUtilities {
         return null;
     }
 
-    public static void fixGoogleMapsBug() { //https://issuetracker.google.com/issues/154855417#comment301
+    public static void fixGoogleMapsBug() { 
         SharedPreferences googleBug = ApplicationLoader.applicationContext.getSharedPreferences("google_bug_154855417", Context.MODE_PRIVATE);
         if (!googleBug.contains("fixed")) {
             File corruptedZoomTables = new File(ApplicationLoader.getFilesDirFixed(), "ZoomTables.data");
@@ -4810,9 +4870,7 @@ public class AndroidUtilities {
         if (spanned) {
             final SpannableStringBuilder ssb = new SpannableStringBuilder();
             for (CharSequence piece : text) {
-                // If a piece is null, we append the string "null" for compatibility with the
-                // behavior of StringBuilder and the behavior of the concat() method in earlier
-                // versions of Android.
+                
                 ssb.append(piece == null ? "null" : piece);
             }
             return new SpannedString(ssb);
@@ -5224,7 +5282,7 @@ public class AndroidUtilities {
         return ColorUtils.setAlphaComponent(color, (int) (Color.alpha(color) * k));
     }
 
-    public static float computeDampingRatio(float tension /* stiffness */, float friction /* damping */, float mass) {
+    public static float computeDampingRatio(float tension  , float friction  , float mass) {
         return friction / (2f * (float) Math.sqrt(mass * tension));
     }
 
@@ -5278,7 +5336,7 @@ public class AndroidUtilities {
     }
 
     private static char[] characters = new char[]{' ', ' ', '!', '"', '#', '%', '&', '\'', '(', ')', '*', ',', '-', '.', '/', ':', ';', '?', '@', '[', '\\', ']', '_', '{', '}', '¡', '§', '«', '¶', '·', '»', '¿', ';', '·', '՚', '՛', '՜', '՝', '՞', '՟', '։', '֊', '־', '׀', '׃', '׆', '׳', '״', '؉', '؊', '،', '؍', '؛', '؞', '؟', '٪', '٫', '٬', '٭', '۔', '܀', '܁', '܂', '܃', '܄', '܅', '܆', '܇', '܈', '܉', '܊', '܋', '܌', '܍', '߷', '߸', '߹', '࠰', '࠱', '࠲', '࠳', '࠴', '࠵', '࠶', '࠷', '࠸', '࠹', '࠺', '࠻', '࠼', '࠽', '࠾', '࡞', '।', '॥', '॰', '৽', '੶', '૰', '౷', '಄', '෴', '๏', '๚', '๛', '༄', '༅', '༆', '༇', '༈', '༉', '༊', '་', '༌', '།', '༎', '༏', '༐', '༑', '༒', '༔', '༺', '༻', '༼', '༽', '྅', '࿐', '࿑', '࿒', '࿓', '࿔', '࿙', '࿚', '၊', '။', '၌', '၍', '၎', '၏', '჻', '፠', '፡', '።', '፣', '፤', '፥', '፦', '፧', '፨', '᐀', '᙮', '᚛', '᚜', '᛫', '᛬', '᛭', '᜵', '᜶', '។', '៕', '៖', '៘', '៙', '៚', '᠀', '᠁', '᠂', '᠃', '᠄', '᠅', '᠆', '᠇', '᠈', '᠉', '᠊', '᥄', '᥅', '᨞', '᨟', '᪠', '᪡', '᪢', '᪣', '᪤', '᪥', '᪦', '᪨', '᪩', '᪪', '᪫', '᪬', '᪭', '᭚', '᭛', '᭜', '᭝', '᭞', '᭟', '᭠', '᯼', '᯽', '᯾', '᯿', '᰻', '᰼', '᰽', '᰾', '᰿', '᱾', '᱿', '᳀', '᳁', '᳂', '᳃', '᳄', '᳅', '᳆', '᳇', '᳓', '‐', '‑', '‒', '–', '—', '―', '‖', '‗', '‘', '’', '‚', '‛', '“', '”', '„', '‟', '†', '‡', '•', '‣', '․', '‥', '…', '‧', '‰', '‱', '′', '″', '‴', '‵', '‶', '‷', '‸', '‹', '›', '※', '‼', '‽', '‾', '‿', '⁀', '⁁', '⁂', '⁃', '⁅', '⁆', '⁇', '⁈', '⁉', '⁊', '⁋', '⁌', '⁍', '⁎', '⁏', '⁐', '⁑', '⁓', '⁔', '⁕', '⁖', '⁗', '⁘', '⁙', '⁚', '⁛', '⁜', '⁝', '⁞', '⁽', '⁾', '₍', '₎', '⌈', '⌉', '⌊', '⌋', '〈', '〉', '❨', '❩', '❪', '❫', '❬', '❭', '❮', '❯', '❰', '❱', '❲', '❳', '❴', '❵', '⟅', '⟆', '⟦', '⟧', '⟨', '⟩', '⟪', '⟫', '⟬', '⟭', '⟮', '⟯', '⦃', '⦄', '⦅', '⦆', '⦇', '⦈', '⦉', '⦊', '⦋', '⦌', '⦍', '⦎', '⦏', '⦐', '⦑', '⦒', '⦓', '⦔', '⦕', '⦖', '⦗', '⦘', '⧘', '⧙', '⧚', '⧛', '⧼', '⧽', '⳹', '⳺', '⳻', '⳼', '⳾', '⳿', '⵰', '⸀', '⸁', '⸂', '⸃', '⸄', '⸅', '⸆', '⸇', '⸈', '⸉', '⸊', '⸋', '⸌', '⸍', '⸎', '⸏', '⸐', '⸑', '⸒', '⸓', '⸔', '⸕', '⸖', '⸗', '⸘', '⸙', '⸚', '⸛', '⸜', '⸝', '⸞', '⸟', '⸠', '⸡', '⸢', '⸣', '⸤', '⸥', '⸦', '⸧', '⸨', '⸩', '⸪', '⸫', '⸬', '⸭', '⸮', '⸰', '⸱', '⸲', '⸳', '⸴', '⸵', '⸶', '⸷', '⸸', '⸹', '⸺', '⸻', '⸼', '⸽', '⸾', '⸿', '⹀', '⹁', '⹂', '⹃', '⹄', '⹅', '⹆', '⹇', '⹈', '⹉', '⹊', '⹋', '⹌', '⹍', '⹎', '⹏', '、', '。', '〃', '〈', '〉', '《', '》', '「', '」', '『', '』', '【', '】', '〔', '〕', '〖', '〗', '〘', '〙', '〚', '〛', '〜', '〝', '〞', '〟', '〰', '〽', '゠', '・', '꓾', '꓿', '꘍', '꘎', '꘏', '꙳', '꙾', '꛲', '꛳', '꛴', '꛵', '꛶', '꛷', '꡴', '꡵', '꡶', '꡷', '꣎', '꣏', '꣸', '꣹', '꣺', '꣼', '꤮', '꤯', '꥟', '꧁', '꧂', '꧃', '꧄', '꧅', '꧆', '꧇', '꧈', '꧉', '꧊', '꧋', '꧌', '꧍', '꧞', '꧟', '꩜', '꩝', '꩞', '꩟', '꫞', '꫟', '꫰', '꫱', '꯫', '﴾', '﴿', '︐', '︑', '︒', '︓', '︔', '︕', '︖', '︗', '︘', '︙', '︰', '︱', '︲', '︳', '︴', '︵', '︶', '︷', '︸', '︹', '︺', '︻', '︼', '︽', '︾', '︿', '﹀', '﹁', '﹂', '﹃', '﹄', '﹅', '﹆', '﹇', '﹈', '﹉', '﹊', '﹋', '﹌', '﹍', '﹎', '﹏', '﹐', '﹑', '﹒', '﹔', '﹕', '﹖', '﹗', '﹘', '﹙', '﹚', '﹛', '﹜', '﹝', '﹞', '﹟', '﹠', '﹡', '﹣', '﹨', '﹪', '﹫', '！', '＂', '＃', '％', '＆', '＇', '（', '）', '＊', '，', '－', '．', '／', '：', '；', '？', '＠', '［', '＼', '］', '＿', '｛', '｝', '｟', '｠', '｡', '｢', '｣', '､', '･'};
-    //private static String[] longCharacters = new String[] {"𐄀", "𐄁", "𐄂", "𐎟", "𐏐", "𐕯", "𐡗", "𐤟", "𐤿", "𐩐", "𐩑", "𐩒", "𐩓", "𐩔", "𐩕", "𐩖", "𐩗", "𐩘", "𐩿", "𐫰", "𐫱", "𐫲", "𐫳", "𐫴", "𐫵", "𐫶", "𐬹", "𐬺", "𐬻", "𐬼", "𐬽", "𐬾", "𐬿", "𐮙", "𐮚", "𐮛", "𐮜", "𐽕", "𐽖", "𐽗", "𐽘", "𐽙", "𑁇", "𑁈", "𑁉", "𑁊", "𑁋", "𑁌", "𑁍", "𑂻", "𑂼", "𑂾", "𑂿", "𑃀", "𑃁", "𑅀", "𑅁", "𑅂", "𑅃", "𑅴", "𑅵", "𑇅", "𑇆", "𑇇", "𑇈", "𑇍", "𑇛", "𑇝", "𑇞", "𑇟", "𑈸", "𑈹", "𑈺", "𑈻", "𑈼", "𑈽", "𑊩", "𑑋", "𑑌", "𑑍", "𑑎", "𑑏", "𑑛", "𑑝", "𑓆", "𑗁", "𑗂", "𑗃", "𑗄", "𑗅", "𑗆", "𑗇", "𑗈", "𑗉", "𑗊", "𑗋", "𑗌", "𑗍", "𑗎", "𑗏", "𑗐", "𑗑", "𑗒", "𑗓", "𑗔", "𑗕", "𑗖", "𑗗", "𑙁", "𑙂", "𑙃", "𑙠", "𑙡", "𑙢", "𑙣", "𑙤", "𑙥", "𑙦", "𑙧", "𑙨", "𑙩", "𑙪", "𑙫", "𑙬", "𑜼", "𑜽", "𑜾", "𑠻", "𑧢", "𑨿", "𑩀", "𑩁", "𑩂", "𑩃", "𑩄", "𑩅", "𑩆", "𑪚", "𑪛", "𑪜", "𑪞", "𑪟", "𑪠", "𑪡", "𑪢", "𑱁", "𑱂", "𑱃", "𑱄", "𑱅", "𑱰", "𑱱", "𑻷", "𑻸", "𑿿", "𒑰", "𒑱", "𒑲", "𒑳", "𒑴", "𖩮", "𖩯", "𖫵", "𖬷", "𖬸", "𖬹", "𖬺", "𖬻", "𖭄", "𖺗", "𖺘", "𖺙", "𖺚", "𖿢", "𛲟", "𝪇", "𝪈", "𝪉", "𝪊", "𝪋", "𞥞", "𞥟"};
+    
     private static HashSet<Character> charactersMap;
 
     public static boolean isPunctuationCharacter(char ch) {
@@ -5288,7 +5346,7 @@ public class AndroidUtilities {
                 charactersMap.add(characters[a]);
             }
         }
-        //int len = longCharacters[0].length();
+        
         return charactersMap.contains(ch);
     }
 
@@ -5330,7 +5388,6 @@ public class AndroidUtilities {
         }
     }
 
-
     public static void setLightStatusBar(Window window, boolean enable) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             final View decorView = window.getDecorView();
@@ -5360,22 +5417,18 @@ public class AndroidUtilities {
         }
     }
 
-    // Activity needs a smarter way to control it.
     public static void setLightNavigationBar(Activity activity, boolean enable) {
         if (activity != null) {
             setLightNavigationBar(activity.getWindow(), enable);
         }
     }
 
-
-    // do not make public: Use setLightNavigationBar for activity or dialog.
     private static void setLightNavigationBar(Window window, boolean enable) {
         if (window != null) {
             setLightNavigationBar(window.getDecorView(), enable);
         }
     }
 
-    // do not use it: Use setLightNavigationBar for activity or dialog.
     public static void setLightNavigationBar(View view, boolean enable) {
         if (view != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             changeSetSystemUiVisibility(view, View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR, enable);
@@ -5591,7 +5644,7 @@ public class AndroidUtilities {
             builder.setSourceRectHint(null);
             builder.setAspectRatio(null);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                //builder.setSeamlessResizeEnabled(true);
+                
                 builder.setAutoEnterEnabled(false);
             }
 
@@ -5897,7 +5950,6 @@ public class AndroidUtilities {
         return (st > 0 || len < text.length()) ? text.subSequence(st, len) : text;
     }
 
-    // detect Error NO SPaCe left on device :(
     public static boolean isENOSPC(Exception e) {
         return (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&
@@ -6038,7 +6090,7 @@ public class AndroidUtilities {
         makingGlobalBlurBitmap = true;
 
         final List<View> finalViews = views;
-        //Utilities.themeQueue.postRunnable(() -> {
+        
         try {
             int w;
             int h;
@@ -6083,21 +6135,25 @@ public class AndroidUtilities {
                 canvas.restore();
             }
             Utilities.stackBlurBitmap(bitmap, Math.max(amount, Math.max(w, h) / 180));
-//            AndroidUtilities.runOnUIThread(() -> {
+
                 onBitmapDone.run(bitmap);
-//            });
+
+        } catch (OutOfMemoryError e) {
+            FileLog.e(e);
+
+                onBitmapDone.run(null);
+
         } catch (Exception e) {
             FileLog.e(e);
-//            AndroidUtilities.runOnUIThread(() -> {
+
                 onBitmapDone.run(null);
-//            });
+
         } finally {
             makingGlobalBlurBitmap = false;
         }
-        //   });
+        
     }
 
-    // rounds percents to be exact 100% in sum
     public static int[] roundPercents(float[] percents, int[] output) {
         if (percents == null) {
             throw new NullPointerException("percents or output is null");
@@ -6157,7 +6213,7 @@ public class AndroidUtilities {
 
     public static Pattern getURIParsePattern() {
         if (uriParse == null) {
-            uriParse = Pattern.compile("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?"); // RFC 3986 B
+            uriParse = Pattern.compile("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?"); 
         }
         return uriParse;
     }
@@ -6170,7 +6226,7 @@ public class AndroidUtilities {
         if (uri == null) {
             return null;
         }
-        // CVE-2017-13274
+        
         Matcher matcher = getURIParsePattern().matcher(uri);
         if (matcher.matches()) {
             String authority = matcher.group(4);
@@ -6266,12 +6322,20 @@ public class AndroidUtilities {
         return new Pair<>(0, 0);
     }
     public static Pair<Integer, Integer> getImageOrientation(File file) {
+        Pair<Integer, Integer> orientation = getImageOrientationOrNull(file);
+        return orientation != null ? orientation : new Pair<>(0, 0);
+    }
+    @Nullable
+    public static Pair<Integer, Integer> getImageOrientationOrNull(File file) {
+        if (file == null) {
+            return null;
+        }
         try {
             return getImageOrientation(new ExifInterface(file));
         } catch (Exception e) {
             FileLog.e(e);
         }
-        return new Pair<>(0, 0);
+        return null;
     }
     public static Pair<Integer, Integer> getImageOrientation(String path) {
         try {
@@ -6416,7 +6480,7 @@ public class AndroidUtilities {
     }
 
     public static void checkAndroidTheme(Context context, boolean open) {
-        // this hack is done to support prefers-color-scheme in webviews 🤦
+        
         if (context == null) {
             return;
         }
@@ -6424,6 +6488,21 @@ public class AndroidUtilities {
     }
 
     private static Boolean isHonor;
+    public static void selectionSort(ArrayList<CharSequence> x, ArrayList<String> y) {
+        for (int i = 0; i < x.size() - 1; i++) {
+            for (int j = i + 1; j < x.size(); j++) {
+                if (x.get(i).toString().compareTo(x.get(j).toString()) > 0) {
+                    CharSequence temp = x.get(i);
+                    x.set(i, x.get(j));
+                    x.set(j, temp);
+                    String tempStr = y.get(i);
+                    y.set(i, y.get(j));
+                    y.set(j, tempStr);
+                }
+            }
+        }
+    }
+
     public static boolean isHonor() {
         if (isHonor == null) {
             try {
@@ -6484,6 +6563,8 @@ public class AndroidUtilities {
     }
 
     public static void vibrateCursor(View view) {
+        
+        if (app.nimarkogram.messenger.NimarkoConfig.disableVibration) return;
         try {
             if (view == null || view.getContext() == null) return;
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
@@ -6493,11 +6574,32 @@ public class AndroidUtilities {
     }
 
     public static void vibrate(View view) {
+        
+        if (app.nimarkogram.messenger.NimarkoConfig.disableVibration) return;
         try {
             if (view == null || view.getContext() == null) return;
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
             if (!((Vibrator) view.getContext().getSystemService(Context.VIBRATOR_SERVICE)).hasAmplitudeControl()) return;
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+            
+            int hapticType;
+            switch (app.nimarkogram.messenger.NimarkoConfig.vibrateInChats) {
+                case app.nimarkogram.messenger.NimarkoConfig.VIBRATE_DISABLE:
+                    return; 
+                case app.nimarkogram.messenger.NimarkoConfig.VIBRATE_CLICK:
+                    hapticType = HapticFeedbackConstants.VIRTUAL_KEY;
+                    break;
+                case app.nimarkogram.messenger.NimarkoConfig.VIBRATE_WAVE:
+                    hapticType = HapticFeedbackConstants.CONFIRM;
+                    break;
+                case app.nimarkogram.messenger.NimarkoConfig.VIBRATE_LONG:
+                    hapticType = HapticFeedbackConstants.LONG_PRESS;
+                    break;
+                case app.nimarkogram.messenger.NimarkoConfig.VIBRATE_KEYBOARD:
+                default:
+                    hapticType = HapticFeedbackConstants.KEYBOARD_TAP;
+                    break;
+            }
+            view.performHapticFeedback(hapticType, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
         } catch (Exception ignore) {}
     }
 
@@ -6665,7 +6767,6 @@ public class AndroidUtilities {
         return null;
     }
 
-
     public static void printStackTrace(String tag) {
         if (!BuildConfig.DEBUG_PRIVATE_VERSION) {
             return;
@@ -6744,18 +6845,12 @@ public class AndroidUtilities {
 
     public static void drawNavigationBarProtection(Canvas canvas, View view, int color, int navigationBarHeight, float alpha) {
         navbarProtactionPaint.setColor(Theme.multAlpha(color, alpha * AndroidUtilities.getNavigationBarThirdButtonsFactor(0, 0.75f, navigationBarHeight)));
-        // bug? : view.getY() is unnecessary
+        
         canvas.drawRect(
                 0, view.getY() + view.getMeasuredHeight() - navigationBarHeight,
                 view.getMeasuredWidth(), view.getY() + view.getMeasuredHeight(), navbarProtactionPaint);
     }
 
-
-
-
-    /**
-     * Fix for Build.VERSION.SDK_INT < Build.VERSION_CODES.R
-     */
     @NonNull
     public static WindowInsets fixedDispatchApplyWindowInsets(@NonNull WindowInsets insets, ViewGroup view) {
         for (int a = 0, N = view.getChildCount(); a < N; a++) {
@@ -6764,9 +6859,6 @@ public class AndroidUtilities {
         }
         return insets;
     }
-
-
-
 
     public static void enableEdgeToEdge(Activity activity) {
         final Window window = activity.getWindow();
@@ -6780,15 +6872,9 @@ public class AndroidUtilities {
         }
     }
 
-    /**
-     * From androidx.core:core:1.17.0
-     * todo: replace to WindowCompat.enableEdgeToEdge() when update
-     */
     public static void enableEdgeToEdge(@NonNull Window window) {
         Objects.requireNonNull(window);
 
-        // This triggers the initialization of the decor view here to prevent the attributes set by
-        // this method from getting overwritten by the initialization later.
         window.getDecorView();
 
         WindowCompat.setDecorFitsSystemWindows(window, false);
@@ -6817,8 +6903,6 @@ public class AndroidUtilities {
                     : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
     }
-
-
 
     public static Insets getDefaultWindowInsets(WindowInsetsCompat insets, boolean withIme) {
         final int insetsType = WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
@@ -6959,8 +7043,7 @@ public class AndroidUtilities {
                                            String title, String description, boolean allDay) {
         final long beginMillis, endMillis;
         if (allDay) {
-            // normalize timestamp and set 1 day duration
-
+            
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(timestampMillis);
             calendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -6971,8 +7054,7 @@ public class AndroidUtilities {
             beginMillis = calendar.getTimeInMillis();
             endMillis = beginMillis + TimeUnit.DAYS.toMillis(1);
         } else {
-            // set 10 minutes duration by default
-
+            
             beginMillis = timestampMillis;
             endMillis = beginMillis + TimeUnit.MINUTES.toMillis(10);
         }

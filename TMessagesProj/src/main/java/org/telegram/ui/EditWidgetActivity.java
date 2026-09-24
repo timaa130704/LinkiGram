@@ -6,7 +6,6 @@
  * Copyright Nikolai Kudashov, 2013-2021.
  */
 
-
 package org.telegram.ui;
 
 import android.app.Activity;
@@ -408,6 +407,9 @@ public class EditWidgetActivity extends BaseFragment {
                                         }
                                     } else {
                                         innerMessage = message.messageText.toString();
+                                        if (innerMessage.contains("$")) {
+                                            innerMessage = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(innerMessage);
+                                        }
                                     }
                                     innerMessage = innerMessage.replace('\n', ' ');
                                     stringBuilder = SpannableStringBuilder.valueOf(String.format(messageFormat, innerMessage, messageNameString));
@@ -418,6 +420,9 @@ public class EditWidgetActivity extends BaseFragment {
                                     }
                                 } else if (message.messageOwner.message != null) {
                                     String mess = message.messageOwner.message;
+                                    if (mess.contains("$")) {
+                                        mess = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(mess);
+                                    }
                                     if (mess.length() > 150) {
                                         mess = mess.substring(0, 150);
                                     }
@@ -1086,7 +1091,6 @@ public class EditWidgetActivity extends BaseFragment {
 
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCell.class}, new String[]{"textView"}, null, null, null, Theme.key_windowBackgroundWhiteBlueText4));
         themeDescriptions.add(new ThemeDescription(listView, 0, new Class[]{TextCell.class}, new String[]{"imageView"}, null, null, null, Theme.key_windowBackgroundWhiteBlueText4));
-
 
         return themeDescriptions;
     }

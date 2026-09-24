@@ -17,6 +17,9 @@ import org.telegram.ui.ActionBar.Theme;
 
 public class SendingFileDrawable extends StatusDrawable {
 
+    private boolean useCenteredOverride = false;
+    public void setUseCenteredOverride(boolean v) { useCenteredOverride = v; }
+
     private boolean isChat = false;
     private long lastUpdateTime = 0;
     private boolean started = false;
@@ -72,6 +75,13 @@ public class SendingFileDrawable extends StatusDrawable {
     @Override
     public void draw(Canvas canvas) {
         Paint paint = currentPaint == null ? Theme.chat_statusRecordPaint : currentPaint;
+        
+        float startOffset = 0;
+        if (app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride) {
+            float totalWidth = AndroidUtilities.dp(22);
+            float centerX = getBounds().centerX() - AndroidUtilities.dp(2);
+            startOffset = centerX - totalWidth / 2f;
+        }
         for (int a = 0; a < 3; a++) {
             if (a == 0) {
                 paint.setAlpha((int) (255 * progress));
@@ -80,7 +90,7 @@ public class SendingFileDrawable extends StatusDrawable {
             } else {
                 paint.setAlpha(255);
             }
-            float side = AndroidUtilities.dp(5) * a + AndroidUtilities.dp(5) * progress;
+            float side = startOffset + AndroidUtilities.dp(5) * a + AndroidUtilities.dp(5) * progress;
             canvas.drawLine(side, AndroidUtilities.dp(isChat ? 3 : 4), side + AndroidUtilities.dp(4), AndroidUtilities.dp(isChat ? 7 : 8), paint);
             canvas.drawLine(side, AndroidUtilities.dp(isChat ? 11 : 12), side + AndroidUtilities.dp(4), AndroidUtilities.dp(isChat ? 7 : 8), paint);
         }
@@ -107,7 +117,8 @@ public class SendingFileDrawable extends StatusDrawable {
 
     @Override
     public int getIntrinsicWidth() {
-        return AndroidUtilities.dp(18);
+        
+        return AndroidUtilities.dp(app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride ? 14 : 18);
     }
 
     @Override

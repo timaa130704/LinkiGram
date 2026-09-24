@@ -199,7 +199,7 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         ScaleStateListAnimator.apply(balanceView);
         balanceView.setOnClickListener(v -> {
             if (balanceView.lastBalance <= 0) return;
-            presentFragment(new StarsIntroActivity());
+            presentFragment(new StarsIntroActivity(currentAccount));
         });
         actionBar.addView(balanceView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, 4, 0));
 
@@ -258,7 +258,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         filtersDivider.setAlpha(0.0f);
         fragmentView.addView(filtersDivider, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 2.0f / AndroidUtilities.density, Gravity.TOP | Gravity.FILL_HORIZONTAL));
 
-
         final LinearLayout checkboxLayout = new LinearLayout(context);
         checkboxLayout.setPadding(dp(4), 0, dp(15), 0);
         checkboxLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -279,7 +278,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         checkboxTextView.setText(LocaleController.getString(R.string.GiftResaleStarsOnly));
         checkboxLayout.addView(checkboxTextView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 9, 0, 0, 0));
         checkboxLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(18), 0, Theme.blendOver(getThemedColor(Theme.key_windowBackgroundWhite), Theme.multAlpha(getThemedColor(Theme.key_featuredStickers_addButton), 0.10f))));
-
 
         onlyStarsContainer = new FrameLayout(context);
         onlyStarsContainer.setPadding(dp(8), dp(8), dp(8), dp(8));
@@ -302,7 +300,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         if (tc.balanceAvailable() && !tc.getBalanceAmount().isZero()) {
             onlyStarsContainer.setVisibility(View.GONE);
         }
-
 
         clearFiltersContainer = new FrameLayout(context);
         clearFiltersContainer.setPadding(dp(8), dp(8), dp(8), dp(8));
@@ -331,7 +328,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         clearFiltersContainer.addView(clearFiltersButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT));
         clearFiltersContainer.setVisibility(View.GONE);
         ScaleStateListAnimator.apply(clearFiltersContainer, 0.05f, 1.5f);
-
 
         sortButton = new Filter(context, resourceProvider);
         sortButton.setSorting(list.getSorting());
@@ -849,7 +845,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
         }
         return false;
     }
-
 
     private void onItemClick(UItem item, View view, int position, float x, float y) {
         if (item.object instanceof TL_stars.TL_starGiftUnique) {
@@ -1372,7 +1367,7 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
                 emojiDrawable.addView(imageView);
             }
 
-            CharSequence name = pattern.name;//new SpannableStringBuilder(/*" ").append(*/);
+            CharSequence name = pattern.name;
             if (!TextUtils.isEmpty(query)) {
                 name = AndroidUtilities.highlightText(name, query, resourcesProvider);
             }
@@ -1475,7 +1470,7 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
                 emojiDrawable.addView(imageView);
             }
 
-            CharSequence name = pattern.name;//new SpannableStringBuilder(/*" ").append(*/);
+            CharSequence name = pattern.name;
             if (!TextUtils.isEmpty(query)) {
                 name = AndroidUtilities.highlightText(name, query, resourcesProvider);
             }
@@ -1539,7 +1534,7 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
 
         public void set(TL_stars.starGiftAttributeBackdrop backdrop, int counter, String query, boolean checked) {
             final Drawable circle = Theme.createCircleDrawable(dp(20), backdrop.center_color | 0xFF000000);
-            CharSequence name = backdrop.name;//new SpannableStringBuilder(/*" ").append(*/);
+            CharSequence name = backdrop.name;
             if (!TextUtils.isEmpty(query)) {
                 name = AndroidUtilities.highlightText(name, query, resourcesProvider);
             }
@@ -2284,7 +2279,6 @@ public class ResaleGiftsFragment extends BaseFragment implements FactorAnimator.
 
     private BlurredBackgroundSourceColor iBlur3SourceColor;
     private BlurredBackgroundDrawableViewFactory iBlur3Factory;
-
 
     @Override
     public boolean isSupportEdgeToEdge() {

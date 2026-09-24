@@ -219,6 +219,9 @@ public class ViewPagerFixed extends FrameLayout {
 
     private ValueAnimator manualScrolling;
     public boolean scrollToPosition(int page) {
+        return scrollToPosition(page, null);
+    }
+    public boolean scrollToPosition(int page, Boolean forwardOverride) {
         if (page == currentPosition || (manualScrolling != null && nextPosition == page)) {
             return false;
         }
@@ -227,7 +230,7 @@ public class ViewPagerFixed extends FrameLayout {
             manualScrolling = null;
         }
 
-        boolean forward = currentPosition < page;
+        boolean forward = forwardOverride != null ? forwardOverride : (currentPosition < page);
         animatingForward = forward;
         nextPosition = page;
         updateViewForIndex(1);
@@ -514,8 +517,23 @@ public class ViewPagerFixed extends FrameLayout {
 
     }
 
+    public interface SwipeTargetResolver {
+        int resolveSwipeTarget(int currentPosition, boolean physicalForward);
+    }
+    protected SwipeTargetResolver swipeTargetResolver;
+    public void setSwipeTargetResolver(SwipeTargetResolver r) { this.swipeTargetResolver = r; }
+
+    private int computeSwipeTarget(boolean forward) {
+        if (swipeTargetResolver != null) {
+            int t = swipeTargetResolver.resolveSwipeTarget(currentPosition, forward);
+            if (t >= 0 && t != currentPosition) return t;
+        }
+        return currentPosition + (forward ? 1 : -1);
+    }
+
     private boolean prepareForMoving(MotionEvent ev, boolean forward) {
-        if ((!forward && currentPosition == 0 && !onBackProgress(backProgress = 0)) || (forward && currentPosition == adapter.getItemCount() - 1) || manualScrolling != null) {
+        int target = computeSwipeTarget(forward);
+        if ((target < 0 && !onBackProgress(backProgress = 0)) || target >= adapter.getItemCount() || manualScrolling != null) {
             return false;
         }
         if (!canScroll(ev)) {
@@ -528,7 +546,7 @@ public class ViewPagerFixed extends FrameLayout {
             return false;
         }
 
-        if (adapter != null && !adapter.canScrollTo(currentPosition + (forward ? +1 : -1))) {
+        if (adapter != null && !adapter.canScrollTo(target)) {
             return false;
         }
 
@@ -543,7 +561,7 @@ public class ViewPagerFixed extends FrameLayout {
 
         notificationsLocker.lock();
         animatingForward = forward;
-        nextPosition = currentPosition + (forward ? 1 : -1);
+        nextPosition = target;
         updateViewForIndex(1);
         if (viewPages[1] != null) {
             if (forward) {
@@ -838,7 +856,6 @@ public class ViewPagerFixed extends FrameLayout {
 
     }
 
-
     public boolean checkTabsAnimationInProgress() {
         if (tabsAnimationInProgress) {
             boolean cancel = false;
@@ -859,7 +876,7 @@ public class ViewPagerFixed extends FrameLayout {
             }
             onTabAnimationUpdate(true);
             if (cancel) {
-                //showScrollbars(true);
+                
                 if (tabsAnimation != null) {
                     tabsAnimation.cancel();
                     tabsAnimation = null;
@@ -974,7 +991,6 @@ public class ViewPagerFixed extends FrameLayout {
         adapter.bindView(viewPages[0], currentPosition, viewTypes[0]);
         addView(viewPages[0]);
         viewPages[0].setVisibility(View.VISIBLE);
-
 
         int newId = viewPages[0].getTag() == null ? 0 : (int) viewPages[0].getTag();
         if (newId == oldId) {
@@ -1387,7 +1403,6 @@ public class ViewPagerFixed extends FrameLayout {
                     textPaint.setColor(Theme.getColor(key, resourcesProvider));
                 }
 
-
                 int counterWidth;
                 int countWidth;
                 String counterText;
@@ -1789,7 +1804,6 @@ public class ViewPagerFixed extends FrameLayout {
             animatingIndicator = true;
             setEnabled(false);
 
-
             if (delegate != null) {
                 delegate.onPageSelected(position, scrollingForward);
             }
@@ -2041,6 +2055,11 @@ public class ViewPagerFixed extends FrameLayout {
                             indicatorX = (int) AndroidUtilities.lerp(lastDrawnIndicatorX, indicatorX, indicatorProgress2);
                             indicatorWidth = (int) AndroidUtilities.lerp(lastDrawnIndicatorW, indicatorWidth, indicatorProgress2);
                         }
+                        
+                        if (app.nimarkogram.messenger.NimarkoConfig.tabStyleStroke) {
+                            selectorDrawable.setStroke(AndroidUtilities.dp(1), Theme.getColor(activeTextColorKey, resourcesProvider));
+                            selectorDrawable.setColor(ColorUtils.setAlphaComponent(Theme.getColor(tabLineColorKey), 50));
+                        }
                         if (selectorType == SELECTOR_TYPE_BUBBLE_STYLE) {
                             final float TAB_INTERNAL_PADDING = 12.5f;
                             final float add = additionalTabWidth / 2f;
@@ -2049,7 +2068,7 @@ public class ViewPagerFixed extends FrameLayout {
                                 (int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y,
                                 (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add),
                                 y + dp(28));
-                            selectorDrawable.setAlpha(31);
+                            if (!app.nimarkogram.messenger.NimarkoConfig.tabStyleStroke) selectorDrawable.setAlpha(31);
                             selectorDrawable.draw(canvas);
                         } else {
                             selectorDrawable.setBounds(indicatorX, (int) (height - AndroidUtilities.dpr(4) + hideProgress * AndroidUtilities.dpr(4)), indicatorX + indicatorWidth, (int) (height + hideProgress * AndroidUtilities.dpr(4)));
@@ -2376,7 +2395,6 @@ public class ViewPagerFixed extends FrameLayout {
         }
         return null;
     }
-
 
     public void setAllowDisallowInterceptTouch(boolean allowDisallowInterceptTouch) {
         this.allowDisallowInterceptTouch = allowDisallowInterceptTouch;

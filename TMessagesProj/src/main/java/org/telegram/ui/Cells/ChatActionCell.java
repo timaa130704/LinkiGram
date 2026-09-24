@@ -559,7 +559,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
                 newText = formatString("MessageScheduledOn", R.string.MessageScheduledOn, LocaleController.formatDateChat(date));
             }
         } else {
-            newText = LocaleController.formatDateChat(date);
+            newText = LocaleController.formatDateChatWeekday(date);
         }
         customDate = date;
         if (customText != null && TextUtils.equals(newText, customText)) {
@@ -615,11 +615,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
 
         botButtons.clear();
         botInlineButtons = null;
-        /*
-        botButtonsByData.clear();
-        botButtonsByPosition.clear();
-        botButtonsLayout = null;
-        */
+         
         accessibilityText = null;
         boolean messageIdChanged = currentMessageObject == null || currentMessageObject.stableId != messageObject.stableId;
         if (currentMessageObject != null) {
@@ -1595,7 +1591,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
         } else if (currentMessageObject.messageOwner.action instanceof TLRPC.TL_messageActionStarGift) {
             final TLRPC.TL_messageActionStarGift action = (TLRPC.TL_messageActionStarGift) currentMessageObject.messageOwner.action;
             if (action.forceIn) return;
-//            StarsIntroActivity.showActionGiftSheet(getContext(), currentAccount, currentMessageObject.getDialogId(), currentMessageObject.isOutOwner(), currentMessageObject.messageOwner.date, currentMessageObject.getId(), action, themeDelegate);
+
             new StarGiftSheet(getContext(), currentAccount, currentMessageObject.getDialogId(), themeDelegate)
                 .set(currentMessageObject)
                 .show();
@@ -1631,7 +1627,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             return;
         }
 
-        new StarsIntroActivity.StarsNeededSheet(getContext(), themeDelegate, params.amount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, ForumUtilities.getMonoForumTitle(currentAccount, currentMessageObject.getDialogId(), true), null, currentMessageObject.getDialogId())
+        new StarsIntroActivity.StarsNeededSheet(getContext(), currentAccount, themeDelegate, params.amount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, ForumUtilities.getMonoForumTitle(currentAccount, currentMessageObject.getDialogId(), true), null, currentMessageObject.getDialogId())
             .show();
     }
 
@@ -1657,26 +1653,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
                 }
             } else if (url.startsWith("game")) {
                 delegate.didPressReplyMessage(this, currentMessageObject.getReplyMsgId());
-                /*TLRPC.KeyboardButton gameButton = null;
-                MessageObject messageObject = currentMessageObject.replyMessageObject;
-                if (messageObject != null && messageObject.messageOwner.reply_markup != null) {
-                    for (int a = 0; a < messageObject.messageOwner.reply_markup.rows.size(); a++) {
-                        TLRPC.TL_keyboardButtonRow row = messageObject.messageOwner.reply_markup.rows.get(a);
-                        for (int b = 0; b < row.buttons.size(); b++) {
-                            TLRPC.KeyboardButton button = row.buttons.get(b);
-                            if (button instanceof TLRPC.TL_keyboardButtonGame && button.game_id == currentMessageObject.messageOwner.action.game_id) {
-                                gameButton = button;
-                                break;
-                            }
-                        }
-                        if (gameButton != null) {
-                            break;
-                        }
-                    }
-                }
-                if (gameButton != null) {
-                    delegate.didPressBotButton(messageObject, gameButton);
-                }*/
+                 
             } else if (url.startsWith("http")) {
                 Browser.openUrl(getContext(), url);
             } else {
@@ -1801,7 +1778,6 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             SpoilerEffect.addSpoilers(this, textLayout, textX, textX + textWidth, (Spannable) text, spoilersPool, spoilers, null);
         }
     }
-
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -2009,7 +1985,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
         if (messageObject.type == MessageObject.TYPE_COMMUNITY_CHANGED) {
             imageSize = dp(52);
         } else if (messageObject.type == MessageObject.TYPE_SUGGEST_PHOTO || isNewStyleButtonLayout()) {
-            imageSize = dp(78);//Math.max(, (int) (stickerSize * 0.7f));
+            imageSize = dp(78);
         }
         if (isMessageActionSuggestedPostApproval() || messageObject.type == MessageObject.TYPE_GIFT_OFFER_REJECTED || messageObject.type == MessageObject.TYPE_SHARING_OFFER) {
             imageSize = 0;
@@ -2837,7 +2813,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
                 long dialogId = messageObject.messageOwner.media.user_id;
                 avatarStoryParams.storyId = messageObject.messageOwner.media.id;
                 StoriesUtilities.drawAvatarWithStory(dialogId, canvas, imageReceiver, avatarStoryParams);
-             //   imageReceiver.draw(canvas);
+             
             } else {
                 imageReceiver.draw(canvas);
             }
@@ -2845,7 +2821,6 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
                 DrawableUtils.drawCommunityCardDrawable(canvas, Theme.dialogs_communityCardsDrawable,
                         imageReceiver.getImageX() + dp(26), imageReceiver.getImageY() + dp(26), dp(52));
             }
-
 
             radialProgress.setProgressRect(
                     imageReceiver.getImageX(),
@@ -3056,7 +3031,6 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
                         canvas.translate((giftRectSize - settingWallpaperProgressTextLayout.getWidth()) / 2f, 0);
                         SpoilerEffect.layoutDrawMaybe(settingWallpaperProgressTextLayout, canvas);
                         canvas.restore();
-
 
                         giftTextPaint.setColor(oldColor);
                         giftTextPaint.linkColor = oldColor;
@@ -3616,7 +3590,6 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             float left = x1 + (buttonWidth + dp(4)) * a;
             float right = left + buttonWidth;
 
-
             rect.set(left, y, right, y + button.height);
             canvas.save();
             if (s != 1) {
@@ -3669,7 +3642,6 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             canvas.restore();
         }
     }
-
 
     private final int[] pressedState = new int[]{android.R.attr.state_enabled, android.R.attr.state_pressed};
     private int pressedBotButton;
@@ -4000,8 +3972,8 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
         canvas.restore();
 
         if (topicSeparator != null) {
-            final float alpha = getAlpha(); // transitionParams.ignoreAlpha ? timeAlpha : getAlpha();
-            final float top = 0;//- topicSeparatorTopPadding + (getTopicSeparatorTopPadding() - topicSeparatorTopPadding);;
+            final float alpha = getAlpha(); 
+            final float top = 0;
             if (themeDelegate != null) {
                 themeDelegate.applyServiceShaderMatrix(getMeasuredWidth(), backgroundHeight, viewTranslationX, viewTop + top);
             } else {

@@ -220,7 +220,7 @@ public class CheckBoxCell extends FrameLayout {
         } else if (type == TYPE_CHECK_BOX_USER) {
             avatarDrawable = new AvatarDrawable();
             avatarImageView = new BackupImageView(context);
-            avatarImageView.setRoundRadius(dp(17));
+            avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(34));
             addView(avatarImageView, LayoutHelper.createFrameRelatively(34, 34, Gravity.START | Gravity.CENTER_VERTICAL, 56, 0, 0, 0));
         }
 
@@ -463,10 +463,7 @@ public class CheckBoxCell extends FrameLayout {
             layoutParams1.gravity = Gravity.CENTER_VERTICAL | (layoutParams1.gravity & Gravity.HORIZONTAL_GRAVITY_MASK);
             layoutParams1.topMargin = 0;
             if (currentType != TYPE_CHECK_BOX_URL) {
-//                layoutParams.height = LayoutParams.WRAP_CONTENT;
-//                layoutParams.gravity = (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP;
-//                layoutParams.topMargin = dp(14);
-//                layoutParams.bottomMargin = dp(10);
+
             }
         } else {
             linksTextView.setLines(1);

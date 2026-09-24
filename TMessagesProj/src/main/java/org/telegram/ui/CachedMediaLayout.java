@@ -103,12 +103,11 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
 
         int CacheTabChats;
         allPages[PAGE_TYPE_CHATS] = new Page(LocaleController.getString(R.string.FilterChats), PAGE_TYPE_CHATS, new DialogsAdapter());
-        //allPages[PAGE_TYPE_STORIES] = new Page(LocaleController.getString(R.string.FilterStories), PAGE_TYPE_STORIES, new MediaAdapter(true));
+        
         allPages[PAGE_TYPE_MEDIA] = new Page(LocaleController.getString(R.string.MediaTab), PAGE_TYPE_MEDIA, new MediaAdapter(false));
         allPages[PAGE_TYPE_DOCUMENTS] = new Page(LocaleController.getString(R.string.SharedFilesTab2), PAGE_TYPE_DOCUMENTS, new DocumentsAdapter());
         allPages[PAGE_TYPE_MUSIC] = new Page(LocaleController.getString(R.string.Music), PAGE_TYPE_MUSIC, new MusicAdapter());
-        //   allPages[PAGE_TYPE_VOICE] = new Page(LocaleController.getString(R.string.Voice), PAGE_TYPE_VOICE, new VoiceAdapter());
-
+        
         for (int i = 0; i < allPages.length; i++) {
             if (allPages[i] == null) {
                 continue;
@@ -157,7 +156,7 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                     public void onItemClick(View view, int position) {
                         BaseAdapter adapter = (BaseAdapter) recyclerListView.getAdapter();
                         ItemInner itemInner = adapter.itemInners.get(position);
-                        //if (cacheModel.getSelectedFiles() == 0) {
+                        
                         if (view instanceof SharedPhotoVideoCell2) {
                             boolean isStory = ((MediaAdapter) adapter).isStories;
                             if (isStory) {
@@ -173,7 +172,6 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                             return;
                         }
 
-                        //}
                         if (delegate != null) {
                             delegate.onItemSelected(itemInner.entities, itemInner.file, false);
                         }
@@ -343,7 +341,7 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                     MediaController.getInstance().playMessage(fileInfo.messageObject);
                 }
             } else {
-                // MediaController.getInstance().setPlaylist(documentsAdapter.createPlaylist(), fileInfo.messageObject, 0);
+                
                 MediaController.getInstance().playMessage(fileInfo.messageObject);
             }
         }
@@ -368,7 +366,7 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        //itemSize = ((MeasureSpec.getSize(widthMeasureSpec) - AndroidUtilities.dp(6 * 2) - AndroidUtilities.dp(5 * 2)) / 3);
+        
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(heightMeasureSpec), MeasureSpec.EXACTLY));
     }
 
@@ -460,14 +458,6 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
         return false;
     }
 
-//    public void showActionMode(boolean show) {
-//        AndroidUtilities.updateViewVisibilityAnimated(actionModeLayout, show);
-//    }
-
-//    public boolean actionModeIsVisible() {
-//        return actionModeLayout.getVisibility() == View.VISIBLE;
-//    }
-
     private class Page {
         final public String title;
         final public int type;
@@ -481,7 +471,6 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
     }
 
     private abstract class BaseAdapter extends AdapterWithDiffUtils {
-
 
         final int type;
 
@@ -527,12 +516,7 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                 }
             }
             setItems(old, itemInners);
-//            if (loadingDialogs) {
-//                itemInners.add(new ItemInner(VIEW_FLICKER_LOADING_DIALOG, null, null));
-//            } else if (dialogsFilesEntities != null && dialogsFilesEntities.size() > 0) {
-//
-//                itemInners.add(new ItemInner(VIEW_TYPE_INFO, null, null));
-//            }
+
         }
 
         @NonNull
@@ -566,13 +550,12 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                         title = DialogObject.setDialogPhotoTitle(userCell.getImageView(), object);
                     }
                     userCell.dialogFileEntities = dialogFileEntities;
-                    userCell.getImageView().setRoundRadius(AndroidUtilities.dp(object instanceof TLRPC.Chat && ((TLRPC.Chat) object).forum ? 12 : 19));
+                    userCell.getImageView().setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(38, object instanceof TLRPC.Chat && ((TLRPC.Chat) object).forum));
                     userCell.setTextAndValue(title, AndroidUtilities.formatFileSize(dialogFileEntities.totalSize), position < getItemCount() - 1);
                     userCell.setChecked(cacheModel.isSelected(dialogFileEntities.dialogId), animated);
                     break;
             }
         }
-
 
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
@@ -919,7 +902,6 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
             }
             attributeAudio.flags |= 3;
             message.media.document.attributes.add(attributeAudio);
-
 
             TLRPC.TL_documentAttributeFilename fileName = new TLRPC.TL_documentAttributeFilename();
             fileName.file_name = fileInfo.file.getName();

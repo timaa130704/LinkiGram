@@ -108,11 +108,10 @@ public class VideoAds {
         }
     }
 
-//    private static LruCache<VideoAdsLocation, VideoAds> cached = new LruCache<>(3);
-    private static HashMap<VideoAdsLocation, VideoAds> cached = new HashMap<>();
+    private static LruCache<VideoAdsLocation, VideoAds> cached = new LruCache<>(3);
 
     public static void dropCache() {
-        cached.clear();
+        cached.evictAll();
     }
 
     public static VideoAds make(
@@ -450,7 +449,7 @@ public class VideoAds {
                     textView.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector, resourcesProvider1), 0, ad.additional_info == null ? 6 : 0));
                     textView.setOnClickListener(e -> {
                         if (AndroidUtilities.addToClipboard(ad.sponsor_info)) {
-//                            BulletinFactory.of(Bulletin.BulletinWindow.make(context), resourcesProvider1).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
+
                         }
                     });
                     sections.add(textView);
@@ -466,7 +465,7 @@ public class VideoAds {
                     textView.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_dialogButtonSelector, resourcesProvider), 0, 6));
                     textView.setOnClickListener(e -> {
                         if (AndroidUtilities.addToClipboard(ad.additional_info)) {
-//                            BulletinFactory.of(Bulletin.BulletinWindow.make(activityContext), resourcesProvider1).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
+
                         }
                     });
                     sections.add(textView);
@@ -836,9 +835,8 @@ public class VideoAds {
         @Override
         protected void onShow() {
             super.onShow();
-//            imageView.playAnimation();
-        }
 
+        }
 
         public CharSequence getAccessibilityText() {
             return titleTextView.getText() + ".\n" + subtitleTextView.getText();

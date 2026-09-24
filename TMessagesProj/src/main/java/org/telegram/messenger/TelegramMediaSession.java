@@ -187,6 +187,23 @@ public class TelegramMediaSession {
         }
     }
 
+    public void deactivate() {
+        if (session == null) {
+            return;
+        }
+        try {
+            PlaybackStateCompat stopped = new PlaybackStateCompat.Builder()
+                    .setState(PlaybackStateCompat.STATE_STOPPED, 0, 1f)
+                    .setActions(getAvailableActions())
+                    .build();
+            session.setPlaybackState(stopped);
+            session.setMetadata(null);
+            session.setActive(false);
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+    }
+
     public Bundle buildRootHints() {
         Bundle rootExtras = new Bundle();
         rootExtras.putBoolean(CONTENT_STYLE_SUPPORTED, true);
@@ -248,8 +265,7 @@ public class TelegramMediaSession {
             return;
         }
         if (loadingChats) {
-            // queue up: when load completes we still want a response. Caller may detach result.
-            // For simplicity, attempt again once done by polling on the storage queue.
+            
         }
         loadingChats = true;
         MessagesStorage messagesStorage = MessagesStorage.getInstance(currentAccount);
@@ -402,7 +418,8 @@ public class TelegramMediaSession {
         ArrayList<MessageObject> arrayList = musicObjects.get(did);
         ArrayList<MediaSessionCompat.QueueItem> queueList = musicQueues.get(did);
         if (arrayList == null || arrayList.isEmpty() || queueList == null) return;
-        session.setQueue(queueList);
+        
+        session.setQueue(new ArrayList<>(queueList));
         if (DialogObject.isUserDialog(did)) {
             TLRPC.User user = users.get(did);
             session.setQueueTitle(user != null
@@ -595,7 +612,7 @@ public class TelegramMediaSession {
 
         @Override
         public void onPrepare() {
-            // No-op: nothing to prepare without a target. Hosts call prepareFromX with args.
+            
         }
 
         @Override
@@ -666,7 +683,7 @@ public class TelegramMediaSession {
 
         @Override
         public void onStop() {
-            // session stays alive; let MusicPlayerService handle notification + service teardown
+            
         }
 
         @Override

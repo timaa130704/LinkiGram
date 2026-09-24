@@ -32,6 +32,8 @@ import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 import org.telegram.ui.recyclerview.ChatListItemAnimator;
 
+import java.util.Locale;
+
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ContactsController;
@@ -101,6 +103,20 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
     private boolean needCloseConfirmation;
 
     private boolean destroyed;
+    private int webViewRequestId;
+    private int webViewRequestGeneration;
+    private int webViewRequestRetryCount;
+    private Runnable webViewRequestRetryRunnable;
+    private int webViewResultObserverAccount = -1;
+    private boolean viewportUpdatePosted;
+    private final Runnable viewportUpdateRunnable = () -> {
+        viewportUpdatePosted = false;
+        if (!destroyed && webViewContainer != null) {
+            webViewContainer.invalidateViewPortHeight();
+        }
+    };
+    private boolean keyboardEnablePending;
+    private final Runnable keyboardEnableRunnable = this::runKeyboardEnableCheck;
     private Runnable pollRunnable = () -> {
         if (!destroyed) {
             TLRPC.TL_messages_prolongWebView prolongWebView = new TLRPC.TL_messages_prolongWebView();
@@ -159,6 +175,13 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
             parentAlert.baseFragment.presentFragment(new ChatActivity(bundle));
             parentAlert.dismiss();
         } else if (id == R.id.menu_reload_page) {
+            if (webViewContainer.getWebView() == null && queryId == 0) {
+                progressView.setLoadProgress(0);
+                progressView.setAlpha(1f);
+                progressView.setVisibility(VISIBLE);
+                requestWebView(currentAccount, peerId, botId, silent, replyToMsgId, startCommand, monoforumTopicId);
+                return;
+            }
             if (webViewContainer.getWebView() != null) {
                 webViewContainer.getWebView().animate().cancel();
                 webViewContainer.getWebView().animate().alpha(0).start();
@@ -231,10 +254,19 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
         swipeContainer.addView(webViewContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         swipeContainer.setScrollListener(() -> {
             parentAlert.updateLayout(this, true, 0);
-            webViewContainer.invalidateViewPortHeight();
+            if (!viewportUpdatePosted) {
+                viewportUpdatePosted = true;
+                postOnAnimation(viewportUpdateRunnable);
+            }
             lastSwipeTime = System.currentTimeMillis();
         });
-        swipeContainer.setScrollEndListener(()-> webViewContainer.invalidateViewPortHeight(true));
+        swipeContainer.setScrollEndListener(() -> {
+            if (viewportUpdatePosted) {
+                removeCallbacks(viewportUpdateRunnable);
+                viewportUpdatePosted = false;
+            }
+            webViewContainer.invalidateViewPortHeight(true);
+        });
         swipeContainer.setDelegate(byTap -> {
             if (!onCheckDismissByUser()) {
                 swipeContainer.stickTo(0);
@@ -334,7 +366,7 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
     }
 
     public boolean canExpandByRequest() {
-        return /* System.currentTimeMillis() - lastSwipeTime > 1000 && */ !swipeContainer.isSwipeInProgress();
+        return   !swipeContainer.isSwipeInProgress();
     }
 
     public void setMeasureOffsetY(int measureOffsetY) {
@@ -418,6 +450,7 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
 
     @Override
     public void onShow(ChatAttachAlert.AttachAlertLayout previousLayout) {
+        webViewContainer.setWebViewPaused(false);
         CharSequence title = UserObject.getUserName(MessagesController.getInstance(currentAccount).getUser(botId));
         try {
             TextPaint tp = new TextPaint();
@@ -450,22 +483,38 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
     }
 
     private void requestEnableKeyboard() {
+        keyboardEnablePending = true;
+        AndroidUtilities.cancelRunOnUIThread(keyboardEnableRunnable);
+        keyboardEnableRunnable.run();
+    }
+
+    private void runKeyboardEnableCheck() {
+        if (!keyboardEnablePending || destroyed) {
+            return;
+        }
         BaseFragment fragment = parentAlert.getBaseFragment();
         if (fragment instanceof ChatActivity && ((ChatActivity) fragment).contentView.measureKeyboardHeight() > dp(20)) {
             AndroidUtilities.hideKeyboard(parentAlert.baseFragment.getFragmentView());
-            AndroidUtilities.runOnUIThread(this::requestEnableKeyboard, 250);
+            AndroidUtilities.runOnUIThread(keyboardEnableRunnable, 250);
             return;
         }
 
+        keyboardEnablePending = false;
         parentAlert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         setFocusable(true);
         parentAlert.setFocusable(true);
+    }
+
+    private void cancelKeyboardEnableRequest() {
+        keyboardEnablePending = false;
+        AndroidUtilities.cancelRunOnUIThread(keyboardEnableRunnable);
     }
 
     @Override
     public void onHidden() {
         super.onHidden();
 
+        cancelKeyboardEnableRequest();
         parentAlert.setFocusable(false);
         parentAlert.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
     }
@@ -490,6 +539,37 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
     }
 
     public void requestWebView(int currentAccount, long peerId, long botId, boolean silent, int replyToMsgId, String startCommand, long monoforumTopicId) {
+        requestWebView(currentAccount, peerId, botId, silent, replyToMsgId, startCommand, monoforumTopicId, false);
+    }
+
+    private void cancelPendingWebViewRequest() {
+        webViewRequestGeneration++;
+        if (webViewRequestId != 0) {
+            ConnectionsManager.getInstance(currentAccount).cancelRequest(webViewRequestId, true);
+            webViewRequestId = 0;
+        }
+        if (webViewRequestRetryRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(webViewRequestRetryRunnable);
+            webViewRequestRetryRunnable = null;
+        }
+    }
+
+    private boolean isTransientWebViewRequestError(TLRPC.TL_error error) {
+        if (error == null || error.code < 0 || error.code >= 500) {
+            return true;
+        }
+        String text = error.text == null ? "" : error.text.toUpperCase(Locale.ROOT);
+        return text.contains("TIMEOUT") || text.contains("INTERNAL") || text.contains("NETWORK");
+    }
+
+    private void requestWebView(int currentAccount, long peerId, long botId, boolean silent, int replyToMsgId, String startCommand, long monoforumTopicId, boolean retrying) {
+        if (destroyed) {
+            return;
+        }
+        cancelPendingWebViewRequest();
+        if (!retrying) {
+            webViewRequestRetryCount = 0;
+        }
         this.currentAccount = currentAccount;
         this.peerId = peerId;
         this.botId = botId;
@@ -549,22 +629,53 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
             req.flags |= 4;
         }
 
-        ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+        final int requestGeneration = webViewRequestGeneration;
+        webViewRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (destroyed || requestGeneration != webViewRequestGeneration) {
+                return;
+            }
+            webViewRequestId = 0;
             if (response instanceof TLRPC.TL_webViewResultUrl) {
                 TLRPC.TL_webViewResultUrl resultUrl = (TLRPC.TL_webViewResultUrl) response;
                 queryId = resultUrl.query_id;
                 webViewContainer.loadUrl(currentAccount, resultUrl.url, resultUrl.same_origin);
 
                 AndroidUtilities.runOnUIThread(pollRunnable);
+            } else if (webViewRequestRetryCount == 0 && isTransientWebViewRequestError(error)) {
+                webViewRequestRetryCount++;
+                final int failedGeneration = requestGeneration;
+                webViewRequestRetryRunnable = () -> {
+                    webViewRequestRetryRunnable = null;
+                    if (!destroyed && failedGeneration == webViewRequestGeneration) {
+                        requestWebView(this.currentAccount, this.peerId, this.botId, this.silent, this.replyToMsgId, this.startCommand, this.monoforumTopicId, true);
+                    }
+                };
+                AndroidUtilities.runOnUIThread(webViewRequestRetryRunnable, 350);
+            } else {
+                progressView.setVisibility(GONE);
+                BulletinFactory.of(parentAlert.getContainer(), resourcesProvider)
+                        .createErrorBulletin(LocaleController.getString(R.string.UnknownError))
+                        .show();
             }
         }));
 
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.webViewResultSent);
+        if (webViewResultObserverAccount != currentAccount) {
+            if (webViewResultObserverAccount >= 0) {
+                NotificationCenter.getInstance(webViewResultObserverAccount).removeObserver(this, NotificationCenter.webViewResultSent);
+            }
+            NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.webViewResultSent);
+            webViewResultObserverAccount = currentAccount;
+        }
     }
 
     @Override
     public void onDestroy() {
-        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.webViewResultSent);
+        cancelPendingWebViewRequest();
+        cancelKeyboardEnableRequest();
+        if (webViewResultObserverAccount >= 0) {
+            NotificationCenter.getInstance(webViewResultObserverAccount).removeObserver(this, NotificationCenter.webViewResultSent);
+            webViewResultObserverAccount = -1;
+        }
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewTheme);
 
         ActionBarMenu menu = parentAlert.actionBar.createMenu();
@@ -575,11 +686,17 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
         destroyed = true;
 
         AndroidUtilities.cancelRunOnUIThread(pollRunnable);
+        if (viewportUpdatePosted) {
+            removeCallbacks(viewportUpdateRunnable);
+            viewportUpdatePosted = false;
+        }
     }
 
     @Override
     public void onHide() {
         super.onHide();
+        cancelKeyboardEnableRequest();
+        webViewContainer.setWebViewPaused(true);
         otherItem.setVisibility(GONE);
         isBotButtonAvailable = false;
         if (!webViewContainer.isBackButtonVisible()) {
@@ -1242,9 +1359,7 @@ public class ChatAttachAlertBotWebViewLayout extends ChatAttachAlert.AttachAlert
         }
 
         public interface Delegate {
-            /**
-             * Called to dismiss parent layout
-             */
+             
             void onDismiss(boolean byTap);
         }
     }

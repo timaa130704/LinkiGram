@@ -48,7 +48,7 @@ public class CheckBoxUserCell extends FrameLayout {
 
         avatarDrawable = new AvatarDrawable();
         imageView = new BackupImageView(context);
-        imageView.setRoundRadius(AndroidUtilities.dp(36));
+        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(72));
         addView(imageView, LayoutHelper.createFrame(36, 36, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 23, 7, 23, 0));
 
         checkBox = new Switch(context, null);

@@ -57,9 +57,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
     public boolean skipFrameUpdate;
     public long currentTime;
 
-    // canvas.drawPath lead to glitches
-    // clipPath not use antialias
-    private static final boolean USE_BITMAP_SHADER = true; // Build.VERSION.SDK_INT < 29;
+    private static final boolean USE_BITMAP_SHADER = true; 
     private boolean PRERENDER_FRAME;
 
     private long lastFrameTime;
@@ -155,7 +153,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         invalidateInternal();
     }
 
-
     boolean generatingCache;
     Runnable cacheGenRunnable;
     private final Runnable uiRunnableGenerateCache = this::uiRunnableGenerateCacheImpl;
@@ -244,11 +241,11 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
             if (nextRenderingBuffer == null && nextRenderingBuffer2 == null) {
                 nextRenderingBuffer = backgroundBuffer;
             } else if (nextRenderingBuffer == null) {
-                // nextRenderingBuffer2 != null
+                
                 nextRenderingBuffer = nextRenderingBuffer2;
                 nextRenderingBuffer2 = backgroundBuffer;
             } else {
-                // nextRenderingBuffer != null || nextRenderingBuffer2 != null
+                
                 nextRenderingBuffer2 = backgroundBuffer;
             }
         }
@@ -277,14 +274,12 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         for (int a = 0, N = secondParentViews.size(); a < N; a++) {
             secondParentViews.get(a).invalidate();
         }
-        // Static frame: Choreographer won't tick when !isRunning, invalidate manually.
+        
         if (!isRunning && decodeSingleFrame || renderingBuffer == null && nextRenderingBuffer != null) {
             invalidateInternal();
         }
         scheduleNextGetFrame();
     }
-
-
 
     public void checkRepeat() {
         int count = 0;
@@ -347,7 +342,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
                     isRestarted = true;
                 }
                 metaData[3] = backgroundBuffer.time = cacheMetadata.frame * Math.max(16, metaData[4] / Math.max(1, bitmapsCache.getFrameCount()));
-                backgroundBuffer.opaque = false; // unknown
+                backgroundBuffer.opaque = false; 
 
                 if (bitmapsCache.needGenCache()) {
                     AndroidUtilities.runOnUIThread(uiRunnableGenerateCache);
@@ -414,9 +409,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         }
         AndroidUtilities.runOnUIThread(uiRunnable);
     }
-
-
-
 
     private void adaptRenderingSize() {
         if (renderingWidth == 0 && renderingHeight == 0) {
@@ -504,7 +496,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         }
     }
 
-    // call after constructor
     public void setIsWebmSticker(boolean b) {
         isWebmSticker = b;
         if (isWebmSticker) {
@@ -513,15 +504,12 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         }
     }
 
-    // call after constructor
     public void setLimitFps(boolean limitFps) {
         this.limitFps = limitFps;
         if (limitFps) {
             PRERENDER_FRAME = false;
         }
     }
-
-
 
     @AnyThread
     @Nullable
@@ -703,7 +691,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
                 }
             }
 
-          //  unusedBuffers.remove(backgroundBuffer);
             unusedBuffers.clear();
             renderingBuffer = null;
             nextRenderingBuffer = null;
@@ -811,7 +798,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
     }
     private boolean scheduledForSeek;
 
-    @AnyThread  // maybe ui thread only
+    @AnyThread  
     private void scheduleNextGetFrame(boolean wait, boolean cancel) {
         final boolean ignoreScheduleNext = loadFrameTask != null && !cancel
             || (!PRERENDER_FRAME || nextRenderingBuffer2 != null && !(!scheduledForSeek && pendingSeekToUI >= 0)) && nextRenderingBuffer != null
@@ -825,8 +812,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         if (ignoreScheduleNext) {
             return;
         }
-        // Choreographer owns the timing — always start decoding immediately
-        // so the next frame is ready before the next tick arrives.
+        
         if (useSharedQueue) {
             if (limitFps) {
                 DispatchQueuePoolBackground.execute(loadFrameTask = loadFrameRunnable);
@@ -1134,7 +1120,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
             && roundRadius[2] == roundRadius[3];
     }
 
-
     public boolean hasBitmap() {
         return canLoadFrames() && (renderingBuffer != null || nextRenderingBuffer != null);
     }
@@ -1197,8 +1182,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         }
         mDecoder.getVideoFrame(null, false, startTime, endTime, loop);
     }
-
-
 
     public ArrayList<ImageReceiver> getParents() {
         return parents;
@@ -1302,7 +1285,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
 
     @UiThread
     private void updateCurrentFrameInternal(long now, boolean updateInBackground) {
-        // final boolean canSwapBuffers = Math.abs(now - lastFrameTime) >= invalidateAfter;
+        
         final boolean canSwapBuffers = swapBuffersAllowedByChoreographer
             || !isRunning && decodeSingleFrame;
 
@@ -1340,13 +1323,6 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
         final int renderingSize = renderingWidth * renderingHeight;
         return Math.max(intrinsicSize, renderingSize) * 4 * 3;
     }
-
-
-
-
-
-
-    // ── Choreographer integration ─────────────────────────────────────────────
 
     private static final int PAUSE_AFTER_TICKS = 10;
     private int ticksWithoutDraw;
@@ -1402,7 +1378,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
                 isChoreographerRegistered = true;
                 ticksWithoutDraw = 0;
                 Choreographer60FpsContent.getInstance().addFrameCallback(mUiThreadChoreographerCallback, fps);
-                // Log.i("CHOREOGRAPHER_DEBUG", "+ AnimatedFileDrawable " + activeChoreographersCount + " fps: " + fps);
+                
             }
         } else {
             if (isChoreographerRegistered) {
@@ -1410,7 +1386,7 @@ public final class AnimatedFileDrawable extends BitmapDrawable implements Animat
                 isChoreographerRegistered = false;
                 ticksWithoutDraw = 0;
                 Choreographer60FpsContent.getInstance().removeFrameCallback(mUiThreadChoreographerCallback);
-                // Log.i("CHOREOGRAPHER_DEBUG", "- AnimatedFileDrawable " + activeChoreographersCount);
+                
             }
         }
     }

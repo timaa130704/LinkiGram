@@ -62,6 +62,16 @@ public class LocationSharingService extends Service implements NotificationCente
     }
 
     @Override
+    public void onTimeout(int startId) {
+        stopSelf();
+    }
+
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        stopSelf();
+    }
+
+    @Override
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id == NotificationCenter.liveLocationsChanged) {
             if (handler != null) {

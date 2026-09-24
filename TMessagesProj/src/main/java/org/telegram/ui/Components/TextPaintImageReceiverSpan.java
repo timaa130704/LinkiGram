@@ -107,6 +107,7 @@ public class TextPaintImageReceiverSpan extends ReplacementSpan {
     public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
         if (fm != null) {
             if (baselineMode) {
+                
                 fm.top = fm.ascent = -(height - depth);
                 fm.bottom = fm.descent = depth;
             } else if (alignTop) {
@@ -125,6 +126,7 @@ public class TextPaintImageReceiverSpan extends ReplacementSpan {
     public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
         canvas.save();
         if (baselineMode) {
+            
             imageReceiver.setImageCoords((int) x, y - (height - depth), width, height);
         } else if (alignTop) {
             imageReceiver.setImageCoords((int) x, top - 1, width, height);
