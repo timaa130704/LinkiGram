@@ -12002,6 +12002,7 @@
 <string name="NM_MP_CustomizeMessage">Customize a message</string>
 <string name="NM_MP_CustomizeProfile">Customize profile</string>
 <string name="NM_MP_ShowSeconds">Format time with seconds</string>
+<string name="NM_MP_ShowSeconds_Desc" translatable="false">12:34 -&gt; 12:34:56</string>
 <string name="NM_MP_DisablePremiumStatuses">Disable premium statuses</string>
 <string name="NM_MP_ReplyBackground">Background in replies</string>
 <string name="NM_MP_ReplyCustomColors">Custom colors in replies and links preview</string>

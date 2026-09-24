@@ -11,7 +11,6 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.DynamicDrawableSpan;
 import android.util.LongSparseArray;
-import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 
 import androidx.annotation.Nullable;
@@ -98,6 +97,7 @@ public class BotForumHelper extends BaseController {
         return messageObject;
     }
 
+    // user_id > topic_id -> random_id - message
     private final DialogTopicIdKeyMap<BotDraftMessage> botTextDraftsByRandomIds = new DialogTopicIdKeyMap<>();
     private final DialogTopicIdKeyMap<Object> botTextDraftsByRandomIdsBlocklist = new DialogTopicIdKeyMap<>();
 
@@ -365,6 +365,10 @@ public class BotForumHelper extends BaseController {
                 new BotForumTextDraftDeleteNotification(userId, topicId, draftMessage.localMessageId));
     }
 
+
+
+
+
     private static class BotDraftMessage {
         public final long userId;
         public final int topicId;
@@ -387,6 +391,9 @@ public class BotForumHelper extends BaseController {
             this.localMessageId = localMessageId;
         }
     }
+
+
+    /** Send message interceptors **/
 
     public boolean beforeSendingFinalRequest(TLObject req, MessageObject msg, Runnable send) {
         return beforeSendingFinalRequest(req, Collections.singletonList(msg), send);
@@ -461,6 +468,9 @@ public class BotForumHelper extends BaseController {
         return false;
     }
 
+
+
+    //  userId -> topicId
     private final LongSparseArray<List<MessagesStorage.IntCallback>> pendingBotTopics = new LongSparseArray<>();
 
     private void performSendBotTopicCreate(final TLRPC.InputPeer inputPeer,
@@ -552,6 +562,10 @@ public class BotForumHelper extends BaseController {
         }
     }
 
+
+
+    /** Notification classes **/
+
     public static class BotForumTopicCreateNotification {
         public final long dialogId;
         public final int topicId;
@@ -588,6 +602,9 @@ public class BotForumHelper extends BaseController {
         }
     }
 
+
+    /** Helper Utils **/
+
     public static boolean isBotForum(int currentAccount, long dialogId) {
         if (dialogId > 0) {
             return UserObject.isBotForum(MessagesController.getInstance(currentAccount).getUser(dialogId));
@@ -606,6 +623,9 @@ public class BotForumHelper extends BaseController {
     public boolean isStreamingTopic(long dialogId, long topicId) {
         return preferences.getBoolean(dialogId + "_" + topicId, false);
     }
+
+
+    /** Instance **/
 
     private BotForumHelper(int currentAccount) {
         super(currentAccount);
@@ -626,9 +646,11 @@ public class BotForumHelper extends BaseController {
         return localInstance;
     }
 
+
+
     public static class BotDraftAnimationsPool {
         private final DialogTopicIdKeyMap<MultiLayoutTypingAnimator> animators = new DialogTopicIdKeyMap<>();
-        private final SparseIntArray ids = new SparseIntArray();   
+        private final SparseIntArray ids = new SparseIntArray();   // messageId -> pendingId;
 
         @Nullable
         public MultiLayoutTypingAnimator getAnimator(long dialogId, int messageId, boolean allowCreate) {

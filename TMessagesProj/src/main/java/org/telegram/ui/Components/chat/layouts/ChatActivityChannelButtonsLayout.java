@@ -40,11 +40,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
     public static final int BUTTON_DIRECT = 2;
     public static final int BUTTON_GIGA_GROUP_INFO = 3;
     public static final int BUTTON_RECENT_ACTIONS_INFO = 4;
-    
-    public static final int BUTTON_MUTE = 5;
-    public static final int BUTTON_UNMUTE = 6;
-    public static final int BUTTON_DISCUSS = 7;
-    private static final int BUTTONS_COUNT = 8;
+    private static final int BUTTONS_COUNT = 5;
 
     private final ButtonHolder[] buttonHolders = new ButtonHolder[BUTTONS_COUNT];
     private final OnClickListener[] onClickListeners = new OnClickListener[BUTTONS_COUNT];
@@ -59,11 +55,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         R.drawable.input_gift_s,
         R.drawable.input_message,
         R.drawable.msg_help,
-        R.drawable.msg_help,
-        
-        R.drawable.notifications_on_solar,
-        R.drawable.msg_mute_solar,
-        R.drawable.msg_discuss_solar
+        R.drawable.msg_help
     };
     private static final int[] buttonsOrderLeft = new int[] {
         BUTTON_SEARCH
@@ -72,11 +64,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         BUTTON_GIFT,
         BUTTON_DIRECT,
         BUTTON_GIGA_GROUP_INFO,
-        BUTTON_RECENT_ACTIONS_INFO,
-        
-        BUTTON_MUTE,
-        BUTTON_UNMUTE,
-        BUTTON_DISCUSS
+        BUTTON_RECENT_ACTIONS_INFO
     };
 
     private final Theme.ResourcesProvider resourcesProvider;
@@ -198,6 +186,8 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         checkButtonsPositionsAndVisibility();
     }
+
+
 
     private static final int CENTER_ACCENT_BACKGROUND_ANIMATOR_ID = 99;
     private final BoolAnimator animatorCenterAccentBackground = new BoolAnimator(
@@ -323,7 +313,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
                 continue;
             }
 
-            final float width = holder.visibilityAnimator.getFloatValue() * dp(44 + 10);    
+            final float width = holder.visibilityAnimator.getFloatValue() * dp(44 + 10);    // width + margin
             holder.button.setTranslationX(dp(1) + totalWidthLeft);
             totalWidthLeft += width;
         }
@@ -334,7 +324,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
                 continue;
             }
 
-            final float width = holder.visibilityAnimator.getFloatValue() * dp(44 + 10);    
+            final float width = holder.visibilityAnimator.getFloatValue() * dp(44 + 10);    // width + margin
             holder.button.setTranslationX(getMeasuredWidth() - holder.button.getMeasuredWidth() - dp(1) - totalWidthRight);
             totalWidthRight += width;
         }

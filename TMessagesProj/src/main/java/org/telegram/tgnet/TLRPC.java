@@ -61826,6 +61826,7 @@ public class TLRPC {
         public static final String constructorName = "messageEntityCustomEmoji";
 
         public long document_id;
+        public boolean local;
         public TLRPC.Document document; //custom
 
         public void readParams(InputSerializedData stream, boolean exception) {

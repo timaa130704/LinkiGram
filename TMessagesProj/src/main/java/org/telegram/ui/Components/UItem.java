@@ -1,5 +1,6 @@
 package org.telegram.ui.Components;
 
+
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
@@ -37,9 +38,6 @@ public class UItem extends AdapterWithDiffUtils.Item {
     public int pad;
     public boolean hideDivider;
     public int iconResId;
-    
-    public boolean colorfulIcon;
-    public int iconColorTop, iconColorBottom;
     public Drawable drawable;
     public CharSequence text, subtext, textValue;
     public CharSequence animatedText;
@@ -64,14 +62,10 @@ public class UItem extends AdapterWithDiffUtils.Item {
 
     public Object object;
     public Object object2;
-    private transient BaseFragment searchOwner;
-    private transient boolean searchable;
-    private transient String linkAlias;
-
-    public app.nimarkogram.messenger.plugins.Plugin plugin;
-    public app.nimarkogram.messenger.plugins.models.SettingItem settingItem;
 
     public boolean withUsername = true;
+    public app.nimarkogram.messenger.plugins.Plugin plugin;
+    public app.nimarkogram.messenger.plugins.models.SettingItem settingItem;
 
     public UItem(int viewType, boolean selectable) {
         super(viewType, selectable);
@@ -294,6 +288,41 @@ public class UItem extends AdapterWithDiffUtils.Item {
         return i;
     }
 
+    public UItem setTransparent(boolean transparent) {
+        return this;
+    }
+
+    public static UItem asButtonWithSubtext(int id, int icon, CharSequence text, CharSequence subtext, int type, int value) {
+        UItem item = new UItem(UniversalAdapter.VIEW_TYPE_TEXT, false);
+        item.id = id;
+        item.iconResId = icon;
+        item.text = text;
+        item.subtext = subtext;
+        return item;
+    }
+
+    public static UItem asCheck(int id, CharSequence text, int iconResId) {
+        UItem i = asCheck(id, text);
+        i.iconResId = iconResId;
+        return i;
+    }
+
+    public static UItem asSearchable(Object owner) {
+        return new UItem(UniversalAdapter.VIEW_TYPE_TEXT, false);
+    }
+
+    public UItem setSearchable(Object owner) {
+        return this;
+    }
+
+    public UItem setLinkAlias(String alias, Object owner) {
+        return this;
+    }
+    public String getLinkAlias() {
+        return null;
+    }
+
+
     public static UItem asCheck(CharSequence text) {
         UItem i = new UItem(UniversalAdapter.VIEW_TYPE_CHECK, false);
         i.text = text;
@@ -313,8 +342,8 @@ public class UItem extends AdapterWithDiffUtils.Item {
         return i;
     }
 
-    public static UItem asCheck(int id, CharSequence text, int iconResId) {
-        UItem i = asCheck(id, text);
+    public static UItem asCheck(int id, CharSequence text, CharSequence subtext, boolean multiline, int iconResId) {
+        UItem i = asCheck(id, text, subtext, multiline);
         i.iconResId = iconResId;
         return i;
     }
@@ -332,10 +361,6 @@ public class UItem extends AdapterWithDiffUtils.Item {
         i.text = text;
         i.textValue = value;
         return i;
-    }
-
-    public static UItem asRadioButton(int id, CharSequence text, CharSequence value) {
-        return asRadio(id, text, value);
     }
 
     public static UItem asRadio2(int id, CharSequence text, CharSequence value) {
@@ -644,6 +669,7 @@ public class UItem extends AdapterWithDiffUtils.Item {
         return item;
     }
 
+
     public UItem withUsername(boolean value) {
         withUsername = value;
         return this;
@@ -715,74 +741,6 @@ public class UItem extends AdapterWithDiffUtils.Item {
     public UItem accent() {
         this.accent = true;
         return this;
-    }
-
-    public UItem setSearchable(Object owner) {
-        searchable = true;
-        if (owner instanceof BaseFragment) searchOwner = (BaseFragment) owner;
-        if (searchOwner != null && app.nimarkogram.messenger.preferences.utils.SettingsRegistry.isValidForSearch(this)) {
-            app.nimarkogram.messenger.preferences.utils.SettingsRegistry registry =
-                    app.nimarkogram.messenger.preferences.utils.SettingsRegistry.getInstance();
-            if (!TextUtils.isEmpty(linkAlias)) {
-                registry.addLinkAliasForOption(linkAlias, searchOwner, this);
-            } else {
-                registry.addSearchEntry(searchOwner, this);
-            }
-        }
-        return this;
-    }
-    public UItem setLinkAlias(String alias, Object owner) {
-        linkAlias = alias;
-        if (owner instanceof BaseFragment) searchOwner = (BaseFragment) owner;
-        if (searchOwner != null && app.nimarkogram.messenger.preferences.utils.SettingsRegistry.isValidForLinkAliases(this)) {
-            app.nimarkogram.messenger.preferences.utils.SettingsRegistry.getInstance()
-                    .addLinkAliasForOption(alias, searchOwner, this);
-        }
-        return this;
-    }
-    public String getLinkAlias()                                 { return linkAlias; }
-    public UItem setCheckBoxIcon(int iconResId)                    { this.iconResId = iconResId; return this; }
-     
-    public UItem setTransparent(boolean transparent)               { this.transparent = transparent; return this; }
-
-    public UItem setColorfulIcon(int iconResId, int color) {
-        this.iconResId = iconResId;
-        this.iconColorTop = color;
-        this.iconColorBottom = color;
-        this.colorfulIcon = true;
-        return this;
-    }
-
-    public UItem setColorfulIcon(int colorTop, int colorBottom, int iconResId) {
-        this.iconResId = iconResId;
-        this.iconColorTop = colorTop;
-        this.iconColorBottom = colorBottom;
-        this.colorfulIcon = true;
-        return this;
-    }
-
-    public UItem setIcon(int iconResId) {
-        this.iconResId = iconResId;
-        return this;
-    }
-
-    public static UItem asExteraExpandableSwitch(int id, CharSequence text, CharSequence subText, View.OnClickListener onSwitchClick) {
-        UItem i = UItem.asCheck(id, text);
-        i.subtext = subText;
-        i.clickCallback = onSwitchClick;
-        return i;
-    }
-
-    public static UItem asButtonWithSubtext(int id, int iconResId, CharSequence text, CharSequence subtext, int iconHeight, int iconWidth) {
-        UItem i = UItem.asButton(id, iconResId, text);
-        i.subtext = subtext;
-        return i;
-    }
-
-    public static UItem asSlideView(int id, String[] choices, int chosen, Utilities.Callback<Integer> whenChose) {
-        UItem i = UItem.asSlideView(choices, chosen, whenChose);
-        i.id = id;
-        return i;
     }
 
     public UItem setSpanCount(int spanCount) {

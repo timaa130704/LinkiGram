@@ -936,10 +936,11 @@ public class PhotoPickerActivity extends BaseFragment implements NotificationCen
         emptyView.title.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         emptyView.addView(flickerView, 0);
         if (selectedAlbum != null) {
-
+//            emptyView.setShowAtCenter(false);
             emptyView.title.setText(LocaleController.getString(R.string.NoPhotos));
         } else {
-
+//            emptyView.setShowAtTop(true);
+//            emptyView.setPadding(0, AndroidUtilities.dp(200), 0, 0);
             emptyView.title.setText(LocaleController.getString(R.string.NoRecentSearches));
         }
         emptyView.showProgress(false, false);
@@ -1153,12 +1154,9 @@ public class PhotoPickerActivity extends BaseFragment implements NotificationCen
                 view.getLocationInWindow(location);
                 sendPopupWindow.showAtLocation(view, Gravity.LEFT | Gravity.TOP, location[0] + view.getMeasuredWidth() - sendPopupLayout.getMeasuredWidth() + AndroidUtilities.dp(8), location[1] - sendPopupLayout.getMeasuredHeight() - AndroidUtilities.dp(2));
                 sendPopupWindow.dimBehind();
-                
-                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                    try {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                    } catch (Exception ignored) {}
-                }
+                try {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                } catch (Exception ignored) {}
 
                 return false;
             });
@@ -1212,10 +1210,10 @@ public class PhotoPickerActivity extends BaseFragment implements NotificationCen
         if (commentTextView.isPopupShowing()) {
             fragmentView.setTranslationY(y);
             listView.setTranslationY(0);
-
+//            emptyView.setTranslationY(0);
         } else {
             listView.setTranslationY(y);
-
+//            emptyView.setTranslationY(y);
         }
     }
 

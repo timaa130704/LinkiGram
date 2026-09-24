@@ -130,8 +130,6 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     RecyclerItemsEnterAnimator recyclerItemsEnterAnimator;
     StoryViewer storyViewer;
     SearchField searchField;
-    private Runnable searchRunnable;
-    private int searchGeneration;
     final FiltersState sharedFilterState;
     Consumer<SelfStoryViewsPage> onSharedStateChanged;
     final FiltersState state = new FiltersState();
@@ -177,11 +175,12 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     public SelfStoryViewsPage(StoryViewer storyViewer, @NonNull Context context, FiltersState sharedFilterState, Consumer<SelfStoryViewsPage> onSharedStateChanged) {
         super(context);
         this.sharedFilterState = sharedFilterState;
-        
+        //this.sharedFilterState = null;
         this.onSharedStateChanged = onSharedStateChanged;
         this.resourcesProvider = storyViewer.resourcesProvider;
         this.storyViewer = storyViewer;
 
+        // state.set(sharedFilterState);
         currentAccount = storyViewer.currentAccount;
 
         titleView = new TextView(context);
@@ -199,6 +198,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
                 measuerdHeight = MeasureSpec.getSize(heightSpec);
                 super.onMeasure(widthSpec, heightSpec);
             }
+
 
         };
         recyclerListView.setClipToPadding(false);
@@ -359,7 +359,15 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
                                     .show();
                             cell.animateAlpha(isStoryShownToUser(viewUser) ? 1 : 0.5f, true);
                         }).makeMultiline(false).cutTextInFancyHalf()
-
+//                        .addIf(!isContact, R.drawable.msg_contact_add, LocaleController.getString(R.string.AddContact), () -> {
+//                            messagesController.getStoriesController().updateBlockUser(user.id, false);
+//                            ContactsController.getInstance(currentAccount).addContact(user, false);
+//                            user.contact = true;
+//                            BulletinFactory.of(SelfStoryViewsPage.this, resourcesProvider)
+//                                    .createSimpleBulletin(R.raw.contact_check, LocaleController.formatString(R.string.AddContactToast, firstNameFinal))
+//                                    .show();
+//                            cell.animateAlpha(isStoryShownToUser(viewUser) ? 1 : 0.5f, true);
+//                        })
                         .addIf(!isContact && !isBlocked && !isSelf, R.drawable.msg_user_remove, LocaleController.getString(R.string.BlockUser), true, () -> {
                             messagesController.blockPeer(user.id);
                             BulletinFactory.of(SelfStoryViewsPage.this, resourcesProvider).createBanBulletin(true).show();
@@ -442,32 +450,26 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
         topViewsContainer.addView(headerView);
         topViewsContainer.addView(titleView);
         searchField = new SearchField(getContext(), true, 13, resourcesProvider) {
+            Runnable runnable;
+
             @Override
             public void onTextChange(String text) {
-                if (searchRunnable != null) {
-                    AndroidUtilities.cancelRunOnUIThread(searchRunnable);
+                if (runnable != null) {
+                    AndroidUtilities.cancelRunOnUIThread(runnable);
                 }
-                final int generation = ++searchGeneration;
-                final String query = text.toLowerCase();
-                searchRunnable = () -> {
-                    if (generation != searchGeneration) {
-                        return;
-                    }
-                    searchRunnable = null;
+                runnable = () -> {
+                    runnable = null;
                     isSearchDebounce = false;
-                    if (!isAttachedToWindow) {
-                        return;
-                    }
-                    state.searchQuery = query;
+                    state.searchQuery = text.toLowerCase();
                     reload();
-                    
+                    //layoutManager.scrollToPositionWithOffset(0, -recyclerListView.getPaddingTop());
                 };
                 if (!TextUtils.isEmpty(text)) {
-                    AndroidUtilities.runOnUIThread(searchRunnable, 300);
+                    AndroidUtilities.runOnUIThread(runnable, 300);
                 } else {
-                    searchRunnable.run();
+                    runnable.run();
                 }
-                if (searchRunnable != null && !isSearchDebounce) {
+                if (runnable != null && !isSearchDebounce) {
                     isSearchDebounce = true;
                     listAdapter.updateRows();
                     layoutManager.scrollToPositionWithOffset(0, -recyclerListView.getPaddingTop());
@@ -479,6 +481,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
 
         addView(topViewsContainer);
     }
+
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
@@ -646,6 +649,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
                 searchField.setVisibility(showSearch ? View.VISIBLE : View.GONE);
                 TOP_PADDING = showSearch ? 96 : 46;
 
+                // titleView.setText(LocaleController.formatPluralStringComma("Views", serverItem.views.views_count));
             }
         } else {
             TOP_PADDING = 46;
@@ -709,12 +713,6 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         isAttachedToWindow = false;
-        searchGeneration++;
-        if (searchRunnable != null) {
-            AndroidUtilities.cancelRunOnUIThread(searchRunnable);
-            searchRunnable = null;
-        }
-        isSearchDebounce = false;
         if (currentModel != null) {
             currentModel.removeListener(this);
         }
@@ -724,7 +722,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     }
 
     public void onDataRecieved(ViewsModel model) {
-      
+      //  NotificationCenter.getInstance(currentAccount).doOnIdle(() -> {
             int oldCount = listAdapter.getItemCount();
             if (TextUtils.isEmpty(state.searchQuery) && !state.contactsOnly) {
                 updateViewsVisibility();
@@ -733,7 +731,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
             recyclerItemsEnterAnimator.showItemsAnimated(oldCount - 1);
             checkLoadMore();
             appendNewRepostsToList(model);
-     
+     //   });
     }
 
     public boolean scrollToRepostCell(long dialogId, int storyId) {
@@ -789,10 +787,9 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     }
 
     public void setListBottomPadding(float bottomPadding) {
-        final int paddingTop = (int) bottomPadding;
-        if (paddingTop != recyclerListView.getPaddingTop()) {
-            
-            recyclerListView.setPadding(0, paddingTop, 0, 0);
+        if (bottomPadding != recyclerListView.getPaddingBottom()) {
+            recyclerListView.setPadding(0, (int) bottomPadding, 0, 0);
+            recyclerListView.requestLayout();
         }
     }
 
@@ -828,7 +825,12 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     }
 
     protected void updateSharedState() {
-
+//        if (sharedFilterState != null) {
+//            state.sortByReactions = sharedFilterState.sortByReactions;
+//            state.contactsOnly = sharedFilterState.contactsOnly;
+//            reload();
+//            updateViewState(false);
+//        }
     }
 
     public void setShadowDrawable(Drawable shadowDrawable) {
@@ -1248,7 +1250,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
 
                 loading = true;
                 int[] localReqId = new int[1];
-                FileLog.d("SelfStoryViewsPage reactions load next " + storyItem.id + " " + initial + " offset=" + req.offset );
+                FileLog.d("SelfStoryViewsPage reactions load next " + storyItem.id + " " + initial + " offset=" + req.offset/* + " q" + req.q + " " + req.just_contacts + " " + req.reactions_first*/);
                 localReqId[0] = reqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                     if (localReqId[0] != reqId) {
                         FileLog.d("SelfStoryViewsPage reactions " + storyItem.id + " localId != reqId");
@@ -1269,8 +1271,12 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
                             reactions.clear();
                             originalViews.clear();
                         }
-
+//                        if (useLocalFilters) {
+//                            originalReactions.addAll(res.reactions);
+//                            applyLocalFilter();
+//                        } else {
                             reactions.addAll(res.reactions);
+//                        }
 
                         if (!res.reactions.isEmpty()) {
                             hasNext = true;
@@ -1716,9 +1722,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
         if (currentModel == null) {
             return;
         }
-        if (isAttachedToWindow) {
-            currentModel.addListener(this);
-        }
+        currentModel.addListener(this);
         currentModel.reloadIfNeed(state, showContactsFilter, showReactionsSort);
         listAdapter.updateRows();
         layoutManager.scrollToPositionWithOffset(0, (int) (getTopOffset() - recyclerListView.getPaddingTop()));
@@ -1731,7 +1735,7 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     }
 
     public static class FiltersState {
-        boolean sortByReactions = true; 
+        boolean sortByReactions = true; // converts to sortByForwards when showing channel reactions
         boolean contactsOnly;
         String searchQuery;
         String q;

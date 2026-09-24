@@ -39,6 +39,12 @@
 -keep class com.huawei.hms.**{ *; }
 
 # Don't warn about checkerframework and Kotlin annotations
+# MVEL references the optional Java scripting API on Android.
+-dontwarn javax.script.AbstractScriptEngine
+-dontwarn javax.script.Compilable
+-dontwarn javax.script.ScriptEngine
+-dontwarn javax.script.ScriptEngineFactory
+
 -dontwarn org.checkerframework.**
 -dontwarn javax.annotation.**
 

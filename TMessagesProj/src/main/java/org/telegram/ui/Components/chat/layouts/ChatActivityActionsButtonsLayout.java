@@ -82,8 +82,24 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
         replyButton.button.setOnClickListener(listener);
     }
 
+    public void setReplyButtonOnLongClickListener(View.OnLongClickListener listener) {
+        replyButton.button.setOnLongClickListener(listener);
+    }
+
     public void setForwardButtonOnClickListener(View.OnClickListener listener) {
         forwardButton.button.setOnClickListener(listener);
+    }
+
+    public View getReplyButton() {
+        return replyButton.button;
+    }
+
+    public void updateReplyButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
+        updateButtonUI(replyButton, text, iconRes, iconLeft);
+    }
+
+    public void updateForwardButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
+        updateButtonUI(forwardButton, text, iconRes, iconLeft);
     }
 
     public View getForwardButton() {
@@ -191,22 +207,6 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
 
     public void setNoForwards(boolean b) {
         this.noForwards = b;
-    }
-
-    public void setReplyButtonOnLongClickListener(View.OnLongClickListener listener) {
-        replyButton.button.setOnLongClickListener(listener);
-    }
-
-    public View getReplyButton() {
-        return replyButton.button;
-    }
-
-    public void updateReplyButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
-        updateButtonUI(replyButton, text, iconRes, iconLeft);
-    }
-
-    public void updateForwardButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
-        updateButtonUI(forwardButton, text, iconRes, iconLeft);
     }
 
     private void updateButtonUI(ButtonHolder holder, String text, @DrawableRes int iconRes, boolean iconLeft) {

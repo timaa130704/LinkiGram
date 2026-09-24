@@ -222,7 +222,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
 
                 @Override
                 public void onStop() {
-                    
+                    //stopSelf();
                 }
             });
             mediaSession.setActive(true);
@@ -287,6 +287,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
         }
         return null;
     }
+
 
     private Bitmap getAvatarBitmap(TLObject userOrChat, boolean big, boolean tryLoad) {
         int size = big ? 600 : 100;
@@ -433,7 +434,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
             boolean isPlaying = !MediaController.getInstance().isMessagePaused();
 
             PendingIntent pendingPrev = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PREVIOUS).setComponent(new ComponentName(this, MusicPlayerReceiver.class)), fixIntentFlags(PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT));
-            
+            //PendingIntent pendingStop = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_CLOSE).setComponent(new ComponentName(this, MusicPlayerReceiver.class)), PendingIntent.FLAG_CANCEL_CURRENT);
             PendingIntent pendingStop = PendingIntent.getService(getApplicationContext(), 0, new Intent(this, getClass()).setAction(getPackageName() + ".STOP_PLAYER"), fixIntentFlags(PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT));
             PendingIntent pendingPlaypause = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(isPlaying ? NOTIFY_PAUSE : NOTIFY_PLAY).setComponent(new ComponentName(this, MusicPlayerReceiver.class)), fixIntentFlags(PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT));
             PendingIntent pendingNext = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_NEXT).setComponent(new ComponentName(this, MusicPlayerReceiver.class)), fixIntentFlags(PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT));
@@ -812,14 +813,6 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
         unregisterReceiver(headsetPlugReceiver);
         super.onDestroy();
         stopForeground(true);
-        try {
-            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            if (nm != null) {
-                nm.cancel(ID_NOTIFICATION);
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
         if (remoteControlClient != null) {
             RemoteControlClient.MetadataEditor metadataEditor = remoteControlClient.editMetadata(true);
             metadataEditor.clear();
@@ -828,16 +821,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
         }
         if (mediaSession != null) {
             mediaSession.release();
-            mediaSession = null;
         }
-        
-        try {
-            if (imageReceiver != null) {
-                imageReceiver.setDelegate(null);
-                imageReceiver.setImageBitmap((android.graphics.drawable.BitmapDrawable) null);
-                imageReceiver.onDetachedFromWindow();
-            }
-        } catch (Throwable ignored) {}
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingDidSeek);
             NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);

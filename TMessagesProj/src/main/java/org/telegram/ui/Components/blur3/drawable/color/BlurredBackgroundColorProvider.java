@@ -7,6 +7,4 @@ public interface BlurredBackgroundColorProvider {
     @ColorInt int getBackgroundColor();
     @ColorInt int getStrokeColorTop();
     @ColorInt int getStrokeColorBottom();
-
-    @ColorInt default int getStrokeColorFull() { return 0; }
 }

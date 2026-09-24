@@ -225,9 +225,6 @@ public class StatisticPostInfoCell extends FrameLayout {
             text = LocaleController.getString(R.string.Story);
         } else {
             text = messageObject.caption != null ? messageObject.caption : messageObject.messageText;
-            if (text != null && text.toString().contains("$")) {
-                text = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(text.toString());
-            }
         }
         SpannableStringBuilder stringBuilder = new SpannableStringBuilder(text == null ? "" : text);
         URLSpan[] urlSpans = stringBuilder.getSpans(0, stringBuilder.length(), URLSpan.class);

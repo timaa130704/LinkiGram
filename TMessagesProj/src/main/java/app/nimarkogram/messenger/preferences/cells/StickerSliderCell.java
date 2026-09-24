@@ -87,7 +87,7 @@ public class StickerSliderCell extends LinearLayout {
                 return label == null || label.length() == 0 ? value : label + ": " + value;
             }
             @Override public int getStepsCount() { return Math.max(0, endRadius - startRadius); }
-            @Override public boolean isAccessibilityProgressInverted() { return LocaleController.isRTL; }
+            public boolean isAccessibilityProgressInverted() { return LocaleController.isRTL; }
         });
         addView(sizeBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 38));
 

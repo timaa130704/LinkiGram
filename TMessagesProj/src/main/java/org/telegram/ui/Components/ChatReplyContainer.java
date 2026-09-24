@@ -153,7 +153,6 @@ public class ChatReplyContainer extends FrameLayout {
                         canvas.clipPath(path);
 
                         int sColor = Color.WHITE;
-                        replySpoilerEffect.setParentView(this);
                         replySpoilerEffect.setColor(ColorUtils.setAlphaComponent(sColor, (int) (Color.alpha(sColor) * 0.325f)));
                         replySpoilerEffect.setBounds((int) imageReceiver.getImageX(), (int) imageReceiver.getImageY(), (int) imageReceiver.getImageX2(), (int) imageReceiver.getImageY2());
                         replySpoilerEffect.draw(canvas);

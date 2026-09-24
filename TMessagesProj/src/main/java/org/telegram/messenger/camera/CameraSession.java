@@ -160,10 +160,6 @@ public class CameraSession {
     }
 
     public void setTorchEnabled(boolean enabled) {
-        setTorchEnabled(enabled, 100);
-    }
-
-    public void setTorchEnabled(boolean enabled, int intensityPercent) {
         try {
             String beforeFlashMode = currentFlashMode;
             currentFlashMode = enabled ? Camera.Parameters.FLASH_MODE_TORCH : Camera.Parameters.FLASH_MODE_OFF;
@@ -174,32 +170,13 @@ public class CameraSession {
                     configurePhotoCamera();
                 }
             }
-            applyTorchStrengthIfSupported(enabled, intensityPercent);
         } catch (Exception e) {
             FileLog.e(e);
         }
     }
 
-    private void applyTorchStrengthIfSupported(boolean enabled, int intensityPercent) {
-        if (!enabled) return;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
-        if (intensityPercent >= 100 || intensityPercent <= 0) return;
-        if (cameraInfo == null) return;
-        try {
-            android.hardware.camera2.CameraManager cm = (android.hardware.camera2.CameraManager)
-                    ApplicationLoader.applicationContext.getSystemService(Context.CAMERA_SERVICE);
-            if (cm == null) return;
-            String cameraId = String.valueOf(cameraInfo.cameraId);
-            android.hardware.camera2.CameraCharacteristics cc = cm.getCameraCharacteristics(cameraId);
-            Integer maxLevel = cc.get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_STRENGTH_MAXIMUM_LEVEL);
-            if (maxLevel == null || maxLevel <= 1) return;
-            int strength = Math.round((intensityPercent / 100f) * maxLevel);
-            if (strength < 1) strength = 1;
-            if (strength > maxLevel) strength = maxLevel;
-            cm.turnOnTorchWithStrengthLevel(cameraId, strength);
-        } catch (Throwable t) {
-            FileLog.e("CameraSession turnOnTorchWithStrengthLevel failed", t);
-        }
+    public void setTorchEnabled(boolean enabled, int intensity) {
+        setTorchEnabled(enabled);
     }
 
     public String getCurrentFlashMode() {
@@ -303,7 +280,7 @@ public class CameraSession {
                             sameTakePictureOrientation = displayOrientation == outputOrientation;
                         }
                     } catch (Exception e) {
-                        
+                        //
                     }
                     params.setFlashMode(currentFlashMode);
                     params.setZoom((int) (currentZoom * maxZoom));
@@ -311,7 +288,7 @@ public class CameraSession {
                         camera.setParameters(params);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
-                        
+                        //
                     }
 
                     if (params.getMaxNumMeteringAreas() > 0) {
@@ -444,14 +421,14 @@ public class CameraSession {
                             sameTakePictureOrientation = displayOrientation == outputOrientation;
                         }
                     } catch (Exception e) {
-                        
+                        //
                     }
                     params.setFlashMode(useTorch ? Camera.Parameters.FLASH_MODE_TORCH : currentFlashMode);
 
                     try {
                         camera.setParameters(params);
                     } catch (Exception e) {
-                        
+                        //
                     }
                 }
             }

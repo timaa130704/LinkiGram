@@ -17,7 +17,6 @@ import android.text.style.UnderlineSpan;
 import org.telegram.messenger.CodeHighlighting;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MediaDataController;
-import org.telegram.messenger.MessageObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.AnimatedEmojiSpan;
 import org.telegram.ui.Components.QuoteSpan;
@@ -37,46 +36,6 @@ public class CopyUtilities {
     private final static int TYPE_MONO = 1;
     private final static int TYPE_QUOTE = 2;
     private final static int TYPE_COLLAPSE = 3;
-
-    public static CharSequence fromMessageEntities(CharSequence text,
-            ArrayList<TLRPC.MessageEntity> entities, boolean out) {
-        if (text == null) {
-            return null;
-        }
-
-        SpannableStringBuilder result = new SpannableStringBuilder(text.toString());
-        if (entities == null || entities.isEmpty() || result.length() == 0) {
-            return result;
-        }
-
-        ArrayList<TLRPC.MessageEntity> validEntities = new ArrayList<>(entities.size());
-        for (int i = 0; i < entities.size(); i++) {
-            TLRPC.MessageEntity entity = entities.get(i);
-            if (entity == null || entity.offset < 0 || entity.length <= 0) {
-                continue;
-            }
-            long end = (long) entity.offset + entity.length;
-            if (entity.offset >= result.length() || end > result.length()) {
-                continue;
-            }
-            validEntities.add(entity);
-        }
-        if (validEntities.isEmpty()) {
-            return result;
-        }
-
-        try {
-            
-            MessageObject.addEntitiesToText(
-                    result, validEntities, out, true, false, false);
-            
-            MediaDataController.addAnimatedEmojiSpans(
-                    validEntities, result, null);
-        } catch (Throwable error) {
-            FileLog.e(error);
-        }
-        return result;
-    }
 
     public static Spannable fromHTML(String html) {
         Spanned spanned;
@@ -157,7 +116,15 @@ public class CopyUtilities {
             final int start = spanned.getSpanStart(span);
             final int end = spanned.getSpanEnd(span);
             spannable.setSpan(new CodeHighlighting.Span(true, 0, null, span.lng, spannable.subSequence(start, end).toString()), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
+//            CodeHighlighting.highlight(
+//                spannable,
+//                spanned.getSpanStart(span),
+//                spanned.getSpanEnd(span),
+//                span.lng,
+//                0,
+//                null,
+//                false
+//            );
         }
         for (int i = 0; i < quotes.size(); ++i) {
             ParsedSpan span = quotes.get(i);
@@ -328,7 +295,6 @@ public class CopyUtilities {
                 if (opening) {
                     final String className = HTMLTagAttributesHandler.getValue(attributes, "class");
                     final boolean collapsed = HTMLTagAttributesHandler.getValue(attributes, "data-collapsed") != null
-                            || HTMLTagAttributesHandler.getValue(attributes, "collapsed") != null
                             || className != null && className.contains("telegram-collapsed-quote");
                     output.setSpan(new ParsedSpan(collapsed ? TYPE_COLLAPSE : TYPE_QUOTE), output.length(), output.length(), Spanned.SPAN_MARK_MARK);
                     return true;

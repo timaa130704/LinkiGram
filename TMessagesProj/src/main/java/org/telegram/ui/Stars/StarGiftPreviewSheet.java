@@ -170,6 +170,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         this.rModels = new BagRandomizer<>(models);
         this.rModels.setReshuffleIfEnd(false);
 
+        // actionBar.setVisibility(View.GONE);
         ViewParent parent = actionBar.getParent();
         if (parent instanceof ViewGroup) {
             ((ViewGroup) parent).removeView(actionBar);
@@ -181,7 +182,8 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
 
         setBackgroundColor(getBackgroundColor());
         fixNavigationBar();
-        
+        // setSlidingActionBar();
+
         glassSourceFallback = new BlurredBackgroundSourceColor();
         glassSourceFallback.setColor(getBackgroundColor());
 
@@ -198,6 +200,12 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         }
         final ViewPositionWatcher viewPositionWatcher = new ViewPositionWatcher(container);
         glassFactory.setSourceRootView(viewPositionWatcher, container);
+
+
+
+
+
+
 
         layoutManager = new ExtendedGridLayoutManager(context, 3);
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -243,7 +251,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         headerView = new FrameLayout(context);
         headerView.setClipChildren(false);
 
-        topView = new StarGiftSheet.TopView(context, currentAccount, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
+        topView = new StarGiftSheet.TopView(context, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
             @Override
             public float getRealHeight() {
                 return dp(315);
@@ -329,7 +337,8 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         headerPlay.setImageResource(R.drawable.filled_gift_pause_24);
         headerPlay.setScaleType(ImageView.ScaleType.CENTER);
         headerPlay.setOnClickListener(v -> {
-            
+            // AndroidUtilities.dumpCanvas(container);
+
             if (mode == Mode.SELECTED) {
                 topView.setPreviewingAttributes(attributes);
                 setMode(Mode.RANDOM);
@@ -353,6 +362,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         giftNameTextView.setGravity(Gravity.CENTER);
         giftNameTextView.setTextColor(Color.WHITE);
         headerView.addView(giftNameTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 16, 0, 16, 102));
+
 
         giftStatusTextView = new TextView(context);
         giftStatusTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -402,6 +412,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         FrameLayout.LayoutParams lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0, Gravity.TOP);
         lp.height = AndroidUtilities.statusBarHeight;
         containerView.addView(gradientTop, lp);
+
 
         tabsSelectorView.setPadding(dp(8), dp(8), dp(8), dp(8));
         BlurredBackgroundDrawable drawable = glassFactory.create(tabsSelectorView);
@@ -464,7 +475,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
 
     private void updateTranslationHeader() {
         boolean found = false;
-        float top = 0; 
+        float top = 0; // Math.max(0, getHeight() - height());
         for (int i = recyclerListView.getChildCount() - 1; i >= 0; --i) {
             final View child = recyclerListView.getChildAt(i);
             int position = recyclerListView.getChildAdapterPosition(child);
@@ -574,6 +585,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
             this.model = model;
         }
     }
+
 
     @SuppressLint("ViewConstructor")
     public static class GiftAttributeCell extends FrameLayout implements FactorAnimator.Target {
@@ -800,7 +812,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
 
         if (Build.VERSION.SDK_INT >= 31 && canvas.isHardwareAccelerated() && scrollableViewNoiseSuppressor != null) {
             if (glassSourceRenderNode != null && !glassSourceRenderNode.inRecording()) {
-                if (glassSourceRenderNode.needUpdateDisplayList(width, height)  ) {
+                if (glassSourceRenderNode.needUpdateDisplayList(width, height) /*|| glassSourcesInvalidated*/) {
                     final Canvas c = glassSourceRenderNode.beginRecording(width, height);
                     c.drawColor(getThemedColor(Theme.key_dialogBackgroundGray));
                     scrollableViewNoiseSuppressor.draw(c, LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ?
@@ -810,6 +822,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
                 }
             }
 
+            // scrollableViewNoiseSuppressor.drawDebugPositions(canvas);
         }
     }
 
@@ -970,6 +983,8 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
 
             int a = MathUtils.clamp((int) ((1f - Math.abs(start - 1f)) * 255), 0, 255);
 
+//            setLensVisibility(a);
+
         }
 
         @Override
@@ -985,6 +1000,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         }
     }
 
+
     private void setMode(Mode mode) {
         if (this.mode == mode) {
             return;
@@ -999,6 +1015,7 @@ public class StarGiftPreviewSheet extends BottomSheetWithRecyclerListView {
         giftStatusTextView.setText(getString(mode == Mode.SELECTED ?
             R.string.Gift2PreviewSelectedTraits:
             R.string.Gift2PreviewRandomTraits));
+
 
         updateSelectedForVisibleViews();
     }

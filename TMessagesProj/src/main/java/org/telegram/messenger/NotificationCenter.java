@@ -278,6 +278,7 @@ public class NotificationCenter {
     public static final int loadedAiComposeTones = totalEvents++;
     public static final int updatedChatbot = totalEvents++;
 
+    //global
     public static final int activeAccountChanged = totalEvents++;
     public static final int pushMessagesUpdated = totalEvents++;
     public static final int wallpapersDidLoad = totalEvents++;
@@ -374,28 +375,20 @@ public class NotificationCenter {
     public static final int webBrowserSettingsUpdate = totalEvents++;
     public static final int communityPendingRequestsUpdate = totalEvents++;
     public static final int communitySwitchedCollapsed = totalEvents++;
-
+    public static final int infoCardsLayoutChanged = totalEvents++;
+    public static final int infoCardsColorModeChanged = totalEvents++;
+    public static final int infoCardsSettingsChanged = totalEvents++;
+    public static final int infoCardsActiveCardChanged = totalEvents++;
     public static final int cgUpdateSearchFiledVisibility = totalEvents++;
-
     public static final int cgTabsUpdated = totalEvents++;
+    public static final int nmUpdateBubbleShape = totalEvents++;
+    public static final int nmUpdateOnlineIndicator = totalEvents++;
     public static final int pluginsUpdated = totalEvents++;
     public static final int pluginMenuItemsUpdated = totalEvents++;
-    public static final int customTitleUpdated = totalEvents++;   
+    public static final int customTitleUpdated = totalEvents++;
     public static final int pluginSettingsRegistered = totalEvents++;
     public static final int pluginSettingsUnregistered = totalEvents++;
     public static final int pluginIsNotResponding = totalEvents++;
-    
-    public static final int nmUpdateBubbleShape = totalEvents++;
-    
-    public static final int nmUpdateOnlineIndicator = totalEvents++;
-    
-    public static final int infoCardsLayoutChanged = totalEvents++;
-    
-    public static final int infoCardsSettingsChanged = totalEvents++;
-    
-    public static final int infoCardsColorModeChanged = totalEvents++;
-    
-    public static final int infoCardsActiveCardChanged = totalEvents++;
 
     public static boolean alreadyLogged;
 
@@ -648,7 +641,7 @@ public class NotificationCenter {
     private void postNotificationDebounced(int id, Object[] args) {
         int hash = id + (Arrays.hashCode(args) << 16);
         if (alreadyPostedRunnubles.indexOfKey(hash) >= 0) {
-            
+            //skip
             return;
         }
         final Runnable runnable = () -> {
@@ -764,6 +757,7 @@ public class NotificationCenter {
         return new ObserversGroup(this, delegate);
     }
 
+
     public void addObserver(NotificationCenterDelegate observer, int id) {
         if (BuildVars.DEBUG_VERSION) {
             if (Thread.currentThread() != ApplicationLoader.applicationHandler.getLooper().getThread()) {
@@ -796,7 +790,8 @@ public class NotificationCenter {
     }
 
     private ArrayList<NotificationCenterDelegate> createArrayForId(int id) {
-        
+        // this notifications often add/remove
+        // UniqArrayList for fast contains method check
         if (id == didReplacedPhotoInMemCache || id == stopAllHeavyOperations || id == startAllHeavyOperations) {
             return new UniqArrayList<>();
         }
@@ -975,6 +970,7 @@ public class NotificationCenter {
         }
     }
 
+
     public int getObserversSize() {
         int totalSize = 0;
         for (int i = 0; i < observers.size(); i++) {
@@ -986,6 +982,7 @@ public class NotificationCenter {
         return totalSize;
     }
 
+    // 1. Dump
     public SparseArray<Integer> dumpObservers() {
         SparseArray<Integer> dump = new SparseArray<>();
         for (int i = 0; i < observers.size(); i++) {
@@ -996,8 +993,9 @@ public class NotificationCenter {
         return dump;
     }
 
+    // 2. Compare two dumps and log differences
     public static void diffObserverDumps(SparseArray<Integer> before, SparseArray<Integer> after) {
-        
+        // Check keys present in before
         for (int i = 0; i < before.size(); i++) {
             int key = before.keyAt(i);
             int sizeBefore = before.valueAt(i);
@@ -1008,7 +1006,7 @@ public class NotificationCenter {
                 Log.i("ObserverDiff", "key=" + key + " CHANGED: " + sizeBefore + " -> " + sizeAfter);
             }
         }
-        
+        // Check keys added in after
         for (int i = 0; i < after.size(); i++) {
             int key = after.keyAt(i);
             if (before.get(key, -1) == -1) {

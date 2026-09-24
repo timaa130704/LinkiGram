@@ -153,9 +153,12 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public View createView(Context context) {
-        
+        logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo).mutate();
+        logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));
         SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.Page1Title));
+        ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         titles[0] = ssb;
+
 
         actionBar.setAddToContainer(false);
 
@@ -214,6 +217,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             if (DialogsActivity.switchingTheme) return;
             DialogsActivity.switchingTheme = true;
 
+            // TODO: Generify this part, currently it's a clone of another theme switch toggle
             String dayThemeName = "Blue";
             String nightThemeName = "Night";
 
@@ -259,7 +263,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
                         if (eglThread != null && eglThread.isAlive() && eglThread.eglDisplay != null && eglThread.eglSurface != null) {
                             try {
                                 eglThread.egl10.eglSwapBuffers(eglThread.eglDisplay, eglThread.eglSurface);
-                            } catch (Exception ignored) {} 
+                            } catch (Exception ignored) {} // If display or surface already destroyed
                         }
                     });
                     eglThread.postRunnable(eglThread.drawRunnable);
@@ -789,7 +793,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             loadTexture(R.drawable.intro_tg_plane, 21);
             loadTexture(v -> {
                 Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                paint.setColor(ThemeColors.TELEGRAM_COLOR); 
+                paint.setColor(ThemeColors.TELEGRAM_COLOR); // It's logo color, it should not be colored by the theme
                 int size = dp(ICON_HEIGHT_DP);
                 Bitmap bm = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(bm);
@@ -958,10 +962,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     private void updateColors(boolean fromTheme) {
         startMessagingButtonBackground.setColors(new int[]{getThemedColor(Theme.key_featuredStickers_addButton), getThemedColor(Theme.key_featuredStickers_addButton2)});
-        
-        if (logoDrawable != null) {
-            logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
-        }
+        logoDrawable.setColorFilter(Theme.multAlpha(getThemedColor(Theme.key_actionBarDefaultTitle), 0.9f), PorterDuff.Mode.MULTIPLY);
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         switchLanguageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         startMessagingButton.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));

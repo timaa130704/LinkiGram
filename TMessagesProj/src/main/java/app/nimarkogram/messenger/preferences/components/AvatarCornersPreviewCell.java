@@ -118,7 +118,7 @@ public class AvatarCornersPreviewCell extends FrameLayout {
                 return getString(R.string.NM_AvatarCorners) + ": " + Math.round(NimarkoConfig.avatarCorners);
             }
             @Override public int getStepsCount() { return max - min; }
-            @Override public boolean isAccessibilityProgressInverted() { return LocaleController.isRTL; }
+            public boolean isAccessibilityProgressInverted() { return LocaleController.isRTL; }
         });
         addView(seekBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 38, Gravity.TOP, 6, 44, 6, 0));
 

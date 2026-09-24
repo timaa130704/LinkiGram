@@ -429,12 +429,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         return videoSurfaceView;
     }
 
-    private static class PhotoViewerActionBarContainer extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
+    public static class PhotoViewerActionBarContainer extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
 
         private FrameLayout container;
         private FrameLayout titleLayout;
         SimpleTextView[] titleTextView;
-        AnimatedTextView subtitleTextView;
+        public AnimatedTextView subtitleTextView;
 
         public PhotoViewerActionBarContainer(Context context) {
             super(context);
@@ -4145,6 +4145,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         blackPaint.setColor(0xff000000);
         videoFrameBitmapPaint.setColor(0xffffffff);
         centerImage.setFileLoadingPriority(FileLoader.PRIORITY_HIGH);
+    }
+
+    public static void onMediaGlowSettingChanged(boolean enabled) {
     }
 
     @SuppressWarnings("unchecked")

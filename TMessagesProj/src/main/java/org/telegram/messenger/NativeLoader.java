@@ -87,8 +87,7 @@ public class NativeLoader {
             } catch (Error e) {
                 FileLog.e(e);
             }
-            
-            return nativeLoaded;
+            return true;
         } catch (Exception e) {
             FileLog.e(e);
         } finally {
@@ -130,6 +129,20 @@ public class NativeLoader {
             }
 
             String folder = getAbiFolder();
+
+            /*File destFile = getNativeLibraryDir(context);
+            if (destFile != null) {
+                destFile = new File(destFile, LIB_SO_NAME);
+                if (destFile.exists()) {
+                    try {
+                        System.loadLibrary(LIB_NAME);
+                        nativeLoaded = true;
+                        return;
+                    } catch (Error e) {
+                        FileLog.e(e);
+                    }
+                }
+            }*/
 
             File destDir = new File(context.getFilesDir(), "lib");
             destDir.mkdirs();
@@ -209,5 +222,5 @@ public class NativeLoader {
     public static boolean loaded() {
         return nativeLoaded;
     }
-    
+    //public static native void crash();
 }

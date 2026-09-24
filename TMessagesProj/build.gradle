@@ -37,6 +37,11 @@ configurations {
 configurations.all {
     exclude group: 'com.google.firebase', module: 'firebase-core'
     exclude group: 'androidx.recyclerview', module: 'recyclerview'
+    // The project uses the checked-in Media3 modules. Exclude only the
+    // transitive Maven copies; the local project modules share the group.
+    exclude group: 'androidx.media3', module: 'media3-container'
+    exclude group: 'androidx.media3', module: 'media3-common'
+    exclude group: 'androidx.media3', module: 'media3-muxer'
 }
 
 dependencies {
@@ -148,12 +153,19 @@ if (!telegramApiId.matches('[0-9]+')) {
     telegramApiId = '0'
 }
 
+def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
+    it.contains('TMessagesProj_AppStandalone:assemble') ||
+    it.contains('TMessagesProj:compileStandalone')
+}
 android {
     compileSdkVersion 36
     buildToolsVersion '36.0.0'
     ndkVersion "27.2.12479018"
 
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
+
+    // The full LinkiGram port must include its runtime sources. The API
+    // migration fixes are applied in source, not hidden by source exclusions.
 
     packagingOptions {
         pickFirst 'lib/**/libpine.so'

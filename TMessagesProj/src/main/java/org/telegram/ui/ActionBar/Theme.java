@@ -1330,6 +1330,7 @@ public class Theme {
         public boolean badWallpaper;
         public boolean isBlured;
         public boolean isMotion;
+        public boolean isMonet;
         public int patternBgColor;
         public int patternBgGradientColor1;
         public int patternBgGradientColor2;
@@ -2053,6 +2054,10 @@ public class Theme {
                 FileLog.e(e);
             }
             return false;
+        }
+
+        public boolean isMonet() {
+            return isMonet;
         }
 
         @Override

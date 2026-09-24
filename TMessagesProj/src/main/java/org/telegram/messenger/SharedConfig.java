@@ -376,13 +376,28 @@ public class SharedConfig {
 
     public static class ProxyInfo {
         public @NonNull ProxySettings settings;
+        public String address;
+        public int port;
+        public String username;
+        public String password;
+        public String secret;
         public long ping;
         public boolean checking;
         public boolean available;
+        public long proxyCheckPingId;
         public long availableCheckTime;
 
         public ProxyInfo(@NonNull ProxySettings proxySettings) {
             settings = proxySettings;
+            address = proxySettings.getAddress();
+            port = proxySettings.getPort();
+            username = proxySettings.getUser();
+            password = proxySettings.getPassword();
+            secret = proxySettings.getSecret();
+        }
+
+        public ProxyInfo(String address, int port, String username, String password, String secret) {
+            this(ProxySettings.builder().setAddress(address).setPort(port).setUser(username).setPassword(password).setSecret(secret).build());
         }
 
         private static ProxyInfo fromSerializedData(int version, InputSerializedData data) {
@@ -1465,6 +1480,13 @@ public class SharedConfig {
         }
     }
 
+    public static long markProxyListChanged() {
+        return System.currentTimeMillis();
+    }
+
+    public static void saveProxyList(long ignoredRevision) {
+        saveProxyList();
+    }
     public static void saveProxyList() {
         List<ProxyInfo> infoToSerialize = new ArrayList<>(proxyList);
         Collections.sort(infoToSerialize, (o1, o2) -> {

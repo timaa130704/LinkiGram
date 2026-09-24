@@ -18,7 +18,7 @@ public final class ProxyApplier {
 
     private ProxyApplier() {}
 
-    private static final Object PROXY_LIST_LOCK = SharedConfig.getProxyListSync();
+    private static final Object PROXY_LIST_LOCK = SharedConfig.proxyList;
 
     private static final AtomicBoolean NOTIFY_IN_FLIGHT = new AtomicBoolean(false);
 

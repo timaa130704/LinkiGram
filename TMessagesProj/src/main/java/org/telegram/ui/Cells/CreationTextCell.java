@@ -79,9 +79,6 @@ public class CreationTextCell extends FrameLayout {
     public void setTextAndIcon(String text, Drawable icon, boolean divider) {
         textView.setText(text);
         imageView.setImageDrawable(icon);
-        if (this.divider != divider) {
-            this.divider = divider;
-            invalidate();
-        }
+        this.divider = divider;
     }
 }

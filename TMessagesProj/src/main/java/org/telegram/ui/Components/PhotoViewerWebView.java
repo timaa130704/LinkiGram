@@ -662,15 +662,14 @@ public class PhotoViewerWebView extends FrameLayout {
     }
 
     public void showControls() {
-        
+        // TODO: Show controls after leaving PIP
     }
 
     public void hideControls() {
-        
+        // TODO: Hide controls in PIP
     }
 
     public void playVideo() {
-        resumeWebView();
         if (isPlaying || !isControllable()) {
             return;
         }
@@ -681,41 +680,15 @@ public class PhotoViewerWebView extends FrameLayout {
         checkPlayingPoll(false);
     }
 
-    public void resumeWebView() {
-        if (webView == null) return;
-        try {
-            webView.onResume();
-        } catch (Throwable t) {
-            FileLog.e(t);
-        }
-    }
-
     public void pauseVideo() {
-        if (webView == null) return;
+        if (!isPlaying || !isControllable()) {
+            return;
+        }
 
-        if (isYouTube) {
-            
-            runJsCode("pauseVideo();");
-        } else {
-            
-            runJsCode("(function(){"
-                    + "try{document.querySelectorAll('video,audio').forEach(function(m){try{m.pause();}catch(e){}});}catch(e){}"
-                    + "try{if(window.player&&typeof window.player.pause==='function'){window.player.pause();}}catch(e){}"
-                    + "try{document.querySelectorAll('iframe').forEach(function(f){try{"
-                    + "f.contentWindow.postMessage(JSON.stringify({method:'pause'}),'*');"
-                    + "f.contentWindow.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[]}),'*');"
-                    + "f.contentWindow.postMessage({event:'pause'},'*');"
-                    + "}catch(e){}});}catch(e){}"
-                    + "})();");
-        }
+        runJsCode("pauseVideo();");
         isPlaying = false;
+
         checkPlayingPoll(true);
-        try {
-            
-            webView.onPause();
-        } catch (Throwable t) {
-            FileLog.e(t);
-        }
     }
 
     public void setPlaybackSpeed(float speed) {

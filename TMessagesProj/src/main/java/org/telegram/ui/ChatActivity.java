@@ -476,7 +476,7 @@ public class ChatActivity extends BaseFragment implements
 
     private boolean ignoreItemAnimation;
     private ChatActivityChannelButtonsLayout bottomChannelButtonsLayout;
-    private ChatActivityActionsButtonsLayout actionsButtonsLayout;
+    public ChatActivityActionsButtonsLayout actionsButtonsLayout;
     @Nullable
     private FrameLayout emptyViewContainer;
     private LinearLayout emptyViewContent;
@@ -791,13 +791,13 @@ public class ChatActivity extends BaseFragment implements
     public MessagePreviewParams messagePreviewParams;
     public MessageSuggestionParams messageSuggestionParams;
     private CharSequence formwardingNameText;
-    private MessageObject forwardingMessage;
-    private MessageObject.GroupedMessages forwardingMessageGroup;
-    private MessageObject.GroupedMessages replyingQuoteGroup;
+    public MessageObject forwardingMessage;
+    public MessageObject.GroupedMessages forwardingMessageGroup;
+    public MessageObject.GroupedMessages replyingQuoteGroup;
     public MessageObject replyingTopMessage;
     private ReplyQuote replyingQuote;
     private boolean ignoreDraft;
-    private MessageObject replyingMessageObject;
+    public MessageObject replyingMessageObject;
     private int editingMessageObjectReqId;
     public MessageObject editingMessageObject;
     private boolean paused = true;
@@ -845,9 +845,9 @@ public class ChatActivity extends BaseFragment implements
     private long dialog_id;
     private Long dialog_id_Long;
     private int lastLoadIndex = 1;
-    private SparseArray<MessageObject>[] selectedMessagesIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
-    private SparseArray<MessageObject>[] selectedMessagesCanCopyIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
-    private SparseArray<MessageObject>[] selectedMessagesCanStarIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
+    public SparseArray<MessageObject>[] selectedMessagesIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
+    public SparseArray<MessageObject>[] selectedMessagesCanCopyIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
+    public SparseArray<MessageObject>[] selectedMessagesCanStarIds = new SparseArray[]{new SparseArray<>(), new SparseArray<>()};
     private boolean hasUnfavedSelected;
     private int cantDeleteMessagesCount;
     private int cantForwardMessagesCount;
@@ -975,7 +975,7 @@ public class ChatActivity extends BaseFragment implements
     private ChatObject.Call groupCall;
     private boolean lastCallCheckFromServer;
     private boolean createGroupCall;
-    protected TLRPC.ChatFull chatInfo;
+    public TLRPC.ChatFull chatInfo;
     protected TLRPC.UserFull userInfo;
 
     public ProfileChannelCell.ChannelMessageFetcher profileChannelMessageFetcher;
@@ -1127,7 +1127,7 @@ public class ChatActivity extends BaseFragment implements
     public static Pattern publicMsgUrlPattern;
     public static Pattern voiceChatUrlPattern;
     public static Pattern privateMsgUrlPattern;
-    private boolean waitingForSendingMessageLoad;
+    public boolean waitingForSendingMessageLoad;
     private ValueAnimator changeBoundAnimator;
     private Animator messageEditTextAnimator;
 
@@ -10245,7 +10245,7 @@ public class ChatActivity extends BaseFragment implements
         topPanelLayout.setDebugName(bizBotButton, "bot biz");
     }
 
-    private void createUndoView() {
+    public void createUndoView() {
         if (undoView != null || getContext() == null) {
             return;
         }
@@ -12224,7 +12224,11 @@ public class ChatActivity extends BaseFragment implements
         updateSelectedMessageReactions();
     }
 
-    private void openForward(boolean fromActionBar) {
+    public void openForward(boolean fromActionBar, boolean unused1, boolean unused2) {
+        openForward(fromActionBar);
+    }
+
+    public void openForward(boolean fromActionBar) {
         if (isPeerNoForwards() || hasSelectedNoforwardsMessage()) {
             // We should update text if user changed locale without re-opening chat activity
             String str;
@@ -12853,7 +12857,7 @@ public class ChatActivity extends BaseFragment implements
         return animatorSearchResultAsListVisibility.getValue();
     }
 
-    private void showMessagesSearchListView(boolean show) {
+    public void showMessagesSearchListView(boolean show) {
         if (messagesSearchListContainer == null || animatorSearchResultAsListVisibility.getValue() == show) {
             return;
         }
@@ -14687,7 +14691,7 @@ public class ChatActivity extends BaseFragment implements
         showFieldPanel(true, messageObjectToReply, null, null, null, true, 0, null, false, 0, true);
     }
 
-    private Runnable onHideFieldPanelRunnable;
+    public Runnable onHideFieldPanelRunnable;
     public void showFieldPanelForReplyQuote(MessageObject messageObjectToReply, ReplyQuote quote) {
         showFieldPanel(true, messageObjectToReply, null, null, null, true, 0, quote, false, 0, true);
     }
@@ -19039,7 +19043,7 @@ public class ChatActivity extends BaseFragment implements
         }
     }
 
-    private void addToSelectedMessages(MessageObject messageObject, boolean outside) {
+    public void addToSelectedMessages(MessageObject messageObject, boolean outside) {
         addToSelectedMessages(messageObject, outside, true);
     }
 
@@ -19404,7 +19408,7 @@ public class ChatActivity extends BaseFragment implements
         updateVisibleRows();
     }
 
-    private void updateActionModeTitle() {
+    public void updateActionModeTitle() {
         if (!isReport()) {
             if (!actionBar.isActionModeShowed()) {
                 return;
@@ -28195,7 +28199,7 @@ public class ChatActivity extends BaseFragment implements
         return false;
     }
 
-    private void updatePinnedMessageView(boolean animated) {
+    public void updatePinnedMessageView(boolean animated) {
         updatePinnedMessageView(animated, 0);
     }
 
@@ -30574,7 +30578,7 @@ public class ChatActivity extends BaseFragment implements
         }, hideDimAfter ? () -> dimBehindView(false) : null, themeDelegate);
     }
 
-    private void hideActionMode() {
+    public void hideActionMode() {
         if (actionBar != null) {
             if (!actionBar.isActionModeShowed()) {
                 return;
@@ -32681,7 +32685,7 @@ public class ChatActivity extends BaseFragment implements
 
     private ValueAnimator scrimViewAlphaAnimator;
 
-    private void closeMenu(boolean hideDim) {
+    public void closeMenu(boolean hideDim) {
         scrimPopupWindowHideDimOnDismiss = hideDim;
         if (scrimPopupWindow != null) {
             scrimPopupWindow.dismiss();
@@ -33285,7 +33289,7 @@ public class ChatActivity extends BaseFragment implements
         MediaController.saveFile(path, getParentActivity(), messageObject.isVideo() ? 1 : 0, null, null);
     }
 
-    private void processSelectedOption(int option) {
+    public void processSelectedOption(int option) {
         if (selectedObject == null || getParentActivity() == null) {
             return;
         }
@@ -35194,7 +35198,7 @@ public class ChatActivity extends BaseFragment implements
     }
 
     boolean preventReopenSearchWithText = false;
-    private void openSearchWithUser(TLRPC.User user) {
+    public void openSearchWithUser(TLRPC.User user) {
         boolean delay = false;
         if (savedMessagesHint != null && savedMessagesHint.shown()) {
             savedMessagesHint.hide();
@@ -35389,8 +35393,46 @@ public class ChatActivity extends BaseFragment implements
         return threadMessageObject;
     }
 
+    public void setReplyingMessageObject(MessageObject messageObject) {
+        this.replyingMessageObject = messageObject;
+    }
+
+    public MessageObject getSelectedMessage(int unused, Integer id) {
+        MessageObject message = selectedMessagesIds[0].get(id);
+        return message != null ? message : selectedMessagesIds[1].get(id);
+    }
+
+    public MessageObject getForwardingMessage() {
+        return forwardingMessage;
+    }
+
+    public MessageObject.GroupedMessages getForwardingMessageGroup() {
+        return forwardingMessageGroup;
+    }
+
+    public ChatActivityActionsButtonsLayout getActionsButtonsLayout() {
+        return actionsButtonsLayout;
+    }
+
+    public static void putNimarkoForwardOptions(Bundle args, boolean a, boolean b) {
+    }
+
+    public boolean showDiscussInsteadOfMute() {
+        return false;
+    }
     public MessageObject getReplyMessage() {
         return replyingMessageObject;
+    }
+
+    public java.util.ArrayList<Integer> getSelectedMessagesIds(int unused) {
+        java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < selectedMessagesIds[0].size(); i++) {
+            ids.add(selectedMessagesIds[0].keyAt(i));
+        }
+        for (int i = 0; i < selectedMessagesIds[1].size(); i++) {
+            ids.add(selectedMessagesIds[1].keyAt(i));
+        }
+        return ids;
     }
 
     public MessageObject getReplyTopMessage() {
@@ -38906,7 +38948,7 @@ public class ChatActivity extends BaseFragment implements
         return msg;
     }
 
-    private class ChatMessageCellDelegate implements ChatMessageCell.ChatMessageCellDelegate {
+    public class ChatMessageCellDelegate implements ChatMessageCell.ChatMessageCellDelegate {
         @Override
         public boolean isReplyOrSelf() {
             return UserObject.isReplyUser(currentUser) || UserObject.isUserSelf(currentUser);
@@ -39772,7 +39814,7 @@ public class ChatActivity extends BaseFragment implements
             }
         }
 
-        private void appendMention(TLRPC.User user) {
+        public void appendMention(TLRPC.User user) {
             if (chatActivityEnterView != null) {
                 SpannableStringBuilder sb;
                 final CharSequence text = chatActivityEnterView.getFieldText();
@@ -39870,7 +39912,7 @@ public class ChatActivity extends BaseFragment implements
             return false;
         }
 
-        private void openProfile(TLRPC.User user) {
+        public void openProfile(TLRPC.User user) {
             openProfile(user, false);
         }
 
@@ -39903,7 +39945,7 @@ public class ChatActivity extends BaseFragment implements
             }
         }
 
-        private void openDialog(ChatMessageCell cell, TLRPC.User user) {
+        public void openDialog(ChatMessageCell cell, TLRPC.User user) {
             if (user != null) {
                 Bundle args = new Bundle();
                 args.putLong("user_id", user.id);

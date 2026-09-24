@@ -51,6 +51,44 @@ import java.util.Locale;
 public class ApplicationLoader extends Application {
 
     public static ApplicationLoader applicationLoaderInstance;
+    private static volatile boolean pineInitializationAttempted;
+    private static volatile boolean pineAvailable;
+    private static String pineUnavailableReason = "Pine runtime is not bundled in this build";
+    private static volatile boolean pineReady;
+
+    public static boolean isPineAvailable() {
+        return pineAvailable && pineReady;
+    }
+
+    public static boolean wasPineInitializationAttempted() {
+        return pineInitializationAttempted;
+    }
+
+    public static void ensurePineInited() {
+        if (pineInitializationAttempted) return;
+        pineInitializationAttempted = true;
+        try {
+            Class.forName("top.canyie.pine.Pine");
+            pineAvailable = true;
+            pineReady = true;
+            pineUnavailableReason = null;
+        } catch (Throwable e) {
+            pineAvailable = false;
+            pineReady = false;
+        }
+    }
+
+    public static boolean awaitPineInitializationForHooks() {
+        return isPineAvailable();
+    }
+
+    public static android.content.res.Resources rawResources() {
+        return applicationContext == null ? null : applicationContext.getResources();
+    }
+    public static String getPineUnavailableReason() {
+        return pineUnavailableReason;
+    }
+
 
     @SuppressLint("StaticFieldLeak")
     public static volatile Context applicationContext;
