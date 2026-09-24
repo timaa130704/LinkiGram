@@ -76,8 +76,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Standalone APK
-        run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone --no-daemon
+      - name: Compile Java/Kotlin smoke test
+        run: ./gradlew :TMessagesProj:compileStandaloneJavaWithJavac :TMessagesProj:compileStandaloneKotlin -PngArm64Only --no-daemon
+
+      - name: Build ARM64 Standalone APK
+        run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone -PngArm64Only --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
