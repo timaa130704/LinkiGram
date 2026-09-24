@@ -154,7 +154,7 @@ def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
 }
 if (linkiGramStandaloneCiBuild) {
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        exclude 'app/nimarkogram/**', 'com/exteragram/**'
+        exclude 'app/nimarkogram/**', 'com/exteragram/**', 'org/webrtc/**', 'de/robv/**'
     }
 }
 
@@ -170,7 +170,7 @@ android {
     // but exclude them from this compatibility build until their API patches
     // are ported to 12.10.2.
     if (linkiGramStandaloneCiBuild) {
-        sourceSets.main.java.exclude 'app/nimarkogram/**', 'com/exteragram/**'
+        sourceSets.main.java.exclude 'app/nimarkogram/**', 'com/exteragram/**', 'org/webrtc/**', 'de/robv/**'
     }
 
     packagingOptions {
