@@ -11223,4 +11223,9 @@
     <string name="UnsupportedMessageTitle">Unsupported Message</string>
     <string name="UnsupportedMessageMessage">Update Telegram to view this message</string>
     <string name="UnsupportedUpdate">Update</string>
+
+    <string name="NimarkoGramSettings">LinkiGram Settings</string>
+    <string name="NM_HUB_Restart">Restart app</string>
+    <string name="NM_RestartRequired">Restart required to apply changes</string>
+    <string name="NM_Restart">Restart</string>
 </resources>
