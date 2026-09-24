@@ -148,6 +148,16 @@ if (!telegramApiId.matches('[0-9]+')) {
     telegramApiId = '0'
 }
 
+def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
+    it.contains('TMessagesProj_AppStandalone:assemble') ||
+    it.contains('TMessagesProj:compileStandalone')
+}
+if (linkiGramStandaloneCiBuild) {
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        exclude 'app/nimarkogram/**', 'com/exteragram/**'
+    }
+}
+
 android {
     compileSdkVersion 36
     buildToolsVersion '36.0.0'
@@ -159,10 +169,6 @@ android {
     // surface. Keep legacy LinkiGram sources available for future migration,
     // but exclude them from this compatibility build until their API patches
     // are ported to 12.10.2.
-    def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
-        it.contains('TMessagesProj_AppStandalone:assemble') ||
-        it.contains('TMessagesProj:compileStandalone')
-    }
     if (linkiGramStandaloneCiBuild) {
         sourceSets.main.java.exclude 'app/nimarkogram/**', 'com/exteragram/**'
     }
