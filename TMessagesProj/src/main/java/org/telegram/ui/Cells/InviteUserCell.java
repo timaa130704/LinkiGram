@@ -48,7 +48,7 @@ public class InviteUserCell extends FrameLayout {
         avatarDrawable = new AvatarDrawable();
 
         avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(AndroidUtilities.dp(23));
+        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(46));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 13, 6, 13, 6));
 
         LinearLayout nameAndButton = new LinearLayout(context);
@@ -120,7 +120,6 @@ public class InviteUserCell extends FrameLayout {
         String newName = null;
 
         avatarDrawable.setInfo(currentContact.contact_id, currentContact.first_name, currentContact.last_name, null, null, null, false);
-
 
         if (currentName != null) {
             nameTextView.setText(currentName, true);

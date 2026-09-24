@@ -17,6 +17,9 @@ import org.telegram.ui.ActionBar.Theme;
 
 public class RoundStatusDrawable extends StatusDrawable {
 
+    private boolean useCenteredOverride = false;
+    public void setUseCenteredOverride(boolean v) { useCenteredOverride = v; }
+
     private boolean isChat = false;
     private long lastUpdateTime = 0;
     private boolean started = false;
@@ -75,7 +78,16 @@ public class RoundStatusDrawable extends StatusDrawable {
     public void draw(Canvas canvas) {
         Paint paint = currentPaint == null ? Theme.chat_statusPaint : currentPaint;
         paint.setAlpha(55 + (int) (200 * progress));
-        canvas.drawCircle(AndroidUtilities.dp(6), AndroidUtilities.dp(isChat ? 8 : 9), AndroidUtilities.dp(4), paint);
+        
+        float cx, cy;
+        if (app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride) {
+            cx = getBounds().centerX() - AndroidUtilities.dp(1);
+            cy = AndroidUtilities.dp(isChat ? 8 : 9);
+        } else {
+            cx = AndroidUtilities.dp(6);
+            cy = AndroidUtilities.dp(isChat ? 8 : 9);
+        }
+        canvas.drawCircle(cx, cy, AndroidUtilities.dp(4), paint);
         if (started) {
             update();
         }
@@ -98,7 +110,7 @@ public class RoundStatusDrawable extends StatusDrawable {
 
     @Override
     public int getIntrinsicWidth() {
-        return AndroidUtilities.dp(12);
+        return AndroidUtilities.dp(app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride ? 8 : 12);
     }
 
     @Override

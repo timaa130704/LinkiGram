@@ -228,7 +228,6 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             NotificationCenter.messagesDidLoad
     });
 
-
     private boolean checkCallAfterAnimation;
     private boolean checkLiveStoryAfterAnimation;
     private boolean checkPlayerAfterAnimation;
@@ -582,7 +581,6 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 capsuleBlobDrawable.updateState(true);
             };
 
-
             private final Runnable pressRunnable = () -> {
                 if (!scheduled || VoIPService.getSharedInstance() == null) {
                     return;
@@ -592,11 +590,13 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 isMuted = false;
 
                 AndroidUtilities.runOnUIThread(toggleMicRunnable, 90);
-                try {
-                    muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                } catch (Exception ignore) {}
+                
+                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                    try {
+                        muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    } catch (Exception ignore) {}
+                }
             };
-
 
             @Override
             public boolean onTouchEvent(MotionEvent event) {
@@ -688,9 +688,12 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             muteButton.playAnimation();
             Theme.getFragmentContextViewWavesDrawable().updateState(true);
             capsuleBlobDrawable.updateState(true);
-            try {
-                muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-            } catch (Exception ignore) {}
+            
+            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                try {
+                    muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                } catch (Exception ignore) {}
+            }
         });
 
         closeButton = new ImageView(context);
@@ -1392,6 +1395,8 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             AndroidUtilities.cancelRunOnUIThread(updateScheduleTimeRunnable);
             scheduleRunnableScheduled = false;
         }
+        
+        AndroidUtilities.cancelRunOnUIThread(checkLocationRunnable);
         visible = false;
         notificationsLocker.unlock();
         topPadding = 0;
@@ -2606,7 +2611,6 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         }
     }
 
-
     boolean collapseTransition;
     float extraHeight;
     float collapseProgress;
@@ -2633,7 +2637,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             return;
         }
         if ((currentStyle == STYLE_ACTIVE_GROUP_CALL || currentStyle == STYLE_CONNECTING_GROUP_CALL)) {
-//            boolean mutedByAdmin = GroupCallActivity.groupCallInstance == null && Theme.getFragmentContextViewWavesDrawable().getState() == FragmentContextViewWavesDrawable.MUTE_BUTTON_STATE_MUTED_BY_ADMIN;
+
             Theme.getFragmentContextViewWavesDrawable().updateState(wasDraw);
             capsuleBlobDrawable.updateState(wasDraw);
 
@@ -2782,7 +2786,6 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         req.subscribed = willBeNotified;
         toggleGroupCallStartSubscriptionReqId = fragment.getConnectionsManager().sendRequest(req, null);
 
-
         if (scheduleRunnableScheduled) {
             AndroidUtilities.cancelRunOnUIThread(updateScheduleTimeRunnable);
             scheduleRunnableScheduled = false;
@@ -2814,7 +2817,6 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             }
         }
     }
-
 
     private static class CallMessageItem implements Destroyable {
         private final ViewGroup parent;

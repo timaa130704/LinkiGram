@@ -101,7 +101,6 @@ public class EditEmojiTextCell extends FrameLayout {
         whenHitEnter(() -> AndroidUtilities.hideKeyboard(editTextEmoji.getEditText()));
     }
 
-
     public void setShowLimitOnFocus(boolean show) {
         showLimitWhenFocused = show;
     }
@@ -121,6 +120,59 @@ public class EditEmojiTextCell extends FrameLayout {
     public EditEmojiTextCell setAllowEntities(boolean allow) {
         allowEntities = allow;
         return this;
+    }
+
+    private ImageView iconImage;
+    private View iconDivider;
+    private View.OnClickListener iconOnClickListener;
+
+    private int savedEditTextLeftPadding = -1;
+
+    public void setIcon(int resId, boolean visible) {
+        if (iconImage == null) {
+            iconImage = new ImageView(getContext());
+            iconImage.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            iconImage.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlueIcon));
+            if (iconOnClickListener != null) {
+                iconImage.setOnClickListener(iconOnClickListener);
+            }
+            addView(iconImage, LayoutHelper.createFrame(36, 36, Gravity.LEFT | Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
+        }
+        if (iconDivider == null) {
+            iconDivider = new View(getContext());
+            iconDivider.setBackgroundColor(Theme.getColor(Theme.key_divider));
+            addView(iconDivider, LayoutHelper.createFrame(1, 22, Gravity.LEFT | Gravity.CENTER_VERTICAL, 56, 0, 0, 0));
+        }
+        iconImage.setImageResource(resId);
+        iconImage.setVisibility(visible ? VISIBLE : GONE);
+        iconDivider.setVisibility(visible ? VISIBLE : GONE);
+        EditTextCaption editText = editTextEmoji != null ? editTextEmoji.getEditText() : null;
+        if (editText != null) {
+            if (savedEditTextLeftPadding < 0) {
+                savedEditTextLeftPadding = editText.getPaddingLeft();
+            }
+            int target = visible ? dp(64) : savedEditTextLeftPadding;
+            if (editText.getPaddingLeft() != target) {
+                editText.setPadding(target, editText.getPaddingTop(), editText.getPaddingRight(), editText.getPaddingBottom());
+            }
+        }
+    }
+
+    public EditEmojiTextCell(
+        Context context,
+        SizeNotifierFrameLayout parent,
+        String hint,
+        boolean multiline,
+        int maxLength,
+        int style,
+        Theme.ResourcesProvider resourceProvider,
+        View.OnClickListener onIconClick
+    ) {
+        this(context, parent, hint, multiline, maxLength, style, resourceProvider);
+        this.iconOnClickListener = onIconClick;
+        if (iconImage != null) {
+            iconImage.setOnClickListener(onIconClick);
+        }
     }
 
     public EditEmojiTextCell(

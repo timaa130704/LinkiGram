@@ -46,7 +46,7 @@ import java.util.Locale;
 public class TextCheckCell extends FrameLayout {
     private boolean isAnimatingToThumbInsteadOfTouch;
 
-    public int itemId;
+    public int itemId = Integer.MIN_VALUE;
 
     private TextView textView;
     private TextView valueTextView;
@@ -165,11 +165,15 @@ public class TextCheckCell extends FrameLayout {
     }
 
     public void setTextAndCheck(CharSequence text, boolean checked, boolean divider) {
+        setTextAndCheck(text, checked, divider, attached);
+    }
+
+    public void setTextAndCheck(CharSequence text, boolean checked, boolean divider, boolean animated) {
         AvatarSpan.checkSpansParent(text, this);
         textView.setText(text);
         isMultiline = false;
         checkBox.setVisibility(View.VISIBLE);
-        checkBox.setChecked(checked, attached);
+        checkBox.setChecked(checked, animated);
         needDivider = divider;
         valueTextView.setVisibility(GONE);
         LayoutParams layoutParams = (LayoutParams) textView.getLayoutParams();
@@ -449,7 +453,10 @@ public class TextCheckCell extends FrameLayout {
         imageView.setVisibility(VISIBLE);
         imageView.setPadding(AndroidUtilities.dp(2), AndroidUtilities.dp(2), AndroidUtilities.dp(2), AndroidUtilities.dp(2));
         imageView.setImageResource(resId);
-        imageView.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        imageView.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(9), color));
+        imageView.setColorFilter(new PorterDuffColorFilter(
+                app.nimarkogram.messenger.utils.ui.MonetHelper.getSettingsIconForegroundColor(Color.WHITE),
+                PorterDuff.Mode.SRC_IN));
+        imageView.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(9),
+                app.nimarkogram.messenger.utils.ui.MonetHelper.getSettingsIconBackgroundColor(color)));
     }
 }

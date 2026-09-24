@@ -92,7 +92,7 @@ public class StakedDiceSheet extends BottomSheetWithRecyclerListView {
         container.addView(balanceCloud, 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 48, 0, 0));
         ScaleStateListAnimator.apply(balanceCloud);
         balanceCloud.setOnClickListener(v -> {
-            new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
+            new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show();
         });
 
         final TLRPC.EmojiGameInfo stakeDiceInfo = MessagesController.getInstance(currentAccount).stakeDiceInfo;

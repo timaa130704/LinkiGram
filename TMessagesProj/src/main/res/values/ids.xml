@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <item name="menu_spoiler" type="id"/>
     <item name="menu_quote" type="id"/>
     <item name="menu_regular" type="id"/>
@@ -65,4 +65,12 @@
 
     <item name="tag_view_on_post_draw_state" type="id" />
     <item name="tag_view_on_post_draw_root_state" type="id" />
+<item name="acc_action_topic_move_up" type="id"/>
+<item name="acc_action_topic_move_down" type="id"/>
+<item name="acc_action_badge_info" type="id"/>
+<item name="acc_action_right_drawable" type="id"/>
+<item name="acc_action_right_drawable2" type="id"/>
+<item name="acc_action_move_left" type="id"/>
+<item name="acc_action_move_right" type="id"/>
+<item name="view_reparent_token_tag" type="id"/>
 </resources>

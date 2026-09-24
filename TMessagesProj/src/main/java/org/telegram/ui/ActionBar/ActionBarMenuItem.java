@@ -869,7 +869,6 @@ public class ActionBarMenuItem extends FrameLayout {
             }
         });
 
-       // if (measurePopup) {
             container.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x - AndroidUtilities.dp(40), MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.y, MeasureSpec.AT_MOST));
             if (setMinWidth != null && setMinWidth.getLayoutParams() != null && popupLayout.getSwipeBack() != null) {
                 View mainScrollView = popupLayout.getSwipeBack().getChildAt(0);
@@ -878,7 +877,7 @@ public class ActionBarMenuItem extends FrameLayout {
                 }
             }
             measurePopup = false;
-        //}
+        
         processedPopupClick = false;
         popupWindow.setFocusable(true);
         updateOrShowPopup(true, container.getMeasuredWidth() == 0);
@@ -993,7 +992,7 @@ public class ActionBarMenuItem extends FrameLayout {
                         }
                     }
                 }
-//                clearSearchFilters();
+
             }
             if (listener != null) {
                 listener.onSearchCollapse();
@@ -1515,7 +1514,7 @@ public class ActionBarMenuItem extends FrameLayout {
                 @Override
                 public boolean onTouchEvent(MotionEvent event) {
                     boolean result = super.onTouchEvent(event);
-                    if (event.getAction() == MotionEvent.ACTION_UP) { //hack to fix android bug with not opening keyboard
+                    if (event.getAction() == MotionEvent.ACTION_UP) { 
                         if (!AndroidUtilities.showKeyboard(this)) {
                             clearFocus();
                             requestFocus();
@@ -1889,7 +1888,7 @@ public class ActionBarMenuItem extends FrameLayout {
         int offsetY;
 
         if (parentMenu != null) {
-            offsetY = -parentMenu.parentActionBar.getMeasuredHeight() + parentMenu.getTop() + parentMenu.getPaddingTop()/* - (int) parentMenu.parentActionBar.getTranslationY()*/;
+            offsetY = -parentMenu.parentActionBar.getMeasuredHeight() + parentMenu.getTop() + parentMenu.getPaddingTop() ;
         } else {
             float scaleY = getScaleY();
             offsetY = -(int) (getMeasuredHeight() * scaleY - (subMenuOpenSide != 2 ? getTranslationY() : 0) / scaleY) + additionalYOffset;
@@ -1976,9 +1975,6 @@ public class ActionBarMenuItem extends FrameLayout {
         return popupLayout.findViewWithTag(id) != null;
     }
 
-    /**
-     * Hides this menu item if no subitems are available
-     */
     public void checkHideMenuItem() {
         boolean isVisible = false;
         for (int i = 0; i < popupLayout.getItemsCount(); i++) {
@@ -2246,10 +2242,9 @@ public class ActionBarMenuItem extends FrameLayout {
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             if (isCommunity) {
-                //titleView.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), heightMeasureSpec);
-                //final int titleWidth = titleView.getMeasuredWidth();
+                
                 super.onMeasure(MeasureSpec.makeMeasureSpec(dp(135), MeasureSpec.AT_MOST), heightMeasureSpec);
-                //mDrawGradient = titleWidth > titleView.getMeasuredWidth();
+                
             } else {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             }
@@ -2264,14 +2259,7 @@ public class ActionBarMenuItem extends FrameLayout {
         protected void dispatchDraw(@NonNull Canvas canvas) {
             canvas.drawRoundRect(0, 0, getWidth(), getHeight(), mBackgroundRadius, mBackgroundRadius, Theme.fillingPaint(mBackgroundColor));
             super.dispatchDraw(canvas);
-            /*if (isCommunity && mDrawGradient) {
-                if (mGradientProtectionDrawable == null) {
-                    mGradientProtectionDrawable = new GradientProtectionDrawable(WindowInsetsCompat.Side.RIGHT);
-                }
-                mGradientProtectionDrawable.setColor(mBackgroundColor);
-                mGradientProtectionDrawable.setBounds(getWidth() - dp(18), dp(3), getWidth() - dp(8), getHeight() - dp(3));
-                mGradientProtectionDrawable.draw(canvas);
-            }*/
+             
         }
 
         public void updateColors() {
@@ -2325,13 +2313,14 @@ public class ActionBarMenuItem extends FrameLayout {
                         Theme.setCombinedDrawableColor(combinedDrawable, getThemedColor(Theme.key_featuredStickers_buttonText), true);
                         avatarImageView.setImageDrawable(combinedDrawable);
                     } else {
-                        avatarImageView.getImageReceiver().setRoundRadius(AndroidUtilities.dp(16));
+                        avatarImageView.getImageReceiver().setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(32));
                         avatarImageView.getImageReceiver().setForUserOrChat(user, thumbDrawable);
                     }
                 } else if (data.chat instanceof TLRPC.Chat) {
                     TLRPC.Chat chat = (TLRPC.Chat) data.chat;
                     isCommunity = ChatObject.isCommunity(chat);
-                    avatarImageView.getImageReceiver().setRoundRadius(mBackgroundRadius = AndroidUtilities.dp(isCommunity ? 10 : 16));
+                    mBackgroundRadius = AndroidUtilities.dp(isCommunity ? 10 : 16);
+                    avatarImageView.getImageReceiver().setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(32));
                     avatarImageView.getImageReceiver().setForUserOrChat(chat, thumbDrawable);
                 }
             } else if (data.filterType == FiltersView.FILTER_TYPE_ARCHIVE) {
@@ -2397,8 +2386,6 @@ public class ActionBarMenuItem extends FrameLayout {
         return gap;
     }
 
-    // lazy layout to create menu only when needed
-    // planned to at some point to override the current logic above
     public static final int VIEW_TYPE_SUBITEM = 0;
     public static final int VIEW_TYPE_COLORED_GAP = 1;
     public static final int VIEW_TYPE_SWIPEBACKITEM = 2;

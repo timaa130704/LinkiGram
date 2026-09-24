@@ -1231,7 +1231,7 @@ public class ChannelColorActivity extends BaseFragment implements NotificationCe
                     ((PeerColorActivity.PeerColorGrid) holder.itemView).setSelected(selectedProfileColor, false);
                     break;
                 case VIEW_TYPE_COLOR_REPLY_GRID:
-//                    ((PeerColorActivity.PeerColorGrid) holder.itemView).setSelected(selectedReplyColor, false);
+
                     ((PeerColorPicker) holder.itemView).setSelected(selectedReplyColor, false);
                     break;
             }
@@ -1864,9 +1864,7 @@ public class ChannelColorActivity extends BaseFragment implements NotificationCe
             chatThemeController.requestAllChatThemes(new ResultCallback<List<EmojiThemes>>() {
                 @Override
                 public void onComplete(List<EmojiThemes> result) {
-//                    if (result != null && !result.isEmpty()) {
-//                        themeDelegate.setCachedThemes(result);
-//                    }
+
                     NotificationCenter.getInstance(currentAccount).doOnIdle(() -> {
                         onDataLoaded(result);
                     });
@@ -1931,7 +1929,6 @@ public class ChannelColorActivity extends BaseFragment implements NotificationCe
                 adapter.notifyDataSetChanged();
             }
 
-//            resetToPrimaryState(false);
             listView.animate().alpha(1f).setDuration(150).start();
             updateState(true);
 
@@ -2473,9 +2470,7 @@ public class ChannelColorActivity extends BaseFragment implements NotificationCe
             @Override
             public void onAnimationEnd(Animator animation) {
                 if (changeDayNightView != null) {
-                    if (changeDayNightView.getParent() != null) {
-                        ((ViewGroup) changeDayNightView.getParent()).removeView(changeDayNightView);
-                    }
+                    AndroidUtilities.removeFromParent(changeDayNightView);
                     changeDayNightView = null;
                 }
                 changeDayNightViewAnimator = null;

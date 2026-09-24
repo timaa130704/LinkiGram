@@ -112,8 +112,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
         };
         linearLayout.addView(headerContainer);
 
-
-
         buttonView = new ButtonWithCounterView(context, resourcesProvider);
         buttonView.setRound();
 
@@ -127,7 +125,7 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
 
         final int topHeightDp = isInfo ? 220: 208;
         auction = GiftAuctionController.getInstance(currentAccount).subscribeToGiftAuction(giftId, this);
-        topView = new StarGiftSheet.TopView(context, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
+        topView = new StarGiftSheet.TopView(context, currentAccount, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
             @Override
             public float getRealHeight() {
                 return dp(topHeightDp);
@@ -187,7 +185,7 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
         headerContainer.addView(topView, 0, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, topHeightDp, Gravity.TOP));
 
         BackupImageView avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(AndroidUtilities.dp(45));
+        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(90));
         headerContainer.addView(avatarImageView, LayoutHelper.createFrame(90, 90, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 42, 0, 0));
 
         TLObject userOrChat;
@@ -234,8 +232,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
             ScaleStateListAnimator.apply(giftStatusTextView, 0.02f, 1.5f);
         }
         headerContainer.addView(giftStatusTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 16, 0, 16, 12));
-
-
 
         LinearLayout horizontalLayout = new LinearLayout(context);
         horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -328,7 +324,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
         giftCell2.setRibbonText(getString(R.string.Gift2AuctionUpgradedShort));
         horizontalLayout.addView(giftCell2, LayoutHelper.createLinear(116, 116, 0f));
 
-
         TextView hint1 = new TextView(context);
         hint1.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         hint1.setGravity(Gravity.CENTER);
@@ -377,7 +372,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
             };
             valueContainerView.setWillNotDraw(false);
             limitContainer.addView(valueContainerView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
-
 
             TextView leftTextView2 = new TextView(context);
             leftTextView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
@@ -458,7 +452,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
 
     }
 
-
     @Override
     public void onUpdate(GiftAuctionController.Auction auction) {
         this.auction = auction;
@@ -470,9 +463,6 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
         GiftAuctionController.getInstance(currentAccount).unsubscribeFromGiftAuction(giftId, this);
         super.dismiss();
     }
-
-
-
 
     @Override
     protected CharSequence getTitle() {
@@ -492,13 +482,11 @@ public class AuctionWearingSheet extends BottomSheetWithRecyclerListView impleme
         items.add(UItem.asCustom(-1, linearLayout));
     }
 
-
     private int getBackgroundColor() {
         return ColorUtils.blendARGB(
                 getThemedColor(Theme.key_dialogBackgroundGray),
                 getThemedColor(Theme.key_dialogBackground), 0.1f);
     }
-
 
     private static void showWearingMoreInfo(Context context, Theme.ResourcesProvider resourcesProvider, LinearLayout linearLayout, TL_stars.StarGift starGift) {
         if (context == null || starGift == null) {

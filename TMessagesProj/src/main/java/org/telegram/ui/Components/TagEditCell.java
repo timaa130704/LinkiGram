@@ -116,7 +116,7 @@ public class TagEditCell extends LinearLayout {
 
         avatarDrawable = new AvatarDrawable();
         avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(dp(21));
+        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(42));
         chatView.addView(avatarImageView, LayoutHelper.createFrame(42, 42, Gravity.BOTTOM | Gravity.LEFT, 8, 0, 0, 12));
 
         addView(chatView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL));
@@ -424,7 +424,7 @@ public class TagEditCell extends LinearLayout {
         for (int i = 0; i < 2; ++i) {
             final ChatMessageCell messageCell = new ChatMessageCell(context, currentAccount) {
                 @Override
-                public void updateTranslation() {/* NO-OP */}
+                public void updateTranslation() { }
                 @Override
                 public int getParentWidth() {
                     return (AndroidUtilities.displaySize.x - dp(96 + 32)) / 2;

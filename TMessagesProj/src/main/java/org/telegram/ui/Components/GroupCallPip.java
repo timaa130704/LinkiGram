@@ -58,7 +58,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
     RLottieDrawable deleteIcon;
     boolean showAlert;
 
-
     boolean animateToShowRemoveTooltip;
     boolean animateToPrepareRemove;
     float prepareToRemoveProgress = 0;
@@ -80,7 +79,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
     float windowY;
     float windowOffsetLeft;
     float windowOffsetTop;
-
 
     private ValueAnimator.AnimatorUpdateListener updateXlistener = new ValueAnimator.AnimatorUpdateListener() {
         @Override
@@ -130,9 +128,12 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
                             return;
                         }
                         AndroidUtilities.runOnUIThread(micRunnable, 90);
-                        try {
-                            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                        } catch (Exception ignore) {}
+                        
+                        if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                            try {
+                                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                            } catch (Exception ignore) {}
+                        }
                         pressed = true;
                     }
                 }
@@ -256,9 +257,12 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
                         if (pressed) {
                             if (VoIPService.getSharedInstance() != null) {
                                 VoIPService.getSharedInstance().setMicMute(true, false, false);
-                                try {
-                                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                                } catch (Exception ignored) {}
+                                
+                                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                                    try {
+                                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                                    } catch (Exception ignored) {}
+                                }
                             }
                             pressed = false;
                         } else if (event.getAction() == MotionEvent.ACTION_UP && !moving) {
@@ -325,7 +329,7 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
             private void onTap() {
                 if (VoIPService.getSharedInstance() != null) {
                     showAlert(!showAlert);
-                    //performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);x
+                    
                 }
             }
         };
@@ -418,7 +422,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
         iconView.setColorFilter(Color.WHITE);
         windowRemoveTooltipOverlayView.addView(iconView, LayoutHelper.createFrame(40, 40, Gravity.CENTER, 0, 0, 0, 25));
 
-
         alertContainer = new FrameLayout(context) {
             int lastSize = -1;
             @Override
@@ -492,7 +495,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
 
                         float cx = windowLayoutParams.x + windowOffsetLeft + button.getMeasuredWidth() / 2f - location[0];
                         float cy = windowLayoutParams.y + windowOffsetTop + button.getMeasuredWidth() / 2f - location[1];
-
 
                         boolean canHorizontal = cy - AndroidUtilities.dp(45 + 16) > 0 && cy + AndroidUtilities.dp(45 + 16) < alertContainer.getMeasuredHeight();
                         if (cx + AndroidUtilities.dp(45 + 16) + pipAlertView.getMeasuredWidth() < alertContainer.getMeasuredWidth() - AndroidUtilities.dp(16) && canHorizontal) {
@@ -657,7 +659,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
         o.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
         animatorSet.playTogether(o);
 
-
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -723,7 +724,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
         WindowManager wm = (WindowManager) ApplicationLoader.applicationContext.getSystemService(Context.WINDOW_SERVICE);
         instance.windowManager = wm;
 
-
         WindowManager.LayoutParams windowLayoutParams = createWindowLayoutParams(context);
         windowLayoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
         windowLayoutParams.height = WindowManager.LayoutParams.MATCH_PARENT;
@@ -782,7 +782,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
         }
     }
 
-
     public static void finish() {
         if (instance != null) {
             instance.showAlert(false);
@@ -836,7 +835,6 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
 
         return windowLayoutParams;
     }
-
 
     AnimatorSet showRemoveAnimator;
 
@@ -892,7 +890,8 @@ public class GroupCallPip implements NotificationCenter.NotificationCenterDelega
                 deleteIcon.setCustomEndFrame(prepare ? 33 : 0);
                 iconView.playAnimation();
             }
-            if (prepare) {
+            if (prepare && !app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
+                
                 try {
                     button.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                 } catch (Exception ignored) {}

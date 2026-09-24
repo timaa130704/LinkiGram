@@ -180,7 +180,6 @@ public class GroupCallUserCell extends FrameLayout {
         avatarImageView.setAlpha(progressToAvatarPreview == 0 ? 1f : 0);
         avatarWavesDrawable.setShowWaves(isSpeaking && progressToAvatarPreview == 0, this);
 
-
         muteButton.setAlpha(1f - progressToAvatarPreview);
         muteButton.setScaleX(0.6f + 0.4f * (1f - progressToAvatarPreview));
         muteButton.setScaleY(0.6f + 0.4f * (1f - progressToAvatarPreview));
@@ -264,7 +263,7 @@ public class GroupCallUserCell extends FrameLayout {
         setClipChildren(false);
 
         avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(AndroidUtilities.dp(24));
+        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(48));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 11, 6, LocaleController.isRTL ? 11 : 0, 0));
 
         avatarProgressView = new RadialProgressView(context) {
@@ -642,16 +641,10 @@ public class GroupCallUserCell extends FrameLayout {
         muteButton.setEnabled(!isSelfUser() || participant.raise_hand_rating != 0);
 
         boolean hasVoice;
-        /*if (updateVoiceRunnableScheduled) {
-            AndroidUtilities.cancelRunOnUIThread(updateVoiceRunnable);
-            updateVoiceRunnableScheduled = false;
-        }*/
+         
         if (SystemClock.elapsedRealtime() - participant.lastVoiceUpdateTime < 500) {
             hasVoice = participant.hasVoiceDelayed;
-            /*if (hasVoice) {
-                AndroidUtilities.runOnUIThread(updateVoiceRunnable, 500 - participant.lastVoiceUpdateTime);
-                updateVoiceRunnableScheduled = true;
-            }*/
+             
         } else {
             hasVoice = participant.hasVoice;
         }
@@ -814,9 +807,7 @@ public class GroupCallUserCell extends FrameLayout {
                 if (animators == null) {
                     animators = new ArrayList<>();
                 }
-                /*for (int a = 0; a < statusTextView.length; a++) {
-                    statusTextView[a].setVisibility(VISIBLE);
-                }*/
+                 
                 if (newStatus == 0) {
                     for (int a = 0; a < statusTextView.length; a++) {
                         animators.add(ObjectAnimator.ofFloat(statusTextView[a], View.TRANSLATION_Y, a == newStatus ? 0 : AndroidUtilities.dp(-2)));
@@ -901,20 +892,19 @@ public class GroupCallUserCell extends FrameLayout {
     }
 
     private void applyStatus(int newStatus) {
-        // Visibility toggling is disabled to allow the alpha cross-fade; gate accessibility
-        // importance instead so TalkBack announces only the current status, not all four.
+        
         for (int a = 0; a < statusTextView.length; a++) {
             statusTextView[a].setImportantForAccessibility(a == newStatus ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
         if (newStatus == 0) {
             for (int a = 0; a < statusTextView.length; a++) {
-                //statusTextView[a].setVisibility(a == newStatus ? VISIBLE : INVISIBLE);
+                
                 statusTextView[a].setTranslationY(a == newStatus ? 0 : AndroidUtilities.dp(-2));
                 statusTextView[a].setAlpha(a == newStatus ? 1.0f : 0.0f);
             }
         } else {
             for (int a = 0; a < statusTextView.length; a++) {
-                //statusTextView[a].setVisibility(a == newStatus ? VISIBLE : INVISIBLE);
+                
                 statusTextView[a].setTranslationY(a == newStatus ? 0 : AndroidUtilities.dp(a == 0 ? 2 : -2));
                 statusTextView[a].setAlpha(a == newStatus ? 1.0f : 0.0f);
             }
@@ -1105,7 +1095,6 @@ public class GroupCallUserCell extends FrameLayout {
     public BackupImageView getAvatarImageView() {
         return avatarImageView;
     }
-
 
     @Override
     public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {

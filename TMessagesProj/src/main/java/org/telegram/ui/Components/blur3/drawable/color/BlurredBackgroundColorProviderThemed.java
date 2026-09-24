@@ -29,7 +29,7 @@ public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundCo
         updateColors();
     }
 
-    private int backgroundColor, shadowColor, strokeColorTop, strokeColorBottom;
+    private int backgroundColor, shadowColor, strokeColorTop, strokeColorBottom, strokeColorFull;
 
     public boolean isDark() {
         final int color = Theme.getColor(backgroundColorId, resourcesProvider);
@@ -38,7 +38,12 @@ public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundCo
 
     public void updateColors() {
         final int color = Theme.getColor(backgroundColorId, resourcesProvider);
-        backgroundColor = Theme.multAlpha(color, alpha);
+        float effAlpha = alpha;
+        if (backgroundColorId == Theme.key_chat_messagePanelBackground
+                || backgroundColorId == Theme.key_chat_topPanelBackground) {
+            effAlpha *= app.nimarkogram.messenger.NimarkoConfig.chatGlassAlphaMult();
+        }
+        backgroundColor = Theme.multAlpha(color, effAlpha);
 
         if (isDark()) {
             strokeColorTop = 0x28FFFFFF;
@@ -47,8 +52,10 @@ public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundCo
         } else {
             strokeColorTop = 0xFFFFFFFF;
             strokeColorBottom = 0xFFFFFFFF;
-            shadowColor = 0x20000000; //0x19000000;
+            shadowColor = 0x20000000; 
         }
+        
+        strokeColorFull = Theme.getColor(Theme.key_divider, resourcesProvider);
     }
 
     @Override
@@ -69,6 +76,11 @@ public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundCo
     @Override
     public int getStrokeColorBottom() {
         return strokeColorBottom;
+    }
+
+    @Override
+    public int getStrokeColorFull() {
+        return strokeColorFull;
     }
 }
 

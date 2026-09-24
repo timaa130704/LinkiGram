@@ -449,9 +449,7 @@ public class ChannelWallpaperActivity extends BaseFragment {
             @Override
             public void onAnimationEnd(Animator animation) {
                 if (changeDayNightView != null) {
-                    if (changeDayNightView.getParent() != null) {
-                        ((ViewGroup) changeDayNightView.getParent()).removeView(changeDayNightView);
-                    }
+                    AndroidUtilities.removeFromParent(changeDayNightView);
                     changeDayNightView = null;
                 }
                 changeDayNightViewAnimator = null;

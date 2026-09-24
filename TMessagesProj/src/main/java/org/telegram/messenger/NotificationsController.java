@@ -83,6 +83,9 @@ import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PopupNotificationActivity;
 import org.telegram.ui.Stories.recorder.StoryEntry;
 
+import app.nimarkogram.messenger.NimarkoConfig;
+import app.nimarkogram.messenger.chats.filters.MessagesFilterHelper;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -154,6 +157,7 @@ public class NotificationsController extends BaseController implements Notificat
     private int soundOut;
     private int soundRecord;
     private boolean soundInLoaded;
+    private int lastLoadedInSoundRes;
     private boolean soundOutLoaded;
     private boolean soundRecordLoaded;
     protected static AudioManager audioManager;
@@ -310,11 +314,7 @@ public class NotificationsController extends BaseController implements Notificat
             }
             return key;
         }
-//        if (BuildVars.DEBUG_PRIVATE_VERSION) {
-//            if (Thread.currentThread() != Looper.getMainLooper().getThread()) {
-//                throw new IllegalStateException("Not on main thread!");
-//            }
-//        }
+
         long hash = dialog_id + ((long) topicId << 12);
         int index = sharedPrefCachedKeys.indexOfKey(hash);
         if (index >= 0) {
@@ -752,19 +752,12 @@ public class NotificationsController extends BaseController implements Notificat
             boolean changed = false;
             StoryNotification notification = storyPushMessagesDict.get(dialogId);
             if (notification != null) {
-//                if (notification.maxId <= maxId) {
+
                     storyPushMessagesDict.remove(dialogId);
                     storyPushMessages.remove(notification);
                     changed = true;
                     getMessagesStorage().deleteStoryPushMessage(dialogId);
-//                } else {
-//                    StoryNotification newNotification = new StoryNotification(dialogId, notification.localName, Math.max(notification.minId, maxId), Math.max(notification.maxId, maxId), notification.date);
-//                    storyPushMessagesDict.put(dialogId, newNotification);
-//                    storyPushMessages.remove(notification);
-//                    storyPushMessages.add(newNotification);
-//                    changed = true;
-//                    getMessagesStorage().putStoryPushMessage(newNotification);
-//                }
+
             }
             for (int i = 0; i < pushMessages.size(); ++i) {
                 MessageObject msg = pushMessages.get(i);
@@ -1184,7 +1177,17 @@ public class NotificationsController extends BaseController implements Notificat
                 long topicId = MessageObject.getTopicId(currentAccount, messageObject.messageOwner, getMessagesController().isForum(messageObject));
                 if (dialogId == openedDialogId && ApplicationLoader.isScreenOn && !messageObject.isStoryReactionPush && !messageObject.isOauthPush) {
                     if (!isFcm) {
-                        playInChatSound();
+                        
+                        if (NimarkoConfig.notificationSound != NimarkoConfig.NOTIF_SOUND_DISABLE) {
+                            playInChatSound();
+                        }
+                        
+                        if (!NimarkoConfig.disableVibration
+                                && NimarkoConfig.vibrateInChats != NimarkoConfig.VIBRATE_DISABLE) {
+                            try {
+                                app.nimarkogram.messenger.utils.VibrateUtils.vibrateForChatMode(NimarkoConfig.vibrateInChats);
+                            } catch (Throwable ignored) {}
+                        }
                     }
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.d("skipped message because chat is already opened (openedDialogId = " + openedDialogId + ")");
@@ -1217,9 +1220,7 @@ public class NotificationsController extends BaseController implements Notificat
                         if (BuildVars.LOGS_ENABLED) {
                             FileLog.d("NotificationsController: process new messages, isGlobalNotificationsEnabled("+dialogId+", "+isChannel+", "+messageObject.isReactionPush+", "+messageObject.isStoryReactionPush+") = " + value);
                         }
-                        /*if (BuildVars.DEBUG_PRIVATE_VERSION && BuildVars.LOGS_ENABLED) {
-                            FileLog.d("global notify settings for " + dialog_id + " = " + value);
-                        }*/
+                         
                     } else {
                         value = notifyOverride != 2;
                     }
@@ -1400,7 +1401,6 @@ public class NotificationsController extends BaseController implements Notificat
                         forum = chat.forum;
                     }
                 }
-
 
                 boolean canAddValue;
                 if (!forum) {
@@ -1774,7 +1774,7 @@ public class NotificationsController extends BaseController implements Notificat
                             }
                         }
                     } catch (Exception e) {
-                        //ignore, no thread synchronizations for fast
+                        
                         FileLog.e(e, false);
                     }
                 } else {
@@ -2473,10 +2473,15 @@ public class NotificationsController extends BaseController implements Notificat
         if (messageObject != null && messageObject.didSpoilLoginCode()) {
             return stringBuilder.toString();
         }
-        for (int i = 0; i < messageObject.messageOwner.entities.size(); i++) {
-            if (messageObject.messageOwner.entities.get(i) instanceof TLRPC.TL_messageEntitySpoiler) {
-                TLRPC.TL_messageEntitySpoiler spoiler = (TLRPC.TL_messageEntitySpoiler) messageObject.messageOwner.entities.get(i);
-                for (int j = 0; j < spoiler.length; j++) {
+        
+        java.util.ArrayList<TLRPC.MessageEntity> entities = MessagesFilterHelper.INSTANCE.addSpoilerEntities(messageObject);
+        
+        entities = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper
+                .checkLockedChatsEntities(messageObject, entities);
+        for (int i = 0; i < entities.size(); i++) {
+            if (entities.get(i) instanceof TLRPC.TL_messageEntitySpoiler) {
+                TLRPC.TL_messageEntitySpoiler spoiler = (TLRPC.TL_messageEntitySpoiler) entities.get(i);
+                for (int j = 0; j < spoiler.length && spoiler.offset + j < stringBuilder.length(); j++) {
                     stringBuilder.setCharAt(spoiler.offset + j, spoilerChars[j % spoilerChars.length]);
                 }
             }
@@ -3256,9 +3261,7 @@ public class NotificationsController extends BaseController implements Notificat
                 notifyOverride = 2;
             }
         }
-        /*if (BuildVars.LOGS_ENABLED && BuildVars.DEBUG_VERSION) {
-            FileLog.d("notify override for " + dialog_id + " = " + notifyOverride);
-        }*/
+         
         return notifyOverride;
     }
 
@@ -3353,9 +3356,17 @@ public class NotificationsController extends BaseController implements Notificat
                             }
                         });
                     }
+                    
+                    int desiredSound = NimarkoConfig.notificationSound == NimarkoConfig.NOTIF_SOUND_IOS ? R.raw.sound_in_ios : R.raw.sound_in;
+                    if (soundIn != 0 && lastLoadedInSoundRes != desiredSound) {
+                        try { soundPool.unload(soundIn); } catch (Exception ignored) {}
+                        soundIn = 0;
+                        soundInLoaded = false;
+                    }
                     if (soundIn == 0 && !soundInLoaded) {
                         soundInLoaded = true;
-                        soundIn = soundPool.load(ApplicationLoader.applicationContext, R.raw.sound_in, 1);
+                        lastLoadedInSoundRes = desiredSound;
+                        soundIn = soundPool.load(ApplicationLoader.applicationContext, desiredSound, 1);
                     }
                     if (soundIn != 0) {
                         try {
@@ -3679,9 +3690,9 @@ public class NotificationsController extends BaseController implements Notificat
                     String id = channel.getId();
                     if (id.startsWith(keyStart)) {
                         int importance = channel.getImportance();
-                        if (importance != NotificationManager.IMPORTANCE_HIGH && importance != NotificationManager.IMPORTANCE_MAX) { //TODO remove after some time, 7.3.0 bug fix
+                        if (importance != NotificationManager.IMPORTANCE_HIGH && importance != NotificationManager.IMPORTANCE_MAX) { 
                             if (id.contains("_ia_")) {
-                                //do nothing
+                                
                             } else if (id.contains("_channels_")) {
                                 if (editor == null) {
                                     editor = getAccountInstance().getNotificationsSettings().edit();
@@ -3824,7 +3835,7 @@ public class NotificationsController extends BaseController implements Notificat
         boolean secretChat = !isDefault && DialogObject.isEncryptedDialog(dialogId);
         boolean shouldOverwrite = !isInApp && overwriteKey != null && preferences.getBoolean(overwriteKey, false);
 
-        int nosoundPatch = 2; // when changing code here about no-sound issues, make sure to increment this value
+        int nosoundPatch = 2; 
         String soundHash = Utilities.MD5(sound == null ? "NoSound" + nosoundPatch : sound.toString());
         if (soundHash != null && soundHash.length() > 5) {
             soundHash = soundHash.substring(0, 5);
@@ -3849,7 +3860,7 @@ public class NotificationsController extends BaseController implements Notificat
             if (isInApp) {
                 name = LocaleController.formatString(R.string.NotificationsChatInApp, name);
             }
-            //TODO notifications
+            
             key = (isInApp ? "org.telegram.keyia" : "org.telegram.key") + dialogId + "_" + topicId;
         }
         key += "_" + soundHash;
@@ -4083,7 +4094,7 @@ public class NotificationsController extends BaseController implements Notificat
             if (sound != null) {
                 notificationChannel.setSound(sound, builder.build());
             } else {
-                // todo: deal with vendor messed up crash here later
+                
                 notificationChannel.setSound(null, builder.build());
             }
             if (BuildVars.LOGS_ENABLED) {
@@ -4297,6 +4308,8 @@ public class NotificationsController extends BaseController implements Notificat
                 if (message == null) {
                     return;
                 }
+                message = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(message);
+                lastMessage = message;
                 if (replace) {
                     if (chat != null && allowSummary) {
                         message = message.replace(" @ " + name, "");
@@ -4322,6 +4335,7 @@ public class NotificationsController extends BaseController implements Notificat
                 for (int i = 0; i < count; i++) {
                     MessageObject messageObject = pushMessages.get(i);
                     String message = getStringForMessage(messageObject, false, text, null);
+                    message = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(message);
                     if (message == null || !messageObject.isStoryPush && messageObject.messageOwner.date <= dismissDate) {
                         continue;
                     }
@@ -4349,6 +4363,10 @@ public class NotificationsController extends BaseController implements Notificat
             }
 
             if (!notifyAboutLast || !value || MediaController.getInstance().isRecordingAudio() || silent == 1) {
+                notifyDisabled = true;
+            }
+
+            if (NimarkoConfig.silenceNonContacts && userId != 0 && getContactsController().contactsDict.get(userId) == null) {
                 notifyDisabled = true;
             }
 
@@ -4533,7 +4551,7 @@ public class NotificationsController extends BaseController implements Notificat
             if (lastMessageObject != null && lastMessageObject.isOauthPush) {
                 intent.putExtra("oauth_url", lastMessageObject.localName);
             }
-            //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            
             if (lastMessageObject.isStoryReactionPush) {
                 intent.putExtra("storyId", Math.abs(lastMessageObject.getId()));
             } else if (lastMessageObject.isLiveStoryPush) {
@@ -5269,6 +5287,7 @@ public class NotificationsController extends BaseController implements Notificat
                         continue;
                     }
                     String message = getShortStringForMessage(messageObject, senderName, preview);
+                    message = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(message);
                     if (dialogId == UserObject.OAUTH) {
                         senderName[0] = LocaleController.getString(R.string.BotAuthNotificationTitle);
                     } else if (dialogId == UserObject.VERIFY && messageObject.getForwardedFromId() != null) {
@@ -5368,7 +5387,6 @@ public class NotificationsController extends BaseController implements Notificat
                         personCache.put(uid, person);
                     }
 
-
                     if (!DialogObject.isEncryptedDialog(dialogId)) {
                         boolean setPhoto = false;
                         if (preview[0] && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && !((ActivityManager) ApplicationLoader.applicationContext.getSystemService(Context.ACTIVITY_SERVICE)).isLowRamDevice()) {
@@ -5451,7 +5469,17 @@ public class NotificationsController extends BaseController implements Notificat
                                     }, 20_000);
 
                                     if (!TextUtils.isEmpty(messageObject.caption)) {
-                                        messagingStyle.addMessage(messageObject.caption, ((long) messageObject.messageOwner.date) * 1000, person);
+                                        
+                                        CharSequence captionPreview = messageObject.caption;
+                                        if (captionPreview != null && captionPreview.toString().contains("$")) {
+                                            captionPreview = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(captionPreview.toString());
+                                        }
+                                        if (app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper.isChatLocked(messageObject)
+                                                || app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper.isEncryptedChat(messageObject)) {
+                                            captionPreview = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper
+                                                    .replaceStringToSpoilers(messageObject.caption, true);
+                                        }
+                                        messagingStyle.addMessage(captionPreview, ((long) messageObject.messageOwner.date) * 1000, person);
                                     }
                                     setPhoto = true;
                                 }
@@ -5652,6 +5680,64 @@ public class NotificationsController extends BaseController implements Notificat
                 if (!waitingForPasscode && !dialogKey.story && (lastMessageObject == null || !lastMessageObject.isStoryReactionPush)) {
                     builder.addAction(readAction);
                 }
+                
+                if (app.nimarkogram.messenger.NimarkoConfig.notificationReactions
+                        && !waitingForPasscode && !dialogKey.story && maxId != 0
+                        && (lastMessageObject == null || !lastMessageObject.isStoryReactionPush)) {
+                    String dtReaction = app.nimarkogram.messenger.NimarkoConfig.getNotificationReaction(currentAccount);
+                    if (dtReaction == null || dtReaction.isEmpty()) {
+                        dtReaction = MediaDataController.getInstance(currentAccount).getDoubleTapReaction();
+                    }
+                    
+                    if (dtReaction != null && dtReaction.startsWith("animated_")
+                            && !UserConfig.getInstance(currentAccount).isPremium()) {
+                        dtReaction = MediaDataController.getInstance(currentAccount).getDoubleTapReaction();
+                        if (dtReaction != null && dtReaction.startsWith("animated_")) {
+                            dtReaction = null;
+                        }
+                    }
+                    if (dtReaction != null && !dtReaction.isEmpty()) {
+                        Intent reactIntent = new Intent(ApplicationLoader.applicationContext, NotificationReactReceiver.class);
+                        reactIntent.putExtra("dialog_id", dialogId);
+                        reactIntent.putExtra("max_id", maxId);
+                        reactIntent.putExtra("currentAccount", currentAccount);
+                        reactIntent.putExtra("reaction", dtReaction);
+                        reactIntent.putExtra("notification_id", internalId);
+                        PendingIntent reactPendingIntent = PendingIntent.getBroadcast(ApplicationLoader.applicationContext, internalId, reactIntent, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                        
+                        String reactEmojiChar;
+                        if (dtReaction.startsWith("animated_")) {
+                            
+                            reactEmojiChar = dtReaction.equals(app.nimarkogram.messenger.NimarkoConfig.getNotificationReaction(currentAccount))
+                                    ? app.nimarkogram.messenger.NimarkoConfig.getNotificationReactionEmoji(currentAccount) : null;
+                            if (reactEmojiChar == null || reactEmojiChar.isEmpty()) {
+                                try {
+                                    long docId = Long.parseLong(dtReaction.substring("animated_".length()));
+                                    TLRPC.Document doc = org.telegram.ui.Components.AnimatedEmojiDrawable.findDocument(currentAccount, docId);
+                                    if (doc != null) {
+                                        reactEmojiChar = MessageObject.getEmoji(doc);
+                                    }
+                                } catch (Exception ignore) {}
+                            }
+                        } else {
+                            reactEmojiChar = dtReaction;
+                        }
+                        Bitmap reactEmojiBmp = null;
+                        if (reactEmojiChar != null && !reactEmojiChar.isEmpty()) {
+                            try {
+                                reactEmojiBmp = Emoji.renderEmojiToBitmapSync(reactEmojiChar, AndroidUtilities.dp(32));
+                            } catch (Throwable ignore) {}
+                        }
+                        CharSequence reactLabel = (reactEmojiChar != null && !reactEmojiChar.isEmpty())
+                                ? reactEmojiChar : LocaleController.getString(R.string.NM_React);
+                        NotificationCompat.Action reactAction = reactEmojiBmp != null
+                                ? new NotificationCompat.Action.Builder(IconCompat.createWithBitmap(reactEmojiBmp), reactLabel, reactPendingIntent)
+                                        .setShowsUserInterface(false).build()
+                                : new NotificationCompat.Action.Builder(R.drawable.msg_reactions2, reactLabel, reactPendingIntent)
+                                        .setShowsUserInterface(false).build();
+                        builder.addAction(reactAction);
+                    }
+                }
             }
             if (sortedDialogs.size() == 1 && !TextUtils.isEmpty(summary) && !dialogKey.story) {
                 builder.setSubText(summary);
@@ -5849,7 +5935,7 @@ public class NotificationsController extends BaseController implements Notificat
             return null;
         }
         final int sz = AndroidUtilities.dp(64);
-        // TODO: cache that bitmap
+        
         final Bitmap finalBitmap = Bitmap.createBitmap(sz, sz, Bitmap.Config.ARGB_8888);
         final Canvas canvas = new Canvas(finalBitmap);
         final Matrix matrix = new Matrix();
@@ -5994,7 +6080,7 @@ public class NotificationsController extends BaseController implements Notificat
             } else {
                 editor.putInt("notify2_" + NotificationsController.getSharedPrefKey(dialog_id, topicId), 0);
             }
-            //TODO topic
+            
             getMessagesStorage().setDialogFlags(dialog_id, 0);
             if (dialog != null) {
                 dialog.notify_settings = new TLRPC.TL_peerNotifySettings();
@@ -6105,7 +6191,7 @@ public class NotificationsController extends BaseController implements Notificat
         }
 
         getConnectionsManager().sendRequest(req, (response, error) -> {
-           // FileLog.d("updateServerNotificationsSettings " + dialogId + " " + topicId + " error = " + error);
+           
         });
     }
 

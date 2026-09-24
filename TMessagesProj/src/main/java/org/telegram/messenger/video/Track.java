@@ -84,6 +84,181 @@ public class Track {
         samplingFrequencyIndexMap.put(8000, 0xb);
     }
 
+    private static int findAnnexBStartCode(byte[] data, int from) {
+        for (int i = Math.max(0, from); i + 2 < data.length; i++) {
+            if (data[i] == 0 && data[i + 1] == 0
+                    && (data[i + 2] == 1
+                    || i + 3 < data.length && data[i + 2] == 0 && data[i + 3] == 1)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int annexBStartCodeLength(byte[] data, int offset) {
+        return offset + 3 < data.length && data[offset + 2] == 0 ? 4 : 3;
+    }
+
+    private static void addAvcParameterSet(byte[] data, int offset, int limit,
+                                           ArrayList<byte[]> sps, ArrayList<byte[]> pps) {
+        while (limit > offset && data[limit - 1] == 0) {
+            limit--;
+        }
+        if (offset >= limit) {
+            return;
+        }
+        int type = data[offset] & 0x1f;
+        ArrayList<byte[]> destination = type == 7 ? sps : type == 8 ? pps : null;
+        if (destination == null) {
+            return;
+        }
+        byte[] parameterSet = Arrays.copyOfRange(data, offset, limit);
+        for (byte[] existing : destination) {
+            if (Arrays.equals(existing, parameterSet)) {
+                return;
+            }
+        }
+        destination.add(parameterSet);
+    }
+
+    private static boolean collectAvcConfigurationRecord(byte[] data,
+                                                         ArrayList<byte[]> sps,
+                                                         ArrayList<byte[]> pps) {
+        if (data.length < 7 || data[0] != 1) {
+            return false;
+        }
+        int offset = 5;
+        int spsCount = data[offset++] & 0x1f;
+        for (int i = 0; i < spsCount; i++) {
+            if (offset + 2 > data.length) {
+                return false;
+            }
+            int length = ((data[offset] & 0xff) << 8) | (data[offset + 1] & 0xff);
+            offset += 2;
+            if (length <= 0 || offset + length > data.length) {
+                return false;
+            }
+            addAvcParameterSet(data, offset, offset + length, sps, pps);
+            offset += length;
+        }
+        if (offset >= data.length) {
+            return false;
+        }
+        int ppsCount = data[offset++] & 0xff;
+        for (int i = 0; i < ppsCount; i++) {
+            if (offset + 2 > data.length) {
+                return false;
+            }
+            int length = ((data[offset] & 0xff) << 8) | (data[offset + 1] & 0xff);
+            offset += 2;
+            if (length <= 0 || offset + length > data.length) {
+                return false;
+            }
+            addAvcParameterSet(data, offset, offset + length, sps, pps);
+            offset += length;
+        }
+        return !sps.isEmpty() || !pps.isEmpty();
+    }
+
+    private static boolean collectLengthPrefixedAvcParameterSets(byte[] data,
+                                                                 ArrayList<byte[]> sps,
+                                                                 ArrayList<byte[]> pps) {
+        int offset = 0;
+        boolean found = false;
+        while (offset + 4 <= data.length) {
+            int length = ((data[offset] & 0xff) << 24)
+                    | ((data[offset + 1] & 0xff) << 16)
+                    | ((data[offset + 2] & 0xff) << 8)
+                    | (data[offset + 3] & 0xff);
+            offset += 4;
+            if (length <= 0 || length > data.length - offset) {
+                return false;
+            }
+            int oldSpsCount = sps.size();
+            int oldPpsCount = pps.size();
+            addAvcParameterSet(data, offset, offset + length, sps, pps);
+            found |= oldSpsCount != sps.size() || oldPpsCount != pps.size();
+            offset += length;
+        }
+        return found && offset == data.length;
+    }
+
+    private static void collectAvcParameterSets(ByteBuffer source,
+                                                ArrayList<byte[]> sps,
+                                                ArrayList<byte[]> pps) {
+        if (source == null) {
+            return;
+        }
+        ByteBuffer buffer = source.duplicate();
+        buffer.position(0);
+        byte[] data = new byte[buffer.remaining()];
+        buffer.get(data);
+        int originalSpsCount = sps.size();
+        int originalPpsCount = pps.size();
+        if (collectAvcConfigurationRecord(data, sps, pps)) {
+            return;
+        }
+        while (sps.size() > originalSpsCount) {
+            sps.remove(sps.size() - 1);
+        }
+        while (pps.size() > originalPpsCount) {
+            pps.remove(pps.size() - 1);
+        }
+        if (collectLengthPrefixedAvcParameterSets(data, sps, pps)) {
+            return;
+        }
+        while (sps.size() > originalSpsCount) {
+            sps.remove(sps.size() - 1);
+        }
+        while (pps.size() > originalPpsCount) {
+            pps.remove(pps.size() - 1);
+        }
+
+        int start = findAnnexBStartCode(data, 0);
+        if (start < 0) {
+            addAvcParameterSet(data, 0, data.length, sps, pps);
+            return;
+        }
+        while (start >= 0) {
+            int nalStart = start + annexBStartCodeLength(data, start);
+            int next = findAnnexBStartCode(data, nalStart);
+            addAvcParameterSet(data, nalStart, next >= 0 ? next : data.length, sps, pps);
+            start = next;
+        }
+    }
+
+    private static int avcLevelIndication(int level) {
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel1) return 10;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel1b) return 11;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel11) return 11;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel12) return 12;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel13) return 13;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel2) return 20;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel21) return 21;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel22) return 22;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel3) return 30;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel31) return 31;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel32) return 32;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel4) return 40;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel41) return 41;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel42) return 42;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel5) return 50;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel51) return 51;
+        if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel52) return 52;
+        return 0;
+    }
+
+    private static int avcProfileIndication(int profile) {
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline) return 66;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileMain) return 77;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileExtended) return 88;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh) return 100;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh10) return 110;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh422) return 122;
+        if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh444) return 244;
+        return 0;
+    }
+
     public Track(int id, MediaFormat format, boolean audio) {
         trackId = id;
         isAudio = audio;
@@ -108,90 +283,36 @@ public class Track {
 
                 AvcConfigurationBox avcConfigurationBox = new AvcConfigurationBox();
 
-                if (format.getByteBuffer("csd-0") != null) {
-                    ArrayList<byte[]> spsArray = new ArrayList<>();
-                    ByteBuffer spsBuff = format.getByteBuffer("csd-0");
-                    spsBuff.position(4);
-                    byte[] spsBytes = new byte[spsBuff.remaining()];
-                    spsBuff.get(spsBytes);
-                    spsArray.add(spsBytes);
-
-                    ArrayList<byte[]> ppsArray = new ArrayList<>();
-                    ByteBuffer ppsBuff = format.getByteBuffer("csd-1");
-                    ppsBuff.position(4);
-                    byte[] ppsBytes = new byte[ppsBuff.remaining()];
-                    ppsBuff.get(ppsBytes);
-                    ppsArray.add(ppsBytes);
+                ArrayList<byte[]> spsArray = new ArrayList<>();
+                ArrayList<byte[]> ppsArray = new ArrayList<>();
+                collectAvcParameterSets(format.getByteBuffer("csd-0"), spsArray, ppsArray);
+                collectAvcParameterSets(format.getByteBuffer("csd-1"), spsArray, ppsArray);
+                if (!spsArray.isEmpty()) {
                     avcConfigurationBox.setSequenceParameterSets(spsArray);
+                }
+                if (!ppsArray.isEmpty()) {
                     avcConfigurationBox.setPictureParameterSets(ppsArray);
                 }
 
-                if (format.containsKey("level")) {
-                    int level = format.getInteger("level");
-                    if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel1) {
-                        avcConfigurationBox.setAvcLevelIndication(1);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel2) {
-                        avcConfigurationBox.setAvcLevelIndication(2);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel11) {
-                        avcConfigurationBox.setAvcLevelIndication(11);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel12) {
-                        avcConfigurationBox.setAvcLevelIndication(12);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel13) {
-                        avcConfigurationBox.setAvcLevelIndication(13);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel21) {
-                        avcConfigurationBox.setAvcLevelIndication(21);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel22) {
-                        avcConfigurationBox.setAvcLevelIndication(22);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel3) {
-                        avcConfigurationBox.setAvcLevelIndication(3);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel31) {
-                        avcConfigurationBox.setAvcLevelIndication(31);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel32) {
-                        avcConfigurationBox.setAvcLevelIndication(32);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel4) {
-                        avcConfigurationBox.setAvcLevelIndication(4);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel41) {
-                        avcConfigurationBox.setAvcLevelIndication(41);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel42) {
-                        avcConfigurationBox.setAvcLevelIndication(42);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel5) {
-                        avcConfigurationBox.setAvcLevelIndication(5);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel51) {
-                        avcConfigurationBox.setAvcLevelIndication(51);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel52) {
-                        avcConfigurationBox.setAvcLevelIndication(52);
-                    } else if (level == MediaCodecInfo.CodecProfileLevel.AVCLevel1b) {
-                        avcConfigurationBox.setAvcLevelIndication(0x1b);
-                    }
+                byte[] sps = spsArray.isEmpty() ? null : spsArray.get(0);
+                if (sps != null && sps.length >= 4) {
+                    avcConfigurationBox.setAvcProfileIndication(sps[1] & 0xff);
+                    avcConfigurationBox.setProfileCompatibility(sps[2] & 0xff);
+                    avcConfigurationBox.setAvcLevelIndication(sps[3] & 0xff);
                 } else {
-                    avcConfigurationBox.setAvcLevelIndication(13);
-                }
-                if (format.containsKey("profile")) {
-                    int profile = format.getInteger("profile");
-                    if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline) {
-                        avcConfigurationBox.setAvcProfileIndication(66);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileMain) {
-                        avcConfigurationBox.setAvcProfileIndication(77);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileExtended) {
-                        avcConfigurationBox.setAvcProfileIndication(88);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh) {
-                        avcConfigurationBox.setAvcProfileIndication(100);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh10) {
-                        avcConfigurationBox.setAvcProfileIndication(110);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh422) {
-                        avcConfigurationBox.setAvcProfileIndication(122);
-                    } else if (profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh444) {
-                        avcConfigurationBox.setAvcProfileIndication(244);
-                    }
-                } else {
-                    avcConfigurationBox.setAvcProfileIndication(100);
+                    int profile = format.containsKey(MediaFormat.KEY_PROFILE)
+                            ? avcProfileIndication(format.getInteger(MediaFormat.KEY_PROFILE)) : 0;
+                    int level = format.containsKey("level")
+                            ? avcLevelIndication(format.getInteger("level")) : 0;
+                    avcConfigurationBox.setAvcProfileIndication(profile != 0 ? profile : 66);
+                    avcConfigurationBox.setAvcLevelIndication(level != 0 ? level : 31);
+                    avcConfigurationBox.setProfileCompatibility(0);
                 }
                 avcConfigurationBox.setBitDepthLumaMinus8(-1);
                 avcConfigurationBox.setBitDepthChromaMinus8(-1);
                 avcConfigurationBox.setChromaFormat(-1);
                 avcConfigurationBox.setConfigurationVersion(1);
                 avcConfigurationBox.setLengthSizeMinusOne(3);
-                avcConfigurationBox.setProfileCompatibility(0);
 
                 visualSampleEntry.addBox(avcConfigurationBox);
                 sampleDescriptionBox.addBox(visualSampleEntry);
@@ -310,7 +431,7 @@ public class Track {
             descriptor.setDecoderConfigDescriptor(decoderConfigDescriptor);
 
             ByteBuffer data = descriptor.serialize();
-            //esds.setEsDescriptor(descriptor);
+            
             esds.setData(data);
             audioSampleEntry.addBox(esds);
             sampleDescriptionBox.addBox(audioSampleEntry);
@@ -375,10 +496,7 @@ public class Track {
                 sampleCompositions[presentationTime.index] = (int) (presentationTime.presentationTime - presentationTime.dt);
             }
         }
-        //if (!first) {
-        //    sampleDurations.add(sampleDurations.size() - 1, delta);
-        //    duration += delta;
-        //}
+        
     }
 
     public ArrayList<Sample> getSamples() {

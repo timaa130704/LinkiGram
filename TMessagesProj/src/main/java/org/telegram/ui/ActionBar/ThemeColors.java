@@ -11,9 +11,11 @@ import java.util.HashMap;
 
 public class ThemeColors {
 
-    public static final int TELEGRAM_COLOR = 0xFF229AF0;        // -14509328
-    public static final int TELEGRAM_COLOR_TEXT = 0xFF298ACF;   // -14054705
-    public static final int DEFAULT_BLACK_TEXT = 0xFF1A1D21;   // -15065823
+    public static final int TELEGRAM_COLOR = 0xFF229AF0;        
+    public static final int TELEGRAM_COLOR_TEXT = 0xFF298ACF;   
+    public static final int DEFAULT_BLACK_TEXT = 0xFF1A1D21;   
+    
+    public static final int NIMARKOGRAM_COLOR = 0xFFB22A2E;
 
     private static SparseArray<String> colorKeysMap;
     private static HashMap<String, Integer> colorKeysStringMap;
@@ -112,7 +114,8 @@ public class ThemeColors {
         defaultColors[key_windowBackgroundWhiteBlueHeader] = TELEGRAM_COLOR_TEXT;
         defaultColors[key_windowBackgroundWhiteInputField] = 0xffdbdbdb;
         defaultColors[key_windowBackgroundWhiteInputFieldActivated] = TELEGRAM_COLOR;
-        defaultColors[key_switchTrack] = 0xffa6adb3;
+        
+        defaultColors[key_switchTrack] = 0xffb0b5ba;
         defaultColors[key_switchTrackChecked] = TELEGRAM_COLOR;
         defaultColors[key_switchTrackBlue] = 0xff78828A;
         defaultColors[key_switchTrackBlueChecked] = 0xff1079C4;
@@ -171,7 +174,6 @@ public class ThemeColors {
         defaultColors[key_avatar_background2Pink] = 0xffD95574;
         defaultColors[key_avatar_backgroundGray] = 0xffA1ABB5;
 
-
         defaultColors[key_avatar_backgroundInProfileBlue] = 0xffffffff;
         defaultColors[key_avatar_backgroundActionBarBlue] = 0xfff5f5f5;
         defaultColors[key_avatar_subtitleInProfileBlue] = DEFAULT_BLACK_TEXT;
@@ -190,9 +192,9 @@ public class ThemeColors {
         defaultColors[key_actionBarDefaultIcon] = DEFAULT_BLACK_TEXT;
         defaultColors[key_actionBarActionModeDefault] = 0xffffffff;
         defaultColors[key_actionBarActionModeDefaultTop] = 0x10000000;
-        defaultColors[key_actionBarActionModeDefaultIcon] = DEFAULT_BLACK_TEXT; // key_windowBackgroundWhiteBlackText
+        defaultColors[key_actionBarActionModeDefaultIcon] = DEFAULT_BLACK_TEXT; 
         defaultColors[key_actionBarDefaultTitle] = DEFAULT_BLACK_TEXT;
-        defaultColors[key_actionBarDefaultSubtitle] = 0xff79817e;       // key_windowBackgroundWhiteGrayText
+        defaultColors[key_actionBarDefaultSubtitle] = 0xff79817e;       
         defaultColors[key_actionBarDefaultSelector] = 0x121a1d21;
         defaultColors[key_actionBarWhiteSelector] = 0x121a1d21;
         defaultColors[key_actionBarDefaultSearch] = DEFAULT_BLACK_TEXT;
@@ -208,7 +210,7 @@ public class ThemeColors {
         defaultColors[key_actionBarTabActiveText] = TELEGRAM_COLOR_TEXT;
         defaultColors[key_actionBarTabUnactiveText] = 0xff777c7f;
         defaultColors[key_actionBarTabLine] = TELEGRAM_COLOR_TEXT;
-        defaultColors[key_chats_tabUnreadActiveBackground] = 0xFF66ade1; //TELEGRAM_COLOR_TEXT;
+        defaultColors[key_chats_tabUnreadActiveBackground] = 0xFF66ade1; 
         defaultColors[key_chats_tabUnreadUnactiveBackground] = 0xffc5c9cc;
         defaultColors[key_actionBarTabSelector] = 0x121a1d21;
         defaultColors[key_actionBarBrowser] = 0xffffffff;
@@ -427,7 +429,8 @@ public class ThemeColors {
         defaultColors[key_chat_outFileProgress] = 0xffdaf5c3;
         defaultColors[key_chat_inFileProgressSelected] = 0xffcbeaf6;
         defaultColors[key_chat_outFileProgressSelected] = 0xffc5eca7;
-        defaultColors[key_chat_inFileNameText] = TELEGRAM_COLOR_TEXT;
+        
+        defaultColors[key_chat_inFileNameText] = 0xff4e9ad4;
         defaultColors[key_chat_outFileNameText] = 0xff55ab4f;
         defaultColors[key_chat_inFileInfoText] = 0xffa1aab3;
         defaultColors[key_chat_outFileInfoText] = 0xff65b05b;
@@ -657,7 +660,7 @@ public class ThemeColors {
         defaultColors[key_chat_outTextSelectionCursor] = 0xFF419FE8;
         defaultColors[key_chat_outBubbleLocationPlaceholder] = 0x1e307311;
         defaultColors[key_chat_inBubbleLocationPlaceholder] = 0x1e506373;
-        defaultColors[key_chat_BlurAlpha] = 0xB2000000;
+        defaultColors[key_chat_BlurAlpha] = app.nimarkogram.messenger.NimarkoConfig.forceBlur ? 0xCF000000 : 0xB2000000;
         defaultColors[key_chat_BlurAlphaSlow] = 0xC1000000;
         defaultColors[key_chat_editMediaButton] = 0xff1A9CFF;
 
@@ -825,12 +828,12 @@ public class ThemeColors {
         defaultColors[key_starsGradient1] = 0xffFEC846;
         defaultColors[key_starsGradient2] = 0xffEC920A;
 
-        defaultColors[key_stories_circle1] = 0xFF2C9EFC; // 0xFF39DF3C;
-        defaultColors[key_stories_circle2] = 0xFF2fc183; // 0xFF4DBBFF;
-        defaultColors[key_stories_circle_dialog1] = 0xFF2C9EFC; // 0xFF4AED55;
-        defaultColors[key_stories_circle_dialog2] = 0xFF2fc183; // 0xFF4DC3FF;
-        defaultColors[key_stories_circle_closeFriends1] = 0xFF81ce2d; // 0xFFC9EB38;
-        defaultColors[key_stories_circle_closeFriends2] = 0xFF18bd36; // 0xFF09C167;
+        defaultColors[key_stories_circle1] = 0xFF2C9EFC; 
+        defaultColors[key_stories_circle2] = 0xFF2fc183; 
+        defaultColors[key_stories_circle_dialog1] = 0xFF2C9EFC; 
+        defaultColors[key_stories_circle_dialog2] = 0xFF2fc183; 
+        defaultColors[key_stories_circle_closeFriends1] = 0xFF81ce2d; 
+        defaultColors[key_stories_circle_closeFriends2] = 0xFF18bd36; 
         defaultColors[key_stories_circle_live1] = 0xFFFF6B5B;
         defaultColors[key_stories_circle_live2] = 0xFFFA4874;
 
@@ -866,8 +869,8 @@ public class ThemeColors {
 
         defaultColors[key_reactionStarSelector] = 0x40F0AB1F;
 
-        defaultColors[key_glass_defaultIcon] = 0x991B2227; //0xFF747875;
-        defaultColors[key_glass_defaultText] = 0x991B2227; //0xFF737876;
+        defaultColors[key_glass_defaultIcon] = 0x991B2227; 
+        defaultColors[key_glass_defaultText] = 0x991B2227; 
         defaultColors[key_glass_targetMainTabs] = 0xFFFFFFFF;
         defaultColors[key_glass_targetMainTopPanel] = 0xFFFFFFFF;
         defaultColors[key_glass_tabSelected] = 0xFF1a91e6;
@@ -1735,7 +1738,6 @@ public class ThemeColors {
             return colorKeysStringMap.get(key);
         }
     }
-
 
     public static String getStringName(int currentKey) {
         if (colorKeysMap == null) {

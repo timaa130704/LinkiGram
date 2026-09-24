@@ -380,7 +380,7 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
         if (isEmptyOffset) {
             adapter.setItems(importers.importers);
         } else {
-            boolean moveMore = importers.importers.size() > 0 && currentImporters.size() + importers.importers.size() < importers.count; // last loading cell should be reappeared, instead of a move forward
+            boolean moveMore = importers.importers.size() > 0 && currentImporters.size() + importers.importers.size() < importers.count; 
             if (moveMore) {
                 adapter.notifyItemRemoved((isShowLastItemDivider ? 0 : 1) + currentImporters.size());
             }
@@ -500,7 +500,7 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
                     onImportersChanged(query, false, true);
                     if (isApproved) {
                         Bulletin.MultiLineLayout layout = new Bulletin.MultiLineLayout(fragment.getParentActivity(), fragment.getResourceProvider());
-                        layout.imageView.setRoundRadius(AndroidUtilities.dp(15));
+                        layout.imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(30));
                         layout.imageView.setForUserOrChat(user, new AvatarDrawable(user));
                         String userName = UserObject.getFirstName(user);
                         String message = isChannel
@@ -570,7 +570,6 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
             }
         }
     };
-
 
     private class Adapter extends RecyclerListView.SelectionAdapter {
 
@@ -722,7 +721,6 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
             return 0;
         }
     }
-
 
     private class PreviewDialog extends Dialog {
 
@@ -1091,13 +1089,9 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
 
             @Override
             protected void onDraw(Canvas canvas) {
-//                if (animationProgress < 1f) {
-//                    canvas.save();
-//                }
+
                 pagerShadowDrawable.draw(canvas);
-//                if (animationProgress < 1f) {
-//                    canvas.restore();
-//                }
+
                 super.onDraw(canvas);
             }
 

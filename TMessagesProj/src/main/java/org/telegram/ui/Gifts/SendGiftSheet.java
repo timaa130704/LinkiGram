@@ -69,6 +69,8 @@ import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.EditTextEmoji;
 import org.telegram.ui.Components.EditTextSuggestionsFix;
 import org.telegram.ui.Components.LayoutHelper;
+
+import app.nimarkogram.messenger.NimarkoConfig;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.MotionBackgroundDrawable;
 import org.telegram.ui.Components.Premium.GiftPremiumBottomSheet;
@@ -114,7 +116,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
     private final LinearLayout chatLinearLayout;
 
     private final long send_paid_messages_stars;
-//    private final ChatActionCell payActionCell;
+
     private final ChatActionCell actionCell;
 
     private final TLRPC.MessageAction action;
@@ -156,7 +158,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
         self = dialogId == UserConfig.getInstance(currentAccount).getClientUserId();
         setImageReceiverNumLevel(0, 4);
         fixNavigationBar();
-//        setSlidingActionBar();
+
         headerPaddingTop = dp(4);
         headerPaddingBottom = dp(-10);
         if (self) {
@@ -264,7 +266,6 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
         msgDrawable.setRadius(dp(20));
         msgDrawable.setPadding(dp(4));
 
-
         chatLinearLayout = new LinearLayout(context);
         chatLinearLayout.setOrientation(LinearLayout.VERTICAL);
 
@@ -366,7 +367,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
 
             }
         };
-        messageEdit.editTextEmoji.getEditText().addTextChangedListener(new EditTextSuggestionsFix());
+        if (NimarkoConfig.editTextSuggestionsFix) messageEdit.editTextEmoji.getEditText().addTextChangedListener(new EditTextSuggestionsFix());
         messageEdit.editTextEmoji.allowEmojisForNonPremium(true);
         messageEdit.setShowLimitWhenNear(50);
         setEditTextEmoji(messageEdit.editTextEmoji);
@@ -507,6 +508,13 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
                 messageEdit.editTextEmoji.closeKeyboard();
             }
             if (starGift != null) {
+                
+                if (app.nimarkogram.messenger.NimarkoConfig.allowSafeStars) {
+                    if (closeParentSheet != null) {
+                        closeParentSheet.run();
+                    }
+                    dismiss();
+                }
                 buyStarGift();
             } else {
                 buyPremiumTier();
@@ -674,7 +682,6 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
         this.auction = auction;
     }
 
-
     protected BulletinFactory getParentBulletinFactory() {
         final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
         if (lastFragment == null) return null;
@@ -769,7 +776,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
                         AndroidUtilities.hideKeyboard(messageEdit);
                         dismiss();
 
-                        AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(new ArrayList<>(Arrays.asList(user))), 250);
+                        AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(currentAccount, new ArrayList<>(Arrays.asList(user))), 250);
                     } else if (!TextUtils.isEmpty(err)) {
                         BulletinFactory.of(topBulletinContainer, resourcesProvider)
                             .createSimpleBulletin(R.raw.error, LocaleController.formatString(R.string.UnknownErrorCode, err))
@@ -798,8 +805,8 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
                         closeParentSheet.run();
                     }
                     dismiss();
-                    NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.giftsToUserSent);
-                    AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(new ArrayList<>(Arrays.asList(user))), 250);
+                    NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.giftsToUserSent);
+                    AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(currentAccount, new ArrayList<>(Arrays.asList(user))), 250);
 
                     MessagesController.getInstance(currentAccount).getMainSettings().edit()
                         .putBoolean("show_gift_for_" + dialogId, true)
@@ -820,7 +827,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
                         AndroidUtilities.hideKeyboard(messageEdit);
                         dismiss();
 
-                        AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(new ArrayList<>(Arrays.asList(user))), 250);
+                        AndroidUtilities.runOnUIThread(() -> PremiumPreviewGiftSentBottomSheet.show(currentAccount, new ArrayList<>(Arrays.asList(user))), 250);
                     } else if (!TextUtils.isEmpty(err)) {
                         BulletinFactory.of(topBulletinContainer, resourcesProvider)
                             .createSimpleBulletin(R.raw.error, LocaleController.formatString(R.string.UnknownErrorCode, err))
@@ -964,7 +971,7 @@ public class SendGiftSheet extends BottomSheetWithRecyclerListView implements No
                     StarsIntroActivity.replaceStarsWithPlain(formatSpannable(R.string.Gift2MessageStarsInfo, boldBalance), .66f),
                     " ",
                     AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(getString(R.string.Gift2MessageStarsInfoLink), () -> {
-                        new StarsIntroActivity.StarsOptionsSheet(getContext(), resourcesProvider).show();
+                        new StarsIntroActivity.StarsOptionsSheet(getContext(), currentAccount, resourcesProvider).show();
                     }), true, dp(8f / 3f), dp(1))
                 )));
             }

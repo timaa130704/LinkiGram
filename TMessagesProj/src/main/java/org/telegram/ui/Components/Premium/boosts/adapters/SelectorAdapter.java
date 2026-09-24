@@ -267,11 +267,42 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
             cell.setTextAndIcon(item.text, item.resId, false);
         } else if (viewType == VIEW_TYPE_CUSTOM) {
             FrameLayout frameLayout = (FrameLayout) holder.itemView;
-            if (frameLayout.getChildCount() != 1 || frameLayout.getChildAt(0) != item.view) {
-                AndroidUtilities.removeFromParent(item.view);
-                frameLayout.addView(item.view, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-            }
+            bindCustomView(frameLayout, item.view);
         }
+    }
+
+    private static void bindCustomView(FrameLayout container, View child) {
+        final Object bindToken = new Object();
+        container.setTag(R.id.view_reparent_token_tag, bindToken);
+        if (container.getChildCount() == (child == null ? 0 : 1)
+                && (child == null || container.getChildAt(0) == child)) {
+            return;
+        }
+
+        container.removeAllViews();
+        if (child == null) {
+            return;
+        }
+
+        AndroidUtilities.removeFromParent(child, () -> {
+            if (container.getTag(R.id.view_reparent_token_tag) != bindToken
+                    || child.getParent() != null) {
+                return;
+            }
+            container.addView(
+                    child,
+                    LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        });
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        if (holder.getItemViewType() == VIEW_TYPE_CUSTOM) {
+            FrameLayout container = (FrameLayout) holder.itemView;
+            container.setTag(R.id.view_reparent_token_tag, null);
+            container.removeAllViews();
+        }
+        super.onViewRecycled(holder);
     }
 
     @Override
@@ -286,61 +317,6 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
     public int getItemCount() {
         return items == null ? 0 : items.size();
     }
-
-//    private RecyclerListView.Adapter realAdapter() {
-//        return listView.getAdapter();
-//    }
-//
-//    @Override
-//    public void notifyItemChanged(int position) {
-//        realAdapter().notifyItemChanged(position + 1);
-//    }
-//
-//    @Override
-//    public void notifyItemChanged(int position, @Nullable Object payload) {
-//        realAdapter().notifyItemChanged(position + 1, payload);
-//    }
-//
-//    @Override
-//    public void notifyItemInserted(int position) {
-//        realAdapter().notifyItemInserted(position + 1);
-//    }
-//
-//    @Override
-//    public void notifyItemMoved(int fromPosition, int toPosition) {
-//        realAdapter().notifyItemMoved(fromPosition + 1, toPosition);
-//    }
-//
-//    @Override
-//    public void notifyItemRangeChanged(int positionStart, int itemCount) {
-//        realAdapter().notifyItemRangeChanged(positionStart + 1, itemCount);
-//    }
-//
-//    @Override
-//    public void notifyItemRangeChanged(int positionStart, int itemCount, @Nullable Object payload) {
-//        realAdapter().notifyItemRangeChanged(positionStart + 1, itemCount, payload);
-//    }
-//
-//    @Override
-//    public void notifyItemRangeInserted(int positionStart, int itemCount) {
-//        realAdapter().notifyItemRangeInserted(positionStart + 1, itemCount);
-//    }
-//
-//    @Override
-//    public void notifyItemRangeRemoved(int positionStart, int itemCount) {
-//        realAdapter().notifyItemRangeRemoved(positionStart + 1, itemCount);
-//    }
-//
-//    @Override
-//    public void notifyItemRemoved(int position) {
-//        realAdapter().notifyItemRemoved(position + 1);
-//    }
-//
-//    @SuppressLint("NotifyDataSetChanged")
-//    @Override
-//    public void notifyDataSetChanged() {
-//        realAdapter().notifyDataSetChanged();
-//    }
 
     public void notifyChangedLast() {
         if (items == null || items.isEmpty()) {

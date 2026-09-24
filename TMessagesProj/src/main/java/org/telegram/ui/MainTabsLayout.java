@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -18,9 +19,8 @@ import androidx.dynamicanimation.animation.FloatPropertyCompat;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 
-import android.util.Log;
-
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedLinearLayout;
 import org.telegram.ui.Components.CubicBezierInterpolator;
@@ -41,6 +41,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     public MainTabsLayout(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        setOrientation(HORIZONTAL);
+        setLayoutDirection(LocaleController.isRTL ? LAYOUT_DIRECTION_RTL : LAYOUT_DIRECTION_LTR);
     }
 
     private static final float[] PASS_TEXT_SIZES_DP = {12f, 12f, 10f};
@@ -92,55 +94,38 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         applyPassTextSize(chosenPass);
 
         final int tabPadding = dp(PASS_PADDINGS_DP[chosenPass]);
-        final int maxTabTextWidthIfEq = (maxTotalWidthForTabs / Math.max(1, visibleChildCount)) - tabPadding * 2;
-
-        float totalWidth = 0;
-        int totalWeight = 0;
+        float desiredTotalWidth = 0;
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
             if (!isViewVisible(child)) {
                 tabsTextWidth[a] = tabsTextWidthWithMargin[a] = 0;
-                tabsWeight[a] = 0;
                 continue;
             }
 
             tabsTextWidthWithMargin[a] = tabsTextWidth[a] + tabPadding * 2;
-            tabsWeight[a] = tabsTextWidthWithMargin[a] > (maxTabTextWidthIfEq + tabPadding * 2) ? 0 : 1;
-
-            totalWidth += tabsTextWidthWithMargin[a];
-            totalWeight += tabsWeight[a];
+            desiredTotalWidth += tabsTextWidthWithMargin[a];
         }
 
-        if (totalWeight == 0) {
-            for (int a = 0, N = getChildCount(); a < N; a++) {
-                tabsWeight[a] = isViewVisible(getChildAt(a)) ? 1 : 0;
-            }
-            totalWeight = visibleChildCount;
-        }
-
-        if (totalWidth > maxTotalWidthForTabs) {
-            final float m = maxTotalWidthForTabs / totalWidth;
-            for (int a = 0, N = getChildCount(); a < N; a++) {
-                tabsTextWidthWithMargin[a] *= m;
-            }
-        } else if (totalWidth < minTotalWidthForTabs) {
-            final float growW = minTotalWidthForTabs - totalWidth;
-            final float growP = growW / totalWeight;
-
-            for (int a = 0, N = getChildCount(); a < N; a++) {
-                tabsTextWidthWithMargin[a] += growP * tabsWeight[a];
-            }
-        }
-
+        // LinkiGram: классическая панель растягивает табы на всю доступную ширину
+        final int totalTabsWidth = app.nimarkogram.messenger.NimarkoConfig.classicUi
+                ? maxTotalWidthForTabs
+                : Math.min(maxTotalWidthForTabs,
+                        Math.max(minTotalWidthForTabs, Math.round(desiredTotalWidth)));
+        int remainingWidth = totalTabsWidth;
+        int remainingTabs = visibleChildCount;
         int l = 0;
         for (int a = 0, N = getChildCount(); a < N; a++) {
             if (!isViewVisible(getChildAt(a))) {
+                tabsWidth[a] = 0;
+                tabsLeftPos[a] = l;
                 continue;
             }
 
-            tabsWidth[a] = Math.round(tabsTextWidthWithMargin[a]);
+            tabsWidth[a] = remainingTabs > 0 ? remainingWidth / remainingTabs : 0;
             tabsLeftPos[a] = l;
             l += tabsWidth[a];
+            remainingWidth -= tabsWidth[a];
+            remainingTabs--;
         }
         setMeasuredDimension(l + getPaddingLeft() + getPaddingRight(), height);
         for (int a = 0, N = getChildCount(); a < N; a++) {
@@ -159,17 +144,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         default void setTextSizeDp(float textSizeDp) {}
     }
 
-
-
-    // fills tabsTextWidth[] and return visible child count;
-
     private float[] tabsTextWidth;
     private float[] tabsTextWidthWithMargin;
     private int[] tabsWeight;
     private int[] tabsWidth;
 
     private int[] tabsLeftPos;
-
 
     private int visibleChildCount;
     private int biggestTabTextWidth;
@@ -248,13 +228,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
     }
 
-
-
-
-
-
-
-
     public void setTabSelected(View tab, boolean animated) {
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
@@ -284,6 +257,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     private boolean drawCustomSelector;
     private void setSkipDrawSelector(boolean skipDrawSelector) {
+        if (!skipDrawSelector && isLiquidDrag) {
+            // во время жидкого драга каплю не прячем (отложенный restore от отменённого лонг-пресса)
+            return;
+        }
         drawCustomSelector = skipDrawSelector;
         if (drawCustomSelector) {
             selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
@@ -301,18 +278,17 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         invalidate();
     }
 
-
-
-
-
-
-
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
         if (drawCustomSelector) {
             final float x = animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX;
-            final float sWidth = getInterpolatedWidthByX(x, this);
-            final float sHeight = getHeight() - getPaddingTop() - getPaddingBottom();
+            float sWidth = getInterpolatedWidthByX(x, this);
+            float sHeight = getHeight() - getPaddingTop() - getPaddingBottom();
+
+            // желе: капля растягивается по горизонтали и сплющивается по вертикали от скорости пальца
+            final float stretch = getLiquidStretch();
+            sWidth *= 1f + 0.28f * stretch;
+            sHeight *= 1f - 0.05f * stretch;
 
             canvas.drawRoundRect(
                     x - sWidth / 2f, (getHeight() - sHeight) / 2f,
@@ -322,7 +298,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
         super.dispatchDraw(canvas);
     }
-
 
     final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     final SpringAnimation scaleX = new SpringAnimation(this, DynamicAnimation.SCALE_X, 1f);
@@ -376,9 +351,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     private float lastLongSelectedViewWidth;
     private View lastLongSelectedView;
 
-
-
-
     public static View findChildUnder(ViewGroup parent, float x, float y) {
         for (int i = parent.getChildCount() - 1; i >= 0; i--) {
             View child = parent.getChildAt(i);
@@ -410,6 +382,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
 
         if (!end) {
+            // капля следует за пальцем; прилипание к вкладке — только на отпускании
             animatedLongSelectedViewCenterX = x;
             invalidate();
         }
@@ -431,6 +404,88 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     private final Set<View> tabsWithIgnoreClick = new HashSet<>();
     public void addTabToIgnoreClick(View v) {
         tabsWithIgnoreClick.add(v);
+    }
+
+    // --- Liquid drag (iOS-style): мгновенное перетекание капли за пальцем по панели табов ---
+    private float liquidDownX, liquidDownY;
+    private int liquidTouchSlop = -1;
+    private boolean isLiquidDrag;
+    private boolean gestureResolved;
+    private View dragInitialSelected;
+    private float lastLiquidX;
+    private long lastLiquidTime;
+    private float liquidVel;
+
+    public interface LiquidDragListener {
+        void onLiquidStretch(float stretch);
+    }
+
+    private LiquidDragListener liquidDragListener;
+
+    public void setLiquidDragListener(LiquidDragListener listener) {
+        liquidDragListener = listener;
+    }
+
+    private float getLiquidStretch() {
+        return Math.min(1f, Math.abs(liquidVel) / 6000f);
+    }
+
+    private void ensureTouchSlop() {
+        if (liquidTouchSlop < 0) {
+            liquidTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        }
+    }
+
+    private void startLiquidDrag(float x, float y) {
+        if (app.nimarkogram.messenger.NimarkoConfig.classicUi) {
+            // классическая панель: без перетекающей капли
+            return;
+        }
+        isLiquidDrag = true;
+        liquidVel = 0;
+        lastLiquidTime = 0;
+        lastLiquidX = x;
+        final View selected = findSelectedTab();
+        dragInitialSelected = selected;
+        if (selected != null) {
+            animatedLongSelectedViewCenterX = selected.getX() + selected.getWidth() / 2f;
+            animatedLongSelectedViewOffsetX = animatedLongSelectedViewCenterX - x;
+            selectedTabPositionOffsetX.animateToFinalPosition(0);
+        }
+        selectedTabPositionX.cancel();
+        AndroidUtilities.cancelRunOnUIThread(restoreDrawSelector);
+        setSkipDrawSelector(true);
+        animatorIsScaled.setValue(true, true);
+        checkLongMove(x, y, false, false);
+        invalidate();
+    }
+
+    private void finishLiquidDrag(float x, boolean clicked) {
+        final float cx = clampXToChildrenCenters(x, this);
+        final View found = findNearestVisibleChildByX(cx, this);
+        if (found != null) {
+            setTabSelected(found, true);
+            // прилипание с инерцией: пружине передаётся скорость пальца
+            try {
+                selectedTabPositionX.setStartVelocity(Math.max(-5000f, Math.min(5000f, liquidVel)));
+            } catch (Throwable ignored) {}
+            selectedTabPositionX.animateToFinalPosition(found.getX() + found.getWidth() / 2f);
+        }
+        isLiquidDrag = false;
+        gestureResolved = true;
+        liquidVel = 0;
+        lastLiquidTime = 0;
+        if (liquidDragListener != null) {
+            liquidDragListener.onLiquidStretch(0);
+        }
+        AndroidUtilities.runOnUIThread(restoreDrawSelector, 450);
+        animatorIsScaled.setValue(false, true);
+        lastLongSelectedView = null;
+        invalidate();
+        if (clicked && found != null && found.getParent() == this) {
+            found.performClick();
+        }
+        dragInitialSelected = null;
     }
 
     private final BoolAnimator animatorIsScaled = new BoolAnimator(0, (a, factor, c, g) -> {
@@ -459,7 +514,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         public boolean needCancelTouchBySlopMove() {
             return false;
         }
-
 
         @Override
         public boolean onLongPressRequestedAt(View view, float x, float y) {
@@ -513,27 +567,11 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         private void longTouchStart() {
             animatorIsScaled.setValue(true, true);
 
-            /*
-            if (!scaleX.isRunning()) {
-                scaleX.setStartVelocity(-0.45f);
-                scaleY.setStartVelocity(-0.45f);
-            }
-            scaleX.animateToFinalPosition(1.012f);
-            scaleY.animateToFinalPosition(1.012f);
-            */
         }
 
         private void longTouchEnd() {
             animatorIsScaled.setValue(false, true);
 
-            /*
-            if (!scaleX.isRunning()) {
-                scaleX.setStartVelocity(0.25f);
-                scaleY.setStartVelocity(0.25f);
-            }
-            scaleX.animateToFinalPosition(1f);
-            scaleY.animateToFinalPosition(1f);
-            */
         }
     });
 
@@ -558,7 +596,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             invalidate();
         }
     }
-
 
     private void checkPivot(View view, float x, float y) {
         float w = view.getWidth();
@@ -605,10 +642,67 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        ensureTouchSlop();
+        final int action = ev.getActionMasked();
+
+        if (action == MotionEvent.ACTION_DOWN) {
+            gestureResolved = false;
+            liquidDownX = ev.getX();
+            liquidDownY = ev.getY();
+        } else if (!gestureResolved && action == MotionEvent.ACTION_MOVE) {
+            final float dx = ev.getX() - liquidDownX;
+            final float dy = ev.getY() - liquidDownY;
+            if (Math.abs(dx) > liquidTouchSlop || Math.abs(dy) > liquidTouchSlop) {
+                gestureResolved = true;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // отменяем нажатие у детей и ClickHelper, включаем жидкий драг
+                    final MotionEvent cancel = MotionEvent.obtainNoHistory(ev);
+                    cancel.setAction(MotionEvent.ACTION_CANCEL);
+                    clickHelper.onTouchEvent(this, cancel);
+                    super.dispatchTouchEvent(cancel);
+                    cancel.recycle();
+                    startLiquidDrag(ev.getX(), ev.getY());
+                    return true;
+                }
+            }
+        } else if ((action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) && !gestureResolved) {
+            gestureResolved = true;
+        }
+
+        if (isLiquidDrag) {
+            switch (action) {
+                case MotionEvent.ACTION_MOVE: {
+                    final long now = android.os.SystemClock.uptimeMillis();
+                    if (lastLiquidTime != 0) {
+                        final float dt = (now - lastLiquidTime) / 1000f;
+                        if (dt > 0.001f) {
+                            final float instV = (ev.getX() - lastLiquidX) / dt;
+                            liquidVel = liquidVel + (instV - liquidVel) * 0.35f;
+                        }
+                    }
+                    lastLiquidX = ev.getX();
+                    lastLiquidTime = now;
+                    checkLongMove(ev.getX(), ev.getY(), false, false);
+                    if (liquidDragListener != null) {
+                        liquidDragListener.onLiquidStretch(getLiquidStretch());
+                    }
+                    invalidate();
+                    return true;
+                }
+                case MotionEvent.ACTION_UP:
+                    finishLiquidDrag(ev.getX(), true);
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    finishLiquidDrag(ev.getX(), false);
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
         clickHelper.onTouchEvent(this, ev);
         return super.dispatchTouchEvent(ev);
     }
-
 
     private static float clampXToChildrenCenters(float x, ViewGroup parent) {
         if (parent == null || parent.getChildCount() == 0) {

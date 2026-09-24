@@ -53,22 +53,33 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     private static final int ANIMATOR_ID_CLOSE_BUTTON_VISIBLE = 0;
     private static final int ANIMATOR_ID_SEARCH_ICON_VISIBLE = 1;
     private static final int ANIMATOR_ID_SEARCH_FILTERS_WIDTH = 2;
+    private static final int ANIMATOR_ID_INFO_CARDS_VISIBLE = 3;
 
     private final BoolAnimator animatorCloseIconVisible = new BoolAnimator(ANIMATOR_ID_CLOSE_BUTTON_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, false);
     private final BoolAnimator animatorSearchIconVisible = new BoolAnimator(ANIMATOR_ID_SEARCH_ICON_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380, true);
     private final FactorAnimator animatorSearchFiltersWidth = new FactorAnimator(ANIMATOR_ID_SEARCH_FILTERS_WIDTH, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 280);
+    
+    private final BoolAnimator animatorInfoCardsVisible = new BoolAnimator(ANIMATOR_ID_INFO_CARDS_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 250, true);
 
     private final Theme.ResourcesProvider resourcesProvider;
 
     private final ImageView searchIcon;
     private final ImageView closeIcon;
     private final LinearLayout additionalIconsLayout;
+    
+    private app.nimarkogram.messenger.infocards.InfoCardStripView infoCards;
+    private final boolean withInfoCards;
     private boolean closeButtonForcedVisible;
     public final EditTextBoldCursor editText;
     private BlurredBackgroundDrawable blurredBackgroundDrawable;
 
     public FragmentSearchField(Context context, Theme.ResourcesProvider resourcesProvider) {
+        this(context, resourcesProvider, false);
+    }
+
+    public FragmentSearchField(Context context, Theme.ResourcesProvider resourcesProvider, boolean withInfoCards) {
         super(context);
+        this.withInfoCards = withInfoCards;
         this.resourcesProvider = resourcesProvider;
 
         editText = new EditTextBoldCursor(context) {
@@ -169,6 +180,17 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         searchFilterLayout.setVisibility(View.VISIBLE);
         addView(searchFilterLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 32, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 4, 0, 4, 0));
 
+        if (withInfoCards) {
+            
+            setClipChildren(false);
+            setClipToPadding(false);
+            infoCards = new app.nimarkogram.messenger.infocards.InfoCardStripView(context, resourcesProvider);
+            infoCards.setVisibilityFactor(1f);
+            
+            addView(infoCards, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT,
+                    (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT), 6, 0, 6, 0));
+        }
+
         setWillNotDraw(false);
         checkUi_editTextPaddings();
         updateColors();
@@ -241,7 +263,7 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     }
 
     private void checkUi_editTextPaddings() {
-        final int filtersWidth = (int) animatorSearchFiltersWidth.getFactor() + dp(6); //searchFilterLayout.getWidth();
+        final int filtersWidth = (int) animatorSearchFiltersWidth.getFactor() + dp(6); 
         final int pStart = Math.max(filtersWidth, dp(48));
         final int pEnd = dp(48) + additionalIconsLayout.getMeasuredWidth();
 
@@ -327,7 +349,9 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     }
 
     private void checkCloseButtonVisible() {
-        animatorCloseIconVisible.setValue(closeButtonForcedVisible || editText.length() > 0, true);
+        boolean searching = closeButtonForcedVisible || editText.length() > 0;
+        animatorCloseIconVisible.setValue(searching, true);
+        animatorInfoCardsVisible.setValue(!searching, true);
     }
 
     @Override
@@ -339,9 +363,10 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
             FragmentFloatingButton.setAnimatedVisibility(searchIcon, factor);
         } else if (id == ANIMATOR_ID_SEARCH_FILTERS_WIDTH) {
             checkUi_editTextPaddings();
+        } else if (id == ANIMATOR_ID_INFO_CARDS_VISIBLE) {
+            if (infoCards != null) infoCards.setVisibilityFactor(factor);
         }
     }
-
 
     public interface SearchFiltersListener {
         void onSearchFilterCleared(FiltersView.MediaFilterData filterData);
@@ -372,7 +397,7 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
     public void addSearchFilter(FiltersView.MediaFilterData filter) {
         currentSearchFilters.add(filter);
-        if (true /*searchContainer.getTag() != null*/) {
+        if (true  ) {
             selectedFilterIndex = currentSearchFilters.size() - 1;
         }
         onFiltersChanged();
@@ -401,7 +426,7 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
                     }
                 }
             }
-//                clearSearchFilters();
+
         }
     }
 
@@ -420,10 +445,9 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
 
         animatorSearchIconVisible.setValue(!visible, true);
 
-
         ArrayList<FiltersView.MediaFilterData> localFilters = new ArrayList<>(currentSearchFilters);
 
-        if (true /*searchContainer != null && searchContainer.getTag() != null*/) {
+        if (true  ) {
             TransitionSet transition = new TransitionSet();
             ChangeBounds changeBounds = new ChangeBounds();
             changeBounds.setDuration(150);
@@ -488,7 +512,6 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
             TransitionManager.beginDelayedTransition(searchFilterLayout, transition);
         }
 
-
         for (int i = 0; i < searchFilterLayout.getChildCount(); i++) {
             boolean removed = localFilters.remove(((ActionBarMenuItem.SearchFilterView) searchFilterLayout.getChildAt(i)).getFilter());
             if (!removed) {
@@ -522,7 +545,6 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
                         FiltersView.MediaFilterData filterToRemove = searchFilterView.getFilter();
                         removeSearchFilter(filterToRemove);
 
-
                         if (searchFiltersListener != null) {
                             searchFiltersListener.onSearchFilterCleared(filterToRemove);
                         }
@@ -531,7 +553,6 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
             });
             searchFilterLayout.addView(searchFilterView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, 0, LocaleController.isRTL ? 6 : 0, 0, LocaleController.isRTL ? 0 : 6, 0));
         }
-
 
         for (int i = 0; i < searchFilterLayout.getChildCount(); i++) {
             ((ActionBarMenuItem.SearchFilterView) searchFilterLayout.getChildAt(i)).setExpanded(i == selectedFilterIndex);

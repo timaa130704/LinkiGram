@@ -107,7 +107,7 @@ public class QuickRepliesActivity extends BaseFragment implements NotificationCe
                     }
                 } else if (id == 1) {
                     if (selected.size() != 1) return;
-//                    selected.get(0);
+
                     final int replyId = selected.get(0);
                     QuickRepliesController.QuickReply quickReply = QuickRepliesController.getInstance(currentAccount).findReply(replyId);
                     if (quickReply == null) return;
@@ -173,9 +173,7 @@ public class QuickRepliesActivity extends BaseFragment implements NotificationCe
         if (QuickRepliesController.getInstance(currentAccount).canAddNew()) {
             items.add(UItem.asButton(BUTTON_ADD, R.drawable.msg_viewintopic, getString(R.string.BusinessRepliesAdd)).accent());
         }
-//        for (QuickRepliesController.QuickReply reply : QuickRepliesController.getInstance(currentAccount).localReplies) {
-//            items.add(UItem.asQuickReply(reply).setChecked(false));
-//        }
+
         repliesOrderId = adapter.reorderSectionStart();
         for (QuickRepliesController.QuickReply reply : QuickRepliesController.getInstance(currentAccount).replies) {
             items.add(UItem.asQuickReply(reply).setChecked(selected.contains(reply.id)));
@@ -635,6 +633,9 @@ public class QuickRepliesActivity extends BaseFragment implements NotificationCe
                 if (TextUtils.isEmpty(messageText)) {
                     messageText = quickReply.topMessage.messageText;
                 }
+                if (messageText != null && messageText.toString().contains("$")) {
+                    messageText = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(messageText.toString());
+                }
                 CharSequence text = new SpannableStringBuilder(messageText);
                 text = Emoji.replaceEmoji(text, textView.getPaint().getFontMetricsInt(), false);
                 if (quickReply.topMessage.messageOwner != null) {
@@ -773,7 +774,11 @@ public class QuickRepliesActivity extends BaseFragment implements NotificationCe
 
             SpannableStringBuilder ssb = new SpannableStringBuilder();
             if (quickReply.topMessage != null) {
-                ssb.append(Emoji.replaceEmoji(quickReply.topMessage.messageText, textView.getPaint().getFontMetricsInt(), false));
+                CharSequence qrText = quickReply.topMessage.messageText;
+                if (qrText != null && qrText.toString().contains("$")) {
+                    qrText = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(qrText.toString());
+                }
+                ssb.append(Emoji.replaceEmoji(qrText, textView.getPaint().getFontMetricsInt(), false));
             }
             if (quickReply.getMessagesCount() > 1) {
                 ssb.append("  ");

@@ -74,7 +74,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
     private final static HashSet<String> excludeEmojiFromPack = new HashSet<>();
 
     static {
-        // 1️⃣, 2️⃣, 3️⃣... etc
+        
         excludeEmojiFromPack.add("\u0030\u20E3");
         excludeEmojiFromPack.add("\u0031\u20E3");
         excludeEmojiFromPack.add("\u0032\u20E3");
@@ -136,7 +136,6 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
         drawingObjects.clear();
     }
 
-
     public void clear() {
         for (int i = 0; i < drawingObjects.size(); i++) {
             drawingObjects.get(i).imageReceiver.onDetachedFromWindow();
@@ -185,7 +184,6 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
             inited = true;
         }
     }
-
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
@@ -273,6 +271,11 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
     }
 
     public void draw(Canvas canvas) {
+        draw(canvas, null, null);
+    }
+
+    public void draw(Canvas canvas, MessageObject suppressedMessage,
+            MessageObject.GroupedMessages suppressedGroup) {
         if (!drawingObjects.isEmpty()) {
             for (int i = 0; i < drawingObjects.size(); i++) {
                 DrawingObject drawingObject = drawingObjects.get(i);
@@ -292,7 +295,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                             messageObject = cell.getMessageObject();
                             photoImage = cell.getPhotoImage();
                         }
-                        if (messageObject != null && messageObject.getId() == drawingObject.messageId) {
+                        if (matchesMessage(drawingObject, messageObject)) {
                             drawingObject.viewFound = true;
                             float viewX = listView.getX() + child.getX();
                             float viewY = listView.getY() + child.getY();
@@ -348,7 +351,9 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                 }
 
                 boolean removeOnStart = !drawingObject.wasPlayed && drawingObject.removing;
-                if (!removeOnStart) {
+                if (!removeOnStart
+                        && !isSuppressed(drawingObject,
+                                suppressedMessage, suppressedGroup)) {
                     if (drawingObject.isPremiumSticker && !drawingObject.isMessageEffect) {
                         float size = drawingObject.lastH * 1.49926f;
                         float paddingHorizontal = size * 0.0546875f;
@@ -395,7 +400,13 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                 } else {
                     isDone = (drawingObject.wasPlayed && drawingObject.imageReceiver.getLottieAnimation() != null && drawingObject.imageReceiver.getLottieAnimation().getCurrentFrame() >= drawingObject.imageReceiver.getLottieAnimation().getFramesCount() - 2);
                 }
-                if (drawingObject.removeProgress == 1f || isDone || removeOnStart) {
+                
+                long nmNow = System.currentTimeMillis();
+                if (drawingObject.startTime == 0) drawingObject.startTime = nmNow;
+                long nmElapsed = nmNow - drawingObject.startTime;
+                boolean nmStuck = nmElapsed > 6000L
+                        || (drawingObject.genericEffect == null && drawingObject.imageReceiver.getLottieAnimation() == null && nmElapsed > 3000L);
+                if (drawingObject.removeProgress == 1f || isDone || removeOnStart || nmStuck) {
                     DrawingObject toRemove = drawingObjects.remove(i);
                     if (drawingObject.isPremiumSticker && drawingObject.imageReceiver.getLottieAnimation() != null) {
                         toRemove.imageReceiver.getLottieAnimation().setCurrentFrame(0, true, true);
@@ -419,11 +430,62 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
         }
     }
 
+    private static boolean isSuppressed(DrawingObject object,
+            MessageObject message, MessageObject.GroupedMessages group) {
+        if (object == null) {
+            return false;
+        }
+        if (matchesMessage(object, message)) {
+            return true;
+        }
+        if (group != null) {
+            for (int i = 0; i < group.messages.size(); i++) {
+                MessageObject item = group.messages.get(i);
+                if (matchesMessage(object, item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesMessage(DrawingObject object,
+            MessageObject message) {
+        if (object == null || message == null
+                || object.messageId != message.getId()) {
+            return false;
+        }
+        if (!object.hasMessageIdentity) {
+            return true;
+        }
+        if (object.messageAccount != message.currentAccount
+                || object.messageDialogId != message.getDialogId()) {
+            return false;
+        }
+        return object.messageStableId == 0 || message.stableId == 0
+                || object.messageStableId == message.stableId;
+    }
+
+    private static void setMessageIdentity(DrawingObject object,
+            MessageObject message) {
+        if (object == null || message == null) {
+            return;
+        }
+        object.hasMessageIdentity = true;
+        object.messageAccount = message.currentAccount;
+        object.messageDialogId = message.getDialogId();
+        object.messageStableId = message.stableId;
+    }
+
     public void onAllEffectsEnd() {
 
     }
 
     public boolean onTapItem(ChatMessageCell view, ChatActivity chatActivity, boolean userTapped) {
+        
+        if (app.nimarkogram.messenger.NimarkoConfig.disablePremStickAnim) {
+            return false;
+        }
         if (chatActivity.isSecretChat() || view.getMessageObject() == null || view.getMessageObject().getId() < 0) {
             return false;
         }
@@ -518,6 +580,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
             drawingObject.randomOffsetY = imageH / 4 * ((random.nextInt() % 101) / 100f);
         }
         drawingObject.messageId = view.getMessageObject().getId();
+        setMessageIdentity(drawingObject, view.getMessageObject());
         drawingObject.isOut = true;
         drawingObject.imageReceiver.setAllowStartAnimation(true);
         int w = getFilterWidth();
@@ -725,6 +788,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                     drawingObject.randomOffsetY = imageH / 4 * ((random.nextInt() % 101) / 100f);
                 }
                 drawingObject.messageId = viewId;
+                setMessageIdentity(drawingObject, messageObject);
                 drawingObject.document = document;
                 drawingObject.isOut = isOutOwner;
                 drawingObject.imageReceiver.setAllowStartAnimation(true);
@@ -736,8 +800,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                     Integer lastIndex = lastAnimationIndex.get(document.id);
                     int currentIndex = (lastIndex == null ? 0 : lastIndex) + 1;
                     lastAnimationIndex.put(document.id, currentIndex);
-                    //currentIndex = currentIndex % 4;
-
+                    
                     ImageLocation imageLocation = ImageLocation.getForDocument(document);
                     drawingObject.imageReceiver.setUniqKeyPrefix(currentIndex + "_" + drawingObject.messageId + "_");
 
@@ -973,22 +1036,18 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
         }
         MessageObject messageObject = null;
 
-
         float imageH = widgetView.getMeasuredHeight();
         float imageW = widgetView.getMeasuredWidth();
         View parent = (View) widgetView.getParent();
         if (imageW > parent.getWidth() * 0.5f) {
             imageH = imageW = parent.getWidth() * 0.4f;
         }
-//        if (imageH <= 0 || imageW <= 0) {
-//            return false;
-//        }
 
         emoji = unwrapEmoji(emoji);
 
         int viewId = widgetView.hashCode();
         TLRPC.Document viewDocument = null;
-        boolean isOutOwner = widgetView.getTranslationX() > contentLayout.getMeasuredWidth() / 2f;//view.getMessageObject().isOutOwner();
+        boolean isOutOwner = widgetView.getTranslationX() > contentLayout.getMeasuredWidth() / 2f;
         if (visibleReaction.emojicon != null && createDrawingObject(emoji, viewId, viewDocument, messageObject, -1, false, false, imageW, imageH, isOutOwner)) {
             if (!drawingObjects.isEmpty()) {
                 DrawingObject drawingObject = drawingObjects.get(drawingObjects.size() - 1);
@@ -1080,7 +1139,12 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
         boolean isOut;
         boolean removing;
         float removeProgress;
+        long startTime; 
         int messageId;
+        boolean hasMessageIdentity;
+        int messageAccount;
+        long messageDialogId;
+        long messageStableId;
         TLRPC.Document document;
         ImageReceiver imageReceiver = new ImageReceiver();
         private String fileName;
@@ -1113,13 +1177,7 @@ public class EmojiAnimationsOverlay implements NotificationCenter.NotificationCe
                 loadingProgress = 1f;
             }
             float cachingProgress = 1f;
-//            if (imageReceiver.getLottieAnimation() != null) {
-//                RLottieDrawable drawable = imageReceiver.getLottieAnimation();
-//                cachingProgress = drawable.getGeneratingCacheProgress();
-//                if (cachingProgress < 0) {
-//                    return -2;
-//                }
-//            }
+
             return .15f + .55f * loadingProgress + .30f * cachingProgress * loadingProgress;
         }
 

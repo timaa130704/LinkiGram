@@ -455,7 +455,6 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         });
         channelsSearchListView.addEdgeEffectListener(this::invalidateBlur);
 
-
         botsSearchContainer = new FrameLayout(context);
 
         botsItemAnimator = new DefaultItemAnimator() {
@@ -605,7 +604,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
 
         itemsEnterAnimator = new RecyclerItemsEnterAnimator(searchListView, true);
 
-        postsAreNew = false; // MessagesController.getGlobalMainSettings().getInt("searchpostsnew", 0) < 3;
+        postsAreNew = false; 
         postsSearchContainer = new PostsSearchContainer(context, fragment);
         postsSearchContainer.listView.setClipToPadding(false);
         postsSearchContainer.listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -694,7 +693,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
                     dialogId = ((TLRPC.User) data.chat).id;
                 } else if (data.chat instanceof TLRPC.Chat) {
                     if (ChatObject.isCommunity((TLRPC.Chat) data.chat)) {
-                        // communityId = ((TLRPC.Chat) data.chat).id;
+                        
                     } else {
                         dialogId = -((TLRPC.Chat) data.chat).id;
                     }
@@ -852,9 +851,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         }
         if (show && !parent.getActionBar().actionModeIsExist(actionModeTag)) {
             actionMode = parent.getActionBar().createActionMode(true, actionModeTag);
-            // actionMode.setBackgroundColor(Color.TRANSPARENT);
-            // actionMode.drawBlur = false;
-
+            
             if (parent.hasMainTabs) {
                 actionModeCloseView = new ImageView(getContext());
                 actionModeCloseView.setScaleType(ImageView.ScaleType.CENTER);
@@ -995,7 +992,7 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
                         if (message != null) {
                             AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(SendMessagesHelper.SendMessageParams.of(message.toString(), did, null, null, null, true, null, null, null, true, 0, 0, null, false));
                         }
-                        AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(fmessages, did, false,false, true, 0, 0);
+                        AccountInstance.getInstance(currentAccount).getSendMessagesHelper().sendMessage(fmessages, did, false, false, true, 0, null, -1, 0);
                     }
                     fragment1.finishFragment();
                 } else {
@@ -1274,8 +1271,6 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         this.pagesPaddingTop = top;
         this.pagesPaddingBottom = bottom;
 
-
-        // setPagesPaddings(searchContainer, searchListView, pagesPaddingTop, pagesPaddingBottom, doNotRequestLayout);
         searchListView.setPadding(0, pagesPaddingTop, 0, pagesPaddingBottom, doNotRequestLayout);
         noMediaFiltersSearchView.setPagesPaddings(pagesPaddingTop, pagesPaddingBottom, doNotRequestLayout);
         {
@@ -1389,7 +1384,6 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         animateFromCount = dialogsSearchAdapter.getItemCount();
     }
 
-
     public TabsView getTabsView() {
         return tabsView;
     }
@@ -1470,7 +1464,6 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         }
         return -1;
     }
-
 
     private RecyclerListView getRecyclerViewFromPage(View page) {
         if (page == null) {

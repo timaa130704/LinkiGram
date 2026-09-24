@@ -277,7 +277,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
                 private boolean canReorder(TL_stars.SavedStarGift gift) {
                     if (!reordering) return false;
                     if (list == parent.list) {
-                        return gift != null && gift.pinned_to_top;
+                        return isPinnedAndSaved(gift);
                     } else {
                         return true;
                     }
@@ -307,16 +307,24 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
                     if (list == null || !reordering) {
                         return false;
                     }
-                    if (!canReorder(getSavedGift(viewHolder)) || !canReorder(getSavedGift(target))) {
+                    final TL_stars.SavedStarGift fromGift = getSavedGift(viewHolder);
+                    final TL_stars.SavedStarGift toGift = getSavedGift(target);
+                    if (!canReorder(fromGift) || !canReorder(toGift)) {
                         return false;
                     }
                     final int fromPosition = viewHolder.getAdapterPosition();
                     final int toPosition = target.getAdapterPosition();
+                    
+                    final int fromGiftIndex = list.indexOf(fromGift);
+                    final int toGiftIndex = list.indexOf(toGift);
+                    if (fromGiftIndex < 0 || toGiftIndex < 0 || fromGiftIndex == toGiftIndex) {
+                        return false;
+                    }
                     if (isCollection) {
-                        list.reorder(fromPosition, toPosition);
+                        list.reorder(fromGiftIndex, toGiftIndex);
                         parent.collections.updateIcon(list.collectionId);
                     } else {
-                        list.reorderPinned(fromPosition, toPosition);
+                        list.reorderPinned(fromGiftIndex, toGiftIndex);
                     }
                     listView.adapter.notifyItemMoved(fromPosition, toPosition);
                     listView.adapter.updateWithoutNotify();
@@ -610,7 +618,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
                 for (TL_stars.SavedStarGift userGift : list.gifts) {
                     items.add(
                         GiftSheet.GiftCell.Factory.asStarGift(0, userGift, true, false, isCollection)
-                            .setReordering(reordering && (list == parent.list ? userGift.pinned_to_top : true))
+                            .setReordering(reordering && (list == parent.list ? userGift.pinned_to_top && !userGift.unsaved : true))
                     );
                     spanCountLeft--;
                     if (spanCountLeft == 0) {
@@ -1275,7 +1283,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
             currentMenu.show();
             return true;
         });
-//        tabsView.setBackgroundColor(backgroundColor);
+
         addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 42, Gravity.TOP));
 
         BlurredBackgroundSourceColor source = new BlurredBackgroundSourceColor();
@@ -1289,8 +1297,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
         ScaleStateListAnimator.apply(button2, .02f, 1.2f);
 
         buttonContainer = new FrameLayout(context);
-        // buttonContainer.setVisibility(INVISIBLE);
-
+        
         FrameLayout.LayoutParams lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 60, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM);
         lp.bottomMargin += AndroidUtilities.navigationBarHeight;
         addView(buttonContainer, lp);
@@ -1379,7 +1386,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
 
         button.setVisibility(canSwitchNotify() ? View.GONE : View.VISIBLE);
         checkboxLayout.setVisibility(canSwitchNotify() ? View.VISIBLE : View.GONE);
-        buttonContainerHeightDp = 60;//canSwitchNotify() ? 50 : 10 + 48 + 10;
+        buttonContainerHeightDp = 60;
 
         addView(bulletinContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 200, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM));
 
@@ -1562,7 +1569,6 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
         Bulletin.updateCurrentPosition();
     }
 
-
     private int buttonContainerOffset;
 
     public void setButtonOffset(int offset) {
@@ -1610,7 +1616,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
 
             button.setVisibility(canSwitchNotify() ? View.GONE : View.VISIBLE);
             checkboxLayout.setVisibility(canSwitchNotify() ? View.VISIBLE : View.GONE);
-            buttonContainerHeightDp = 60; // canSwitchNotify() ? 50 : 10 + 48 + 10;
+            buttonContainerHeightDp = 60; 
             if (list.chat_notifications_enabled != null) {
                 checkbox.setChecked(list.chat_notifications_enabled, true);
             }
@@ -1621,7 +1627,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
         } else if (id == NotificationCenter.updateInterfaces) {
             button.setVisibility(canSwitchNotify() ? View.GONE : View.VISIBLE);
             checkboxLayout.setVisibility(canSwitchNotify() ? View.VISIBLE : View.GONE);
-            buttonContainerHeightDp = 60; //canSwitchNotify() ? 50 : 10 + 48 + 10;
+            buttonContainerHeightDp = 60; 
             setVisibleHeight(visibleHeight);
         }
     }
@@ -1702,7 +1708,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
     private final static HashMap<Pair<Integer, Long>, CharSequence> cachedLastEmojis = new HashMap<>();
     public CharSequence getLastEmojis(Paint.FontMetricsInt fontMetricsInt) {
         if (list == null) return "";
-        final Pair<Integer, Long> key = new Pair<>(UserConfig.selectedAccount, dialogId);
+        final Pair<Integer, Long> key = new Pair<>(currentAccount, dialogId);
         if (list.gifts.isEmpty()) {
             if (list.loading) {
                 final CharSequence cached = cachedLastEmojis.get(key);
@@ -1826,8 +1832,7 @@ public class ProfileGiftsContainer extends FrameLayout implements NotificationCe
     }
 
     public void updateColors() {
-//        setBackgroundColor(backgroundColor = Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
-//        tabsView.setBackgroundColor(backgroundColor);
+
         button.updateColors();
         button.setBackground(Theme.createRoundRectDrawable(dp(19), processColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider))));
         View[] pages = viewPager.getViewPages();

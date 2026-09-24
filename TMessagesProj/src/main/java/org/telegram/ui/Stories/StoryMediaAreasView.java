@@ -184,7 +184,7 @@ public class StoryMediaAreasView extends FrameLayout implements View.OnClickList
                 totalArea += (mediaArea.coordinates.w / 100f * W) * (mediaArea.coordinates.h / 100f * H);
             }
         }
-        malicious = false; // totalArea > W * H * .33f;
+        malicious = false; 
 
         hintsContainer.bringToFront();
     }
@@ -255,7 +255,6 @@ public class StoryMediaAreasView extends FrameLayout implements View.OnClickList
                 invalidate();
                 return;
             }
-
 
             if (selectedArea.mediaArea instanceof TL_stories.TL_mediaAreaUrl) {
                 Browser.openUrl(getContext(), ((TL_stories.TL_mediaAreaUrl) selectedArea.mediaArea).url);
@@ -462,7 +461,6 @@ public class StoryMediaAreasView extends FrameLayout implements View.OnClickList
         }
     }
 
-
     private final Rect rect = new Rect();
     private final RectF rectF = new RectF();
     private final Paint cutPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -548,7 +546,7 @@ public class StoryMediaAreasView extends FrameLayout implements View.OnClickList
             parentBitmap.recycle();
             parentBitmap = null;
         }
-        invalidate();
+        
     }
 
     private Bitmap parentBitmap;
@@ -587,8 +585,6 @@ public class StoryMediaAreasView extends FrameLayout implements View.OnClickList
         return selectedArea != null && (selectedArea.scaleOnTap || selectedArea.supportsBounds);
     }
 
-    // returns true when widget that is drawn above the story (f.ex. reaction) is at these coordinates
-    // used to detect that back gesture safety measure should not occur
     public boolean hasAreaAboveAt(float x, float y) {
         for (int i = 0; i < getChildCount(); ++i) {
             View child = getChildAt(i);

@@ -108,7 +108,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
     private static final int ERROR_FLAG_AMOUNT_TOO_BIG = 1 << 2;
     private static final int ERROR_FLAG_AMOUNT_NOT_ENOUGH = 1 << 3;
 
-    private static final int[] ALLOWED_DURATIONS = { /*120,*/ 21600, 43200, 86400, 129600, 172800, 259200 };
+    private static final int[] ALLOWED_DURATIONS = {   21600, 43200, 86400, 129600, 172800, 259200 };
 
     private int inputAmountError;
     private boolean balanceCloudVisible;
@@ -186,7 +186,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
         ScaleStateListAnimator.apply(balanceCloud);
         balanceCloud.setOnClickListener(v -> {
             if (inputAmount.currency == AmountUtils.Currency.STARS) {
-                new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
+                new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show();
             }
         });
 
@@ -197,11 +197,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(0, dp(12), 0, dp(16));
 
-
-
         starsCountEditField = new EditTextBoldCursor(context);
-
-        /* Tabs */
 
         if (allowTON) {
             currencyTabsView = new HorizontalRoundTabsLayout(context, resourcesProvider);
@@ -221,13 +217,9 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
             currencyTabsView = null;
         }
 
-        /* Body */
-
         LinearLayout bodyLayout = new LinearLayout(context);
         bodyLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(bodyLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 1f));
-
-
 
         {
             starsCountEditOutline = new OutlineTextContainerView(context);
@@ -322,10 +314,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
             bodyLayout.addView(publishingTimeHint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.FILL_HORIZONTAL, 33, 4, 33, 0));
         }
 
-
-
-        /* Footer */
-
         buttonView = new ButtonWithCounterView(context, resourcesProvider);
         buttonView.setOnClickListener(v -> {
             if (!buttonView.isEnabled()) {
@@ -342,7 +330,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
 
             if ((balance == null || balance.asNano() < inputAmount.asNano())) {
                 if (inputAmount.currency == AmountUtils.Currency.STARS) {
-                    new StarsIntroActivity.StarsNeededSheet(context, resourcesProvider, inputAmount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_STAR_GIFT_BUY_RESALE, null, null, dialogId).show();
+                    new StarsIntroActivity.StarsNeededSheet(context, currentAccount, resourcesProvider, inputAmount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_STAR_GIFT_BUY_RESALE, null, null, dialogId).show();
                 } else if (inputAmount.currency == AmountUtils.Currency.TON){
                     new TONIntroActivity.StarsNeededSheet(context, resourcesProvider, inputAmount, true, null).show();
                 }
@@ -389,8 +377,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
                 starsCountEditOutline.animateSelection(starsCountEditField.isFocused(), !TextUtils.isEmpty(starsCountEditField.getText()));
             }
         });
-
-
 
         FrameLayout.LayoutParams lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.BOTTOM, 16, 16, 16, 16);
         lp.leftMargin += backgroundPaddingLeft;
@@ -612,8 +598,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
         AndroidUtilities.runOnUIThread(() -> AndroidUtilities.showKeyboard(starsCountEditField), 50);
     }
 
-    /* * */
-
     @Override
     protected CharSequence getTitle() {
         return getString(R.string.GiftOfferToBuyTitle);
@@ -635,12 +619,9 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
         }
     }
 
-
-
     private void openConfirmAlert() {
         final String amountFmt = inputAmount.asFormatString();
-        // final String amountFmtFee = getFee().asFormatString();
-        // final String amountFmtFull = getFullOfferWithFee().asFormatString();
+        
         final boolean isTon = inputAmount.currency == AmountUtils.Currency.TON;
 
         final LinearLayout topView = new LinearLayout(getContext());
@@ -707,11 +688,10 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
                         needed = AmountUtils.Amount.fromNano(inputAmount.asNano() + paywallAmount.asNano(), AmountUtils.Currency.STARS);
                     }
                     if ((balance == null || balance.asNano() < needed.asNano())) {
-                        new StarsIntroActivity.StarsNeededSheet(getContext(), resourcesProvider, needed.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_STAR_GIFT_BUY_RESALE, null, null, dialogId).show();
+                        new StarsIntroActivity.StarsNeededSheet(getContext(), currentAccount, resourcesProvider, needed.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_STAR_GIFT_BUY_RESALE, null, null, dialogId).show();
                         return;
                     }
                 }
-
 
                 final Browser.Progress progress = di.makeButtonLoading(AlertDialog.BUTTON_POSITIVE);
                 progress.init();
@@ -755,7 +735,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
             })
             .setNegativeButton(getString(R.string.Cancel), null)
             .create()
-            .setShowStarsBalance(true)
+            .setShowStarsBalance(currentAccount, true)
             .show();
     }
 
@@ -773,7 +753,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
             obj = MessagesController.getInstance(currentAccount).getChat(-dialogId);
         }
 
-
         final String amountFmt = amount.asFormatString();
         final String amountMinusFeeFmt = amountWithFee.asFormatString();
 
@@ -781,7 +760,7 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
 
         final LinearLayout topView = new LinearLayout(context);
         topView.setOrientation(LinearLayout.VERTICAL);
-        topView.addView(new StarGiftSheet.GiftTransferTopView(context, gift, obj), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, -4, 0, 0));
+        topView.addView(new StarGiftSheet.GiftTransferTopView(context, currentAccount, gift, obj), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, -4, 0, 0));
 
         final TextView textView = new TextView(context);
         textView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
@@ -797,9 +776,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
         tableLayout.setClipToPadding(false);
         final TableView tableView = new TableView(context, resourcesProvider);
         tableLayout.addView(tableView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
-
-
-        /**/
 
         addAttributeRow(tableView, findAttribute(gift.attributes, TL_stars.starGiftAttributeModel.class));
         addAttributeRow(tableView, findAttribute(gift.attributes, TL_stars.starGiftAttributeBackdrop.class));
@@ -831,12 +807,6 @@ public class GiftOfferSheet extends BottomSheetWithRecyclerListView {
             hintView.setTextColor(Theme.getColor(badBrice ? Theme.key_text_RedRegular : Theme.key_windowBackgroundWhiteGrayText, resourcesProvider));
             topView.addView(hintView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 40, 12, 40, 9));
         }
-
-
-
-
-
-
 
         new AlertDialog.Builder(context, resourcesProvider)
                 .setView(topView)

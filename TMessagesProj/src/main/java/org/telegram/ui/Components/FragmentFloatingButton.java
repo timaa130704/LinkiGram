@@ -41,22 +41,44 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     private final BoolAnimator animatorProgressVisible = new BoolAnimator(ANIMATOR_ID_PROGRESS_VISIBLE, this,
         CubicBezierInterpolator.EASE_OUT_QUINT, 380);
 
-
     public final RLottieImageView imageView;
     public final RadialProgressView progressView;
     private final Theme.ResourcesProvider resourcesProvider;
     private ArrayList<View> additionalContentViews;
     private final boolean isSubButton;
+    private final int backgroundColorKey;
+    private final int pressedBackgroundColorKey;
+    private final int iconColorKey;
 
     public FragmentFloatingButton(@NonNull Context context, Theme.ResourcesProvider resourcesProvider) {
-        this(context, resourcesProvider, false);
+        this(context, resourcesProvider, false,
+                Theme.key_chats_actionBackground,
+                Theme.key_chats_actionPressedBackground,
+                Theme.key_chats_actionIcon);
     }
 
     public FragmentFloatingButton(@NonNull Context context, Theme.ResourcesProvider resourcesProvider, boolean isSubButton) {
+        this(context, resourcesProvider, isSubButton,
+                Theme.key_chats_actionBackground,
+                Theme.key_chats_actionPressedBackground,
+                Theme.key_chats_actionIcon);
+    }
+
+    public FragmentFloatingButton(@NonNull Context context, Theme.ResourcesProvider resourcesProvider,
+                                  int backgroundColorKey, int pressedBackgroundColorKey, int iconColorKey) {
+        this(context, resourcesProvider, false, backgroundColorKey, pressedBackgroundColorKey, iconColorKey);
+    }
+
+    private FragmentFloatingButton(@NonNull Context context, Theme.ResourcesProvider resourcesProvider,
+                                   boolean isSubButton, int backgroundColorKey,
+                                   int pressedBackgroundColorKey, int iconColorKey) {
         super(context);
 
         this.resourcesProvider = resourcesProvider;
         this.isSubButton = isSubButton;
+        this.backgroundColorKey = backgroundColorKey;
+        this.pressedBackgroundColorKey = pressedBackgroundColorKey;
+        this.iconColorKey = iconColorKey;
 
         imageView = new RLottieImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER);
@@ -161,34 +183,44 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
             int pressedColor = Theme.getColor(Theme.key_listSelector, resourcesProvider);
             setBackground(Theme.createInsetRoundRectDrawable(pressedColor, rad, dp(6)));
         } else {
-            imageView.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider), PorterDuff.Mode.SRC_IN);
-            progressView.setProgressColor(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider));
+            imageView.setColorFilter(Theme.getColor(iconColorKey, resourcesProvider), PorterDuff.Mode.SRC_IN);
+            progressView.setProgressColor(Theme.getColor(iconColorKey, resourcesProvider));
             setBackground(Theme.createSimpleSelectorCircleDrawable(dp(48),
-                Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider),
-                Theme.getColor(Theme.key_featuredStickers_addButtonPressed, resourcesProvider)
+                Theme.getColor(backgroundColorKey, resourcesProvider),
+                Theme.getColor(pressedBackgroundColorKey, resourcesProvider)
             ));
         }
     }
 
     public static final int SIZE = 48;
 
+    private static int rightMarginAlignedWithSearchButton(int defaultMargin) {
+        if (app.nimarkogram.messenger.NimarkoConfig.mainTabsVisible()
+                && app.nimarkogram.messenger.NimarkoConfig.showSearchInTabs) {
+            return 14;
+        }
+        return defaultMargin;
+    }
+
     public static FrameLayout.LayoutParams createSubButtonLayoutParams() {
+        int m = rightMarginAlignedWithSearchButton(20);
         return LayoutHelper.createFrame(48, 48,
                 (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM,
-                20, 0, 20, 14);
+                m, 0, m, 14);
     }
 
     public static FrameLayout.LayoutParams createDefaultLayoutParams() {
+        int m = rightMarginAlignedWithSearchButton(20);
         return LayoutHelper.createFrame(48, 48,
                 (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM,
-                20, 0, 20, 14);
+                m, 0, m, 14);
     }
 
-
     public static FrameLayout.LayoutParams createDefaultLayoutParamsBig() {
+        int m = rightMarginAlignedWithSearchButton(20);
         return LayoutHelper.createFrame(56, 56,
                 (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM,
-                20 /*24*/, 0, 20 /*24*/, 14 /*16*/);
+                m, 0, m, 14  );
     }
 
     private float additionalTranslationY;

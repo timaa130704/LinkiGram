@@ -21,7 +21,6 @@ import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.VideoPlayer;
 
-//used for player in background thread
 public class VideoPlayerHolderBase {
 
     public boolean paused;
@@ -65,14 +64,12 @@ public class VideoPlayerHolderBase {
         return this;
     }
 
-
     public VideoPlayerHolderBase with(Surface surface) {
         this.surfaceView = null;
         this.textureView = null;
         this.surface = surface;
         return this;
     }
-
 
     final DispatchQueue dispatchQueue = Utilities.getOrCreatePlayerQueue();
     public Uri uri;
@@ -182,7 +179,6 @@ public class VideoPlayerHolderBase {
                 videoPlayer.seekTo(position);
             }
 
-           // videoPlayer.setVolume(isInSilentMode ? 0 : 1f);
             AndroidUtilities.runOnUIThread(() -> initRunnable = null);
         });
     }
@@ -251,11 +247,12 @@ public class VideoPlayerHolderBase {
 
             @Override
             public void onRenderedFirstFrame() {
+                final long frameToken = VideoPlayerHolderBase.this.getRenderedFrameToken();
                 AndroidUtilities.runOnUIThread(() -> {
-                    if (released ) {
+                    if (released || !VideoPlayerHolderBase.this.isRenderedFrameTokenValid(frameToken)) {
                         return;
                     }
-                    VideoPlayerHolderBase.this.onRenderedFirstFrame();
+                    VideoPlayerHolderBase.this.onRenderedFirstFrame(frameToken);
 
                     if (onReadyListener != null) {
                         onReadyListener.run();
@@ -425,7 +422,7 @@ public class VideoPlayerHolderBase {
             }
             boolean playing = videoPlayer.isPlaying();
             if (enabled && !videoPlayer.createdWithAudioTrack()) {
-                //release and create new with audio track
+                
                 videoPlayer.pause();
                 long position = videoPlayer.getCurrentPosition();
                 videoPlayer.releasePlayer(false);
@@ -444,7 +441,7 @@ public class VideoPlayerHolderBase {
                         videoPlayer.setTextureView(textureView);
                     }
                 }
-                //    videoPlayer.setTextureView(textureView);
+                
                 videoPlayer.seekTo(position + 50);
                 if (playing && !prepared) {
                     videoPlayer.setPlayWhenReady(true);
@@ -469,9 +466,7 @@ public class VideoPlayerHolderBase {
             } else {
                 localProgress = currentPosition / (float) playerDuration;
             }
-//            if (localProgress < progress) {
-//                return progress;
-//            }
+
             progress = localProgress;
             if (!seeking) {
                 currentSeek = progress;
@@ -521,6 +516,18 @@ public class VideoPlayerHolderBase {
 
     }
 
+    protected long getRenderedFrameToken() {
+        return 0L;
+    }
+
+    protected boolean isRenderedFrameTokenValid(long frameToken) {
+        return true;
+    }
+
+    public void onRenderedFirstFrame(long frameToken) {
+        onRenderedFirstFrame();
+    }
+
     public void onStateChanged(boolean playWhenReady, int playbackState) {
 
     }
@@ -558,7 +565,6 @@ public class VideoPlayerHolderBase {
         this.onSeekUpdate = onSeekUpdate;
     }
 
-
     private volatile boolean firstSeek = true;
     private volatile long lastSeek = -1;
     private long lastBetterSeek = -1;
@@ -568,7 +574,7 @@ public class VideoPlayerHolderBase {
 
     private final Runnable betterSeek = () -> {
         if (videoPlayer != null) {
-//            videoPlayer.seekTo(lastBetterSeek, false);
+
         }
     };
 

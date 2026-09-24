@@ -385,7 +385,6 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
             container.invalidate();
         });
 
-
         animator.setInterpolator(new LinearInterpolator());
         animator.setDuration(ChatListItemAnimator.DEFAULT_DURATION);
 
@@ -498,7 +497,6 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
             drawable = messageView.getCurrentBackgroundDrawable(true);
         }
 
-
         if (drawable != null) {
             messageView.setBackgroundTopY(container.getTop() - listView.getTop());
             Drawable shadowDrawable = drawable.getShadowDrawable();
@@ -547,7 +545,6 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
         messageView.drawCommentLayout(canvas, alphaProgress);
         messageView.drawLinkPreview(canvas, alphaProgress);
         canvas.restore();
-
 
         if (hasReply) {
             chatActivity.getReplyNameTextView().setAlpha(0f);
@@ -629,8 +626,8 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
 
             if (roundRectRadii == null) {
                 roundRectRadii = new float[8];
-                roundRectRadii[0] = roundRectRadii[1] = roundRectRadii[6] = roundRectRadii[7] = dp(4); // left
-                roundRectRadii[2] = roundRectRadii[3] = roundRectRadii[4] = roundRectRadii[5] = 0; // right
+                roundRectRadii[0] = roundRectRadii[1] = roundRectRadii[6] = roundRectRadii[7] = dp(4); 
+                roundRectRadii[2] = roundRectRadii[3] = roundRectRadii[4] = roundRectRadii[5] = 0; 
             }
 
             AndroidUtilities.rectTmp.set(
@@ -648,7 +645,7 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
                 replySelectorRect
             );
 
-            messageView.replyLine.drawBackground(canvas, replySelectorRect, alphaProgress, messageView.isReplyQuote, messageView.getMessageObject().shouldDrawWithoutBackground());
+            messageView.replyLine.drawBackground(canvas, replySelectorRect, alphaProgress, messageView.isReplyQuote, messageView.getMessageObject().shouldDrawWithoutBackground() || !app.nimarkogram.messenger.NimarkoConfig.replyBackground);
             messageView.replyLine.drawLine(canvas, replySelectorRect, alphaProgress);
 
             float replyImageSz = 0;
@@ -865,7 +862,7 @@ public class TextMessageEnterTransition implements MessageEnterTransitionContain
             ViewPositionWatcher.computeCoordinatesInParent(enterView.getSendButton(), chatActivity.contentView, tmpPointF);
             canvas.save();
             canvas.translate(
-                tmpPointF.x - container.getX() /*+ dp(52) * sendProgress*/,
+                tmpPointF.x - container.getX()  ,
                 tmpPointF.y - container.getY());
 
             View sendButton = enterView.getSendButton();

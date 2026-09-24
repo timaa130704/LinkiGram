@@ -813,7 +813,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
         public static ItemInner asFilter(MessagesController.DialogFilter filter) {
             ItemInner i = new ItemInner(VIEW_TYPE_FILTER);
             i.filter = filter;
-//            i.filterColor = filter == null || !MessagesController.getInstance(UserConfig.selectedAccount).folderTags ? -1 : filter.color;
+
             return i;
         }
         public static ItemInner asButton(CharSequence text) {
@@ -853,7 +853,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                 if ((filter == null) != (other.filter == null)) {
                     return false;
                 }
-                if (filter != null && filter.id != other.filter.id) {// || filterColor != (!MessagesController.getInstance(UserConfig.selectedAccount).folderTags ? -1 : other.filter.color))) {
+                if (filter != null && filter.id != other.filter.id) {
                     return false;
                 }
             }
@@ -1030,7 +1030,9 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                         if (suggested.filter.exclude_muted) {
                             filter.flags |= MessagesController.DIALOG_FILTER_FLAG_EXCLUDE_MUTED;
                         }
-                        FilterCreateActivity.saveFilterToServer(filter, filter.flags, filter.name, filter.entities, filter.title_noanimate, filter.color, filter.alwaysShow, filter.neverShow, filter.pinnedDialogs, true, true, true, true, true, FiltersSetupActivity.this, () -> {
+                        
+                        filter.emoticon = app.nimarkogram.messenger.preferences.folders.helpers.FolderIconHelper.getEmoticonData(filter.flags)[1];
+                        FilterCreateActivity.saveFilterToServer(filter, filter.flags, null, filter.name, filter.entities, filter.title_noanimate, filter.color, filter.alwaysShow, filter.neverShow, filter.pinnedDialogs, true, true, true, true, true, FiltersSetupActivity.this, () -> {
                             getMessagesController().suggestedFilters.remove(suggested);
                             getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
                         });
@@ -1233,7 +1235,6 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_CELLBACKGROUNDCOLOR, new Class[]{HeaderCell.class, TextCell.class, FilterCell.class, SuggestedFilterCell.class}, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundGray));
 
-//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));

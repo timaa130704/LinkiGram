@@ -1,6 +1,5 @@
 package org.telegram.ui.bots;
 
-
 import android.net.Uri;
 import android.text.TextUtils;
 
@@ -32,7 +31,6 @@ public class WebViewRequestProps {
 
     public TLObject response;
     public long responseTime;
-
 
     public static WebViewRequestProps of(
         int currentAccount,
@@ -95,15 +93,20 @@ public class WebViewRequestProps {
             currentAccount == p.currentAccount &&
             peerId == p.peerId &&
             botId == p.botId &&
+            queryId == p.queryId &&
+            TextUtils.equals(buttonText, p.buttonText) &&
             TextUtils.equals(buttonUrl, p.buttonUrl) &&
             type == p.type &&
             replyToMsgId == p.replyToMsgId &&
+            monoforumTopicId == p.monoforumTopicId &&
             silent == p.silent &&
             (app == null ? 0 : app.id) == (p.app == null ? 0 : p.app.id) &&
             allowWrite == p.allowWrite &&
             TextUtils.equals(startParam, p.startParam) &&
             (botUser == null ? 0 : botUser.id) == (p.botUser == null ? 0 : p.botUser.id) &&
-            flags == p.flags
+            flags == p.flags &&
+            compact == p.compact &&
+            fullscreen == p.fullscreen
         );
     }
 }

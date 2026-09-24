@@ -134,7 +134,7 @@ public class StoryEntry {
 
     public int width, height;
     public MediaController.CropState crop;
-    // matrix describes transformations from width x height to resultWidth x resultHeight
+    
     public final Matrix matrix = new Matrix();
 
     public File round;
@@ -149,7 +149,7 @@ public class StoryEntry {
 
     public Drawable backgroundDrawable;
     public boolean isDark = Theme.isCurrentThemeDark();
-    public long backgroundWallpaperPeerId = Long.MIN_VALUE; // Long.MIN_VALUE = no wallpaper
+    public long backgroundWallpaperPeerId = Long.MIN_VALUE; 
     public String backgroundWallpaperEmoticon;
     public int gradientTopColor, gradientBottomColor;
 
@@ -167,7 +167,6 @@ public class StoryEntry {
     public String botLang = "";
     public TLRPC.InputMedia editingBotPreview;
 
-    // share as message (postponed)
     public ArrayList<Long> shareUserIds;
     public boolean silent;
     public int scheduleDate;
@@ -176,7 +175,6 @@ public class StoryEntry {
     public File uploadThumbFile;
     public File draftThumbFile;
 
-    // paint
     public File paintFile;
     public File paintBlurFile;
     public File paintEntitiesFile;
@@ -188,7 +186,6 @@ public class StoryEntry {
     public File messageVideoMaskFile;
     public File backgroundFile;
 
-    // filter
     public File filterFile;
     public MediaController.SavedFilterState filterState;
 
@@ -222,7 +219,7 @@ public class StoryEntry {
                     if (isAnimated(entity.document, entity.text)) {
                         return true;
                     }
-                } else if ((entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT/* || entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION*/) && entity.entities != null && !entity.entities.isEmpty()) {
+                } else if ((entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT ) && entity.entities != null && !entity.entities.isEmpty()) {
                     for (int j = 0; j < entity.entities.size(); ++j) {
                         VideoEditedInfo.EmojiEntity e = entity.entities.get(j);
                         if (isAnimated(e.document, e.documentAbsolutePath)) {
@@ -309,32 +306,7 @@ public class StoryEntry {
             tempMatrix.preScale(s, s);
             tempMatrix.postScale(scale, scale);
             canvas.drawBitmap(mainFileBitmap, tempMatrix, bitmapPaint);
-//            final float s = (float) width / mainFileBitmap.getWidth();
-//            canvas.save();
-//            canvas.scale(scale, scale);
-//            canvas.concat(matrix);
-//            if (crop != null) {
-//                canvas.translate(width / 2.0f, height / 2.0f);
-//                int _w = width, _h = height;
-//                if ((crop.transformRotation / 90) % 2 == 1) {
-//                    _w = height;
-//                    _h = width;
-//                }
-//                canvas.clipRect(
-//                    -_w * crop.cropPw / 2.0f, -_h * crop.cropPh / 2.0f,
-//                    +_w * crop.cropPw / 2.0f, +_h * crop.cropPh / 2.0f
-//                );
-//                canvas.scale(crop.cropScale, crop.cropScale);
-//                canvas.translate(crop.cropPx * _w, crop.cropPy * _h);
-//                canvas.rotate(crop.cropRotate + crop.transformRotation);
-//                if (crop.mirrored) {
-//                    canvas.scale(-1, 1);
-//                }
-//                canvas.translate(-width / 2.0f, -height / 2.0f);
-//            }
-//            canvas.scale(s, s);
-//            canvas.drawBitmap(mainFileBitmap, 0, 0, bitmapPaint);
-//            canvas.restore();
+
         } else {
             if (isCollage()) {
                 for (int i = 0; i < collageContent.size(); ++i) {
@@ -356,6 +328,9 @@ public class StoryEntry {
                             canvas.clipRect(-bounds.width() / 2.0f, -bounds.height() / 2.0f, bounds.width() / 2.0f, bounds.height() / 2.0f);
                             final float s = Math.max(bounds.width() / fw, bounds.height() / fh);
                             canvas.scale(s, s);
+                            canvas.scale(
+                                    orientation.second == 1 ? -1.0f : 1.0f,
+                                    orientation.second == 2 ? -1.0f : 1.0f);
                             canvas.rotate(orientation.first);
                             canvas.translate(-fileBitmap.getWidth() / 2.0f, -fileBitmap.getHeight() / 2.0f);
                             canvas.drawBitmap(fileBitmap, 0, 0, null);
@@ -379,40 +354,7 @@ public class StoryEntry {
                         FileLog.e(e);
                     }
                 }
-//                if (file != null) {
-//                    try {
-//                        Bitmap fileBitmap = getScaledBitmap(opts -> BitmapFactory.decodeFile(file.getPath(), opts), w, h, true, true);
-//                        final float s = (float) width / fileBitmap.getWidth();
-//                        canvas.save();
-//                        canvas.scale(scale, scale);
-//                        canvas.concat(matrix);
-//                        if (crop != null) {
-//                            canvas.translate(width / 2.0f, height / 2.0f);
-//                            int _w = width, _h = height;
-//                            if ((crop.transformRotation / 90) % 2 == 1) {
-//                                _w = height;
-//                                _h = width;
-//                            }
-//                            canvas.clipRect(
-//                                -_w * crop.cropPw / 2.0f, -_h * crop.cropPh / 2.0f,
-//                                +_w * crop.cropPw / 2.0f, +_h * crop.cropPh / 2.0f
-//                            );
-//                            canvas.scale(crop.cropScale, crop.cropScale);
-//                            canvas.translate(crop.cropPx * _w, crop.cropPy * _h);
-//                            canvas.rotate(crop.cropRotate + crop.transformRotation);
-//                            if (crop.mirrored) {
-//                                canvas.scale(-1, 1);
-//                            }
-//                            canvas.translate(-width / 2.0f, -height / 2.0f);
-//                        }
-//                        canvas.scale(s, s);
-//                        canvas.drawBitmap(fileBitmap, 0, 0, bitmapPaint);
-//                        canvas.restore();
-//                        fileBitmap.recycle();
-//                    } catch (Exception e) {
-//                        FileLog.e(e);
-//                    }
-//                }
+
             }
 
             if (paintFile != null) {
@@ -516,9 +458,7 @@ public class StoryEntry {
 
             final float scaleX = maxWidth / (float) bitmap.getWidth(), scaleY = maxHeight / (float) bitmap.getHeight();
             float s = Math.max(scaleX, scaleY);
-//            if (SharedConfig.getDevicePerformanceClass() >= SharedConfig.PERFORMANCE_CLASS_HIGH) {
-//                scale = Math.min(scale * 2, 1);
-//            }
+
             final int w = (int) (bitmap.getWidth() * s), h = (int) (bitmap.getHeight() * s);
 
             Bitmap scaledBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
@@ -526,9 +466,6 @@ public class StoryEntry {
             Utilities.libyuvARGBSaleBitmap(bitmap, scaledBitmap, Utilities.libyuv_ScaleFilter.Box);
 
             int blurRadius = Utilities.clamp(Math.round(1f / s), 8, 0);
-//            if (allowBlur && blurRadius > 0) {
-//                Utilities.stackBlurBitmap(scaledBitmap, blurRadius);
-//            }
 
             return scaledBitmap;
         } else {
@@ -812,14 +749,14 @@ public class StoryEntry {
                 dialogId = DialogObject.getPeerDialogId(messageObject.messageOwner.fwd_from.from_id);
                 chat = MessagesController.getInstance(messageObject.currentAccount).getChat(-dialogId);
                 if (dialogId >= 0 || chat != null && chat.noforwards || !ChatObject.isChannelAndNotMegaGroup(chat)) {
-                    return null; // no repost
+                    return null; 
                 } else {
-                    return true; // repost of forward
+                    return true; 
                 }
             }
-            return null; // no repost
+            return null; 
         }
-        return false; // repost
+        return false; 
     }
 
     public static long getRepostDialogId(MessageObject messageObject) {
@@ -1041,16 +978,8 @@ public class StoryEntry {
             return null;
         }
 
-        //if (entries.size() == 1) {
             return fromPhotoEntry(entries.get(0));
-        /*}
-
-        final ArrayList<StoryEntry> entries1 = new ArrayList<>(entries.size());
-        for (MediaController.PhotoEntry entry: entries) {
-            entries1.add(fromPhotoEntry(entry));
-        }
-
-        return asCollage(CollageLayout.of(entries1.size()), entries1);*/
+         
     }
 
     public void decodeBounds(String path) {
@@ -1065,10 +994,7 @@ public class StoryEntry {
         }
         if (!isVideo) {
             int side = (int) Math.max(width, height / 16f * 9f);
-//            if (side <= (480 + 720) / 2) {
-//                resultWidth = 480;
-//                resultHeight = 853;
-//            } else
+
             if (side <= (720 + 1080) / 2) {
                 resultWidth = 720;
                 resultHeight = 1280;
@@ -1193,7 +1119,7 @@ public class StoryEntry {
         long availableMemory = maxMemory - usedMemory;
         final boolean enoughMemory = options.outWidth * options.outHeight * 4L * 2L <= availableMemory;
         if (!enoughMemory || Math.max(options.outWidth, options.outHeight) > 4200 || SharedConfig.getDevicePerformanceClass() <= SharedConfig.PERFORMANCE_CLASS_LOW) {
-//            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+
             options.inScaled = true;
             options.inDensity = options.outWidth;
             options.inTargetDensity = reqWidth;
@@ -1481,9 +1407,7 @@ public class StoryEntry {
         public float minlum;
 
         public int getHDRType() {
-//            if (maxlum <= 0 && minlum <= 0) {
-//                return 0;
-//            } else
+
             if (colorStandard == MediaFormat.COLOR_STANDARD_BT2020) {
                 if (colorTransfer == MediaFormat.COLOR_TRANSFER_HLG) {
                     return 1;

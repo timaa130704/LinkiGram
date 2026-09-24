@@ -128,7 +128,6 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
     private AnimatedTextView chatAttachButtonText;
     private boolean themesLoading;
 
-
     public ChatThemeBottomSheet(final ChatActivity chatActivity, ChatActivity.ThemeDelegate themeDelegate) {
         super(chatActivity.getParentActivity(), true, themeDelegate);
         this.chatActivity = chatActivity;
@@ -565,7 +564,6 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
             loadNext();
         }
 
-
         if (chatActivity.getCurrentUser() != null && SharedConfig.dayNightThemeSwitchHintCount > 0 && !chatActivity.getCurrentUser().self) {
             SharedConfig.updateDayNightThemeSwitchHintCount(SharedConfig.dayNightThemeSwitchHintCount - 1);
             hintView = new HintView(getContext(), 9, chatActivity.getResourceProvider());
@@ -772,9 +770,7 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
                 changeDayNightView.invalidate();
                 if (!changedNavigationBarColor && changeDayNightViewProgress > .5f) {
                     changedNavigationBarColor = true;
-                  //  fixNavigationBar(getThemedColor(Theme.key_windowBackgroundGray));
-//                    AndroidUtilities.setLightNavigationBar(getWindow(), !isDark);
-//                    AndroidUtilities.setNavigationBarColor(getWindow(), );
+                  
                 }
             }
         });
@@ -782,9 +778,7 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
             @Override
             public void onAnimationEnd(Animator animation) {
                 if (changeDayNightView != null) {
-                    if (changeDayNightView.getParent() != null) {
-                        ((ViewGroup) changeDayNightView.getParent()).removeView(changeDayNightView);
-                    }
+                    AndroidUtilities.removeFromParent(changeDayNightView);
                     changeDayNightView = null;
                 }
                 changeDayNightViewAnimator = null;
@@ -856,24 +850,6 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
         if (!dataLoaded) {
             selectedItem = noThemeItem;
         }
-
-//        if (chatActivity.getCurrentUserInfo() != null && chatActivity.getCurrentUserInfo().wallpaper != null) {
-//            EmojiThemes wallpaperItem = EmojiThemes.createChatThemesDefault();
-//            wallpaperItem.wallpaper = chatActivity.getCurrentUserInfo().wallpaper;
-//            wallpaperItem.showAsDefaultStub = true;
-//            wallpaperItem.emoji = "\uD83C\uDFA8";
-//
-//            for (int i = 0; i < wallpaperItem.items.size(); i++) {
-//                EmojiThemes.ThemeItem item = wallpaperItem.items.get(i);
-//                item.inBubbleColor = Color.WHITE;//Theme.getDefaultColor(Theme.key_chat_inBubble);
-//                item.outBubbleColor = Color.GRAY;//Theme.getDefaultColor(Theme.key_chat_outBubble);
-//                item.outLineColor = Color.BLACK;
-//            }
-//            if (currentTheme == null || currentTheme.showAsDefaultStub) {
-//                currentTheme = wallpaperItem;
-//            }
-//            items.add(new ChatThemeItem(wallpaperItem));
-//        }
 
         boolean hasCurrentItem = false;
         ThemeKey currentThemeKey = currentTheme != null ? currentTheme.getThemeKey() : null;
@@ -1118,7 +1094,7 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             ThemeSmallPreviewView view = (ThemeSmallPreviewView) holder.itemView;
             Theme.ThemeInfo themeInfo = items.get(position).chatTheme.getThemeInfo(items.get(position).themeIndex);
-            if (themeInfo != null && themeInfo.pathToFile != null && !themeInfo.previewParsed) {
+            if (currentViewType != ThemeSmallPreviewView.TYPE_QR && themeInfo != null && themeInfo.pathToFile != null && !themeInfo.previewParsed) {
                 File file = new File(themeInfo.pathToFile);
                 boolean fileExists = file.exists();
                 if (fileExists) {
@@ -1424,7 +1400,6 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
         chatAttachAlert.show();
     }
 
-
     private void openGalleryForBackground() {
         chatAttachAlert = new ChatAttachAlert(chatActivity.getParentActivity(), chatActivity, false, false, false, chatActivity.getResourceProvider());
         chatAttachAlert.drawNavigationBar = true;
@@ -1531,10 +1506,7 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
                 chatAttachButtonText.setText(LocaleController.getString(R.string.SetColorAsBackground));
                 chatAttachAlert.showLayout(chatAttachAlert.getPhotoLayout());
             }
-//            WallpapersListActivity wallpapersListActivity = new WallpapersListActivity(WallpapersListActivity.TYPE_ALL, chatActivity.getDialogId());
-//            chatActivity.presentFragment(wallpapersListActivity);
-//            chatAttachAlert.dismiss();
-//            dismiss();
+
         });
         chatAttachAlert.sizeNotifierFrameLayout.addView(chatAttachButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
     }

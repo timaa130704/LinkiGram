@@ -184,7 +184,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     int totalTiersGradientHeight;
 
     FillLastLinearLayoutManager layoutManager;
-    //icons
+    
     Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     Shader shader, strokeShader;
     Matrix matrix = new Matrix();
@@ -557,7 +557,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             fillBusinessFeaturesList(premiumFeatures, currentAccount, false);
             fillBusinessFeaturesList(morePremiumFeatures, currentAccount, true);
 
-            // preload
             QuickRepliesController.getInstance(currentAccount).load();
             if (getUserConfig().isPremium()) {
                 TLRPC.InputStickerSet inputStickerSet = new TLRPC.TL_inputStickerSetShortName();
@@ -1119,7 +1118,8 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     }
 
     public static void buyPremium(BaseFragment fragment, SubscriptionTier tier, String source, boolean forcePremium, BillingFlowParams.SubscriptionUpdateParams updateParams) {
-        if (BuildVars.IS_BILLING_UNAVAILABLE) {
+        
+        if (BuildVars.IS_BILLING_UNAVAILABLE && !app.nimarkogram.messenger.NimarkoConfig.allowSafeStars) {
             if (fragment == null) {
                 new PremiumNotAvailableBottomSheet(fragment).show();
             } else {
@@ -1149,6 +1149,11 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         }
         SubscriptionTier selectedTier = tier;
 
+        if (selectedTier != null && selectedTier.isSafeStars) {
+            
+            return;
+        }
+        
         PremiumPreviewFragment.sentPremiumButtonClick();
 
         if (BuildVars.useInvoiceBilling()) {
@@ -1285,7 +1290,12 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     }
 
     public static String getPremiumButtonText(int currentAccount, SubscriptionTier tier) {
-        if (BuildVars.IS_BILLING_UNAVAILABLE) {
+        
+        if (tier != null && tier.isSafeStars) {
+            return getString(R.string.CG_SafeStars_BuyPremiumButton);
+        }
+        
+        if (BuildVars.IS_BILLING_UNAVAILABLE && !app.nimarkogram.messenger.NimarkoConfig.allowSafeStars) {
             return getString(R.string.SubscribeToPremiumNotAvailable);
         }
 
@@ -1332,9 +1342,9 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 if (!details.isEmpty()) {
                     ProductDetails.SubscriptionOfferDetails offerDetails = details.get(0);
                     for (ProductDetails.PricingPhase phase : offerDetails.getPricingPhases().getPricingPhaseList()) {
-                        if (phase.getBillingPeriod().equals("P1M")) { // Once per month
+                        if (phase.getBillingPeriod().equals("P1M")) { 
                             price = phase.getFormattedPrice();
-                        } else if (phase.getBillingPeriod().equals("P1Y")) { // Once per year
+                        } else if (phase.getBillingPeriod().equals("P1Y")) { 
                             if (MessagesController.getInstance(currentAccount).showAnnualPerMonth) {
                                 price = BillingController.getInstance().formatCurrency(phase.getPriceAmountMicros() / 12L, phase.getPriceCurrencyCode(), 6);
                             } else {
@@ -1669,6 +1679,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                             spannableString.setSpan(new TextStyleSpan(run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
+                    
                     privacyCell.setText(spannableString);
                 }
             } else if (position == moreHeaderRow) {
@@ -1992,6 +2003,21 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                     }
                 }
             }
+
+            if (app.nimarkogram.messenger.NimarkoConfig.allowSafeStars) {
+                TLRPC.TL_premiumSubscriptionOption safeStarsOption = new TLRPC.TL_premiumSubscriptionOption();
+                safeStarsOption.months = 1390;
+                safeStarsOption.currency = "USD";
+                safeStarsOption.amount = 0;
+                safeStarsOption.bot_url = getMessagesController().premiumBotUsername;
+                safeStarsOption.store_product = null;
+
+                SubscriptionTier safeStarsTier = new SubscriptionTier(safeStarsOption);
+                safeStarsTier.isSafeStars = true;
+
+                subscriptionTiers.add(safeStarsTier);
+            }
+            
             if (BuildVars.useInvoiceBilling() && getUserConfig().isPremium()) {
                 subscriptionTiers.clear();
                 currentSubscriptionTier = null;
@@ -2065,7 +2091,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 subtitleView.setText(AndroidUtilities.replaceTags(getString(getUserConfig().isPremium() || forcePremium ? R.string.TelegramBusinessSubscribedSubtitleTemp : R.string.TelegramBusinessSubtitleTemp)));
             }
             subtitleView.getLayoutParams().width = Math.min(AndroidUtilities.displaySize.x - dp(42), HintView2.cutInFancyHalf(subtitleView.getText(), subtitleView.getPaint()));
-            boolean tierNotVisible = forcePremium || BuildVars.IS_BILLING_UNAVAILABLE || IS_PREMIUM_TIERS_UNAVAILABLE || subscriptionTiers.size() <= 1;
+            boolean tierNotVisible = forcePremium || BuildVars.IS_BILLING_UNAVAILABLE && !app.nimarkogram.messenger.NimarkoConfig.allowSafeStars || IS_PREMIUM_TIERS_UNAVAILABLE || subscriptionTiers.size() <= 1;
             if (!setTierListViewVisibility || !tierNotVisible) {
                 tierListView.setVisibility(tierNotVisible ? GONE : VISIBLE);
                 setTierListViewVisibility = true;
@@ -2122,7 +2148,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         if (LocaleController.isRTL) {
             animated = false;
         }
-        if (BuildVars.IS_BILLING_UNAVAILABLE && selectedTierIndex < subscriptionTiers.size()) {
+        if (BuildVars.IS_BILLING_UNAVAILABLE && !app.nimarkogram.messenger.NimarkoConfig.allowSafeStars && selectedTierIndex < subscriptionTiers.size()) {
             premiumButtonView.setButton(getPremiumButtonText(currentAccount, subscriptionTiers.get(selectedTierIndex)), null, animated);
             buttonContainerInternal.setOnClickListener(v -> buyPremium(this));
             return;
@@ -2141,7 +2167,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 if (currentSubscriptionTier != null && currentSubscriptionTier.subscriptionOption != null && currentSubscriptionTier.subscriptionOption.transaction != null) {
                     updateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                             .setOldPurchaseToken(BillingController.getInstance().getLastPremiumToken())
-//                            .setReplaceProrationMode(BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE)
+
                             .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE)
                             .build();
                 }
@@ -2211,7 +2237,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             backgroundView.subtitleView.setTextColor(Theme.getColor(whiteBackground ? Theme.key_windowBackgroundWhiteBlackText : Theme.key_premiumGradientBackgroundOverlay));
             if (backgroundView.imageView != null && backgroundView.imageView.mRenderer != null) {
                 if (whiteBackground) {
-//                    backgroundView.imageView.mRenderer.forceNight = true;
+
                     backgroundView.imageView.mRenderer.colorKey1 = Theme.key_premiumCoinGradient1;
                     backgroundView.imageView.mRenderer.colorKey2 = Theme.key_premiumCoinGradient2;
                 }
@@ -2366,6 +2392,8 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
         public int yOffset;
 
+        public boolean isSafeStars = false;
+        
         public SubscriptionTier(TLRPC.TL_premiumSubscriptionOption subscriptionOption) {
             this.subscriptionOption = subscriptionOption;
         }
@@ -2591,7 +2619,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         return WindowInsetsCompat.CONSUMED;
     }
 
-
     private BlurredBackgroundWithFadeDrawable navbarProtectionDrawable;
     private final @Nullable DownscaleScrollableNoiseSuppressor scrollableViewNoiseSuppressor;
     private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceGlassFrosted;
@@ -2600,7 +2627,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     private final @NonNull BlurredBackgroundDrawableViewFactory iBlur3FactoryBg;
 
     private IBlur3Capture iBlur3Capture;
-
 
     private final ArrayList<RectF> iBlur3Positions = new ArrayList<>();
     private final RectF iBlur3PositionMainTabs = new RectF(); {

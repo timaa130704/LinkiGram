@@ -136,7 +136,7 @@ public class TONIntroActivity extends GradientHeaderActivity implements Notifica
     public void didReceivedNotification(int id, int account, Object... args) {
         if (
             id == NotificationCenter.starOptionsLoaded
-//            || id == NotificationCenter.starTransactionsLoaded
+
         ) {
             saveScrollPosition();
             if (adapter != null) {
@@ -214,7 +214,7 @@ public class TONIntroActivity extends GradientHeaderActivity implements Notifica
         iconTextureView.setStarParticlesView(particlesView);
         aboveTitleView.addView(iconTextureView, LayoutHelper.createFrame(170, 170, Gravity.CENTER, 0, 32, 0, 24));
         configureHeader(getString(R.string.TONBalanceTitle), AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(getString(R.string.TONBalanceText), () -> {
-            new ExplainStarsSheet(context).show();
+            new ExplainStarsSheet(context, currentAccount).show();
         }), true), aboveTitleView, null);
 
         listView.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -792,7 +792,7 @@ public class TONIntroActivity extends GradientHeaderActivity implements Notifica
         public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
             items.add(UItem.asCustom(headerView));
             items.add(UItem.asCustom(footerView));
-            // items.add(UItem.asSpace(dp(256)));
+            
         }
 
         public void onItemClick(UItem item, UniversalAdapter adapter) {

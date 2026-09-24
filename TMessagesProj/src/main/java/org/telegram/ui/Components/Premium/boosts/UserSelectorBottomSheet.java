@@ -287,12 +287,7 @@ public class UserSelectorBottomSheet extends BottomSheetWithRecyclerListView imp
         if (selectorAdapter != null) {
             selectorAdapter.setNeedChecks2(needChecks());
         }
-//        if (birthdays != null && !birthdays.today.isEmpty() && type == TYPE_PREMIUM) {
-//            for (TLRPC.User user : birthdays.today) {
-//                selectedIds.add(user.id);
-//                allSelectedObjects.put(user.id, user);
-//            }
-//        }
+
         this.userId = userId;
         if (userId != 0 && !selectedIds.contains(userId)) {
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(userId);
@@ -443,7 +438,7 @@ public class UserSelectorBottomSheet extends BottomSheetWithRecyclerListView imp
                     if (searchField != null) {
                         AndroidUtilities.hideKeyboard(searchField.getEditText());
                     }
-                    StarsIntroActivity.GiftStarsSheet sheet = new StarsIntroActivity.GiftStarsSheet(getContext(), resourcesProvider, user, this::dismiss);
+                    StarsIntroActivity.GiftStarsSheet sheet = new StarsIntroActivity.GiftStarsSheet(getContext(), currentAccount, resourcesProvider, user, this::dismiss);
                     if (!AndroidUtilities.isTablet()) {
                         sheet.makeAttached(attachedFragment);
                     }
@@ -1123,7 +1118,6 @@ public class UserSelectorBottomSheet extends BottomSheetWithRecyclerListView imp
         tonDays = days;
         updateItems(false, true);
     }
-
 
     @Override
     protected CharSequence getTitle() {

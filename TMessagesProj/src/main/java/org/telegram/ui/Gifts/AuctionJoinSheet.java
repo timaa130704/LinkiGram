@@ -106,8 +106,10 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
 
     private final CharSequence emojiGiftText;
 
-    private AuctionJoinSheet(Context context, Theme.ResourcesProvider resourcesProvider, long dialogId, TL_stars.StarGift starGift, Runnable closeParentSheet) {
+    private AuctionJoinSheet(Context context, Theme.ResourcesProvider resourcesProvider, int currentAccount,
+                             long dialogId, TL_stars.StarGift starGift, Runnable closeParentSheet) {
         super(context, null, false, false, false, false, ActionBarType.FADING, resourcesProvider);
+        this.currentAccount = currentAccount;
         this.starGift = starGift;
         this.giftId = starGift.id;
         headerMoveTop = dp(6);
@@ -124,7 +126,7 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
         linearLayout.setClickable(true);
 
         ActionBar actionBar = new ActionBar(context, resourcesProvider);
-        actionBar.setItemsColor(Color.WHITE/*Theme.getColor(Theme.key_actionBarActionModeDefaultIcon, resourcesProvider)*/, false);
+        actionBar.setItemsColor(Color.WHITE , false);
         actionBar.setOccupyStatusBar(false);
         initActionBar(actionBar, context, resourcesProvider, currentAccount, starGift);
 
@@ -215,7 +217,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             thisHintView.show();
         };
 
-
         auctionRowAveragePrice = tableView.addRow(getString(R.string.GiftValueAveragePrice), "", ref);
         auctionRowAveragePrice.setOnClickListener(v -> showAveragePriceHint());
         auctionRowAveragePriceText = ref[0];
@@ -286,8 +287,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
 
         auction = GiftAuctionController.getInstance(currentAccount).subscribeToGiftAuction(giftId, this);
 
-
-
         if (auction != null && auction.auctionStateActive != null) {
             if (auction.auctionStateActive.start_date > ConnectionsManager.getInstance(currentAccount).getCurrentTime()) {
                 tableView.addRow(getString(R.string.Gift2AuctionTableCurrentRounds), formatNumber(auction.auctionStateActive.total_rounds, ','));
@@ -322,7 +321,7 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
         }
 
         if (auction != null && auction.previewAttributes != null) {
-            StarGiftSheet.TopView topView = new StarGiftSheet.TopView(context, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
+            StarGiftSheet.TopView topView = new StarGiftSheet.TopView(context, currentAccount, resourcesProvider, this::onBackPressed, v -> {}, null, v -> {}, v -> {}, v -> {}, v -> {}, v -> {}) {
                 @Override
                 public float getRealHeight() {
                     return dp(288);
@@ -394,7 +393,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             giftNameTextView.setTextColor(Color.WHITE);
             headerContainer.addView(giftNameTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL | Gravity.BOTTOM, 16, 0, 16, 40));
 
-
             TextView giftStatusTextView = new TextView(context);
             giftStatusTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
             giftStatusTextView.setText(replaceArrows(getString(R.string.Gift2AuctionLearnMore2), false, dp(8f / 3f), dp(1)));
@@ -435,7 +433,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             itemsVariants.setText(AndroidUtilities.replaceArrows(formatSpannable(R.string.Gift2AuctionVariants, ssb, formatNumber(variantsCount, ',')), true, dp(8f / 3f), dp(1)));
         }
         linearLayout.addView(itemsBought, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16, 0, 14, 18));
-
 
         updateTable(false);
     }
@@ -481,9 +478,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             }
         }
 
-
-
-
         final int boughtCount = auction.auctionUserState.acquired_count;
         if (boughtCount > 0) {
             itemsBought.setVisibility(View.VISIBLE);
@@ -520,9 +514,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
         GiftAuctionController.getInstance(currentAccount).unsubscribeFromGiftAuction(giftId, this);
         super.dismiss();
     }
-
-
-
 
     @Override
     protected CharSequence getTitle() {
@@ -617,8 +608,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
         b.show();
     }
 
-
-
     public static void show(Context context,
                             Theme.ResourcesProvider resourcesProvider,
                             int currentAccount,
@@ -639,10 +628,10 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
                             GiftAuctionController.Auction auction,
                             Runnable closeParentSheet) {
         if (auction == null) {
-            return; // loading
+            return; 
         }
 
-        final long selfPeer = UserConfig.getInstance(currentAccount).clientUserId;
+        final long selfPeer = org.telegram.messenger.UserConfig.getInstance(currentAccount).clientUserId;
         final long bidPeer = DialogObject.getPeerDialogId(auction.auctionUserState.peer);
         if (dialogId != bidPeer && dialogId != 0 && bidPeer != 0) {
             openAuctionTransferAlert(context, resourcesProvider, currentAccount, bidPeer, dialogId, () -> {
@@ -660,7 +649,7 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             return;
         }
 
-        new AuctionJoinSheet(context, resourcesProvider, dialogId, auction.gift, closeParentSheet).show();
+        new AuctionJoinSheet(context, resourcesProvider, currentAccount, dialogId, auction.gift, closeParentSheet).show();
     }
 
     public static void initActionBar(ActionBar actionBar, Context context, Theme.ResourcesProvider resourcesProvider, int currentAccount, TL_stars.StarGift starGift) {
@@ -668,7 +657,7 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
             @Override
             public void onItemClick(int id) {
                 if (id == copy_link || id == share_link) {
-                    final String link = MessagesController.getInstance(UserConfig.selectedAccount).linkPrefix + "/auction/" + starGift.auction_slug;
+                    final String link = MessagesController.getInstance(currentAccount).linkPrefix + "/auction/" + starGift.auction_slug;
                     if (id == copy_link) {
                         AndroidUtilities.addToClipboard(link);
                     } else {
@@ -686,9 +675,6 @@ public class AuctionJoinSheet extends BottomSheetWithRecyclerListView implements
         menuItem.addSubItem(copy_link, R.drawable.menu_feature_links, getString(R.string.CopyLink));
         menuItem.addSubItem(share_link, R.drawable.msg_share, getString(R.string.ShareLink));
     }
-
-
-
 
     private static void openAuctionTransferAlert(final Context context,
                                                  final Theme.ResourcesProvider resourcesProvider,

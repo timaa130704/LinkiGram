@@ -61,7 +61,8 @@ public class RecyclerAnimationScrollHelper {
         }
         if (recyclerView.getItemAnimator() != null) {
             if (waitForAnimations) {
-                if (recyclerView.getItemAnimator().isRunning(() -> scrollToPosition(position, offset, bottom, smooth, false))) {
+                
+                if (recyclerView.getItemAnimator().isRunning(() -> recyclerView.post(() -> scrollToPosition(position, offset, bottom, smooth, false)))) {
                     return;
                 }
             } else if (recyclerView.getItemAnimator().isRunning()) {
@@ -315,7 +316,6 @@ public class RecyclerAnimationScrollHelper {
                         animator = null;
                     }
                 });
-
 
                 long duration;
                 if (isDialogs) {

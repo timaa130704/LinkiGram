@@ -79,13 +79,21 @@ class FeedRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory, N
 
         RemoteViews rv = new RemoteViews(mContext.getPackageName(), R.layout.feed_widget_item);
         if (messageObject.type == MessageObject.TYPE_TEXT) {
-            rv.setTextViewText(R.id.feed_widget_item_text, messageObject.messageText);
+            CharSequence feedText = messageObject.messageText;
+            if (feedText != null && feedText.toString().contains("$")) {
+                feedText = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(feedText.toString());
+            }
+            rv.setTextViewText(R.id.feed_widget_item_text, feedText);
             rv.setViewVisibility(R.id.feed_widget_item_text, View.VISIBLE);
         } else {
             if (TextUtils.isEmpty(messageObject.caption)) {
                 rv.setViewVisibility(R.id.feed_widget_item_text, View.GONE);
             } else {
-                rv.setTextViewText(R.id.feed_widget_item_text, messageObject.caption);
+                CharSequence feedCaption = messageObject.caption;
+                if (feedCaption != null && feedCaption.toString().contains("$")) {
+                    feedCaption = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(feedCaption.toString());
+                }
+                rv.setTextViewText(R.id.feed_widget_item_text, feedCaption);
                 rv.setViewVisibility(R.id.feed_widget_item_text, View.VISIBLE);
             }
         }

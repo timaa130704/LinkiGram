@@ -166,16 +166,6 @@ public class PaidReactionButton extends View {
 
             final float cx = reactionBounds.centerX();
             final float cy = reactionBounds.top - dp(1);
-//            canvas.save();
-//            float t = counterAlpha.set(counterShown);
-//            canvas.translate(0, counterShown ? dp(60) * (1f - t) : -dp(30) * (1f - t));
-//            final float counterScale = AndroidUtilities.lerp(counterShown ? 1.8f : 1.3f, 1f, t);
-//            canvas.scale(counterScale, counterScale, cx, cy);
-//            counter.setAlpha((int) (0xFF * t));
-//            counter.setShadowLayer(dp(12), 0, dp(3.5f), Theme.multAlpha(0xAA000000, t));
-//            counter.setBounds(cx - dp(100), reactionBounds.top - dp(24 + 24), cx + dp(100), reactionBounds.top - dp(24));
-//            counter.draw(canvas);
-//            canvas.restore();
 
             canvas.save();
             canvas.translate(cx, cy);
@@ -243,12 +233,15 @@ public class PaidReactionButton extends View {
             private final AvatarDrawable avatarDrawable;
             private final ImageReceiver imageReceiver;
             private final Text text;
+            private final View hostView;
+            private final OnAttachStateChangeListener attachStateListener;
 
             private boolean isKilled;
             public final AnimatedFloat progress;
             public final AnimatedFloat killProgress;
 
             public Chip(View view, int currentAccount, long dialogId, int stars, int totalStars, boolean withEffect) {
+                hostView = view;
                 this.dialogId = dialogId;
                 this.stars = stars;
                 this.randomTranslation = Utilities.clamp01(Utilities.fastRandom.nextFloat());
@@ -270,7 +263,7 @@ public class PaidReactionButton extends View {
                 imageReceiver.setImageCoords(dp(2), dp(2), dp(14), dp(14));
                 imageReceiver.setRoundRadius(dp(7));
                 imageReceiver.setForUserOrChat(object, avatarDrawable);
-                view.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
+                attachStateListener = new OnAttachStateChangeListener() {
                     @Override
                     public void onViewAttachedToWindow(@NonNull View view) {
                         imageReceiver.onAttachedToWindow();
@@ -280,12 +273,12 @@ public class PaidReactionButton extends View {
                     public void onViewDetachedFromWindow(@NonNull View view) {
                         imageReceiver.onDetachedFromWindow();
                     }
-                });
+                };
+                view.addOnAttachStateChangeListener(attachStateListener);
                 if (view.isAttachedToWindow()) {
                     imageReceiver.onAttachedToWindow();
                 }
 
-//                backgroundPaint.setColor(getTierOption(totalStars, TIER_COLOR1));
                 backgroundPaint.setColor(0xFFEEAC0D);
 
                 final SpannableStringBuilder sb = new SpannableStringBuilder("⭐️");
@@ -356,7 +349,13 @@ public class PaidReactionButton extends View {
             }
 
             public void detach() {
+                hostView.removeOnAttachStateChangeListener(attachStateListener);
                 imageReceiver.onDetachedFromWindow();
+                if (effect != null) {
+                    effect.setMasterParent(null);
+                    effect.recycle(true);
+                    effect = null;
+                }
             }
 
             public void kill() {

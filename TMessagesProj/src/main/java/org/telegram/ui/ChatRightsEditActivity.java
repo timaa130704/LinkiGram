@@ -50,6 +50,7 @@ import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserObject;
@@ -105,7 +106,10 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
 
     private long guardBotIdToSet;
     private boolean hasGuardBotToSet;
+    private AlertDialog guardBotProgressDialog;
+    private boolean fragmentDestroyed;
 
+    private final long userId;
     private long chatId;
     private TLRPC.User currentUser;
     private TLRPC.Chat currentChat;
@@ -212,6 +216,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
 
     public ChatRightsEditActivity(long userId, long channelId, TLRPC.TL_chatAdminRights rightsAdmin, TLRPC.TL_chatBannedRights rightsBannedDefault, TLRPC.TL_chatBannedRights rightsBanned, String rank, int type, boolean edit, boolean addingNew, String addingNewBotHash) {
         super();
+        this.userId = userId;
         isAddingNew = addingNew;
         chatId = channelId;
         currentUser = MessagesController.getInstance(currentAccount).getUser(userId);
@@ -221,7 +226,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
         botHash = addingNewBotHash;
         currentChat = getMessagesController().getChat(chatId);
         chatInfo = getMessagesController().getChatFull(chatId);
-        currentUserIsBotGuard = currentUser != null && currentUser.bot_guard; // || true;
+        currentUserIsBotGuard = currentUser != null && currentUser.bot_guard; 
         if (rank == null) {
             rank = "";
         }
@@ -535,7 +540,6 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
         adminRights.manage_linked_peers = a.manage_linked_peers || b.manage_linked_peers;
         return adminRights;
     }
-
 
     public static TLRPC.TL_chatAdminRights emptyAdminRights(boolean value) {
         TLRPC.TL_chatAdminRights adminRights = new TLRPC.TL_chatAdminRights();
@@ -1082,15 +1086,26 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
     }
 
     private void setGuardBotImpl(long guardBotId) {
-        final AlertDialog[] alertDialog = new AlertDialog[1];
-        alertDialog[0] = new AlertDialog(getContext(), AlertDialog.ALERT_TYPE_SPINNER);
+        if (fragmentDestroyed || getContext() == null) {
+            return;
+        }
+        if (guardBotProgressDialog != null) {
+            guardBotProgressDialog.dismiss();
+        }
+        final AlertDialog alertDialog = new AlertDialog(getContext(), AlertDialog.ALERT_TYPE_SPINNER);
+        guardBotProgressDialog = alertDialog;
         getMessagesController().toggleChatJoinRequest(chatId, guardBotId, true, false, true,
-                () -> AndroidUtilities.runOnUIThread(() -> {
-                    alertDialog[0].dismiss();
-                }), () -> AndroidUtilities.runOnUIThread(() -> {
-                    alertDialog[0].dismiss();
-                }));
-        alertDialog[0].showDelayed(300);
+                () -> AndroidUtilities.runOnUIThread(() -> dismissGuardBotProgress(alertDialog)),
+                () -> AndroidUtilities.runOnUIThread(() -> dismissGuardBotProgress(alertDialog)));
+        alertDialog.showDelayed(300);
+    }
+
+    private void dismissGuardBotProgress(AlertDialog alertDialog) {
+        if (guardBotProgressDialog != alertDialog) {
+            return;
+        }
+        guardBotProgressDialog = null;
+        alertDialog.dismiss();
     }
 
     @Override
@@ -1121,6 +1136,9 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
         }
         if (srp != null && !ChatObject.isChannel(currentChat)) {
             MessagesController.getInstance(currentAccount).convertToMegaGroup(getParentActivity(), chatId, this, param -> {
+                if (fragmentDestroyed) {
+                    return;
+                }
                 if (param != 0) {
                     chatId = param;
                     currentChat = MessagesController.getInstance(currentAccount).getChat(param);
@@ -1139,7 +1157,10 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
         }
         req.password = srp != null ? srp : new TLRPC.TL_inputCheckPasswordEmpty();
         req.user_id = getMessagesController().getInputUser(currentUser);
-        getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+        int requestId = getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (fragmentDestroyed) {
+                return;
+            }
             if (error != null) {
                 if (getParentActivity() == null) {
                     return;
@@ -1244,14 +1265,15 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                     showDialog(builder.create());
                 } else if ("SRP_ID_INVALID".equals(error.text)) {
                     TL_account.getPassword getPasswordReq = new TL_account.getPassword();
-                    ConnectionsManager.getInstance(currentAccount).sendRequest(getPasswordReq, (response2, error2) -> AndroidUtilities.runOnUIThread(() -> {
-                        if (error2 == null) {
+                    int passwordRequestId = ConnectionsManager.getInstance(currentAccount).sendRequest(getPasswordReq, (response2, error2) -> AndroidUtilities.runOnUIThread(() -> {
+                        if (!fragmentDestroyed && error2 == null && passwordFragment != null) {
                             TL_account.Password currentPassword = (TL_account.Password) response2;
                             passwordFragment.setCurrentPasswordInfo(null, currentPassword);
                             TwoStepVerificationActivity.initPasswordNewAlgo(currentPassword);
                             initTransfer(passwordFragment.getNewSrpPassword(), passwordFragment);
                         }
                     }), ConnectionsManager.RequestFlagWithoutLogin);
+                    ConnectionsManager.getInstance(currentAccount).bindRequestToGuid(passwordRequestId, classGuid);
                 } else if (error.text.equals("CHANNELS_TOO_MUCH")) {
                     if (getParentActivity() != null && !AccountInstance.getInstance(currentAccount).getUserConfig().isPremium()) {
                         showDialog(new LimitReachedBottomSheet(this, getParentActivity(), LimitReachedBottomSheet.TYPE_TO0_MANY_COMMUNITIES, currentAccount, null));
@@ -1267,17 +1289,52 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                 }
             } else {
                 if (srp != null) {
-                    delegate.didChangeOwner(currentUser);
+                    if (delegate != null) {
+                        delegate.didChangeOwner(currentUser);
+                    }
                     removeSelfFromStack();
-                    passwordFragment.needHideProgress();
-                    passwordFragment.finishFragment();
+                    if (passwordFragment != null) {
+                        passwordFragment.needHideProgress();
+                        passwordFragment.finishFragment();
+                    }
                 }
             }
         }));
+        getConnectionsManager().bindRequestToGuid(requestId, classGuid);
     }
 
     @Override
     public boolean onFragmentCreate() {
+        fragmentDestroyed = false;
+        if (userId > 0) {
+            currentUser = getMessagesController().getUser(userId);
+            if (currentUser == null) {
+                currentUser = MessagesStorage.getInstance(currentAccount).getUserSync(userId);
+                if (currentUser != null) {
+                    getMessagesController().putUser(currentUser, true);
+                }
+            }
+        }
+        currentChat = getMessagesController().getChat(chatId);
+        chatInfo = getMessagesController().getChatFull(chatId);
+        isCommunity = false;
+        isChannel = false;
+        isForum = false;
+        if (currentChat != null) {
+            isCommunity = ChatObject.isCommunity(currentChat);
+            isChannel = ChatObject.isChannel(currentChat) && !currentChat.megagroup;
+            isForum = ChatObject.isForum(currentChat);
+            myAdminRights = currentChat.admin_rights;
+        }
+        if (currentUser == null || currentChat == null) {
+            
+            return false;
+        }
+        if (myAdminRights == null) {
+            myAdminRights = emptyAdminRights(currentType != TYPE_ADD_BOT || currentChat.creator);
+        }
+        currentUserIsBotGuard = currentUser.bot_guard;
+        updateRows(false);
         getNotificationCenter().addObserver(this, NotificationCenter.dialogDeleted);
         getNotificationCenter().addObserver(this, NotificationCenter.chatInfoDidLoad);
         return super.onFragmentCreate();
@@ -1285,13 +1342,19 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
 
     @Override
     public void onFragmentDestroy() {
+        fragmentDestroyed = true;
+        if (guardBotProgressDialog != null) {
+            AlertDialog alertDialog = guardBotProgressDialog;
+            guardBotProgressDialog = null;
+            alertDialog.dismiss();
+        }
         getNotificationCenter().removeObserver(this, NotificationCenter.dialogDeleted);
         getNotificationCenter().removeObserver(this, NotificationCenter.chatInfoDidLoad);
         super.onFragmentDestroy();
     }
 
     private void checkGuardBotRow() {
-        if (guardBotRow >= 0) {
+        if (guardBotRow >= 0 && linearLayoutManager != null && listViewAdapter != null) {
             TextCheckCell2 checkCell = (TextCheckCell2) linearLayoutManager.findViewByPosition(guardBotRow);
             if (checkCell != null) {
                 checkCell.setChecked(chatInfo != null && currentUser != null && (hasGuardBotToSet ? guardBotIdToSet : chatInfo.guard_bot_id) == currentUser.id);
@@ -1303,6 +1366,9 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
+        if (fragmentDestroyed || account != currentAccount) {
+            return;
+        }
         if (id == NotificationCenter.chatInfoDidLoad) {
             TLRPC.ChatFull chatFull = (TLRPC.ChatFull) args[0];
             if (currentChat != null && chatFull.id == currentChat.id) {
@@ -1406,12 +1472,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                 startVoiceChatRow = rowCount++;
                 addAdminsRow = rowCount++;
                 banUsersRow = rowCount++;
-                /*
-                if (currentUserIsBotGuard) {
-                    guardBotRow = rowCount++;
-                    guardBotInfoRow = rowCount++;
-                }
-                */
+                 
             } else {
                 if (currentType == TYPE_ADD_BOT) {
                     manageRow = rowCount++;
@@ -1421,7 +1482,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                 banUsersRow = rowCount++;
                 addUsersRow = rowCount++;
                 pinMessagesRow = rowCount++;
-                if (currentType != TYPE_ADD_BOT) { // TODO: bots will support?
+                if (currentType != TYPE_ADD_BOT) { 
                     editTagsRow = rowCount++;
                 }
                 if (ChatObject.isChannel(currentChat)) {
@@ -1478,7 +1539,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                 rankRow = rowCount++;
                 rankInfoRow = rowCount++;
             }
-            if (currentChat != null && currentChat.creator && currentType == TYPE_ADMIN && hasAllAdminRights() && !currentUser.bot && !isCommunity) {
+            if (currentChat != null && currentChat.creator && currentType == TYPE_ADMIN && hasAllAdminRights() && currentUser != null && !currentUser.bot && !isCommunity) {
                 if (rightsShadowRow == -1) {
                     transferOwnerShadowRow = rowCount++;
                 }
@@ -1498,7 +1559,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
             if (currentType == TYPE_ADMIN) {
                 if (!isChannel && (!currentRank.isEmpty() || currentChat.creator && UserObject.isUserSelf(currentUser))) {
                     rightsShadowRow = rowCount++;
-//                    rankHeaderRow = rowCount++;
+
                     rankRow = rowCount++;
                     if (currentChat.creator && UserObject.isUserSelf(currentUser)) {
                         rankInfoRow = rowCount++;
@@ -1535,6 +1596,9 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
         }
         if (!ChatObject.isChannel(currentChat) && (currentType == TYPE_BANNED || currentType == TYPE_ADMIN && (!isDefaultAdminRights() || rankRow != -1 && currentRank.codePointCount(0, currentRank.length()) <= MAX_RANK_LENGTH) || currentType == TYPE_ADD_BOT && (currentRank != null || !isDefaultAdminRights()))) {
             MessagesController.getInstance(currentAccount).convertToMegaGroup(getParentActivity(), chatId, this, param -> {
+                if (fragmentDestroyed) {
+                    return;
+                }
                 if (param != 0) {
                     chatId = param;
                     currentChat = MessagesController.getInstance(currentAccount).getChat(param);
@@ -2307,11 +2371,9 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                     }
 
                     if (currentType == TYPE_ADD_BOT) {
-//                        checkCell.setEnabled((asAdmin || position == manageRow) && !checkCell.hasIcon(), false);
+
                     } else {
-//                        if (position == sendMediaRow || position == sendStickersRow || position == embedLinksRow || position == sendPollsRow) {
-//                            checkCell.setEnabled(!bannedRights.send_messages && !bannedRights.view_messages && !defaultBannedRights.send_messages && !defaultBannedRights.view_messages);
-//                        } else
+
                         if (position == sendMessagesRow) {
                             checkCell.setEnabled(!bannedRights.view_messages && !defaultBannedRights.view_messages);
                         }
@@ -2604,14 +2666,7 @@ public class ChatRightsEditActivity extends BaseFragment implements Notification
                 }
             }
         }
-//        listViewAdapter.notifyItemRangeChanged(permissionsStartRow, permissionsEndRow - permissionsStartRow);
-//        if (asAdmin) {
-//            listViewAdapter.notifyItemMoved(addBotButtonRow, rightsShadowRow + 1);
-//            listViewAdapter.notifyItemRangeInserted(rightsShadowRow, rankInfoRow - rightsShadowRow + 1);
-//        } else {
-//            listViewAdapter.notifyItemRangeRemoved(rightsShadowRow, rankInfoRow - rightsShadowRow + 1);
-//            listViewAdapter.notifyItemMoved(addBotButtonRow, permissionsEndRow + 1);
-//        }
+
         listViewAdapter.notifyDataSetChanged();
 
         if (addBotButtonText != null) {
