@@ -131,6 +131,9 @@ public class EditTextBoldCursor extends EditTextEffects {
     protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
         cancelStaleSuggestionsPopup();
         super.onTextChanged(text, start, lengthBefore, lengthAfter);
+        if (transformHintToHeader && !transformHintToHeaderOnFocus) {
+            checkHeaderVisibility(true);
+        }
     }
 
     private Paint linePaint;
@@ -719,14 +722,6 @@ public class EditTextBoldCursor extends EditTextEffects {
                 headerAnimationProgress = newHintHeader ? 1.0f : 0.0f;
             }
             invalidate();
-        }
-    }
-
-    @Override
-    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-        super.onTextChanged(text, start, lengthBefore, lengthAfter);
-        if (transformHintToHeader && !transformHintToHeaderOnFocus) {
-            checkHeaderVisibility(true);
         }
     }
 
