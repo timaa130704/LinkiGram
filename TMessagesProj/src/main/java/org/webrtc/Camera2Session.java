@@ -58,21 +58,26 @@ class Camera2Session implements CameraSession {
 
   private OrientationHelper orientationHelper;
 
+  // Initialized at start
   private CameraCharacteristics cameraCharacteristics;
   private int cameraOrientation;
   private boolean isCameraFrontFacing;
   private int fpsUnitFactor;
   private CaptureFormat captureFormat;
 
+  // Initialized when camera opens
   @Nullable private CameraDevice cameraDevice;
   @Nullable private Surface surface;
 
+  // Initialized when capture session is created
   @Nullable private CameraCaptureSession captureSession;
 
+  // State
   private SessionState state = SessionState.RUNNING;
   private boolean firstFrameReported;
 
-  private final long constructionTimeNs; 
+  // Used only for stats. Only used on the camera thread.
+  private final long constructionTimeNs; // Construction time of this class.
 
   private class CameraStateCallback extends CameraDevice.StateCallback {
     private String getErrorDescription(int errorCode) {
@@ -153,10 +158,16 @@ class Camera2Session implements CameraSession {
       Logging.d(TAG, "Camera capture session configured.");
       captureSession = session;
       try {
-         
+        /*
+         * The viable options for video capture requests are:
+         * TEMPLATE_PREVIEW: High frame rate is given priority over the highest-quality
+         *   post-processing.
+         * TEMPLATE_RECORD: Stable frame rate is used, and post-processing is set for recording
+         *   quality.
+         */
         final CaptureRequest.Builder captureRequestBuilder =
             cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-        
+        // Set auto exposure fps range.
         captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
             new Range<Integer>(captureFormat.framerate.min / fpsUnitFactor,
                 captureFormat.framerate.max / fpsUnitFactor));
@@ -189,12 +200,15 @@ class Camera2Session implements CameraSession {
           camera2StartTimeMsHistogram.addSample(startTimeMs);
         }
 
+        // Undo the mirror that the OS "helps" us with.
+        // http://developer.android.com/reference/android/hardware/Camera.html#setDisplayOrientation(int)
+        // Also, undo camera orientation, we report it as rotation instead.
         final VideoFrame modifiedFrame =
             new VideoFrame(CameraSession.createTextureBufferWithModifiedTransformMatrix(
                 (TextureBufferImpl) frame.getBuffer(),
-                  isCameraFrontFacing,
-                  -cameraOrientation),
-                  getFrameOrientation(), frame.getTimestampNs());
+                /* mirror= */ isCameraFrontFacing,
+                /* rotation= */ -cameraOrientation),
+                /* rotation= */ getFrameOrientation(), frame.getTimestampNs());
         events.onFrameCaptured(Camera2Session.this, modifiedFrame);
         modifiedFrame.release();
       });
@@ -202,18 +216,9 @@ class Camera2Session implements CameraSession {
       callback.onDone(Camera2Session.this);
     }
 
+    // Prefers optical stabilization over software stabilization if available. Only enables one of
+    // the stabilization modes at a time because having both enabled can cause strange results.
     private void chooseStabilizationMode(CaptureRequest.Builder captureRequestBuilder) {
-      
-      if (!app.nimarkogram.messenger.NimarkoConfig.cameraOpticalStabilization) {
-        try {
-          captureRequestBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
-              CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
-          captureRequestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
-              CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
-        } catch (Throwable ignored) {}
-        Logging.d(TAG, "Stabilization disabled by NimarkoConfig.");
-        return;
-      }
       final int[] availableOpticalStabilization = cameraCharacteristics.get(
           CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
       if (availableOpticalStabilization != null) {
@@ -228,7 +233,7 @@ class Camera2Session implements CameraSession {
           }
         }
       }
-      
+      // If no optical mode is available, try software.
       final int[] availableVideoStabilization = cameraCharacteristics.get(
           CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
       for (int mode : availableVideoStabilization) {
@@ -245,11 +250,6 @@ class Camera2Session implements CameraSession {
     }
 
     private void chooseFocusMode(CaptureRequest.Builder captureRequestBuilder) {
-      
-      if (!app.nimarkogram.messenger.NimarkoConfig.cameraContinuousFocus) {
-        Logging.d(TAG, "Continuous focus disabled by NimarkoConfig.");
-        return;
-      }
       final int[] availableFocusModes =
           cameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
       for (int mode : availableFocusModes) {
