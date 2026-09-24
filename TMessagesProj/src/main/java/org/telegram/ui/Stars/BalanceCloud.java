@@ -55,7 +55,7 @@ public class BalanceCloud extends LinearLayout implements NotificationCenter.Not
         textView2 = new LinkSpanDrawable.LinksTextView(context, resourcesProvider);
         textView2.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         textView2.setText(AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(LocaleController.getString(R.string.Gift2MessageStarsInfoLink), () -> {
-            new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show();
+            new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
         }), true, dp(8f / 3f), dp(1)));
         textView2.setGravity(Gravity.CENTER);
         addView(textView2, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, Gravity.CENTER, 0, 1, 0, 0));
@@ -83,7 +83,7 @@ public class BalanceCloud extends LinearLayout implements NotificationCenter.Not
             textView2.setTextColor(Theme.getColor(Theme.key_undo_cancelColor, resourcesProvider));
             textView2.setLinkTextColor(Theme.getColor(Theme.key_undo_cancelColor, resourcesProvider));
             textView2.setText(AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(LocaleController.getString(R.string.Gift2MessageStarsInfoLink), () -> {
-                new StarsIntroActivity.StarsOptionsSheet(getContext(), currentAccount, resourcesProvider).show();
+                new StarsIntroActivity.StarsOptionsSheet(getContext(), resourcesProvider).show();
             }), true, dp(8f / 3f), dp(1)));
         } else if (currency == AmountUtils.Currency.TON) {
             textView1.setText(StarsIntroActivity.replaceStarsWithPlain(true, AndroidUtilities.replaceTags(LocaleController.formatString(R.string.Gift2MessageStarsInfoTON, balance.asDecimalString())), .60f, coloredImageSpansTon));

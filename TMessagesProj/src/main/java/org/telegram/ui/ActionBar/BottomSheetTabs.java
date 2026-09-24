@@ -68,8 +68,6 @@ import java.util.List;
 
 public class BottomSheetTabs extends FrameLayout {
 
-    private static final int MAX_LIVE_WEB_TABS = 3;
-
     private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     public boolean drawTabs = true;
     public boolean doNotDismiss = false;
@@ -99,9 +97,9 @@ public class BottomSheetTabs extends FrameLayout {
         return super.dispatchHoverEvent(event);
     }
 
-    public boolean openTab(WebTabData tab) {
+    public void openTab(WebTabData tab) {
         BaseFragment lastFragment = LaunchActivity.getLastFragment();
-        if (lastFragment == null || lastFragment.getParentActivity() == null) return false;
+        if (lastFragment == null || lastFragment.getParentActivity() == null) return;
         if (lastFragment instanceof ChatActivity) {
             if (((ChatActivity) lastFragment).getChatActivityEnterView() != null) {
                 ((ChatActivity) lastFragment).getChatActivityEnterView().closeKeyboard();
@@ -118,9 +116,8 @@ public class BottomSheetTabs extends FrameLayout {
             articleViewer.sheet.attachInternal(fragment);
             articleViewer.sheet.animateOpen(true, true, null);
             removeTab(tab, false);
-            return true;
+            return;
         }
-        final boolean[] opened = new boolean[1];
         Utilities.Callback<BaseFragment> open = fragment -> {
             if (fragment == null) return;
             if (fragment instanceof ChatActivity) {
@@ -135,11 +132,8 @@ public class BottomSheetTabs extends FrameLayout {
             BotWebViewSheet sheet = new BotWebViewSheet(fragment.getContext(), fragment.getResourceProvider());
             sheet.setParentActivity(fragment.getParentActivity());
             if (sheet.restoreState(fragment, tab)) {
+                removeTab(tab, false);
                 sheet.show();
-                opened[0] = sheet.isShowing();
-                if (opened[0]) {
-                    removeTab(tab, false);
-                }
             }
         };
         open.run(lastFragment);
@@ -151,7 +145,6 @@ public class BottomSheetTabs extends FrameLayout {
                 doNotDismiss = false;
             }, 220);
         }
-        return opened[0];
     }
 
     public WebTabData tryReopenTab(WebViewRequestProps props) {
@@ -162,7 +155,8 @@ public class BottomSheetTabs extends FrameLayout {
         for (int i = 0; i < tabs.size(); ++i) {
             WebTabData tab = tabs.get(i);
             if (props.equals(tab.props)) {
-                return openTab(tab) ? tab : null;
+                openTab(tab);
+                return tab;
             }
         }
         return null;
@@ -189,7 +183,8 @@ public class BottomSheetTabs extends FrameLayout {
                         webView = tab.articleViewer.pages[0].getWebView();
                     }
                     if (webView != null && TextUtils.equals(urlWithoutFragment(webView.canGoBack() ? webView.getUrl() : webView.getOpenURL()), urlWithoutFragment(url))) {
-                        return openTab(tab) ? tab : null;
+                        openTab(tab);
+                        return tab;
                     }
                 }
             }
@@ -207,7 +202,8 @@ public class BottomSheetTabs extends FrameLayout {
                 if (lastPage instanceof TLRPC.WebPage) {
                     TLRPC.WebPage pageWebPage = (TLRPC.WebPage) lastPage;
                     if (pageWebPage != null && pageWebPage.id == webpage.id) {
-                        return openTab(tab) ? tab : null;
+                        openTab(tab);
+                        return tab;
                     }
                 }
             }
@@ -325,7 +321,6 @@ public class BottomSheetTabs extends FrameLayout {
         tabDrawables.add(tabDrawable);
 
         tabs.add(0, tab);
-        trimLiveWebTabs(tabs);
         for (int i = 0; i < tabDrawables.size(); ++i) {
             TabDrawable drawable = tabDrawables.get(i);
             final int index = tabs.indexOf(drawable.tab);
@@ -343,16 +338,6 @@ public class BottomSheetTabs extends FrameLayout {
             accessibilityHelper.invalidateRoot();
         }
         return tabDrawable;
-    }
-
-    private void trimLiveWebTabs(ArrayList<WebTabData> tabs) {
-        int liveWebViews = 0;
-        for (int i = 0; i < tabs.size(); i++) {
-            WebTabData tab = tabs.get(i);
-            if (tab.webView != null && ++liveWebViews > MAX_LIVE_WEB_TABS) {
-                tab.evictWebView();
-            }
-        }
     }
 
     @Override
@@ -406,15 +391,10 @@ public class BottomSheetTabs extends FrameLayout {
             tabs.get(i).destroy();
         }
         tabs.clear();
-        final ArrayList<TabDrawable> removedDrawables = new ArrayList<>(tabDrawables);
         for (int i = 0; i < tabDrawables.size(); ++i) {
             TabDrawable drawable = tabDrawables.get(i);
             drawable.index = -1;
         }
-        AndroidUtilities.runOnUIThread(() -> {
-            tabDrawables.removeAll(removedDrawables);
-            invalidate();
-        }, 400);
         updateMultipleTitle();
         updateVisibility(true);
         invalidate();
@@ -598,7 +578,7 @@ public class BottomSheetTabs extends FrameLayout {
         }
 
         backgroundPaint.setColor(backgroundColorAnimated.set(backgroundColor));
-        
+        // canvas.drawRect(0, 0, getWidth(), getHeight(), backgroundPaint);
         super.dispatchDraw(canvas);
 
         final int tabColor = tabColorAnimated.set(this.tabColor);
@@ -736,6 +716,7 @@ public class BottomSheetTabs extends FrameLayout {
             return false;
         }
     }
+
 
     public static class TabDrawable {
 
@@ -1015,43 +996,12 @@ public class BottomSheetTabs extends FrameLayout {
             return props.botId;
         }
 
-        public void evictWebView() {
-            final BotWebViewContainer.MyWebView oldWebView = webView;
-            webView = null;
-            proxy = null;
-            ready = false;
-            if (sensors != null) {
-                if (oldWebView != null) {
-                    sensors.detachWebView(oldWebView);
-                }
-                sensors.stopAll();
-                sensors = null;
-            }
-            if (oldWebView != null) {
-                try {
-                    oldWebView.destroy();
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
-            }
-        }
-
         public void destroy() {
             try {
-                evictWebView();
-                final Bitmap bitmapToRecycle = previewBitmap;
-                final Object nodeToRelease = previewNode;
-                AndroidUtilities.runOnUIThread(() -> {
-                    if (previewBitmap == bitmapToRecycle) {
-                        previewBitmap = null;
-                    }
-                    if (previewNode == nodeToRelease) {
-                        previewNode = null;
-                    }
-                    if (bitmapToRecycle != null && !bitmapToRecycle.isRecycled()) {
-                        bitmapToRecycle.recycle();
-                    }
-                }, 400);
+                if (webView != null) {
+                    webView.destroy();
+                    webView = null;
+                }
                 if (articleViewer != null) {
                     articleViewer.destroy();
                 }
@@ -1142,8 +1092,8 @@ public class BottomSheetTabs extends FrameLayout {
             if (bottomSheetHeight <= 0)
                 return;
 
-            clipRadius[0] = clipRadius[1] = clipRadius[2] = clipRadius[3] = 0; 
-            clipRadius[4] = clipRadius[5] = clipRadius[6] = clipRadius[7] = bottomRadius; 
+            clipRadius[0] = clipRadius[1] = clipRadius[2] = clipRadius[3] = 0; // top
+            clipRadius[4] = clipRadius[5] = clipRadius[6] = clipRadius[7] = bottomRadius; // bottom
 
             clipPath.rewind();
             clipRect.set(0, 0, width, tabs.getY() + tabs.getHeight() - bottomSheetHeight);

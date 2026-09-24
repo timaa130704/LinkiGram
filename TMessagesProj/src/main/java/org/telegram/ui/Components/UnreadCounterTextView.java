@@ -1,5 +1,6 @@
 package org.telegram.ui.Components;
 
+
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -86,17 +87,12 @@ public class UnreadCounterTextView extends View {
     }
 
     public void setText(CharSequence text) {
-        lastText = text;
         layoutPaint.setTypeface(AndroidUtilities.bold());
         layoutTextWidth = (int) Math.ceil(layoutPaint.measureText(text, 0, text.length()));
         icon = null;
         textLayout = new StaticLayout(text, layoutPaint, layoutTextWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
         setContentDescription(text);
         invalidate();
-    }
-
-    public CharSequence getText() {
-        return lastText;
     }
 
     public void setTextInfo(CharSequence text) {

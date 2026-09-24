@@ -184,13 +184,13 @@ public class LinkManager {
 
         if ("chats".equalsIgnoreCase(first)) {
             if ("search".equalsIgnoreCase(second)) {
-                
+                // TODO
             }
             if ("edit".equalsIgnoreCase(second)) {
-                
+                // TODO
             }
             if ("emoji-status".equalsIgnoreCase(second)) {
-                
+                // TODO
             }
         }
 
@@ -246,10 +246,10 @@ public class LinkManager {
             presentFragment(new ContactsActivity(args));
 
             if ("search".equalsIgnoreCase(second)) {
-                
+                // TODO
             }
             if ("sort".equalsIgnoreCase(second)) {
-                
+                // TODO
             }
             if ("invite".equalsIgnoreCase(second)) {
                 scrollTo("phonebookRow");
@@ -263,6 +263,7 @@ public class LinkManager {
         return false;
     }
 
+    // tg://resolve
     private boolean handleTgResolve(Uri uri) {
         final List<String> _segments = uri.getPathSegments();
         if (_segments == null) return false;
@@ -271,7 +272,7 @@ public class LinkManager {
         if (!TextUtils.isEmpty(authority))
             segments.add(0, authority);
         if (segments.isEmpty()) return false;
-        segments.remove(0); 
+        segments.remove(0); // remove "resolve"
 
         final String domain = uri.getQueryParameter("domain");
         final String startapp = uri.getQueryParameter("startapp");
@@ -282,6 +283,7 @@ public class LinkManager {
         return false;
     }
 
+    // tg://settings/*
     private boolean handleSettings(final List<String> segments) {
         if (segments == null) return false;
         if (segments.isEmpty()) {
@@ -295,33 +297,12 @@ public class LinkManager {
         final String fourth = segments.size() > 3 ? segments.get(3) : null;
         final String fifth  = segments.size() > 4 ? segments.get(4) : null;
 
-        try {
-            app.nimarkogram.messenger.preferences.utils.SettingsRegistry registry =
-                    app.nimarkogram.messenger.preferences.utils.SettingsRegistry.getInstance();
-            registry.createEntriesIfNeeded();
-            app.nimarkogram.messenger.preferences.utils.SettingsRegistry.Entry entry =
-                    registry.entriesStringAlias.get(first);
-            if (entry != null && entry.fragmentClass != null
-                    && BaseFragment.class.isAssignableFrom(entry.fragmentClass)) {
-                BaseFragment target = (BaseFragment) entry.fragmentClass.getDeclaredConstructor().newInstance();
-                presentFragment(target);
-                if (target instanceof app.nimarkogram.messenger.preferences.BasePreferencesActivity) {
-                    final int itemId = entry.itemId;
-                    AndroidUtilities.runOnUIThread(() ->
-                            ((app.nimarkogram.messenger.preferences.BasePreferencesActivity) target)
-                                    .scrollToItem(itemId), 250);
-                }
-                return true;
-            }
-        } catch (Throwable t) {
-            FileLog.e("nimarko settings link failed", t);
-        }
-
-        if ("theme".equalsIgnoreCase(first) || "themes".equalsIgnoreCase(first)) { 
+        // legacy paths:
+        if ("theme".equalsIgnoreCase(first) || "themes".equalsIgnoreCase(first)) { // open_settings = 2;
             presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC));
             return true;
         }
-        if ("devices".equalsIgnoreCase(first)) { 
+        if ("devices".equalsIgnoreCase(first)) { // open_settings = 3;
             final SessionsActivity f = new SessionsActivity(0);
             if ("link-desktop".equalsIgnoreCase(second))
                 f.setHighlightLinkDesktopDevice();
@@ -332,7 +313,7 @@ public class LinkManager {
                 scrollTo("ttlRow");
             return true;
         }
-        if ("folders".equalsIgnoreCase(first)) { 
+        if ("folders".equalsIgnoreCase(first)) { // open_settings = 4;
 
             final FiltersSetupActivity f = new FiltersSetupActivity();
             presentFragment(new FiltersSetupActivity());
@@ -345,11 +326,11 @@ public class LinkManager {
 
             return true;
         }
-        if ("change_number".equalsIgnoreCase(first)) { 
+        if ("change_number".equalsIgnoreCase(first)) { // open_settings = 5;
             presentFragment(new ActionIntroActivity(ActionIntroActivity.ACTION_TYPE_CHANGE_PHONE_NUMBER), true);
             return true;
         }
-        if ("language".equalsIgnoreCase(first)) { 
+        if ("language".equalsIgnoreCase(first)) { // open_settings = 10;
             if ("do-not-translate".equalsIgnoreCase(second)) {
                 presentFragment(new RestrictedLanguagesSelectActivity());
                 return true;
@@ -363,15 +344,15 @@ public class LinkManager {
             }
             return true;
         }
-        if ("auto_delete".equalsIgnoreCase(first)) { 
+        if ("auto_delete".equalsIgnoreCase(first)) { // open_settings = 11;
             presentFragment(new AutoDeleteMessagesActivity());
             return true;
         }
-        if ("phone_privacy".equalsIgnoreCase(first)) { 
+        if ("phone_privacy".equalsIgnoreCase(first)) { // open_settings = 14;
             presentFragment(new PrivacyControlActivity(ContactsController.PRIVACY_RULES_TYPE_PHONE));
             return true;
         }
-        if ("premium_sms".equalsIgnoreCase(first)) { 
+        if ("premium_sms".equalsIgnoreCase(first)) { // open_settings = 13;
             if (ApplicationLoader.applicationLoaderInstance != null) {
                 final BaseFragment fragment = ApplicationLoader.applicationLoaderInstance.openSettings(13);
                 if (fragment != null) {
@@ -380,7 +361,7 @@ public class LinkManager {
                 }
             }
         }
-        if ("login_email".equalsIgnoreCase(first)) { 
+        if ("login_email".equalsIgnoreCase(first)) { // open_settings = 15;
             init();
             setRequestId(getConnectionsManager().sendRequest(new TL_account.getPassword(), (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                 done();
@@ -414,10 +395,7 @@ public class LinkManager {
         }
 
         if ("saved-messages".equalsIgnoreCase(first)) {
-            
-            long savedId = app.nimarkogram.messenger.utils.chats.NimarkoChatHelper2
-                    .getCustomChatID(getUserConfig().getClientUserId());
-            presentFragment(ChatActivity.of(savedId));
+            presentFragment(ChatActivity.of(getUserConfig().getClientUserId()));
             return true;
         }
 
@@ -712,7 +690,7 @@ public class LinkManager {
             return true;
         }
 
-        if ("privacy".equalsIgnoreCase(first)) { 
+        if ("privacy".equalsIgnoreCase(first)) { // open_settings = 12;
             if ("data-settings".equalsIgnoreCase(second) && "delete-cloud-drafts".equalsIgnoreCase(third)) {
                 presentFragment(new DataSettingsActivity());
                 scrollTo("clearDraftsRow");
@@ -806,7 +784,9 @@ public class LinkManager {
             }
             if (!TextUtils.isEmpty(third) && "auto-delete".equalsIgnoreCase(second) && getUserConfig().getGlobalTTl() >= 0) {
                 presentFragment(new AutoDeleteMessagesActivity());
-
+//                // TODO
+//                if ("set-custom".equalsIgnoreCase(third))
+//                    scrollTo("");
                 return true;
             }
             if (!TextUtils.isEmpty(third) && (
@@ -872,9 +852,10 @@ public class LinkManager {
             }
 
             if (!MessagesController.getInstance(currentAccount).autoarchiveAvailable && "archive-and-mute".equalsIgnoreCase(second)) {
-                
+                // TODO ???
                 return true;
             }
+
 
             presentFragment(new PrivacySettingsActivity());
 
@@ -1090,7 +1071,7 @@ public class LinkManager {
             }
             if (!TextUtils.isEmpty(third) && ("your-color".equalsIgnoreCase(second) || "color".equalsIgnoreCase(second))) {
                 final PeerColorActivity f = new PeerColorActivity(0);
-                
+                // TODO
                 presentFragment(f);
                 return true;
             }
@@ -1140,7 +1121,8 @@ public class LinkManager {
             if ("your-color".equalsIgnoreCase(second) || "color".equalsIgnoreCase(second)) {
                 scrollTo("changeUserColor");
             }
-
+//            if ("night-mode".equalsIgnoreCase(second) || "dark-mode".equalsIgnoreCase(second) || "dark".equalsIgnoreCase(second) || "night".equalsIgnoreCase(second))
+//                scrollTo("nightmode?") // TODO
             if ("auto-night-mode".equalsIgnoreCase(second))
                 scrollTo("nightThemeRow");
             if ("text-size".equalsIgnoreCase(second))
@@ -1183,7 +1165,7 @@ public class LinkManager {
 
         if ("stars".equalsIgnoreCase(first)) {
             if ("top-up".equalsIgnoreCase(second)) {
-                new StarsIntroActivity.StarsOptionsSheet(activity, currentAccount, null).show();
+                new StarsIntroActivity.StarsOptionsSheet(activity, null).show();
                 return true;
             }
             if ("stats".equalsIgnoreCase(second)) {
@@ -1353,7 +1335,7 @@ public class LinkManager {
         if (fragment == null || fragment.getContext() == null) return true;
 
         init();
-        final TLRPC.User[] manager = new TLRPC.User[] { null   };
+        final TLRPC.User[] manager = new TLRPC.User[] { null /* MessagesController.getInstance(currentAccount).getUser(managerUsername) */ };
         final Runnable open = () -> {
             CreateBotAlert.show(fragment.getContext(), currentAccount, manager[0], peer_type, true, newBot -> {
                 done();
@@ -1384,7 +1366,7 @@ public class LinkManager {
                 presentFragment(chatActivity);
             }, fragment.getResourceProvider(), getBulletinFactory(), false);
         };
-
+//        if (manager[0] == null) {
             MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(managerUsername, id -> {
                 manager[0] = id == null ? null : MessagesController.getInstance(currentAccount).getUser(id);
                 if (manager[0] == null) {
@@ -1394,7 +1376,9 @@ public class LinkManager {
                 }
                 open.run();
             });
-
+//        } else {
+//            open.run();
+//        }
         return true;
     }
 

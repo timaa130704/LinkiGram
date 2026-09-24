@@ -57,7 +57,6 @@ import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.SecretChatHelper;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.utils.DebugRecordingCanvas;
 import org.telegram.messenger.utils.LeakDetector;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ArticleViewer;
@@ -94,7 +93,9 @@ public abstract class BaseFragment {
     private PreviewDelegate previewDelegate;
     protected Theme.ResourcesProvider resourceProvider;
     private boolean isFullyVisible;
-
+//    public ArrayList<StoryViewer> storyViewerStack;
+//    public ArrayList<BotWebViewAttachedSheet> botsStack;
+//
     public ArrayList<AttachedSheet> sheetsStack;
 
     public static interface AttachedSheet {
@@ -306,14 +307,6 @@ public abstract class BaseFragment {
     }
 
     public boolean isActionBarCrossfadeEnabled() {
-        
-        if (app.nimarkogram.messenger.NimarkoConfig.isSpringAnimationEnabled()
-                && app.nimarkogram.messenger.NimarkoConfig.actionbarCrossfade) {
-            if (getLastStoryViewer() != null && getLastStoryViewer().attachedToParent()) {
-                return false;
-            }
-            return actionBar != null && !actionBar.isActionModeShowed();
-        }
         return actionBar != null;
     }
 
@@ -373,31 +366,9 @@ public abstract class BaseFragment {
         updateSheetsVisibility();
     }
 
-    private static void nmClearClickListenersDeep(android.view.View v) {
-        if (v == null) {
-            return;
-        }
-        try {
-            if (v.hasOnClickListeners()) {
-                v.setOnClickListener(null);
-            }
-            v.setOnLongClickListener(null);
-        } catch (Throwable ignored) {}
-        if (v instanceof ViewGroup) {
-            ViewGroup g = (ViewGroup) v;
-            for (int i = 0, n = g.getChildCount(); i < n; i++) {
-                nmClearClickListenersDeep(g.getChildAt(i));
-            }
-        }
-    }
-
     public void setParentFragment(BaseFragment fragment) {
         setParentLayout(fragment.parentLayout);
         fragmentView = createView(parentLayout.getView().getContext());
-        
-        if (fragmentView != null && app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-            app.nimarkogram.messenger.utils.VibrateUtils.disableHapticFeedback(fragmentView);
-        }
     }
 
     public void setParentLayout(INavigationLayout layout) {
@@ -540,8 +511,6 @@ public abstract class BaseFragment {
                 sheetsStack.remove(i);
             }
         }
-
-        try { nmClearClickListenersDeep(actionBar); } catch (Throwable ignored) {}
     }
 
     public boolean needDelayOpenAnimation() {
@@ -1131,6 +1100,9 @@ public abstract class BaseFragment {
         return Theme.getThemeDrawable(key);
     }
 
+    /**
+     * @return If this fragment should have light status bar even if it's disabled in debug settings
+     */
     public boolean hasForceLightStatusBar() {
         return false;
     }
@@ -1161,7 +1133,7 @@ public abstract class BaseFragment {
             if (activity != null) {
                 Window window = activity.getWindow();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && window != null && window.getNavigationBarColor() != color) {
-                    
+                    // window.setNavigationBarColor(color);
                 }
             }
         }
@@ -1356,6 +1328,7 @@ public abstract class BaseFragment {
         return storyViewer;
     }
 
+
     public void setTitleOverlayTextIfActionBarAttached(String title, int titleId, Runnable action) {
         if (actionBar != null && actionBar.shouldAddToContainer()) {
             setTitleOverlayText(title, titleId, action);
@@ -1364,8 +1337,7 @@ public abstract class BaseFragment {
 
     public void setTitleOverlayText(String title, int titleId, Runnable action) {
         if (actionBar != null) {
-            
-            actionBar.setTitleOverlayText(title, titleId, true, action);
+            actionBar.setTitleOverlayText(title, titleId, action);
         }
     }
 
@@ -1463,7 +1435,7 @@ public abstract class BaseFragment {
 
     @Deprecated
     public boolean isSupportEdgeToEdge() {
-        
+        // warn: overridden method must return a constant
         return false;
     }
 
@@ -1486,6 +1458,7 @@ public abstract class BaseFragment {
 
     }
 
+
     private Bulletin.Delegate bulletinDelegate;
 
     public void setBulletinDelegate(Bulletin.Delegate bulletinDelegate) {
@@ -1495,6 +1468,7 @@ public abstract class BaseFragment {
     public Bulletin.Delegate getBulletinDelegate() {
         return bulletinDelegate;
     }
+
 
     protected void dumpCanvas() {
         AndroidUtilities.dumpCanvas(fragmentView);

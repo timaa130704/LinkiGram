@@ -40,11 +40,10 @@ import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceWrapped;
 import org.telegram.ui.Components.blur3.utils.NinePatchBuilder;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 
 public abstract class BlurredBackgroundDrawable extends Drawable {
-    public static final float DEFAULT_LIQUID_INTENSITY = 0.75f;
-
     public BlurredBackgroundDrawable() {
         boundProps.strokeWidthTop = dpf2(1);
         boundProps.strokeWidthBottom = dpf2(2 / 3f);
@@ -139,15 +138,8 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
     }
 
     public void setIntensity(float intensity) {
-        intensity = Math.max(0f, intensity);
-        if (boundProps.liquidIntensity != intensity) {
-            boundProps.liquidIntensity = intensity;
-            onBoundPropsChanged();
-        }
-    }
-
-    public float getIntensity() {
-        return boundProps.liquidIntensity;
+        boundProps.liquidIntensity = intensity;
+        onBoundPropsChanged();
     }
 
     public Rect getPaddedBounds() {
@@ -188,8 +180,12 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         return source;
     }
 
+
+
+    /* Colors */
+
     protected BlurredBackgroundColorProvider colorProvider;
-    protected int shadowColor, backgroundColor, strokeColorTop, strokeColorBottom, strokeColorFull;
+    protected int shadowColor, backgroundColor, strokeColorTop, strokeColorBottom;
 
     public BlurredBackgroundDrawable setColorProvider(BlurredBackgroundColorProvider colorProvider) {
         this.colorProvider = colorProvider;
@@ -209,18 +205,13 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
 
         backgroundColor = colorProvider.getBackgroundColor();
         shadowColor = colorProvider.getShadowColor();
-        
-        if (app.nimarkogram.messenger.NimarkoConfig.glareOnElements) {
-            strokeColorTop = colorProvider.getStrokeColorTop();
-            strokeColorBottom = colorProvider.getStrokeColorBottom();
-            strokeColorFull = 0;
-        } else {
-            strokeColorTop = 0;
-            strokeColorBottom = 0;
-            strokeColorFull = colorProvider.getStrokeColorFull();
-        }
+        strokeColorTop = colorProvider.getStrokeColorTop();
+        strokeColorBottom = colorProvider.getStrokeColorBottom();
     }
 
+
+
+    /* Bound Props */
     private static final float[] tmpRadii = new float[8];
     protected final Props boundProps = new Props();
 
@@ -231,7 +222,7 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         public int padding;
         public boolean hasPadding;
         public int liquidThickness;
-        public float liquidIntensity = DEFAULT_LIQUID_INTENSITY;
+        public float liquidIntensity = 0.75f;
         public float liquidIndex = 1.5f;
 
         public float strokeWidthTop;
@@ -320,6 +311,10 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         }
     }
 
+
+
+    /* Outline */
+
     private ViewOutlineProvider viewOutlineProvider;
 
     public ViewOutlineProvider getViewOutlineProvider() {
@@ -383,6 +378,8 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         return PixelFormat.TRANSLUCENT;
     }
 
+
+
     public static void drawStroke(
         Canvas canvas,
         float left, float top, float right, float bottom,
@@ -397,7 +394,8 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         final float strokeHalf = strokeWidth / 2f;
 
         if (isTop) {
-            
+            // float topLeft, float topRight, float bottomRight, float bottomLeft
+
             if (radiiAreSame) {
                 canvas.save();
                 if (canvas.clipRect(left, top, right, MathUtils.clamp(top + radii[0] * 2, top, bottom))) {
@@ -522,6 +520,7 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         inAppKeyboardOptimization = true;
     }
 
+
     protected float shadowLayerRadius;
     protected float shadowLayerDx;
     protected float shadowLayerDy;
@@ -541,6 +540,10 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         boundProps.strokeWidthTop = strokeWidthTop;
         boundProps.strokeWidthBottom = strokeWidthBottom;
     }
+
+
+
+    /* Universal */
 
     protected void drawSource(Canvas canvas, BlurredBackgroundSource source) {
         if (boundProps.boundsWithPadding.isEmpty()) {
@@ -572,14 +575,14 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
     private final Paint backgroundBitmapFill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Matrix bitmapShaderMatrix = new Matrix();
-     
-    private @Nullable Bitmap bitmapInShader;
+    private final WeakReference<Bitmap> bitmapInShader = new WeakReference<>(null);
     private @Nullable BitmapShader bitmapShader;
 
     {
         shadowPaint.setColor(0);
         backgroundBitmapPaint.setFilterBitmap(true);
     }
+
 
     private void drawSourceAny(Canvas canvas, BlurredBackgroundSource source) {
         if (alpha == 0) {
@@ -650,17 +653,16 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
 
     private void drawSourceBitmap(Canvas canvas, BlurredBackgroundSourceBitmap source) {
         final Bitmap newBitmap = source.getBitmap();
+        final Bitmap oldBitmap = bitmapInShader.get();
 
-        if (newBitmap == null || newBitmap.isRecycled()) {
-            if (bitmapInShader != null || bitmapShader != null) {
-                bitmapInShader = null;
+        if (newBitmap != oldBitmap) {
+            if (newBitmap != null && !newBitmap.isRecycled()) {
+                bitmapShader = new BitmapShader(newBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                backgroundBitmapPaint.setShader(bitmapShader);
+            } else {
                 bitmapShader = null;
                 backgroundBitmapPaint.setShader(null);
             }
-        } else if (newBitmap != bitmapInShader) {
-            bitmapInShader = newBitmap;
-            bitmapShader = new BitmapShader(newBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-            backgroundBitmapPaint.setShader(bitmapShader);
         }
 
         if (Color.alpha(shadowColor) > 0) {
@@ -693,13 +695,6 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
     }
 
     private void drawStrokeInternalIfNeeded(Canvas canvas) {
-        
-        final int strokeColorFull = Theme.multAlpha(this.strokeColorFull, alpha / 255f);
-        if (Color.alpha(strokeColorFull) > 0) {
-            paintStrokeFill.setColor(strokeColorFull);
-            canvas.drawPath(boundProps.strokePathTop, paintStrokeFill);
-            return;
-        }
         final int strokeColorTop = Theme.multAlpha(this.strokeColorTop, alpha / 255f);
         final int strokeColorBottom = Theme.multAlpha(this.strokeColorBottom, alpha / 255f);
 
@@ -720,6 +715,7 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
             return;
         }
 
+        // todo: move from drawableRenderNode
     }
 
     private final RectF cmpRectF1 = new RectF();
@@ -741,6 +737,15 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
         position.set(boundProps.boundsWithPadding);
         position.offset(sourceOffsetX, sourceOffsetY);
     }
+
+
+
+
+    /* * */
+
+    //private static final Map<Long, NinePatchDrawable> ninePatchDrawablesPool = new MapMaker()
+    //    .weakValues()
+    //    .makeMap();
 
     private final Blur3HashImpl ninePatchHashBuilder = new Blur3HashImpl();
     private final Rect ninePatchDrawablePadding = new Rect();
@@ -790,6 +795,7 @@ public abstract class BlurredBackgroundDrawable extends Drawable {
                         paint.clearShadowLayer();
                         canvas.drawPath(path, paint);
                     }
+
 
                     if (withStroke) {
                         final float[] radii = Arrays.copyOf(boundProps.radii, 8);

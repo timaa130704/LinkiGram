@@ -42,8 +42,8 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
     private LinearLayout headerView;
     private FrameLayout buttonContainer;
 
-    public ExplainStarsSheet(Context context, int currentAccount) {
-        super(context, null, false, false, false, currentAccount, null);
+    public ExplainStarsSheet(Context context) {
+        super(context, null, false, false, false, null);
         topPadding = .1f;
 
         fixNavigationBar();
@@ -83,7 +83,7 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
         subtitleView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
         subtitleView.setGravity(Gravity.CENTER);
         subtitleView.setText(getString(R.string.ExplainStarsTitle2));
-        headerView.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT , LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 16, 9, 16, 18));
+        headerView.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT/*(int) Math.ceil(HintView2.cutInFancyHalf(subtitleView.getText(), subtitleView.getPaint()) / AndroidUtilities.density)*/, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 16, 9, 16, 18));
 
         buttonContainer = new FrameLayout(context);
         ButtonWithCounterView button = new ButtonWithCounterView(context, resourcesProvider);
@@ -116,7 +116,7 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
         items.add(UItem.asCustom(headerView));
         items.add(FeatureCell.Factory.of(R.drawable.msg_gift_premium, getString(R.string.ExplainStarsFeature1Title), getString(R.string.ExplainStarsFeature1Text)));
         items.add(FeatureCell.Factory.of(R.drawable.msg_bot, getString(R.string.ExplainStarsFeature2Title), AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(getString(R.string.ExplainStarsFeature2Text), () -> {
-            new StarAppsSheet(getContext(), currentAccount).show();
+            new StarAppsSheet(getContext()).show();
         }), true)));
         items.add(FeatureCell.Factory.of(R.drawable.menu_unlock, getString(R.string.ExplainStarsFeature3Title), getString(R.string.ExplainStarsFeature3Text)));
         items.add(FeatureCell.Factory.of(R.drawable.menu_feature_paid, getString(R.string.ExplainStarsFeature4Title), getString(R.string.ExplainStarsFeature4Text)));
@@ -203,5 +203,6 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
 
         }
     }
+
 
 }

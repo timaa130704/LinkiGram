@@ -16,7 +16,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.FileLog;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -39,6 +38,7 @@ public abstract class ViewPagerActivity extends BaseFragment {
 
     abstract protected BaseFragment createBaseFragmentAt(int position);
 
+
     protected void onViewPagerScrollEnd() {
 
     }
@@ -46,6 +46,7 @@ public abstract class ViewPagerActivity extends BaseFragment {
     protected void onViewPagerTabAnimationUpdate(boolean manual) {
 
     }
+
 
     protected FrameLayout createContentView(Context context) {
         return new FrameLayout(context);
@@ -84,11 +85,6 @@ public abstract class ViewPagerActivity extends BaseFragment {
 
                     state = new FragmentState(fragment);
                     fragmentsArr.put(position, state);
-                }
-
-                if (fragment == null) {
-                    FileLog.e("ViewPagerActivity: null fragment at position " + position + " (skipping bind)");
-                    return;
                 }
 
                 if (!state.onCreateCalled) {
@@ -255,6 +251,8 @@ public abstract class ViewPagerActivity extends BaseFragment {
         return arrayList;
     }
 
+
+
     private float visibilityByParent = 0;
     private boolean isResumed;
     private boolean isFullyVisible;
@@ -360,6 +358,10 @@ public abstract class ViewPagerActivity extends BaseFragment {
         }
     }
 
+
+
+    /* * */
+
     protected static class FragmentState {
         public final @NonNull BaseFragment fragment;
         private boolean onCreateCalled;
@@ -376,7 +378,7 @@ public abstract class ViewPagerActivity extends BaseFragment {
             lastVisibility = newVisibility;
 
             final boolean isOpen = newVisibility > oldVisibility;
-            final boolean backward = false; 
+            final boolean backward = false; // todo: support backward
 
             if (!isResumed && visibilityByViewPage > 0 && parentIsResumed && fragment.fragmentView != null) {
                 fragment.onResume();

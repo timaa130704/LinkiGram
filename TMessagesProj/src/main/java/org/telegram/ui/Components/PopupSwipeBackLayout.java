@@ -44,8 +44,6 @@ public class PopupSwipeBackLayout extends FrameLayout {
     private Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint foregroundPaint = new Paint();
     private int foregroundColor = 0;
-    private boolean drawForegroundBackground = true;
-    private boolean drawBackgroundTransitionOverlay = true;
 
     private Path mPath = new Path();
     private RectF mRect = new RectF();
@@ -113,10 +111,20 @@ public class PopupSwipeBackLayout extends FrameLayout {
         overlayPaint.setColor(Color.BLACK);
     }
 
+    /**
+     * Sets if swipeback action should be disallowed
+     *
+     * @param swipeBackDisallowed If swipe should be disallowed
+     */
     public void setSwipeBackDisallowed(boolean swipeBackDisallowed) {
         isSwipeBackDisallowed = swipeBackDisallowed;
     }
 
+    /**
+     * add new swipeback listener
+     *
+     * @param onSwipeBackProgressListener New progress listener
+     */
     public void addOnSwipeBackProgressListener(OnSwipeBackProgressListener onSwipeBackProgressListener) {
         onSwipeBackProgressListeners.add(onSwipeBackProgressListener);
     }
@@ -125,17 +133,7 @@ public class PopupSwipeBackLayout extends FrameLayout {
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
         int i = indexOfChild(child);
         int s = canvas.save();
-        if (i == 0 && !drawForegroundBackground
-                && currentForegroundIndex > 0
-                && currentForegroundIndex < getChildCount()
-                && transitionProgress > 0f) {
-             
-            View foregroundView = getChildAt(currentForegroundIndex);
-            float foregroundEdge = Math.max(0f,
-                    Math.min(getWidth(), foregroundView.getX()));
-            canvas.clipRect(0f, 0f, foregroundEdge, getHeight());
-        }
-        if (i != 0 && drawForegroundBackground) {
+        if (i != 0) {
             if (foregroundColor == 0) {
                 foregroundPaint.setColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, resourcesProvider));
             } else {
@@ -144,7 +142,7 @@ public class PopupSwipeBackLayout extends FrameLayout {
             canvas.drawRect(child.getX(), 0, child.getX() + child.getMeasuredWidth(), getMeasuredHeight(), foregroundPaint);
         }
         boolean b = super.drawChild(canvas, child, drawingTime);
-        if (i == 0 && drawBackgroundTransitionOverlay) {
+        if (i == 0) {
             overlayPaint.setAlpha((int) (transitionProgress * 0x40));
             canvas.drawRect(0, 0, getWidth(), getHeight(), overlayPaint);
         }
@@ -155,6 +153,7 @@ public class PopupSwipeBackLayout extends FrameLayout {
     public void invalidateTransforms() {
         invalidateTransforms(true);
     }
+
 
     float lastToProgress;
     float lastTransitionProgress;
@@ -227,7 +226,7 @@ public class PopupSwipeBackLayout extends FrameLayout {
         }
         int act = ev.getActionMasked();
         if (mRect != null && !mRect.contains(ev.getX(), ev.getY()) && act == MotionEvent.ACTION_DOWN) {
-
+//            return false;
         }
 
         if (act == MotionEvent.ACTION_DOWN && !mRect.contains(ev.getX(), ev.getY())) {
@@ -255,6 +254,12 @@ public class PopupSwipeBackLayout extends FrameLayout {
         invalidateTransforms();
     }
 
+    /**
+     * Processes touch event and return true if processed
+     *
+     * @param ev Event to process
+     * @return If event is processed
+     */
     private boolean processTouchEvent(MotionEvent ev) {
         int act = ev.getAction() & MotionEvent.ACTION_MASK;
         if (isAnimationInProgress)
@@ -278,6 +283,12 @@ public class PopupSwipeBackLayout extends FrameLayout {
         return isProcessingSwipe;
     }
 
+    /**
+     * Animates transition value
+     *
+     * @param f        End value
+     * @param flingVal Fling value(If from fling, zero otherwise)
+     */
     private void animateToState(float f, float flingVal) {
         ValueAnimator val = ValueAnimator.ofFloat(transitionProgress, f).setDuration((long) (DURATION * Math.max(0.5f, Math.abs(transitionProgress - f) - Math.min(0.2f, flingVal))));
         val.setInterpolator(CubicBezierInterpolator.DEFAULT);
@@ -317,11 +328,17 @@ public class PopupSwipeBackLayout extends FrameLayout {
         onForegroundOpen = listener;
     }
 
+    /**
+     * Clears touch flags
+     */
     private void clearFlags() {
         isProcessingSwipe = false;
         isSwipeDisallowed = false;
     }
 
+    /**
+     * Opens up foreground
+     */
     public void openForeground(int viewIndex) {
         if (isAnimationInProgress) {
             return;
@@ -435,6 +452,11 @@ public class PopupSwipeBackLayout extends FrameLayout {
         this.onHeightUpdateListener = onHeightUpdateListener;
     }
 
+    /**
+     * @param e Motion event to check
+     * @param v View to check
+     * @return If we should ignore view
+     */
     private boolean isDisallowedView(MotionEvent e, View v) {
         v.getHitRect(hitRect);
         if (hitRect.contains((int) e.getX(), (int) e.getY()) && (v.canScrollHorizontally(-1) || v instanceof ActionBarMenuSlider))
@@ -449,6 +471,9 @@ public class PopupSwipeBackLayout extends FrameLayout {
         return false;
     }
 
+    /**
+     * Invalidates view transforms
+     */
     private void invalidateVisibility() {
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
@@ -510,22 +535,6 @@ public class PopupSwipeBackLayout extends FrameLayout {
 
     public void setForegroundColor(int color) {
         foregroundColor = color;
-    }
-
-    public void setDrawForegroundBackground(boolean draw) {
-        if (drawForegroundBackground == draw) {
-            return;
-        }
-        drawForegroundBackground = draw;
-        invalidate();
-    }
-
-    public void setDrawBackgroundTransitionOverlay(boolean draw) {
-        if (drawBackgroundTransitionOverlay == draw) {
-            return;
-        }
-        drawBackgroundTransitionOverlay = draw;
-        invalidate();
     }
 
     public interface OnSwipeBackProgressListener {

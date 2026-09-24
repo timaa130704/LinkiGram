@@ -468,11 +468,7 @@ public class SharedDocumentCell extends FrameLayout implements DownloadControlle
             updateDateView();
 
             if (messageObject.hasHighlightedWords() && !TextUtils.isEmpty(message.messageOwner.message)) {
-                String rawDocMsg = message.messageOwner.message;
-                if (rawDocMsg.contains("$")) {
-                    rawDocMsg = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(rawDocMsg);
-                }
-                String str = rawDocMsg.replace("\n", " ").replaceAll(" +", " ").trim();
+                String str = message.messageOwner.message.replace("\n", " ").replaceAll(" +", " ").trim();
                 caption = AndroidUtilities.highlightText(str, message.highlightedWords, resourcesProvider);
                 if (captionTextView != null) {
                     captionTextView.setVisibility(caption == null ? View.GONE : View.VISIBLE);
@@ -657,6 +653,7 @@ public class SharedDocumentCell extends FrameLayout implements DownloadControlle
             progressView.layout(progressView.getLeft(), getMeasuredHeight() - progressView.getMeasuredHeight() - (needDivider ? 1 : 0), progressView.getRight(), getMeasuredHeight() - (needDivider ? 1 : 0));
         }
     }
+
 
     @Override
     public void onFailedDownload(String name, boolean canceled) {

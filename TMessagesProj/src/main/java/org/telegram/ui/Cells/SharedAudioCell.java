@@ -166,6 +166,7 @@ public class SharedAudioCell extends FrameLayout implements DownloadController.F
         int viewWidth = MeasureSpec.getSize(widthMeasureSpec);
         int maxWidth = viewWidth - dp(AndroidUtilities.leftBaseline) - dp(8 + 20);
 
+
         int dateWidth = 0;
         if (viewType == VIEW_TYPE_GLOBAL_SEARCH) {
             String str = LocaleController.stringForMessageListDate(currentMessageObject.messageOwner.date);
@@ -197,11 +198,7 @@ public class SharedAudioCell extends FrameLayout implements DownloadController.F
         }
 
         if (currentMessageObject.hasHighlightedWords()) {
-            String rawAudioMsg = currentMessageObject.messageOwner.message;
-            if (rawAudioMsg != null && rawAudioMsg.contains("$")) {
-                rawAudioMsg = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(rawAudioMsg);
-            }
-            CharSequence caption = TextUtils.isEmpty(rawAudioMsg) ? "" : Emoji.replaceEmoji(rawAudioMsg.replace("\n", " ").replaceAll(" +", " ").trim(), Theme.chat_msgTextPaint.getFontMetricsInt(), false);
+            CharSequence caption = TextUtils.isEmpty(currentMessageObject.messageOwner.message) ? "" : Emoji.replaceEmoji(currentMessageObject.messageOwner.message.replace("\n", " ").replaceAll(" +", " ").trim(), Theme.chat_msgTextPaint.getFontMetricsInt(), false);
             CharSequence sequence = AndroidUtilities.highlightText(caption, currentMessageObject.highlightedWords, resourcesProvider);
             if (sequence != null) {
                 sequence = TextUtils.ellipsize(AndroidUtilities.ellipsizeCenterEnd(sequence, currentMessageObject.highlightedWords.get(0), maxWidth, captionTextPaint, 130), captionTextPaint, maxWidth, TextUtils.TruncateAt.END);
@@ -460,6 +457,7 @@ public class SharedAudioCell extends FrameLayout implements DownloadController.F
             invalidate();
         }
     }
+
 
     private int getMiniIconForCurrentState() {
         if (miniButtonState < 0) {
@@ -782,6 +780,7 @@ public class SharedAudioCell extends FrameLayout implements DownloadController.F
             invalidate();
         }
     }
+
 
     public void showReorderIcon(boolean show, boolean animated) {
         if (showReorderIcon == show) {

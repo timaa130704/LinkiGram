@@ -190,41 +190,6 @@ public class ProfileChannelCell extends FrameLayout implements Theme.Colorable {
         return loadingDrawable == who || super.verifyDrawable(who);
     }
 
-    public void setNimarko() {
-        subscribersView.cancelAnimation();
-        subscribersView.setPivotX(0);
-        subscribersView.setAlpha(1f);
-        subscribersView.setScaleX(1f);
-        subscribersView.setScaleY(1f);
-
-        int[] result = new int[1];
-        boolean ignoreShort = AndroidUtilities.isAccessibilityScreenReaderEnabled();
-        String shortNumber = ignoreShort ? String.valueOf(result[0] = 1234567) : LocaleController.formatShortNumber(1234567, result);
-        subscribersView.setText(LocaleController.formatPluralString("Subscribers", result[0]).replace(String.format("%d", result[0]), shortNumber), true);
-
-        ArrayList<DialogCell.CustomDialog> dialogs = new ArrayList<>();
-
-        DialogCell.CustomDialog customDialog = new DialogCell.CustomDialog();
-        customDialog.name = "LinkiGram 💎";
-        customDialog.message = LocaleController.getString(R.string.NM_MP_PreviewChannelMessage);
-        customDialog.id = 1390;
-        customDialog.unread_count = 0;
-        customDialog.pinned = false;
-        customDialog.muted = false;
-        customDialog.type = 0;
-        customDialog.date = (int) (System.currentTimeMillis() / 1000);
-        customDialog.verified = true;
-        customDialog.isMedia = false;
-        customDialog.sent = DialogCell.SENT_STATE_NOTHING;
-        dialogs.add(customDialog);
-
-        dialogCell.setDialog(dialogs.get(0));
-
-        invalidate();
-
-        set = true;
-    }
-
     private boolean set = false;
     public void set(TLRPC.Chat channel, ArrayList<MessageObject> messageObjects) {
         final boolean animated = set;
@@ -261,10 +226,12 @@ public class ProfileChannelCell extends FrameLayout implements Theme.Colorable {
         set = true;
     }
 
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(102), MeasureSpec.EXACTLY));
     }
+
 
     public static class ChannelMessageFetcher {
 

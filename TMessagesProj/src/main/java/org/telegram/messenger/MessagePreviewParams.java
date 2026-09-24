@@ -200,9 +200,6 @@ public class MessagePreviewParams {
         this.isSecret = secret;
         this.noforwards = secret || noforwards;
         this.monoforum = monoforum;
-        
-        this.hideForwardSendersName = app.nimarkogram.messenger.NimarkoConfig.forwardWithoutAuthor;
-        this.hideCaption = false;
     }
 
     public void updateReply(MessageObject replyMessageObject, MessageObject.GroupedMessages group, long dialogId, ChatActivity.ReplyQuote replyQuote) {
@@ -502,10 +499,6 @@ public class MessagePreviewParams {
             }
             if (header != null) {
                 message.fwd_from = header;
-                
-                if (app.nimarkogram.messenger.NimarkoConfig.msgForwardDate && !messageObject.isForwarded()) {
-                    message.fwd_from.date = messageObject.messageOwner.date;
-                }
                 message.flags |= TLRPC.MESSAGE_FLAG_FWD;
             }
 
@@ -539,7 +532,7 @@ public class MessagePreviewParams {
             }
         };
         previewMessage.previewForward = msgtype == 0;
-
+//        previewMessage.forceAvatar = msgtype == 1 && !message.out;
         previewMessage.preview = true;
         return previewMessage;
     }

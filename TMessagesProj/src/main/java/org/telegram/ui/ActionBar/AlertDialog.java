@@ -227,7 +227,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
     }
 
     protected boolean supportsNativeBlur() {
-        return false; 
+        return false; // Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && LaunchActivity.systemBlurEnabled;
     }
 
     public void redPositive() {
@@ -578,18 +578,21 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                     AndroidUtilities.rectTmp.set(getPaddingLeft(), getPaddingTop(), getMeasuredWidth() - getPaddingRight(), getMeasuredHeight() - getPaddingBottom());
                 }
 
+                // draw blur of background
                 float blurAlpha = blurPaintAlpha.set(blurPaint != null ? 1f : 0f);
                 if (blurPaint != null) {
                     blurPaint.setAlpha((int) (0xFF * blurAlpha));
                     canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, blurPaint);
                 }
 
+                // draw dim above blur
                 if (dimBlurPaint == null) {
                     dimBlurPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
                     dimBlurPaint.setColor(ColorUtils.setAlphaComponent(0xff000000, (int) (0xFF * dimAlpha)));
                 }
                 canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, dimBlurPaint);
 
+                // draw background
                 backgroundPaint.setColor(backgroundColor);
                 backgroundPaint.setAlpha((int) (backgroundPaint.getAlpha() * (blurAlpha * (blurOpacity - 1f) + 1f)));
                 canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, backgroundPaint);
@@ -611,22 +614,12 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                     shadowDrawable.draw(canvas);
                 }
             }
-            try {
-                super.dispatchDraw(canvas);
-            } catch (IllegalArgumentException e) {
-                
-                if (!AndroidUtilities.isColorSpaceDrawCrash(e)) {
-                    throw e;
-                }
-                FileLog.e("NG: swallowed ColorSpace draw crash in AlertDialog", e);
-            }
+            super.dispatchDraw(canvas);
         }
     }
 
     private boolean needStarsBalance;
-    private int starsCurrentAccount;
-    public AlertDialog setShowStarsBalance(int currentAccount, boolean show) {
-        starsCurrentAccount = currentAccount;
+    public AlertDialog setShowStarsBalance(boolean show) {
         needStarsBalance = show;
         return this;
     }
@@ -684,10 +677,10 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 });
             }
             if (starsBalanceCloud == null) {
-                starsBalanceCloud = new BalanceCloud(getContext(), starsCurrentAccount, resourcesProvider);
+                starsBalanceCloud = new BalanceCloud(getContext(), UserConfig.selectedAccount, resourcesProvider);
                 ScaleStateListAnimator.apply(starsBalanceCloud);
                 starsBalanceCloud.setOnClickListener(v -> {
-                    new StarsIntroActivity.StarsOptionsSheet(getContext(), starsCurrentAccount, resourcesProvider).show();
+                    new StarsIntroActivity.StarsOptionsSheet(getContext(), resourcesProvider).show();
                 });
             }
             AndroidUtilities.removeFromParent(containerView);
@@ -1289,7 +1282,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         WindowManager.LayoutParams params = new WindowManager.LayoutParams();
         params.copyFrom(window.getAttributes());
         if (needStarsBalance) {
-
+//            params.width = WindowManager.LayoutParams.MATCH_PARENT;
             params.height = WindowManager.LayoutParams.MATCH_PARENT;
             params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
 

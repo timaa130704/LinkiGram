@@ -35,7 +35,7 @@ public class MemberRequestCell extends FrameLayout {
     public MemberRequestCell(@NonNull Context context, OnClickListener clickListener, boolean isChannel) {
         super(context);
 
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(46));
+        avatarImageView.setRoundRadius(AndroidUtilities.dp(23));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT, 12, 8, 12, 0));
 
         nameTextView.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
@@ -138,6 +138,7 @@ public class MemberRequestCell extends FrameLayout {
             canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(72), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(72) : 0), getMeasuredHeight() - 1, Theme.dividerPaint);
         }
     }
+
 
     public interface OnClickListener {
 

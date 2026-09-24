@@ -89,7 +89,7 @@ public class BotLocation {
     }
 
     private BotLocation(Context context, int currentAccount, long botId) {
-        this.context = context.getApplicationContext();
+        this.context = context;
         this.currentAccount = currentAccount;
         this.botId = botId;
         load();

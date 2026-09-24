@@ -8,18 +8,10 @@
 
 package org.telegram.messenger;
 
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.IBinder;
-
-import androidx.core.app.NotificationChannelCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-
-import org.telegram.ui.LaunchActivity;
 
 public class NotificationsService extends Service {
 
@@ -27,30 +19,10 @@ public class NotificationsService extends Service {
     public void onCreate() {
         super.onCreate();
         ApplicationLoader.postInitApplication();
-
-        if (allowResidentNotification()) {
-            try {
-                NotificationChannelCompat channel = new NotificationChannelCompat.Builder("nimarkoPush", NotificationManagerCompat.IMPORTANCE_DEFAULT)
-                        .setName("LinkiGram")
-                        .setLightsEnabled(false)
-                        .setVibrationEnabled(false)
-                        .setSound(null, null)
-                        .build();
-                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-                notificationManager.createNotificationChannel(channel);
-            } catch (Throwable ignored) {}
-        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (allowResidentNotification()) {
-            try {
-                startInForeground();
-            } catch (Exception e) {
-                FileLog.e("Failed to start foreground", e);
-            }
-        }
         return START_STICKY;
     }
 
@@ -59,59 +31,13 @@ public class NotificationsService extends Service {
         return null;
     }
 
-    @Override
     public void onDestroy() {
         super.onDestroy();
-        boolean pushServiceEnabled;
-        boolean proxyActive;
-        try {
-            pushServiceEnabled = MessagesController.getGlobalNotificationsSettings().getBoolean("pushService", false);
-        } catch (Throwable t) {
-            pushServiceEnabled = false;
-        }
-        try {
-            proxyActive = SharedConfig.isProxyEnabled();
-        } catch (Throwable t) {
-            proxyActive = false;
-        }
-        if (pushServiceEnabled || proxyActive) {
+        SharedPreferences preferences = MessagesController.getGlobalNotificationsSettings();
+        if (preferences.getBoolean("pushService", true)) {
             Intent intent = new Intent("org.telegram.start");
             intent.setPackage(getPackageName());
             sendBroadcast(intent);
         }
-    }
-
-    private void startInForeground() {
-        Intent intent = new Intent(this, LaunchActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
-
-        startForeground(1390,
-                new NotificationCompat.Builder(this, "nimarkoPush")
-                        .setSmallIcon(R.drawable.notification)
-                        .setShowWhen(false)
-                        .setOngoing(true)
-                        .setContentText("LinkiGram")
-                        .setCategory(NotificationCompat.CATEGORY_STATUS)
-                        .setContentIntent(pendingIntent)
-                        .build());
-    }
-
-    private boolean allowResidentNotification() {
-        boolean proxyActive;
-        try {
-            proxyActive = SharedConfig.isProxyEnabled();
-        } catch (Throwable t) {
-            proxyActive = false;
-        }
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                && Build.VERSION.SDK_INT < 35
-                && (app.nimarkogram.messenger.NimarkoConfig.residentNotification || proxyActive);
     }
 }

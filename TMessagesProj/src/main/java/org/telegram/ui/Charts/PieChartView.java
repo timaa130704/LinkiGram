@@ -20,6 +20,7 @@ import org.telegram.ui.Charts.view_data.LineViewData;
 import org.telegram.ui.Charts.view_data.PieLegendView;
 import org.telegram.ui.Charts.view_data.TransitionParams;
 
+
 public class PieChartView extends StackLinearChartView<PieChartViewData> {
 
     float[] values;
@@ -54,6 +55,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
         textPaint.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         canCaptureChartSelection = true;
     }
+
 
     @Override
     protected void drawChart(Canvas canvas) {
@@ -102,6 +104,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
                 chartArea.centerX() + radius,
                 chartArea.centerY() + AndroidUtilities.dp(16) + radius
         );
+
 
         float a = -90f;
         float rText;
@@ -261,6 +264,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
 
                     float yPoint = (yPercentage) * (pikerHeight);
 
+
                     line.linesPath[line.linesPathBottomSize++] = xPoint;
                     line.linesPath[line.linesPathBottomSize++] = pikerHeight - yPoint - stackOffset;
 
@@ -306,6 +310,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
 
     }
 
+
     @Override
     public boolean setData(StackLinearChartData chartData) {
         boolean u = super.setData(chartData);
@@ -321,6 +326,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
     public PieChartViewData createLineViewData(ChartData.Line line) {
         return new PieChartViewData(line);
     }
+
 
     protected void selectXOnChart(int x, int y) {
         if (chartData == null || isEmpty) return;
@@ -375,13 +381,11 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
             yl = (int) Math.min(rectF.centerY(), yl);
 
             yl -= AndroidUtilities.dp(50);
-           
+           // if (yl < 0) yl = 0;
+
             pieLegendView.setTranslationX(xl);
             pieLegendView.setTranslationY(yl);
-            
-            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                AndroidUtilities.vibrateCursor(this);
-            }
+            AndroidUtilities.vibrateCursor(this);
         }
         moveLegend();
     }
@@ -490,6 +494,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
         int n = chartData.xPercentage.length;
         int nl = lines.size();
 
+
         int startIndex = -1;
         int endIndex = -1;
         for (int j = 0; j < n; j++) {
@@ -503,6 +508,7 @@ public class PieChartView extends StackLinearChartView<PieChartViewData> {
         if (endIndex < startIndex) {
             startIndex = endIndex;
         }
+
 
         if (!force && lastEndIndex == endIndex && lastStartIndex == startIndex) {
             return;

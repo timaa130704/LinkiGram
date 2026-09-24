@@ -155,25 +155,19 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
     private RectF animateFromRect;
     private boolean animatingOpen;
     private int[] location = new int[2];
-    private int[] animateEnterViewFrom, animateEnterViewTo, animateSendButtonFrom;
+    private int[] animateEnterViewFrom, animateEnterViewTo;
     private float animateOpenProgress = 1.0f;
-    private int animateInputAlpha = 255;
     public RichEditor animateFrom(ChatActivity chatActivity) {
         animateInputView = chatActivity.chatInputViewsContainer;
         animateEnterView = chatActivity.getChatActivityEnterView();
         return this;
     }
 
-    private void captureInputBubbleBounds(RectF out) {
-        animateInputView.getLocationInWindow(location);
-        animateInputView.getInputBubbleDrawableBounds(tempRect);
-        out.set(tempRect);
-        out.offset(location[0], location[1]);
-    }
-
     private void updateAnimatingLocations() {
+        animateInputView.getLocationInWindow(location);
         if (animateFromRect == null) animateFromRect = new RectF();
-        captureInputBubbleBounds(animateFromRect);
+        animateFromRect = new RectF(animateInputBackground.getBounds());
+        animateFromRect.offset(location[0], location[1]);
 
         if (animateEnterViewFrom == null) animateEnterViewFrom = new int[2];
         animateEnterView.getLocationInWindow(animateEnterViewFrom);
@@ -181,78 +175,57 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
         animateEnterViewTo[0] = listView.getPaddingLeft();
         animateEnterViewTo[1] = listView.getPaddingTop();
         animateEnterViewTo[0] -= animateEnterView.messageEditText.getX() - dp(16);
-
-        if (animateSendButtonFrom == null) animateSendButtonFrom = new int[2];
-        animateEnterView.sendButtonContainer.getLocationInWindow(animateSendButtonFrom);
     }
 
     @Override
     public AnimatorSet onCustomTransitionAnimation(boolean isOpen, Runnable callback) {
-        final boolean customTransition = !AndroidUtilities.isTablet()
-                && animateInputView != null && animateEnterView != null;
-        if (!isOpen && customTransition) {
-            animateEnterView.beginRichEditorTransition();
-        }
         if (!isOpen) {
             if (!persistedDraftOnEnd) {
                 persistDraft();
                 persistedDraftOnEnd = true;
             }
-            if (customTransition) {
-                animateEnterView.settleRichEditorDestinationForTransition();
-                animateEnterView.requestLayout();
-                animateInputView.requestLayout();
-            }
         }
-        if (customTransition) {
+        if (!AndroidUtilities.isTablet() && animateInputView != null && animateEnterView != null) {
             final AnimatorSet animatorSet = new AnimatorSet();
 
             animateInputBackground = animateInputView.blurredBackgroundDrawable;
-            animateInputAlpha = animateInputView.getInputBubbleAlpha();
+            animateInputView.drawInputBackground = false;
+            animateInputView.invalidate();
+            animateEnterView.setAlpha(0.0f);
+            animateEnterView.sendButtonContainer.setVisibility(View.INVISIBLE);
+
+            updateAnimatingLocations();
 
             final ValueAnimator va = ValueAnimator.ofFloat(
                 animateOpenProgress = isOpen ? 0.0f : 1.0f,
                 isOpen ? 1.0f : 0.0f
             );
-            final int[] destinationSendVisibility = {View.VISIBLE};
-            final boolean[] destinationDrawInputCenterBackground = {true};
+            animatingOpen = true;
+            container.invalidate();
+
+//            topGradient.setVisibility(View.INVISIBLE);
+//            bottomGradient.setVisibility(View.INVISIBLE);
 
             va.addUpdateListener(a -> {
                 animateOpenProgress = (float) a.getAnimatedValue();
-                
                 updateAnimatingLocations();
                 listView.setTranslationX(lerp(animateEnterViewFrom[0] - animateEnterViewTo[0], 0, animateOpenProgress));
                 listView.setTranslationY(lerp(animateEnterViewFrom[1] - animateEnterViewTo[1], 0, animateOpenProgress));
                 container.invalidate();
             });
-            final boolean[] cleanedUp = {false};
-            final Runnable cleanup = () -> {
-                if (cleanedUp[0]) {
-                    return;
-                }
-                cleanedUp[0] = true;
-                animatingOpen = false;
-                animateEnterView.setAlpha(1.0f);
-                animateEnterView.sendButtonContainer.setVisibility(destinationSendVisibility[0]);
-                animateInputBackground.setRadius(dp(ChatInputViewsContainer.INPUT_BUBBLE_RADIUS));
-                animateInputView.setInputBubbleAlpha(animateInputAlpha);
-                animateInputView.setDrawInputCenterBackground(
-                        destinationDrawInputCenterBackground[0]);
-                animateInputView.invalidate();
-                if (!isOpen) {
-                    animateEnterView.endRichEditorTransition();
-                }
-            };
             va.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    cleanup.run();
+                    animatingOpen = false;
+                    animateEnterView.setAlpha(1.0f);
+                    animateEnterView.sendButtonContainer.setVisibility(View.VISIBLE);
+//                    topGradient.setVisibility(View.VISIBLE);
+//                    bottomGradient.setVisibility(View.VISIBLE);
+                    animateInputBackground.setRadius(dp(ChatInputViewsContainer.INPUT_BUBBLE_RADIUS));
+                    animateInputBackground.setAlpha(0xFF);
+                    animateInputView.drawInputBackground = true;
+                    animateInputView.invalidate();
                     callback.run();
-                }
-
-                @Override
-                public void onAnimationCancel(Animator animation) {
-                    cleanup.run();
                 }
             });
             if (!isOpen) {
@@ -281,29 +254,7 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
 
             animatorSet.setDuration(420);
             animatorSet.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
-
-            final Runnable startTransition = () -> {
-                if (cleanedUp[0]) {
-                    return;
-                }
-                updateAnimatingLocations();
-                destinationDrawInputCenterBackground[0] =
-                        animateInputView.isDrawInputCenterBackground();
-                destinationSendVisibility[0] = animateEnterView.sendButtonContainer.getVisibility();
-                animateInputView.setDrawInputCenterBackground(false);
-                animateInputView.invalidate();
-                animateEnterView.setAlpha(0.0f);
-                animateEnterView.sendButtonContainer.setVisibility(View.INVISIBLE);
-                animatingOpen = true;
-                container.invalidate();
-                animatorSet.start();
-            };
-            
-            if (!isOpen) {
-                animateInputView.postOnAnimation(startTransition);
-            } else {
-                container.post(startTransition);
-            }
+            container.post(animatorSet::start);
 
             return animatorSet;
         }
@@ -481,25 +432,14 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
                             lerp(animateEnterViewFrom[1], animateEnterViewTo[1], animateOpenProgress)
                         );
                         canvas.saveLayerAlpha(0, 0, animateEnterView.getWidth(), animateEnterView.getHeight(), (int) (0xFF * (1.0f - animateOpenProgress)), Canvas.ALL_SAVE_FLAG);
-                        
                         animateEnterView.draw(canvas);
                         canvas.restore();
                         canvas.restore();
 
                         canvas.save();
-                        final float editorSendX = bottomContainer.getX()
-                                + bottomInnerContainer.getX()
-                                + bottomPanel.getX()
-                                + sendButton.getX() + sendButton.getWidth()
-                                - animateEnterView.sendButtonContainer.getWidth();
-                        final float editorSendY = bottomContainer.getY()
-                                + bottomInnerContainer.getY()
-                                + bottomPanel.getY()
-                                + sendButton.getY() + sendButton.getHeight()
-                                - animateEnterView.sendButtonContainer.getHeight();
                         canvas.translate(
-                            lerp(animateSendButtonFrom[0], editorSendX, animateOpenProgress),
-                            lerp(animateSendButtonFrom[1], editorSendY, animateOpenProgress)
+                            lerp(rect.right, bottomContainer.getX() + bottomInnerContainer.getX() + bottomPanel.getX() + sendButton.getX() + sendButton.getWidth(), animateOpenProgress) - animateEnterView.sendButtonContainer.getWidth(),
+                            lerp(rect.bottom, bottomContainer.getY() + bottomInnerContainer.getY() + bottomPanel.getY() + sendButton.getY() + sendButton.getHeight(), animateOpenProgress) - animateEnterView.sendButtonContainer.getHeight()
                         );
                         canvas.saveLayerAlpha(-dp(6), -dp(6), animateEnterView.sendButtonContainer.getWidth(), animateEnterView.sendButtonContainer.getHeight(), (int) (0xFF * (1.0f - animateOpenProgress)), Canvas.ALL_SAVE_FLAG);
                         animateEnterView.sendButtonContainer.draw(canvas);
@@ -508,7 +448,9 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
                     }
 
                     canvas.save();
-
+//                    clipPath.rewind();
+//                    clipPath.addRoundRect(rect, rad, rad, Path.Direction.CW);
+//                    canvas.clipPath(clipPath);
                     super.dispatchDraw(canvas);
                     canvas.restore();
                 } else {

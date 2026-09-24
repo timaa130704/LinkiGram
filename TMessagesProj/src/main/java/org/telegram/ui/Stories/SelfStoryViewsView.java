@@ -1,5 +1,6 @@
 package org.telegram.ui.Stories;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -24,6 +25,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.tl.TL_stories;
+import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 
@@ -46,6 +48,7 @@ public class SelfStoryViewsView extends FrameLayout {
     boolean listenPager;
 
     int keyboardHeight;
+    int animatedKeyboardHeight;
     private long dialogId;
 
     ViewPagerInner viewPager;
@@ -53,6 +56,8 @@ public class SelfStoryViewsView extends FrameLayout {
     ArrayList<SelfStoryViewsPage> itemViews = new ArrayList<>();
     private int currentState;
     SelfStoryViewsPage.FiltersState sharedFilterState = new SelfStoryViewsPage.FiltersState();
+    float progressToKeyboard;
+
     public SelfStoryViewsView(@NonNull Context context, StoryViewer storyViewer) {
         super(context);
         this.resourcesProvider = storyViewer.resourcesProvider;
@@ -93,7 +98,8 @@ public class SelfStoryViewsView extends FrameLayout {
                 storyViewer.cancelSwipeToViews(false);
             }
         };
-        
+        //selfStoriesPreviewView.setAlpha(0.2f);
+
         shadowDrawable = context.getResources().getDrawable(R.drawable.sheet_shadow_round).mutate();
         shadowDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogBackground, resourcesProvider), PorterDuff.Mode.MULTIPLY));
         viewPagerContainer = new ContainerView(context);
@@ -147,7 +153,9 @@ public class SelfStoryViewsView extends FrameLayout {
 
             @Override
             public void onPageSelected(int position) {
-
+//                if (currentState == ViewPager.SCROLL_STATE_DRAGGING) {
+//                    selfStoriesPreviewView.scrollToPosition(position, true, false);
+//                }
             }
 
             @Override
@@ -156,7 +164,9 @@ public class SelfStoryViewsView extends FrameLayout {
                 if (currentState == ViewPager.SCROLL_STATE_DRAGGING) {
                     listenPager = true;
                 }
-
+//                if (currentState != ViewPager.SCROLL_STATE_DRAGGING) {
+//                    selfStoriesPreviewView.scrollToPosition(viewPager.getCurrentItem(), true, true);
+//                }
             }
         });
         viewPager.setAdapter(pagerAdapter = new PagerAdapter() {
@@ -190,7 +200,7 @@ public class SelfStoryViewsView extends FrameLayout {
                 item.setShadowDrawable(shadowDrawable);
                 item.setPadding(0, AndroidUtilities.dp(16), 0 , 0);
                 item.setStoryItem(dialogId,storyItems.get(position));
-               
+               // bottomPadding = (selfStoriesPreviewView.getTop() + toHeight + AndroidUtilities.dp(24));
                 item.setListBottomPadding(bottomPadding);
 
                 container.addView(item);
@@ -212,6 +222,28 @@ public class SelfStoryViewsView extends FrameLayout {
         });
         viewPagerContainer.addView(viewPager, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT,0, 0, 0, 0, 0));
 
+
+//        buttonContainer = new FrameLayout(getContext());
+//        buttonContainer.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
+//        ButtonWithCounterView button = new ButtonWithCounterView(getContext(), resourcesProvider);
+//
+//        buttonContainer.addView(button, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.FILL_HORIZONTAL, 10, 10, 10, 10));
+//        viewPagerContainer.addView(buttonContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+//        button.setText(LocaleController.getString(R.string.Close), false);
+//        button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                storyViewer.cancelSwipeToViews(false);
+//            }
+//        });
+
+//        ImageView closeImageView = new ImageView(context);
+//        closeImageView.setScaleType(ImageView.ScaleType.CENTER);
+//        closeImageView.setImageResource(R.drawable.msg_close);
+//        closeImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider), PorterDuff.Mode.MULTIPLY));
+//        closeImageView.setOnClickListener(e -> storyViewer.cancelSwipeToViews(false));
+//        viewPagerContainer.addView(closeImageView, LayoutHelper.createFrame(48, 48, Gravity.RIGHT | Gravity.TOP, 0, 0, 2, 0));
+
         addView(selfStoriesPreviewView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         addView(viewPagerContainer);
         setVisibility(View.INVISIBLE);
@@ -229,9 +261,18 @@ public class SelfStoryViewsView extends FrameLayout {
     public void setKeyboardHeight(int keyboardHeight) {
         boolean keyboardVisible = this.keyboardHeight >= AndroidUtilities.dp(20);
         boolean newKeyboardVisible = keyboardHeight >= AndroidUtilities.dp(20);
+        if (newKeyboardVisible != keyboardVisible) {
+            ValueAnimator keyboardAniamtor = ValueAnimator.ofFloat(progressToKeyboard, newKeyboardVisible ? 1f : 0);
+            keyboardAniamtor.addUpdateListener(animation -> {
+                progressToKeyboard = (float) animation.getAnimatedValue();
+                updateTranslation();
+            });
+            keyboardAniamtor.setInterpolator(AdjustPanLayoutHelper.keyboardInterpolator);
+            keyboardAniamtor.setDuration(AdjustPanLayoutHelper.keyboardDuration);
+            keyboardAniamtor.start();
+        }
         this.keyboardHeight = keyboardHeight;
-        updateTranslation();
-        if (!keyboardVisible && newKeyboardVisible) {
+        if (keyboardHeight > 0) {
             SelfStoryViewsPage page = getCurrentPage();
             if (page != null) {
                 page.onKeyboardShown();
@@ -241,11 +282,7 @@ public class SelfStoryViewsView extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        final float previousMaxOffset = maxSelfStoriesViewsOffset;
-        final boolean keepFullyOpen = previousMaxOffset > 0
-                && progressToOpen >= 0.999f
-                && Math.abs(selfStoriesViewsOffset - previousMaxOffset) <= 0.5f;
-        int topMargin = 0;
+        int topMargin = 0;//AndroidUtilities.dp(20);
         if (storyViewer.ATTACH_TO_FRAGMENT) {
             topMargin += AndroidUtilities.statusBarHeight;
         }
@@ -257,18 +294,11 @@ public class SelfStoryViewsView extends FrameLayout {
         layoutParams = (LayoutParams) viewPagerContainer.getLayoutParams();
         layoutParams.topMargin = AndroidUtilities.statusBarHeight;
         bottomPadding = (topMargin + AndroidUtilities.dp(20) + toHeight + AndroidUtilities.dp(24)) -AndroidUtilities.statusBarHeight;
-        maxSelfStoriesViewsOffset = Math.max(0, height - bottomPadding);
-        if (keepFullyOpen) {
-            
-            selfStoriesViewsOffset = maxSelfStoriesViewsOffset;
-            storyViewer.selfStoriesViewsOffset = maxSelfStoriesViewsOffset;
-            progressToOpen = 1f;
-        }
+        maxSelfStoriesViewsOffset = height - bottomPadding;
         for (int i = 0; i < itemViews.size(); i++) {
             itemViews.get(i).setListBottomPadding(bottomPadding);
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        updateTranslation();
     }
 
     public void setOffset(float selfStoriesViewsOffset) {
@@ -278,9 +308,7 @@ public class SelfStoryViewsView extends FrameLayout {
         this.selfStoriesViewsOffset = selfStoriesViewsOffset;
         updateTranslation();
         float oldProgressToOpen = progressToOpen;
-        progressToOpen = maxSelfStoriesViewsOffset > 0
-                ? Utilities.clamp(selfStoriesViewsOffset / maxSelfStoriesViewsOffset, 1f, 0)
-                : 0f;
+        progressToOpen = Utilities.clamp(selfStoriesViewsOffset / maxSelfStoriesViewsOffset, 1f, 0);
         float alpha = Utilities.clamp(progressToOpen / 0.5f, 1f, 0);
 
         final PeerStoriesView currentView = storyViewer.getCurrentPeerView();
@@ -320,16 +348,6 @@ public class SelfStoryViewsView extends FrameLayout {
         viewPagerContainer.setTranslationY(-bottomPadding + getMeasuredHeight() - selfStoriesViewsOffset);
     }
 
-    public void reset() {
-        keyboardHeight = 0;
-        selfStoriesViewsOffset = 0f;
-        progressToOpen = 0f;
-        viewPager.gesturesEnabled = false;
-        selfStoriesPreviewView.setProgressToOpen(0f);
-        setVisibility(View.INVISIBLE);
-        updateTranslation();
-    }
-
     public void setItems(long dialogId, ArrayList<TL_stories.StoryItem> storyItems, int selectedPosition) {
         this.storyItems.clear();
         this.dialogId = dialogId;
@@ -346,6 +364,7 @@ public class SelfStoryViewsView extends FrameLayout {
         selfStoriesPreviewView.setItems(this.storyItems, selectedPosition);
         viewPager.setAdapter(null);
         viewPager.setAdapter(pagerAdapter);
+        pagerAdapter.notifyDataSetChanged();
         viewPager.setCurrentItem(selectedPosition);
     }
 
@@ -405,7 +424,7 @@ public class SelfStoryViewsView extends FrameLayout {
 
         @Override
         public void onNestedScroll(@NonNull View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int type) {
-           
+           // onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, type, null);
         }
 
         @Override
@@ -424,9 +443,10 @@ public class SelfStoryViewsView extends FrameLayout {
             }
         }
 
+
         @Override
         public void onNestedPreScroll(@NonNull View target, int dx, int dy, @NonNull int[] consumed, int type) {
-            
+            //AndroidUtilities.hideKeyboard(this);
             if (keyboardHeight > 0) {
                 return;
             }
@@ -499,5 +519,6 @@ public class SelfStoryViewsView extends FrameLayout {
         }
         return null;
     }
+
 
 }

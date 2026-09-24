@@ -214,7 +214,7 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
                     progressView.animate().setListener(null).cancel();
                     progressView.setVisibility(VISIBLE);
                     progressView.setAlpha(1f);
-                    
+                    //showProgressRunnable.run();
                 } else {
                     linearLayout.animate().alpha(1f).scaleY(1f).scaleX(1f).setDuration(150).start();
                     if (progressView != null) {
@@ -280,7 +280,7 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
             return;
         }
 
-        String imageFilter = "130_130";
+        String imageFilter = null;
         TLRPC.Document document = null;
         TLRPC.TL_messages_stickerSet set = null;
         if (stickerType == STICKER_TYPE_DONE) {
@@ -293,6 +293,7 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
             if (set != null && stickerType >= 0 && stickerType < set.documents.size()) {
                 document = set.documents.get(stickerType);
             }
+            imageFilter = "130_130";
         }
 
         if (!LiteMode.isEnabled(LiteMode.FLAGS_ANIMATED_STICKERS)) {
@@ -317,6 +318,7 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
             stickerView.getImageReceiver().clearImage();
         }
     }
+
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {

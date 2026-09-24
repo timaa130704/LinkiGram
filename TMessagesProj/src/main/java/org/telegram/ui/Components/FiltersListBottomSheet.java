@@ -67,7 +67,7 @@ public class FiltersListBottomSheet extends BottomSheet implements NotificationC
         fixNavigationBar();
         this.selectedDialogs = selectedDialogs;
         this.fragment = baseFragment;
-
+//        dialogFilters = getCanAddDialogFilters(baseFragment, selectedDialogs);
         dialogFilters = new ArrayList<>(baseFragment.getMessagesController().dialogFilters);
         for (int i = 0; i < dialogFilters.size(); ++i) {
             if (dialogFilters.get(i).isDefault()) {
@@ -414,13 +414,7 @@ public class FiltersListBottomSheet extends BottomSheet implements NotificationC
                 MessagesController.DialogFilter filter = dialogFilters.get(position);
                 cell.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
                 int icon;
-                
-                int customIcon = filter.emoticon != null
-                        ? app.nimarkogram.messenger.preferences.folders.helpers.FolderIconHelper.getTabIcon(filter.emoticon)
-                        : 0;
-                if (customIcon != 0) {
-                    icon = customIcon;
-                } else if ((filter.flags & MessagesController.DIALOG_FILTER_FLAG_ALL_CHATS) == (MessagesController.DIALOG_FILTER_FLAG_CONTACTS | MessagesController.DIALOG_FILTER_FLAG_NON_CONTACTS)) {
+                if ((filter.flags & MessagesController.DIALOG_FILTER_FLAG_ALL_CHATS) == (MessagesController.DIALOG_FILTER_FLAG_CONTACTS | MessagesController.DIALOG_FILTER_FLAG_NON_CONTACTS)) {
                     icon = R.drawable.msg_openprofile;
                 } else if ((filter.flags & MessagesController.DIALOG_FILTER_FLAG_EXCLUDE_READ) != 0 && (filter.flags & MessagesController.DIALOG_FILTER_FLAG_ALL_CHATS) == MessagesController.DIALOG_FILTER_FLAG_ALL_CHATS) {
                     icon = R.drawable.msg_markunread;

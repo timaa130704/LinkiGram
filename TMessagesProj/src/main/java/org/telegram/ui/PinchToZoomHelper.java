@@ -94,8 +94,7 @@ public class PinchToZoomHelper {
     float pinchTranslationY;
     boolean isInPinchToZoomTouchMode;
 
-    private int pointerId1 = MotionEvent.INVALID_POINTER_ID;
-    private int pointerId2 = MotionEvent.INVALID_POINTER_ID;
+    private int pointerId1, pointerId2;
 
     float pinchScale;
 
@@ -117,7 +116,6 @@ public class PinchToZoomHelper {
     }
 
     public void startZoom(View child, ImageReceiver image, View textureViewContainer, View textureView, MessageObject messageObject, int spoilerEffect2AttachIndex) {
-        cancelFinishTransition();
         this.child = child;
         this.messageObject = messageObject;
 
@@ -189,6 +187,7 @@ public class PinchToZoomHelper {
                 fullImageHeight = imageHeight;
                 fullImageWidth = imageWidth;
             }
+
 
             if (messageObject != null && messageObject.isVideo() && MediaController.getInstance().isPlayingMessage(messageObject)) {
                 isHardwareVideo = true;
@@ -305,10 +304,8 @@ public class PinchToZoomHelper {
         if (!isSimple) {
             if (!updateViewsLocation()) {
                 clear();
-                return;
             }
         }
-        releaseTrackedPointers();
         finishTransition = ValueAnimator.ofFloat(1f, 0);
         finishTransition.addUpdateListener(valueAnimator -> {
             finishProgress = (float) valueAnimator.getAnimatedValue();
@@ -329,75 +326,26 @@ public class PinchToZoomHelper {
         finishTransition.start();
     }
 
-    private void cancelFinishTransition() {
-        if (finishTransition == null) {
-            return;
-        }
-        ValueAnimator transition = finishTransition;
-        finishTransition = null;
-        transition.removeAllListeners();
-        transition.cancel();
-    }
-
-    private void resetPinchGestureState() {
-        releaseTrackedPointers();
-        pinchStartDistance = 0f;
-        pinchStartCenterX = 0f;
-        pinchStartCenterY = 0f;
-        pinchCenterX = 0f;
-        pinchCenterY = 0f;
-        pinchTranslationX = 0f;
-        pinchTranslationY = 0f;
-        pinchScale = 1f;
-    }
-
-    private void releaseTrackedPointers() {
-        isInPinchToZoomTouchMode = false;
-        pointerId1 = MotionEvent.INVALID_POINTER_ID;
-        pointerId2 = MotionEvent.INVALID_POINTER_ID;
-    }
-
-    public boolean prepareForNewTouchSequence(MotionEvent event) {
-        if (event == null || event.getActionMasked() != MotionEvent.ACTION_DOWN) {
-            return false;
-        }
-        if (!inOverlayMode && !isInPinchToZoomTouchMode && finishTransition == null) {
-            return false;
-        }
-        clear();
-        return true;
-    }
-
     public void clear() {
-        cancelFinishTransition();
-        if (child != null && child.getParent() != null) {
-            child.getParent().requestDisallowInterceptTouchEvent(false);
-        }
-        resetPinchGestureState();
         if (inOverlayMode) {
             if (callback != null) {
                 callback.onZoomFinished(messageObject);
             }
             inOverlayMode = false;
         }
-        final ZoomOverlayView overlayToRemove = overlayView;
-        overlayView = null;
-        if (overlayToRemove != null) {
-            overlayToRemove.backupImageView.getImageReceiver().clearImage();
+        if (overlayView != null && overlayView.getParent() != null) {
+            parentView.removeView(overlayView);
+            overlayView.backupImageView.getImageReceiver().clearImage();
             if (mediaSpoilerEffect2 != null) {
-                mediaSpoilerEffect2.detach(overlayToRemove);
+                mediaSpoilerEffect2.detach(overlayView);
                 mediaSpoilerEffect2 = null;
             }
 
             if (childImage != null) {
                 Drawable drawable = this.childImage.getDrawable();
                 if (drawable instanceof AnimatedFileDrawable) {
-                    ((AnimatedFileDrawable) drawable).removeSecondParentView(overlayToRemove);
+                    ((AnimatedFileDrawable) drawable).removeSecondParentView(overlayView);
                 }
-            }
-            if (overlayToRemove.getParent() != null) {
-                 
-                AndroidUtilities.removeFromParent(overlayToRemove);
             }
         }
         if (child != null) {
@@ -420,13 +368,6 @@ public class PinchToZoomHelper {
             blurImage = null;
         }
 
-        childTextureViewContainer = null;
-        childTextureView = null;
-        isHardwareVideo = false;
-        hasMediaSpoiler = false;
-        finishProgress = 1f;
-        progressToFullView = 0f;
-        enterProgress = 0f;
         messageObject = null;
     }
 
@@ -443,16 +384,9 @@ public class PinchToZoomHelper {
     }
 
     public boolean onTouchEvent(MotionEvent ev) {
-        View target = child;
-        if (target != null && updateViewsLocation()) {
-            float offsetX = fragmentOffsetX;
-            float offsetY = fragmentOffsetY;
-            ev.offsetLocation(-offsetX, -offsetY);
-            try {
-                return target.onTouchEvent(ev);
-            } finally {
-                ev.offsetLocation(offsetX, offsetY);
-            }
+        if (updateViewsLocation() && child != null) {
+            ev.offsetLocation(-fragmentOffsetX, -fragmentOffsetY);
+            return child.onTouchEvent(ev);
         }
         return false;
     }
@@ -482,6 +416,7 @@ public class PinchToZoomHelper {
         }
         return receiver.hasNotThumbOrOnlyStaticThumb();
     }
+
 
     private class ZoomOverlayView extends FrameLayout {
 
@@ -529,8 +464,9 @@ public class PinchToZoomHelper {
 
             addView(videoPlayerContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
             setWillNotDraw(false);
-        
+        //    videoTextureView.setVisibility(GONE);
         }
+
 
         @Override
         protected void dispatchDraw(Canvas canvas) {
@@ -681,7 +617,6 @@ public class PinchToZoomHelper {
                     mediaSpoilerEffect2.draw(canvas, overlayView, (int) childImage.getImageWidth(), (int) childImage.getImageHeight());
                 } else {
                     int sColor = Color.WHITE;
-                    mediaSpoilerEffect.setParentView(overlayView);
                     mediaSpoilerEffect.setColor(ColorUtils.setAlphaComponent(sColor, (int) (Color.alpha(sColor) * 0.325f * childImage.getAlpha())));
                     mediaSpoilerEffect.setBounds((int) childImage.getImageX(), (int) childImage.getImageY(), (int) childImage.getImageX2(), (int) childImage.getImageY2());
                     mediaSpoilerEffect.draw(canvas);
@@ -782,18 +717,12 @@ public class PinchToZoomHelper {
     }
 
     public boolean checkPinchToZoom(MotionEvent ev, View child, ImageReceiver image, View textureViewContainer, View textureView, MessageObject messageObject, int spoilerEffect2Index) {
-        prepareForNewTouchSequence(ev);
-        
         if (!zoomEnabled(child, image)) {
             return false;
         }
         if (ev.getActionMasked() == MotionEvent.ACTION_DOWN || ev.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
             if (!isInPinchToZoomTouchMode && ev.getPointerCount() == 2) {
                 pinchStartDistance = (float) Math.hypot(ev.getX(1) - ev.getX(0), ev.getY(1) - ev.getY(0));
-                if (pinchStartDistance <= 0.01f || !Float.isFinite(pinchStartDistance)) {
-                    resetPinchGestureState();
-                    return false;
-                }
                 pinchStartCenterX = pinchCenterX = (ev.getX(0) + ev.getX(1)) / 2.0f;
                 pinchStartCenterY = pinchCenterY = (ev.getY(0) + ev.getY(1)) / 2.0f;
                 pinchScale = 1f;
@@ -814,19 +743,12 @@ public class PinchToZoomHelper {
                 }
             }
             if (index1 == -1 || index2 == -1) {
-                releaseTrackedPointers();
-                if (child.getParent() != null) {
-                    child.getParent().requestDisallowInterceptTouchEvent(false);
-                }
+                isInPinchToZoomTouchMode = false;
+                child.getParent().requestDisallowInterceptTouchEvent(false);
                 finishZoom();
-                return isInOverlayModeFor(child);
+                return false;
             }
             pinchScale = (float) Math.hypot(ev.getX(index2) - ev.getX(index1), ev.getY(index2) - ev.getY(index1)) / pinchStartDistance;
-            if (!Float.isFinite(pinchScale)) {
-                releaseTrackedPointers();
-                finishZoom();
-                return isInOverlayModeFor(child);
-            }
             if (pinchScale > 1.005f && !isInOverlayMode()) {
                 pinchStartDistance = (float) Math.hypot(ev.getX(index2) - ev.getX(index1), ev.getY(index2) - ev.getY(index1));
                 pinchStartCenterX = pinchCenterX = (ev.getX(index1) + ev.getX(index2)) / 2.0f;
@@ -834,9 +756,7 @@ public class PinchToZoomHelper {
                 pinchScale = 1f;
                 pinchTranslationX = 0f;
                 pinchTranslationY = 0f;
-                if (child.getParent() != null) {
-                    child.getParent().requestDisallowInterceptTouchEvent(true);
-                }
+                child.getParent().requestDisallowInterceptTouchEvent(true);
                 startZoom(child, image, textureViewContainer, textureView, messageObject, spoilerEffect2Index);
             }
 
@@ -848,26 +768,27 @@ public class PinchToZoomHelper {
             pinchTranslationX = -moveDx / pinchScale;
             pinchTranslationY = -moveDy / pinchScale;
             invalidateViews();
-        } else if ((ev.getActionMasked() == MotionEvent.ACTION_UP
-                || ev.getActionMasked() == MotionEvent.ACTION_CANCEL
-                || ev.getActionMasked() == MotionEvent.ACTION_POINTER_UP
-                && isTrackedPointerGoingUp(ev)) && isInPinchToZoomTouchMode) {
-            releaseTrackedPointers();
+        } else if ((ev.getActionMasked() == MotionEvent.ACTION_UP || (ev.getActionMasked() == MotionEvent.ACTION_POINTER_UP && checkPointerIds(ev)) || ev.getActionMasked() == MotionEvent.ACTION_CANCEL) && isInPinchToZoomTouchMode) {
+            isInPinchToZoomTouchMode = false;
             if (child != null && child.getParent() != null) {
                 child.getParent().requestDisallowInterceptTouchEvent(false);
             }
             finishZoom();
         }
-        return isInOverlayModeFor(child) || isInPinchToZoomTouchMode;
+        return isInOverlayModeFor(child);
     }
 
-    private boolean isTrackedPointerGoingUp(MotionEvent ev) {
-        int actionIndex = ev.getActionIndex();
-        if (actionIndex < 0 || actionIndex >= ev.getPointerCount()) {
+    private boolean checkPointerIds(MotionEvent ev) {
+        if (ev.getPointerCount() < 2) {
             return false;
         }
-        int pointerId = ev.getPointerId(actionIndex);
-        return pointerId == pointerId1 || pointerId == pointerId2;
+        if (pointerId1 == ev.getPointerId(0) && pointerId2 == ev.getPointerId(1)) {
+            return true;
+        }
+        if (pointerId1 == ev.getPointerId(1) && pointerId2 == ev.getPointerId(0)) {
+            return true;
+        }
+        return false;
     }
 
     protected void invalidateViews() {

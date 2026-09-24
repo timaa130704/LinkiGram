@@ -342,7 +342,7 @@ public class PostsSearchContainer extends FrameLayout {
                     final Activity activity = AndroidUtilities.getActivity();
                     final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
                     final Theme.ResourcesProvider resourcesProvider = PhotoViewer.getInstance().isVisible() || lastFragment != null && lastFragment.hasShownSheet() ? new DarkThemeResourceProvider() : (lastFragment != null ? lastFragment.getResourceProvider() : null);
-                    new StarsIntroActivity.StarsNeededSheet(activity, currentAccount, resourcesProvider, paying, StarsIntroActivity.StarsNeededSheet.TYPE_SEARCH, "", () -> {
+                    new StarsIntroActivity.StarsNeededSheet(activity, resourcesProvider, paying, StarsIntroActivity.StarsNeededSheet.TYPE_SEARCH, "", () -> {
                         load(true);
                     }, 0).show();
                 }, true);
@@ -589,7 +589,7 @@ public class PostsSearchContainer extends FrameLayout {
             } else {
                 emptyUnderButtonTextView.setVisibility(View.GONE);
             }
-        } else   {
+        } else /*if (newsMessages.isEmpty() && newsMessagesEndReached)*/ {
             emptyImageView.setVisibility(View.GONE);
             emptyTitleView.setText(getString(R.string.SearchPostsTitle));
             emptyTextView.setText(getString(R.string.SearchPostsText));
