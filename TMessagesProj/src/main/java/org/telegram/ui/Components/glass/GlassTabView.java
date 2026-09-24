@@ -16,9 +16,6 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.View;
-import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -82,7 +79,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     public GlassTabView(@NonNull Context context) {
         super(context);
-        setFocusable(true);
         imageView = new RLottieImageView(context);
         addView(imageView, LayoutHelper.createFrame(44, 44, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, -6, 0, 0));
 
@@ -129,9 +125,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             final float offset = (visualWidth - getMeasuredWidth()) / 2f;
             imageView.setTranslationX(offset);
             textView.setTranslationX(offset);
-            if (backupImageView != null) {
-                backupImageView.setTranslationX(offset);
-            }
         }
     }
 
@@ -238,15 +231,10 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     }
 
     public void setSelected(boolean selected, boolean animated) {
-        boolean changed = isSelectedAnimator.getValue() != selected;
         isSelectedAnimator.setValue(selected, animated);
-        super.setSelected(selected);
         checkPlayAnimation(animated);
 
         textView.setTypeface(selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
-        if (changed && selected && animated) {
-            sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_SELECTED);
-        }
     }
 
     public boolean isTabSelected() {
@@ -283,6 +271,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         updateColors();
         invalidate();
     }
+
 
     private boolean lastIsSelected;
     private int lastIconAnimationRaw;
@@ -413,7 +402,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         tab.resourcesProvider = resourcesProvider;
         tab.tabAnimation = tabAnimation;
         tab.textView.setText(LocaleController.getString(stringRes));
-        tab.setContentDescription(LocaleController.getString(stringRes));
         tab.checkPlayAnimation(false);
         tab.imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
         tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
@@ -426,7 +414,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     public static GlassTabView createAvatar(Context context, Theme.ResourcesProvider resourcesProvider, int currentAccount, @StringRes int stringRes) {
         GlassTabView tab = new GlassTabView(context);
         tab.textView.setText(LocaleController.getString(stringRes));
-        tab.setContentDescription(LocaleController.getString(stringRes));
         tab.imageView.setVisibility(GONE);
 
         TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(UserConfig.getInstance(currentAccount).getClientUserId());
@@ -453,10 +440,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     public static GlassTabView createAttachTab(Context context, Theme.ResourcesProvider resourcesProvider) {
         GlassTabView tab = new GlassTabView(context);
-        
-        tab.setClickable(false);
-        tab.setFocusable(false);
-        tab.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         tab.resourcesProvider = resourcesProvider;
         tab.selfMeasure = true;
         tab.textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
@@ -472,9 +455,6 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     public static GlassTabView createAttachBotTab(Context context, Theme.ResourcesProvider resourcesProvider) {
         GlassTabView tab = new GlassTabView(context);
-        tab.setClickable(false);
-        tab.setFocusable(false);
-        tab.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         tab.resourcesProvider = resourcesProvider;
         tab.selfMeasure = true;
         tab.textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
@@ -494,75 +474,12 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         return backupImageView;
     }
 
-    public static GlassTabView createStaticTab(Context context, Theme.ResourcesProvider resourcesProvider,
-                                               @DrawableRes int iconRes, @StringRes int stringRes) {
-        return createStaticTab(context, resourcesProvider, iconRes, stringRes,
-                app.nimarkogram.messenger.NimarkoConfig.showMainTabsTitle);
-    }
-
-    public static GlassTabView createStaticTab(Context context, Theme.ResourcesProvider resourcesProvider,
-                                               @DrawableRes int iconRes, @StringRes int stringRes,
-                                               boolean showTitle) {
-        GlassTabView tab = new GlassTabView(context);
-        tab.resourcesProvider = resourcesProvider;
-        tab.imageView.setImageResource(iconRes);
-        tab.setContentDescription(LocaleController.getString(stringRes));
-        if (showTitle) {
-            tab.textView.setText(LocaleController.getString(stringRes));
-            tab.textView.setVisibility(View.VISIBLE);
-            tab.imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
-        } else {
-            tab.textView.setVisibility(View.GONE);
-            tab.imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER, 0, 0, 0, 0));
-        }
-        tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
-        tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
-        tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
-        tab.imageView.setColorFilter(new PorterDuffColorFilter(tab.colorDefault, PorterDuff.Mode.SRC_IN));
-        tab.updateColors();
-        return tab;
-    }
-
-    public void setIcon(@DrawableRes int iconRes) {
-        imageView.setImageResource(iconRes);
-    }
-
-    public void setEnabledVisual(boolean enabled) {
-        setAlpha(enabled ? 1f : 0.4f);
-        invalidate();
-    }
-
-    public void setTitleVisible(boolean visible) {
-        textView.setVisibility(visible ? VISIBLE : GONE);
-        if (imageView.getVisibility() != GONE) {
-            if (visible) {
-                imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
-            } else {
-                imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER, 0, 0, 0, 0));
-            }
-        }
-        if (backupImageView != null) {
-            if (visible) {
-                backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 5, 0, 0));
-            } else {
-                
-                backupImageView.setLayoutParams(LayoutHelper.createFrame(29, 29, Gravity.CENTER, 0, 0, 0, 0));
-            }
-        }
-        requestLayout();
-    }
-
     private boolean selfMeasure;
     private int additionalWidth;
 
     public void setAdditionalWidth(int additionalWidth) {
         this.additionalWidth = additionalWidth;
         this.selfMeasure = true;
-    }
-
-    public void setStaticIcon(@DrawableRes int drawableRes) {
-        imageView.clearAnimationDrawable();
-        imageView.setImageResource(drawableRes);
     }
 
     public float measureAttachTabWidth() {
@@ -706,16 +623,8 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     public void setText(CharSequence text) {
         textView.setText(text);
-        setContentDescription(text);
     }
 
-    @Override
-    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
-        super.onInitializeAccessibilityNodeInfo(info);
-        info.setClassName("android.widget.Button");
-        info.setSelected(isTabSelected());
-        info.setClickable(hasOnClickListeners());
-    }
 
     private AvatarDrawable avatarDrawable;
 

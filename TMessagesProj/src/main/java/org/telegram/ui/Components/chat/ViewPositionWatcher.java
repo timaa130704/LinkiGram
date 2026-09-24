@@ -9,16 +9,22 @@ import android.view.ViewTreeObserver;
 
 import androidx.annotation.NonNull;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+/**
+ * Tracks position changes of multiple Views relative to a specified ancestor ViewGroup.
+ * Coordinates are computed manually by summing getX()/getY() up the hierarchy.
+ *
+ * Works through a single ViewTreeObserver.OnPreDrawListener attached to the given anchorView.
+ */
 public final class ViewPositionWatcher implements
         ViewTreeObserver.OnPreDrawListener,
         View.OnAttachStateChangeListener {
 
+    /** Per-view callback invoked when a view's position relative to its parent changes. */
     public interface OnChangedListener {
         void onPositionChanged(@NonNull View view, @NonNull RectF rectInParent);
     }
@@ -27,56 +33,23 @@ public final class ViewPositionWatcher implements
     private ViewTreeObserver vto;
     private boolean listening;
 
-    private static final class ListenerRegistration {
+    /** Per-view tracking state. */
+    private static final class Tracked {
+        final ViewGroup parent;
         final OnChangedListener listener;
-        final RectF callbackRect = new RectF();
-        boolean hasPosition;
+        final RectF last = new RectF();
+        boolean multiwindow;
+        boolean hasLast;
 
-        ListenerRegistration(@NonNull OnChangedListener listener) {
+        Tracked(@NonNull ViewGroup parent, @NonNull OnChangedListener listener) {
+            this.parent = parent;
             this.listener = listener;
         }
     }
 
-    private static final class TrackedGeometry {
-        
-        final WeakReference<ViewGroup> parent;
-        final boolean multiwindow;
-        final List<ListenerRegistration> listeners = new ArrayList<>(1);
-        final RectF last = new RectF();
-        boolean hasLast;
-        boolean needsInitialDispatch;
-
-        TrackedGeometry(@NonNull ViewGroup parent, boolean multiwindow) {
-            this.parent = new WeakReference<>(parent);
-            this.multiwindow = multiwindow;
-        }
-
-        void addListener(@NonNull OnChangedListener listener) {
-            listeners.add(new ListenerRegistration(listener));
-            needsInitialDispatch = true;
-        }
-    }
-
-    private static final class TrackedView {
-        final List<TrackedGeometry> geometries = new ArrayList<>(1);
-        boolean multiwindowListening;
-    }
-
-    private final WeakHashMap<View, TrackedView> tracked = new WeakHashMap<>();
-    private final RectF tmpRect = new RectF(); 
+    private final WeakHashMap<View, List<Tracked>> tracked = new WeakHashMap<>();
+    private final RectF tmpRect = new RectF(); // reused for all calculations
     private static final int[] tmpCords = new int[2];
-
-    private final View.OnAttachStateChangeListener multiwindowAttachStateListener =
-            new View.OnAttachStateChangeListener() {
-                @Override
-                public void onViewAttachedToWindow(@NonNull View v) {
-                }
-
-                @Override
-                public void onViewDetachedFromWindow(@NonNull View v) {
-                    stopMultiwindowListening(v, tracked.remove(v));
-                }
-            };
 
     public ViewPositionWatcher(@NonNull View anchorView) {
         this.anchorView = anchorView;
@@ -90,77 +63,49 @@ public final class ViewPositionWatcher implements
         subscribe(view, parentView, listener, false);
     }
 
+    /** Subscribe a view for tracking relative to the given parent (must be an ancestor). */
     public void subscribe(@NonNull View view,
                           @NonNull ViewGroup parentView,
                           @NonNull OnChangedListener listener,
                           boolean multiwindow) {
-        TrackedView trackedView = tracked.get(view);
-        if (trackedView == null) {
-            trackedView = new TrackedView();
-            tracked.put(view, trackedView);
+        Tracked t = new Tracked(parentView, listener);
+        t.multiwindow = multiwindow;
+        List<Tracked> tList = tracked.get(view);
+        if (tList == null) {
+            tList = new ArrayList<>(1);
+            tracked.put(view, tList);
         }
+        tList.add(t);
 
-        TrackedGeometry geometry = null;
-        for (TrackedGeometry candidate : trackedView.geometries) {
-            if (candidate.parent.get() == parentView && candidate.multiwindow == multiwindow) {
-                geometry = candidate;
-                break;
-            }
-        }
-        if (geometry == null) {
-            geometry = new TrackedGeometry(parentView, multiwindow);
-            trackedView.geometries.add(geometry);
-        }
-        geometry.addListener(listener);
+        computeRectInParent(view, parentView, tmpRect);
+        t.last.set(tmpRect);
+        // t.hasLast = true;
 
         ensureListening();
 
         if (multiwindow) {
-            ensureMultiwindowListening(view, trackedView);
+            view.getViewTreeObserver().addOnPreDrawListener(this);
         }
     }
 
+    /** Unsubscribe a specific view. */
     public void unsubscribe(@NonNull View view) {
-        stopMultiwindowListening(view, tracked.remove(view));
+        tracked.remove(view);
     }
 
+    /** Clear all subscriptions. */
     public void clear() {
-        for (Map.Entry<View, TrackedView> entry : tracked.entrySet()) {
-            View view = entry.getKey();
-            if (view != null) {
-                stopMultiwindowListening(view, entry.getValue());
-            }
-        }
         tracked.clear();
     }
 
+    /** Stop watching entirely. */
     public void shutdown() {
         detachIfListening();
         anchorView.removeOnAttachStateChangeListener(this);
-        clear();
+        tracked.clear();
     }
 
-    private void ensureMultiwindowListening(@NonNull View view, @NonNull TrackedView trackedView) {
-        if (trackedView.multiwindowListening) return;
-
-        ViewTreeObserver observer = view.getViewTreeObserver();
-        if (observer == null || !observer.isAlive()) return;
-
-        observer.addOnPreDrawListener(this);
-        trackedView.multiwindowListening = true;
-        view.addOnAttachStateChangeListener(multiwindowAttachStateListener);
-    }
-
-    private void stopMultiwindowListening(@NonNull View view, TrackedView trackedView) {
-        if (trackedView == null || !trackedView.multiwindowListening) return;
-
-        view.removeOnAttachStateChangeListener(multiwindowAttachStateListener);
-        ViewTreeObserver observer = view.getViewTreeObserver();
-        if (observer != null && observer.isAlive()) {
-            observer.removeOnPreDrawListener(this);
-        }
-        trackedView.multiwindowListening = false;
-    }
+    // ─────────────── ViewTreeObserver lifecycle ───────────────
 
     private void attachIfPossible() {
         if (!anchorView.isAttachedToWindow()) return;
@@ -198,9 +143,11 @@ public final class ViewPositionWatcher implements
         }
     }
 
+    // ─────────────── OnPreDraw ───────────────
+
     @Override
     public boolean onPreDraw() {
-        
+        // Reattach if VTO changed
         ViewTreeObserver current = anchorView.getViewTreeObserver();
         if (current != vto) {
             detachIfListening();
@@ -209,50 +156,37 @@ public final class ViewPositionWatcher implements
 
         if (tracked.isEmpty()) return true;
 
-        for (Map.Entry<View, TrackedView> e : tracked.entrySet()) {
+        for (Map.Entry<View, List<Tracked>> e : tracked.entrySet()) {
             View view = e.getKey();
-            TrackedView trackedView = e.getValue();
-            if (view == null || trackedView == null) continue;
+            List<Tracked> tList = e.getValue();
+            if (view == null || tList == null) continue;
 
-            for (TrackedGeometry geometry : trackedView.geometries) {
-                ViewGroup parent = geometry.parent.get();
-                if (parent == null) continue; 
-                if (geometry.multiwindow) {
+            for (Tracked t : tList) {
+                if (t.multiwindow) {
                     view.getLocationOnScreen(tmpCords);
                     tmpRect.set(tmpCords[0], tmpCords[1], tmpCords[0] + view.getWidth(), tmpCords[1] + view.getHeight());
 
-                    parent.getLocationOnScreen(tmpCords);
+                    t.parent.getLocationOnScreen(tmpCords);
                     tmpRect.offset(-tmpCords[0], -tmpCords[1]);
                 } else {
-                    if (!computeRectInParent(view, parent, tmpRect)) continue;
+                    if (!computeRectInParent(view, t.parent, tmpRect)) continue;
                 }
 
-                final boolean changed = !geometry.hasLast || !tmpRect.equals(geometry.last);
-                if (changed) {
-                    geometry.last.set(tmpRect);
-                    geometry.hasLast = true;
-                }
-                if (changed || geometry.needsInitialDispatch) {
-                    
-                    geometry.needsInitialDispatch = false;
-                    final int listenerCount = geometry.listeners.size();
-                    for (int i = 0; i < listenerCount; i++) {
-                        ListenerRegistration registration = geometry.listeners.get(i);
-                        if (!changed && registration.hasPosition) continue;
-
-                        registration.callbackRect.set(geometry.last);
-                        registration.hasPosition = true;
-                        try {
-                            registration.listener.onPositionChanged(view, registration.callbackRect);
-                        } catch (Throwable ignored) {
-                            
-                        }
+                if (!t.hasLast || !tmpRect.equals(t.last)) {
+                    t.last.set(tmpRect);
+                    t.hasLast = true;
+                    try {
+                        t.listener.onPositionChanged(view, new RectF(tmpRect));
+                    } catch (Throwable ignored) {
+                        // Do not crash UI if callback throws
                     }
                 }
             }
         }
         return true;
     }
+
+    // ─────────────── Coordinate calculation ───────────────
 
     public static float computeYCoordinateInParent(@NonNull View view, @NonNull ViewGroup parentView) {
         computeRectInParent(view, parentView, tmpRectF2);
@@ -276,6 +210,13 @@ public final class ViewPositionWatcher implements
         return result;
     }
 
+    /**
+     * Compute the view's rect in parentView coordinates
+     * by summing getX()/getY() up the hierarchy until reaching parentView.
+     *
+     * @return false if parentView is not an ancestor of view.
+     */
+
     public static boolean computeRectInParent(@NonNull View view,
                                                @NonNull View parentView,
                                                @NonNull RectF out) {
@@ -289,7 +230,7 @@ public final class ViewPositionWatcher implements
 
             ViewParent vp = current.getParent();
             if (!(vp instanceof View)) {
-                return false; 
+                return false; // parentView not found in hierarchy
             }
             View parent = (View) vp;
             left -= parent.getScrollX();
@@ -299,7 +240,7 @@ public final class ViewPositionWatcher implements
         }
 
         if (current != parentView) {
-            
+            // parentView not found in ancestor chain
             return false;
         }
 

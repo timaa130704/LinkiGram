@@ -8,8 +8,6 @@
 
 package org.telegram.messenger;
 
-import static org.telegram.messenger.AndroidUtilities.find;
-
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -113,8 +111,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import app.nimarkogram.messenger.chats.filters.MessagesFilterHelper;
-
 @SuppressWarnings("unchecked")
 public class MediaDataController extends BaseController {
     public final static String
@@ -144,6 +140,7 @@ public class MediaDataController extends BaseController {
             lockObjects[i] = new Object();
         }
     }
+
 
     public static MediaDataController getInstance(int num) {
         MediaDataController localInstance = Instance[num];
@@ -204,7 +201,7 @@ public class MediaDataController extends BaseController {
                 }
                 serializedData.cleanup();
             } catch (Exception e) {
-                
+                //igonre
             }
         }
         loadRepliesOfDraftReplies(replyMessageOwners);
@@ -916,7 +913,7 @@ public class MediaDataController extends BaseController {
         if (type == TYPE_PREMIUM_STICKERS) {
             return new ArrayList<>(recentStickers[type]);
         }
-        ArrayList<TLRPC.Document> result = new ArrayList<>(arrayList.subList(0, Math.min(arrayList.size(), app.nimarkogram.messenger.NimarkoConfig.recentStickersAmplifier + 1)));
+        ArrayList<TLRPC.Document> result = new ArrayList<>(arrayList.subList(0, Math.min(arrayList.size(), 20)));
         if (firstEmpty && !result.isEmpty() && !StickersAlert.DISABLE_STICKER_EDITOR) {
             result.add(0, new TLRPC.TL_documentEmpty());
         }
@@ -1020,7 +1017,7 @@ public class MediaDataController extends BaseController {
                     }
                 });
             }
-            maxCount = app.nimarkogram.messenger.NimarkoConfig.recentStickersAmplifier + 1;
+            maxCount = getMessagesController().maxRecentStickersCount;
         }
         if (recentStickers[type].size() > maxCount || remove) {
             TLRPC.Document old = remove ? document : recentStickers[type].remove(recentStickers[type].size() - 1);
@@ -1311,26 +1308,6 @@ public class MediaDataController extends BaseController {
         });
     }
 
-    public void setPlaceholderImageByIndex(final BackupImageView backupImageView, String setName, final int index, final String filter) {
-        TLRPC.TL_inputStickerSetShortName inputStickerSet = new TLRPC.TL_inputStickerSetShortName();
-        inputStickerSet.short_name = setName;
-        final String tag = "sticker_" + setName + "_" + index;
-        backupImageView.setTag(tag);
-        backupImageView.setImage((ImageLocation) null, (String) null, (Drawable) null, 0, (Object) null);
-        getStickerSet(inputStickerSet, 0, false, stickerSet -> {
-            if (!tag.equals(backupImageView.getTag())) return;
-            if (stickerSet == null || stickerSet.documents == null || stickerSet.documents.isEmpty()) return;
-            if (index >= 0 && index < stickerSet.documents.size()) {
-                TLRPC.Document document = stickerSet.documents.get(index);
-                if (document != null) {
-                    Drawable thumb = DocumentObject.getSvgThumb(document, Theme.key_windowBackgroundWhiteGrayIcon, 0.2f, 1.0f, null);
-                    backupImageView.setImage(ImageLocation.getForDocument(document), filter, thumb, 0, document);
-                    backupImageView.invalidate();
-                }
-            }
-        });
-    }
-
     public static String inputSetKey(TLRPC.InputStickerSet i) {
         if (i instanceof TLRPC.TL_inputStickerSetID)
             return "id" + i.id + "access_hash" + i.access_hash;
@@ -1599,6 +1576,7 @@ public class MediaDataController extends BaseController {
         }
         return set;
     }
+
 
     private TLRPC.TL_messages_stickerSet getCachedStickerSetInternal(String short_name, Integer hash) {
         TLRPC.TL_messages_stickerSet set = null;
@@ -2114,7 +2092,7 @@ public class MediaDataController extends BaseController {
                         } else if (type == TYPE_FAVE) {
                             maxCount = getMessagesController().maxFaveStickersCount;
                         } else {
-                            maxCount = app.nimarkogram.messenger.NimarkoConfig.recentStickersAmplifier + 1;
+                            maxCount = getMessagesController().maxRecentStickersCount;
                         }
                     }
                     database.beginTransaction();
@@ -2203,27 +2181,8 @@ public class MediaDataController extends BaseController {
                 if (documents != null) {
                     if (gif) {
                         recentGifs = documents;
-                    } else if (type == TYPE_FAVE) {
-                        
-                        recentStickers[type] = documents;
                     } else {
-                        
-                        int cap = app.nimarkogram.messenger.NimarkoConfig.recentStickersAmplifier + 1;
-                        ArrayList<TLRPC.Document> merged = new ArrayList<>(documents);
-                        if (merged.size() < cap && recentStickers[type] != null) {
-                            java.util.HashSet<Long> seen = new java.util.HashSet<>();
-                            for (TLRPC.Document d : documents) {
-                                if (d != null) seen.add(d.id);
-                            }
-                            for (TLRPC.Document d : recentStickers[type]) {
-                                if (merged.size() >= cap) break;
-                                if (d != null && !seen.contains(d.id)) {
-                                    merged.add(d);
-                                    seen.add(d.id);
-                                }
-                            }
-                        }
-                        recentStickers[type] = merged;
+                        recentStickers[type] = documents;
                     }
                     if (type == TYPE_GREETINGS) {
                         preloadNextGreetingsSticker();
@@ -2249,7 +2208,7 @@ public class MediaDataController extends BaseController {
         });
         loadHash[type] = calcStickersHash(stickerSets[type]);
         getNotificationCenter().postNotificationName(NotificationCenter.stickersDidLoad, type, forceUpdateUi);
-        
+        //loadStickers(type, false, true);
     }
 
     public void calcNewHash(int type) {
@@ -2342,7 +2301,7 @@ public class MediaDataController extends BaseController {
                             data.reuse();
                         }
                         date = cursor.intValue(2);
-                        hash = cursor.longValue(3); 
+                        hash = cursor.longValue(3); // calcFeaturedStickersHash(emoji, newStickerArray);
                         premium = cursor.intValue(4) == 1;
                     }
                 } catch (Throwable e) {
@@ -2559,6 +2518,7 @@ public class MediaDataController extends BaseController {
     public int getArchivedStickersCount(int type) {
         return archivedStickersCount[type];
     }
+
 
     public void verifyAnimatedStickerMessage(TLRPC.Message message) {
         verifyAnimatedStickerMessage(message, false);
@@ -2884,7 +2844,7 @@ public class MediaDataController extends BaseController {
                 req.stickerset = inputStickerSetShortName;
             }
             getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
-                if (BuildConfig.DEBUG && error != null) { 
+                if (BuildConfig.DEBUG && error != null) { //supress test backend warning
                     return;
                 }
                 if (response instanceof TLRPC.TL_messages_stickerSet) {
@@ -3385,6 +3345,9 @@ public class MediaDataController extends BaseController {
         }
     }
 
+    /**
+     * @param toggle 0 - remove, 1 - archive, 2 - add
+     */
     public void toggleStickerSet(Context context, TLObject stickerSetObject, int toggle, BaseFragment baseFragment, boolean showSettings, boolean showTooltip) {
         toggleStickerSet(context, stickerSetObject, toggle, baseFragment, showSettings, showTooltip, null, true);
     }
@@ -3510,6 +3473,7 @@ public class MediaDataController extends BaseController {
         if (messages_stickerSet == null) {
             return;
         }
+//        TLRPC.StickerSet stickerSet = messages_stickerSet.set;
 
         int type1 = TYPE_IMAGE;
         if (messages_stickerSet.set.masks) {
@@ -3620,6 +3584,9 @@ public class MediaDataController extends BaseController {
         }
     }
 
+    /**
+     * @param toggle 0 - uninstall, 1 - archive, 2 - unarchive
+     */
     public void toggleStickerSets(ArrayList<TLRPC.StickerSet> stickerSetList, int type, int toggle, BaseFragment baseFragment, boolean showSettings) {
         int stickerSetListSize = stickerSetList.size();
         ArrayList<TLRPC.InputStickerSet> inputStickerSets = new ArrayList<>(stickerSetListSize);
@@ -3689,7 +3656,8 @@ public class MediaDataController extends BaseController {
             baseFragment.showDialog(alert.create());
         }
     }
-    
+    //---------------- STICKERS END ----------------
+
     private int reqId;
     private int mergeReqId;
     private long lastMergeDialogId;
@@ -3982,8 +3950,7 @@ public class MediaDataController extends BaseController {
                     req.saved_reaction.add(reaction.toTLReaction());
                     req.flags |= 8;
                 }
-                
-                req.filter = app.nimarkogram.messenger.utils.chats.NimarkoChatHelper2.getSearchFilterType();
+                req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
                 mergeReqId = getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                     if (lastMergeDialogId == mergeDialogId) {
                         mergeReqId = 0;
@@ -4068,8 +4035,7 @@ public class MediaDataController extends BaseController {
             req.saved_reaction.add(reaction.toTLReaction());
             req.flags |= 8;
         }
-        
-        req.filter = app.nimarkogram.messenger.utils.chats.NimarkoChatHelper2.getSearchFilterType();
+        req.filter = new TLRPC.TL_inputMessagesFilterEmpty();
         lastSearchQuery = query;
         long queryWithDialogFinal = queryWithDialog;
         String finalQuery = query;
@@ -4174,7 +4140,9 @@ public class MediaDataController extends BaseController {
     public String getLastSearchQuery() {
         return lastSearchQuery;
     }
-    
+    //---------------- MESSAGE SEARCH END ----------------
+
+
     public final static int MEDIA_PHOTOVIDEO = 0;
     public final static int MEDIA_FILE = 1;
     public final static int MEDIA_AUDIO = 2;
@@ -4185,6 +4153,7 @@ public class MediaDataController extends BaseController {
     public final static int MEDIA_VIDEOS_ONLY = 7;
     public final static int MEDIA_POLL = 8;
     public final static int MEDIA_TYPES_COUNT = 9;
+
 
     public void loadMedia(long dialogId, int count, int max_id, int min_id, int type, long topicId, int fromCache, int classGuid, int requestIndex, ReactionsLayoutInBubble.VisibleReaction tag, String query) {
         boolean isChannel = DialogObject.isChatDialog(dialogId) && ChatObject.isChannel(-dialogId, currentAccount);
@@ -4822,6 +4791,7 @@ public class MediaDataController extends BaseController {
                         }
                     }
 
+
                     HashSet<Long> groupsToLoad = tag != null ? new HashSet<>() : null;
                     while (cursor.next()) {
                         NativeByteBuffer data = cursor.byteBufferValue(0);
@@ -5009,7 +4979,8 @@ public class MediaDataController extends BaseController {
             AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.musicDidLoad, dialogId, arrayListBegin, arrayListEnd));
         });
     }
-    
+    //---------------- MEDIA END ----------------
+
     public ArrayList<TLRPC.TL_topPeer> hints = new ArrayList<>();
     public ArrayList<TLRPC.TL_topPeer> inlineBots = new ArrayList<>();
     public ArrayList<TLRPC.TL_topPeer> guestBots = new ArrayList<>();
@@ -5098,6 +5069,7 @@ public class MediaDataController extends BaseController {
                     }
                     arrayList.clear();
                 }
+
 
                 HashSet<String> category = new HashSet<>(1);
                 category.add(SHORTCUT_CATEGORY);
@@ -5659,6 +5631,7 @@ public class MediaDataController extends BaseController {
         });
     }
 
+
     public static int SHORTCUT_TYPE_USER_OR_CHAT = 0;
     public static int SHORTCUT_TYPE_ATTACHED_BOT = 1;
 
@@ -5818,7 +5791,7 @@ public class MediaDataController extends BaseController {
                         try {
                             canvas.setBitmap(null);
                         } catch (Exception e) {
-                            
+                            //don't promt, this will crash on 2.x
                         }
                         bitmap = result;
                     }
@@ -5979,7 +5952,8 @@ public class MediaDataController extends BaseController {
     public boolean canCreateAttachedMenuBotShortcut(long botId) {
         return true;
     }
-    
+    //---------------- SEARCH END ----------------
+
     private static Comparator<TLRPC.MessageEntity> entityComparator = (entity1, entity2) -> {
         if (entity1.offset > entity2.offset) {
             return 1;
@@ -6191,7 +6165,7 @@ public class MediaDataController extends BaseController {
         getMessagesStorage().getStorageQueue().postRunnable(() -> {
             try {
                 getMessagesStorage().getDatabase().beginTransaction();
-                
+                //SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("UPDATE chat_pinned_v2 SET data = ? WHERE uid = ? AND mid = ?");
                 SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("REPLACE INTO chat_pinned_v2 VALUES(?, ?, ?)");
                 for (int a = 0, N = arrayList.size(); a < N; a++) {
                     TLRPC.Message message = arrayList.get(a);
@@ -7020,11 +6994,7 @@ public class MediaDataController extends BaseController {
     }
 
     public static void addTextStyleRuns(MessageObject msg, Spannable text) {
-        
-        ArrayList<TLRPC.MessageEntity> ents = MessagesFilterHelper.INSTANCE.addSpoilerEntities(msg);
-        
-        ents = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper.checkLockedChatsEntities(msg, ents);
-        addTextStyleRuns(ents, msg.messageText, text, -1);
+        addTextStyleRuns(msg.messageOwner.entities, msg.messageText, text, -1);
     }
 
     public static void addTextStyleRuns(TLRPC.DraftMessage msg, Spannable text, int allowedFlags) {
@@ -7032,11 +7002,7 @@ public class MediaDataController extends BaseController {
     }
 
     public static void addTextStyleRuns(MessageObject msg, Spannable text, int allowedFlags) {
-        
-        ArrayList<TLRPC.MessageEntity> ents = MessagesFilterHelper.INSTANCE.addSpoilerEntities(msg);
-        
-        ents = app.nimarkogram.messenger.utils.chats.NimarkoChatsPasswordHelper.checkLockedChatsEntities(msg, ents);
-        addTextStyleRuns(ents, msg.messageText, text, allowedFlags);
+        addTextStyleRuns(msg.messageOwner.entities, msg.messageText, text, allowedFlags);
     }
 
     public static void addTextStyleRuns(ArrayList<TLRPC.MessageEntity> entities, CharSequence messageText, Spannable text) {
@@ -7499,7 +7465,25 @@ public class MediaDataController extends BaseController {
                         s.removeSpan(spansUrl[b]);
                     }
                 }
-
+//
+//                AndroidUtilities.doSafe(() -> Linkify.addLinks(s, Linkify.PHONE_NUMBERS));
+//                spansUrl = s.getSpans(0, message[0].length(), URLSpan.class);
+//                if (spansUrl != null && spansUrl.length > 0) {
+//                    if (entities == null) {
+//                        entities = new ArrayList<>();
+//                    }
+//                    for (int b = 0; b < spansUrl.length; b++) {
+//                        if (spansUrl[b] instanceof URLSpanReplacement || spansUrl[b] instanceof URLSpanUserMention) {
+//                            continue;
+//                        }
+//                        TLRPC.TL_messageEntityTextUrl entity = new TLRPC.TL_messageEntityTextUrl();
+//                        entity.offset = spannable.getSpanStart(spansUrl[b]);
+//                        entity.length = Math.min(spannable.getSpanEnd(spansUrl[b]), message[0].length()) - entity.offset;
+//                        entity.url = spansUrl[b].getURL();
+//                        entities.add(entity);
+//                        s.removeSpan(spansUrl[b]);
+//                    }
+//                }
             }
         }
 
@@ -7514,6 +7498,7 @@ public class MediaDataController extends BaseController {
             }
         }
 
+        // trim again in case some whitespace inside tags
         while (cs.length() > 0 && (cs.charAt(0) == '\n' || cs.charAt(0) == ' ')) {
             cs = cs.subSequence(1, cs.length());
             for (int i = 0; i < entities.size(); ++i) {
@@ -7600,14 +7585,14 @@ public class MediaDataController extends BaseController {
             String gr = m.group(1);
             boolean allowEntity = true;
             if (cs instanceof Spannable) {
-                
+                // check if it is inside a link: do not convert __ ** to styles inside links
                 URLSpan[] spansUrl = ((Spannable) cs).getSpans(m.start() - offset, m.end() - offset, URLSpan.class);
                 if (spansUrl != null && spansUrl.length > 0) {
                     allowEntity = false;
                 }
             }
             if (allowEntity) {
-                
+                // check if it is inside a code block: do not convert __ ** || to styles inside code
                 for (int i = 0; i < entities.size(); ++i) {
                     final TLRPC.MessageEntity entity = entities.get(i);
                     if (entity instanceof TLRPC.TL_messageEntityPre || entity instanceof TLRPC.TL_messageEntityCode) {
@@ -7646,6 +7631,8 @@ public class MediaDataController extends BaseController {
             }
         }
     }
+
+    //---------------- MESSAGES END ----------------
 
     private LongSparseArray<Integer> draftsFolderIds = new LongSparseArray<>();
     private LongSparseArray<LongSparseArray<TLRPC.DraftMessage>> drafts = new LongSparseArray<>();
@@ -7993,9 +7980,9 @@ public class MediaDataController extends BaseController {
                 }
             }
             if (threadId == 0) {
-                editor.remove("" + dialogId).remove("r_" + dialogId);
+                draftPreferences.edit().remove("" + dialogId).remove("r_" + dialogId).commit();
             } else {
-                editor.remove("t_" + dialogId + "_" + threadId).remove("rt_" + dialogId + "_" + threadId);
+                draftPreferences.edit().remove("t_" + dialogId + "_" + threadId).remove("rt_" + dialogId + "_" + threadId).commit();
             }
             messagesController.removeDraftDialogIfNeed(dialogId);
         } else {
@@ -8022,7 +8009,9 @@ public class MediaDataController extends BaseController {
             if (threads != null) {
                 replyToMessage = threads.get(threadId);
             }
-
+//            if (replyToMessage == null || replyToMessage.id != draft.reply_to.reply_to_msg_id || !MessageObject.peersEqual(draft.reply_to.reply_to_peer_id, replyToMessage.peer_id)) {
+//                replyToMessage = null;
+//            }
         } else if (draft != null && draft.reply_to == null) {
             replyToMessage = null;
         }
@@ -8054,8 +8043,7 @@ public class MediaDataController extends BaseController {
                 FileLog.e(e);
             }
         }
-        
-        editor.apply();
+        editor.commit();
         if (fromServer && (threadId == 0 || getMessagesController().isForum(dialogId))) {
             if (draft != null && draft.reply_to != null && draft.reply_to.reply_to_msg_id != 0 && (replyToMessage == null || replyToMessage.reply_to instanceof TLRPC.TL_messageReplyHeader && replyToMessage.replyMessage == null)) {
                 final long replyDialogId = (draft.reply_to.flags & 2) != 0 ? DialogObject.getPeerDialogId(draft.reply_to.reply_to_peer_id) : dialogId;
@@ -8230,6 +8218,8 @@ public class MediaDataController extends BaseController {
     public void endTransaction() {
         inTransaction = false;
     }
+
+    //---------------- DRAFT END ----------------
 
     private HashMap<String, TL_bots.BotInfo> botInfos = new HashMap<>();
     private LongSparseArray<ArrayList<TLRPC.Message>> botDialogKeyboards = new LongSparseArray<>();
@@ -8683,6 +8673,10 @@ public class MediaDataController extends BaseController {
         return null;
     }
 
+    //---------------- BOT END ----------------
+
+    //---------------- EMOJI START ----------------
+
     public static class KeywordResult {
         public KeywordResult() {
         }
@@ -8695,6 +8689,7 @@ public class MediaDataController extends BaseController {
         public String emoji;
         public String keyword;
     }
+
 
     public interface KeywordResultCallback {
         void run(ArrayList<KeywordResult> param, String alias);
@@ -9395,8 +9390,10 @@ public class MediaDataController extends BaseController {
         }
     }
 
+    //---------------- EMOJI END ----------------
+
     public ArrayList<TLRPC.EmojiStatus> getDefaultEmojiStatuses() {
-        final int type = 1; 
+        final int type = 1; // default
         if (!emojiStatusesFromCacheFetched[type]) {
             fetchEmojiStatuses(type, true);
         } else if (emojiStatuses[type] == null || emojiStatusesFetchDate[type] != null && (System.currentTimeMillis() / 1000 - emojiStatusesFetchDate[type]) > 60 * 30) {
@@ -9406,7 +9403,7 @@ public class MediaDataController extends BaseController {
     }
 
     public ArrayList<TLRPC.EmojiStatus> getDefaultChannelEmojiStatuses() {
-        final int type = 2; 
+        final int type = 2; // default channel
         if (!emojiStatusesFromCacheFetched[type]) {
             fetchEmojiStatuses(type, true);
         } else if (emojiStatuses[type] == null || emojiStatusesFetchDate[type] != null && (System.currentTimeMillis() / 1000 - emojiStatusesFetchDate[type]) > 60 * 30) {
@@ -9416,7 +9413,7 @@ public class MediaDataController extends BaseController {
     }
 
     public ArrayList<TLRPC.EmojiStatus> getRecentEmojiStatuses() {
-        final int type = 0; 
+        final int type = 0; // recent
         if (!emojiStatusesFromCacheFetched[type]) {
             fetchEmojiStatuses(type, true);
         } else if (emojiStatuses[type] == null || emojiStatusesFetchDate[type] != null && (System.currentTimeMillis() / 1000 - emojiStatusesFetchDate[type]) > 60 * 30) {
@@ -9426,7 +9423,7 @@ public class MediaDataController extends BaseController {
     }
 
     public ArrayList<TLRPC.EmojiStatus> clearRecentEmojiStatuses() {
-        final int type = 0; 
+        final int type = 0; // recent
         if (emojiStatuses[type] != null) {
             emojiStatuses[type].clear();
         }
@@ -9440,7 +9437,7 @@ public class MediaDataController extends BaseController {
     }
 
     public void pushRecentEmojiStatus(TLRPC.EmojiStatus status) {
-        final int type = 0; 
+        final int type = 0; // recent
         if (emojiStatuses[type] != null) {
             if (status instanceof TLRPC.TL_emojiStatus) {
                 long documentId = ((TLRPC.TL_emojiStatus) status).document_id;
@@ -9457,7 +9454,7 @@ public class MediaDataController extends BaseController {
             }
 
             TL_account.TL_emojiStatuses statuses = new TL_account.TL_emojiStatuses();
-            
+            // todo: calc hash
             statuses.hash = emojiStatusesHash[type];
             statuses.statuses = emojiStatuses[type];
             updateEmojiStatuses(type, statuses);
@@ -9551,6 +9548,7 @@ public class MediaDataController extends BaseController {
             emojiStatusesFetching[type] = false;
         });
     }
+
 
     ArrayList<TLRPC.Reaction> recentReactions = new ArrayList<>();
     ArrayList<TLRPC.Reaction> topReactions = new ArrayList<>();
@@ -9731,6 +9729,7 @@ public class MediaDataController extends BaseController {
             value = preferences.getString("group", null);
             lastCheckTime = preferences.getLong("group_last_check", 0);
         }
+
 
         TLRPC.TL_emojiList emojiList = null;
         if (value != null) {

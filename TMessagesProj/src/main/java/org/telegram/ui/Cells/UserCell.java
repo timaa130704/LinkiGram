@@ -18,13 +18,11 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.icu.number.Scale;
-import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -73,13 +71,10 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
     private CheckBoxSquare checkBoxBig;
     private ImageView checkBox3;
     private TextView adminTextView;
-    public TextView addButton;
+    private TextView addButton;
     private Drawable premiumDrawable;
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable botVerification;
     private final AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable emojiStatus;
-    
-    private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable nimarkoBadgeEmoji;
-    private app.nimarkogram.messenger.api.dto.BadgeDTO currentNimarkoBadge;
     private ImageView closeView;
     protected Theme.ResourcesProvider resourcesProvider;
 
@@ -184,7 +179,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
                 return super.onTouchEvent(event);
             }
         };
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(48));
+        avatarImageView.setRoundRadius(dp(24));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 7 + padding, 6, LocaleController.isRTL ? 7 + padding : 0, 0));
         setClipChildren(false);
 
@@ -478,6 +473,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         }
     }
 
+
     private boolean callCellStyle;
 
     public void setCallCellStyle(int padding) {
@@ -486,12 +482,13 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         nameTextView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 20, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 30 : (66 + padding), 10, LocaleController.isRTL ? (66 + padding) : 30, 0));
         statusTextView.setTextSize(13);
         statusTextView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 20, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 30 : (66 + padding), 32, LocaleController.isRTL ? (66 + padding) : 30, 0));
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(44));
+        avatarImageView.setRoundRadius(dp(22));
         avatarImageView.setLayoutParams(LayoutHelper.createFrame(44, 44, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 8 + padding, 6, LocaleController.isRTL ? 8 + padding : 0, 0));
         if (checkBox != null) {
             checkBox.setLayoutParams(LayoutHelper.createFrame(24, 24, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 37 + padding, 32, LocaleController.isRTL ? 37 + padding : 0, 0));
         }
     }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -674,7 +671,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             botVerification.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
             nameTextView.setLeftDrawable(botVerification);
         }
-        if (currentUser != null && MessagesController.getInstance(currentAccount).isPremiumUser(currentUser) && !MessagesController.getInstance(currentAccount).premiumFeaturesBlocked() && !app.nimarkogram.messenger.NimarkoConfig.disablePremiumStatuses) {
+        if (currentUser != null && MessagesController.getInstance(currentAccount).isPremiumUser(currentUser) && !MessagesController.getInstance(currentAccount).premiumFeaturesBlocked()) {
             if (DialogObject.getEmojiStatusDocumentId(currentUser.emoji_status) != 0) {
                 emojiStatus.set(DialogObject.getEmojiStatusDocumentId(currentUser.emoji_status), false);
                 emojiStatus.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
@@ -700,7 +697,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             nameTextView.setRightDrawable(null);
             nameTextView.setRightDrawableTopPadding(0);
         }
-        applyNimarkoBadge(currentUser);
         if (currentStatus != null) {
             statusTextView.setTextColor(statusColor);
             CharSequence status = currentStatus;
@@ -722,10 +718,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
                     statusTextView.setText(getString(R.string.Online));
                 } else {
                     statusTextView.setTextColor(statusColor);
-                    
-                    statusTextView.setText(app.nimarkogram.messenger.NimarkoConfig.oldTimeStyle
-                            ? LocaleController.formatUserStatus(currentAccount, currentUser)
-                            : LocaleController.formatUserStatusIOS(currentAccount, currentUser));
+                    statusTextView.setText(LocaleController.formatUserStatus(currentAccount, currentUser));
                 }
             }
         }
@@ -745,7 +738,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         }
 
         avatarImageView.setRoundRadius(isCommunity ? dp(46 * 20 / 72f) :
-                app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(48, currentChat != null && currentChat.forum));
+                (currentChat != null && currentChat.forum ? dp(14) : dp(24)));
 
         nameTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
     }
@@ -814,26 +807,9 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
                 sb.append(status);
             }
         }
-        if (currentNimarkoBadge != null) {
-            if (sb.length() > 0) sb.append(", ");
-            CharSequence badgeLabel = app.nimarkogram.messenger.badges.BadgeUi.accessibilityLabel(currentNimarkoBadge);
-            sb.append(badgeLabel);
-            info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
-                    R.id.acc_action_badge_info, badgeLabel));
-        }
         if (sb.length() > 0) {
             info.setContentDescription(sb);
         }
-    }
-
-    @Override
-    public boolean performAccessibilityAction(int action, Bundle arguments) {
-        if (action == R.id.acc_action_badge_info && currentNimarkoBadge != null) {
-            app.nimarkogram.messenger.badges.BadgeUi.showBulletin(currentAccount, currentNimarkoBadge);
-            sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
-            return true;
-        }
-        return super.performAccessibilityAction(action, arguments);
     }
 
     @Override
@@ -849,9 +825,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiLoaded);
         emojiStatus.attach();
         botVerification.attach();
-        if (nimarkoBadgeEmoji != null) {
-            nimarkoBadgeEmoji.attach();
-        }
     }
 
     @Override
@@ -860,43 +833,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiLoaded);
         emojiStatus.detach();
         botVerification.detach();
-        if (nimarkoBadgeEmoji != null) {
-            nimarkoBadgeEmoji.detach();
-        }
         storyParams.onDetachFromWindow();
-    }
-
-    private void applyNimarkoBadge(TLRPC.User user) {
-        currentNimarkoBadge = null;
-        try {
-            app.nimarkogram.messenger.api.dto.BadgeDTO badge =
-                    app.nimarkogram.messenger.badges.BadgesController.getInstance().i(user);
-            if (badge == null || badge.getDocumentId() == 0L) {
-                if (nimarkoBadgeEmoji != null) {
-                    nimarkoBadgeEmoji.set((Drawable) null, false);
-                    
-                    nimarkoBadgeEmoji.setParticles(false, false);
-                }
-                nameTextView.setRightDrawable2(null);
-                return;
-            }
-            currentNimarkoBadge = badge;
-            if (nimarkoBadgeEmoji == null) {
-                nimarkoBadgeEmoji = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(nameTextView, dp(20));
-                if (isAttachedToWindow()) {
-                    nimarkoBadgeEmoji.attach();
-                }
-            }
-            nimarkoBadgeEmoji.set(badge.getDocumentId(), false);
-            nimarkoBadgeEmoji.setParticles(true, false);
-            nimarkoBadgeEmoji.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-            if (nameTextView.getRightDrawable() == null) {
-                nameTextView.setRightDrawable(nimarkoBadgeEmoji);
-            } else {
-                nameTextView.setRightDrawable2(nimarkoBadgeEmoji);
-            }
-            nameTextView.setRightDrawableTopPadding(-dp(0.5f));
-        } catch (Throwable ignored) {}
     }
 
     public long getDialogId() {

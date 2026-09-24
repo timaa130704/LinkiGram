@@ -75,10 +75,6 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
         EditTextBoldCursor getEditField();
         CharSequence getFieldText();
         Editable getEditText();
-
-        default int getEmojiSuggestionsRightPadding() {
-            return 0;
-        }
     }
 
     private ContentPreviewViewer.ContentPreviewViewerDelegate previewDelegate;
@@ -257,11 +253,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
 
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-                int rightPadding = horizontalPadding;
-                if (enterView != null) {
-                    rightPadding = Math.max(rightPadding, enterView.getEmojiSuggestionsRightPadding());
-                }
-                this.setPadding(horizontalPadding, direction == DIRECTION_TO_BOTTOM ? AndroidUtilities.dp(8) : AndroidUtilities.dp(6.66f), rightPadding, direction == DIRECTION_TO_BOTTOM ? AndroidUtilities.dp(6.66f) : AndroidUtilities.dp(8));
+                this.setPadding(horizontalPadding, direction == DIRECTION_TO_BOTTOM ? AndroidUtilities.dp(8) : AndroidUtilities.dp(6.66f), horizontalPadding, direction == DIRECTION_TO_BOTTOM ? AndroidUtilities.dp(6.66f) : AndroidUtilities.dp(8));
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             }
 
@@ -441,7 +433,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
                     String emoji = text.toString().substring(emojiStart, emojiEnd);
                     show = true;
                     createListView();
-
+//                    containerView.setVisibility(View.VISIBLE);
                     arrowToSpan = lastEmoji;
                     arrowToStart = arrowToEnd = null;
                     searchAnimated(emoji);
@@ -456,7 +448,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
             if ((aspans == null || aspans.length == 0) && selectionEnd < 52) {
                 show = true;
                 createListView();
-
+//                containerView.setVisibility(View.VISIBLE);
                 arrowToSpan = null;
                 searchKeywords(text.toString().substring(0, selectionEnd));
                 if (containerView != null) {
@@ -482,6 +474,9 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
     private Runnable searchRunnable;
     private long lastLangChangedTime = 0;
 
+    /**
+     * The user needs time to change the locale. We estimate this time to be at least 360 ms.
+     */
     private String[] detectKeyboardLangThrottleFirstWithDelay() {
         long currentTime = System.currentTimeMillis();
         int delay = 360;
@@ -526,7 +521,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
         searchRunnable = () -> {
             final HashSet<String> addedToResult = new HashSet<>();
             final ArrayList<MediaDataController.KeywordResult> result = new ArrayList<>();
-
+//            Runnable localSearch = () -> {
                 MediaDataController.getInstance(currentAccount).getEmojiSuggestions(lang, query, true, (param, alias) -> {
                     if (id != lastQueryId) return;
                     lastQueryType = 1;
@@ -562,7 +557,28 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
                         forceClose();
                     }
                 }, SharedConfig.suggestAnimatedEmoji && UserConfig.getInstance(currentAccount).isPremium());
-
+//            };
+//            Runnable serverSearch = () -> {
+//                if (ConnectionsManager.getInstance(currentAccount).getConnectionState() != ConnectionsManager.ConnectionStateConnected) {
+//                    localSearch.run();
+//                    return;
+//                }
+//                loadingKey = MediaDataController.getInstance(currentAccount).searchStickers(true, query, lang == null ? "" : lang[0], emojis -> {
+//                    if (id != lastQueryId) return;
+//                    AnimatedEmojiDrawable.getDocumentFetcher(currentAccount).putDocuments(emojis);
+//                    for (TLRPC.Document doc : emojis) {
+//                        final String emoji = "animated_" + doc.id;
+//                        if (!addedToResult.contains(emoji)) {
+//                            MediaDataController.KeywordResult keywordResult = new MediaDataController.KeywordResult();
+//                            keywordResult.emoji = emoji;
+//                            addedToResult.add(emoji);
+//                            result.add(keywordResult);
+//                        }
+//                    }
+//                    localSearch.run();
+//                });
+//            };
+//            serverSearch.run();
         };
         if (keywordResults == null || keywordResults.isEmpty()) {
             AndroidUtilities.runOnUIThread(searchRunnable, 600);
@@ -738,18 +754,6 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
     private AnimatedFloat listViewCenterAnimated;
     private AnimatedFloat listViewWidthAnimated;
 
-    private int getListViewPaddingLeft(float arrowX, float width) {
-        float safeRight = getWidth() - containerView.getPaddingRight();
-        float viewportWidth = Math.max(0, safeRight - listView.getLeft());
-        float visibleWidth = Math.min(width, viewportWidth);
-        int desiredPadding = (int) Math.max(
-                arrowX - Math.max(width / 4f, Math.min(width / 2f, AndroidUtilities.dp(66))) - listView.getLeft(),
-                0
-        );
-        int maxPadding = (int) Math.max(0, viewportWidth - visibleWidth);
-        return Math.min(desiredPadding, maxPadding);
-    }
-
     private void drawContainerBegin(Canvas canvas) {
         if (enterView != null && enterView.getEditField() != null) {
             if (arrowToSpan != null && arrowToSpan.drawn) {
@@ -785,13 +789,13 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
                 containerView.setTranslationY(-getMeasuredHeight() - enterView.getEditField().getScrollY() + lastSpanY + AndroidUtilities.dp(20) + containerView.getHeight());
             }
         }
-        int listViewPaddingLeft = getListViewPaddingLeft(this.arrowX, width);
+        int listViewPaddingLeft = (int) Math.max(this.arrowX - Math.max(width / 4f, Math.min(width / 2f, AndroidUtilities.dp(66))) - listView.getLeft(), 0);
         if (listView.getPaddingLeft() != listViewPaddingLeft) {
             int dx = listView.getPaddingLeft() - listViewPaddingLeft;
             listView.setPadding(listViewPaddingLeft, 0, 0, 0);
             listView.scrollBy(dx, 0);
         }
-        int listViewPaddingLeftI = getListViewPaddingLeft(arrowX, width);
+        int listViewPaddingLeftI = (int) Math.max(arrowX - Math.max(width / 4f, Math.min(width / 2f, AndroidUtilities.dp(66))) - listView.getLeft(), 0);
         listView.setTranslationX(listViewPaddingLeftI - listViewPaddingLeft);
 
         float left = center - width / 2f + listView.getPaddingLeft() + listView.getTranslationX();
@@ -799,13 +803,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
         float right = Math.min(center + width / 2f + listView.getPaddingLeft() + listView.getTranslationX(), getWidth() - containerView.getPaddingRight());
         float bottom = listView.getBottom() + listView.getTranslationY() - (direction == DIRECTION_TO_BOTTOM ? AndroidUtilities.dp(6.66f) : 0);
 
-        float R = Math.min(AndroidUtilities.dp(9), Math.max(0, right - left) / 2f), D = R * 2;
-        float arrowHalfWidth = AndroidUtilities.dp(8.66f);
-        float minArrowX = left + R + arrowHalfWidth;
-        float maxArrowX = right - R - arrowHalfWidth;
-        float bubbleArrowX = minArrowX <= maxArrowX
-                ? Math.max(minArrowX, Math.min(arrowX, maxArrowX))
-                : (left + right) / 2f;
+        float R = Math.min(AndroidUtilities.dp(9), width / 2f), D = R * 2;
 
         if (direction == DIRECTION_TO_BOTTOM) {
             AndroidUtilities.rectTmp.set(left, bottom - D, left + D, bottom);
@@ -820,9 +818,9 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
             AndroidUtilities.rectTmp.set(right - D, bottom - D, right, bottom);
             path.arcTo(AndroidUtilities.rectTmp, 0, 90);
 
-            path.lineTo(bubbleArrowX + arrowHalfWidth, bottom);
-            path.lineTo(bubbleArrowX, bottom + AndroidUtilities.dp(6.66f));
-            path.lineTo(bubbleArrowX - arrowHalfWidth, bottom);
+            path.lineTo(arrowX + AndroidUtilities.dp(8.66f), bottom);
+            path.lineTo(arrowX, bottom + AndroidUtilities.dp(6.66f));
+            path.lineTo(arrowX - AndroidUtilities.dp(8.66f), bottom);
         } else if (direction == DIRECTION_TO_TOP) {
             AndroidUtilities.rectTmp.set(right - D, top, right, top + D);
             path.arcTo(AndroidUtilities.rectTmp, -90, 90);
@@ -836,9 +834,9 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
             AndroidUtilities.rectTmp.set(left, top, left + D, top + D);
             path.arcTo(AndroidUtilities.rectTmp, -180, 90);
 
-            path.lineTo(bubbleArrowX - arrowHalfWidth, top);
-            path.lineTo(bubbleArrowX, top - AndroidUtilities.dp(6.66f));
-            path.lineTo(bubbleArrowX + arrowHalfWidth, top);
+            path.lineTo(arrowX - AndroidUtilities.dp(8.66f), top);
+            path.lineTo(arrowX, top - AndroidUtilities.dp(6.66f));
+            path.lineTo(arrowX + AndroidUtilities.dp(8.66f), top);
         }
         path.close();
 
@@ -851,7 +849,7 @@ public class SuggestEmojiView extends FrameLayout implements NotificationCenter.
 
         if (showT1 < 1) {
             circlePath.rewind();
-            float cx = bubbleArrowX, cy = (direction == DIRECTION_TO_BOTTOM) ? bottom + AndroidUtilities.dp(6.66f) : top - AndroidUtilities.dp(6.66f);
+            float cx = arrowX, cy = (direction == DIRECTION_TO_BOTTOM) ? bottom + AndroidUtilities.dp(6.66f) : top - AndroidUtilities.dp(6.66f);
             float toRadius = (float) Math.sqrt(Math.max(
                     Math.max(
                             Math.pow(cx - left, 2) + Math.pow(cy - top, 2),

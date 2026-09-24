@@ -153,10 +153,6 @@ public class ProfileActionsView extends View {
     }
 
     public void drawingBlur(RenderNode renderNode, ProfileActivity.AvatarImageView avatarView, float scale, float dy) {
-        
-        if (app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor) {
-            return;
-        }
         this.ignoreRect = false;
         this.renderNode = renderNode;
         this.avatarView = avatarView;
@@ -178,20 +174,6 @@ public class ProfileActionsView extends View {
     }
 
     public void setActionsColor(int color, boolean hasColorById) {
-        
-        if (app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor) {
-            
-            paint.setColor(Color.BLACK);
-            paint.setAlpha(40);
-            if (this.color != 0 || radialGradient != null) {
-                this.color = 0;
-                this.hasColorById = false;
-                radialGradient = null;
-                try { shaderPaint.setShader(null); } catch (Throwable ignored) {}
-                invalidate();
-            }
-            return;
-        }
         if (radialGradient == null || this.color != color || this.hasColorById != hasColorById) {
             this.color = color;
             this.hasColorById = hasColorById;
@@ -201,10 +183,6 @@ public class ProfileActionsView extends View {
     }
 
     private boolean isButtonColorLight() {
-        
-        if (app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor) {
-            return false;
-        }
         return AndroidUtilities.computePerceivedBrightness(color) > 0.72f;
     }
 
@@ -216,7 +194,7 @@ public class ProfileActionsView extends View {
         if (color == 0) return;
         if (!hasColorById) {
             paint.setColor(color);
-
+//            paint.setAlpha(40);
             return;
         }
         int w = getMeasuredWidth();
@@ -277,10 +255,6 @@ public class ProfileActionsView extends View {
         float left = xpadding;
         float r = getRoundRadius();
 
-        final boolean neutralize = app.nimarkogram.messenger.banners.NimarkoBannerRenderer.suppressActionsColor;
-        if (neutralize) { paint.setColor(Color.BLACK); paint.setAlpha(40); }
-        final boolean useRadial = radialGradient != null && !neutralize;
-
         if (renderNode != null) {
             clipPath.rewind();
         }
@@ -332,16 +306,16 @@ public class ProfileActionsView extends View {
                     );
                     int wasAlpha = paint.getAlpha();
                     int newAlpha = (int) (action.getAlpha() * alphaFraction1 * wasAlpha);
-                    paint.setAlpha((int) (newAlpha * (useRadial ? 0.1f : 1f)));
+                    paint.setAlpha((int) (newAlpha * (radialGradient != null ? 0.1f : 1f)));
 
                     if (SharedConfig.shadowsInSections && isButtonColorLight() && parentExpanded < 0.5f) {
-                        paint.setShadowLayer(dpf2(1.5f), 0, 0, Theme.multAlpha(Color.BLACK & 0x20FFFFFF, (newAlpha / 255f * (useRadial ? 0.1f : 1f))));
+                        paint.setShadowLayer(dpf2(1.5f), 0, 0, Theme.multAlpha(Color.BLACK & 0x20FFFFFF, (newAlpha / 255f * (radialGradient != null ? 0.1f : 1f))));
                     } else {
                         paint.setShadowLayer(0, 0, 0, 0);
                     }
 
                     canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, paint);
-                    if (useRadial) {
+                    if (radialGradient != null) {
                         int wasAlpha2 = shaderPaint.getAlpha();
                         shaderPaint.setAlpha((int) (action.getAlpha() * alphaFraction1 * wasAlpha2));
                         matrix.setTranslate(AndroidUtilities.rectTmp.left, AndroidUtilities.rectTmp.top);
@@ -564,7 +538,9 @@ public class ProfileActionsView extends View {
                     downY = y;
                     downTime = System.currentTimeMillis();
                     hit.bounce.setPressed(true);
-
+//                    try {
+//                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+//                    } catch (Exception ignore) {}
                     break;
                 }
             }

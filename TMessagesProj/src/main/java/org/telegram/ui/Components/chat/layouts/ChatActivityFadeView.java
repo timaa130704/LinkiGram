@@ -23,6 +23,7 @@ public class ChatActivityFadeView extends View implements Theme.Colorable {
         super(context);
     }
 
+
     private BlurredBackgroundSourceColor sourceColor;
     private BlurredBackgroundDrawableViewFactory factory;
     private int colorKey;
@@ -36,6 +37,7 @@ public class ChatActivityFadeView extends View implements Theme.Colorable {
             setup(factory);
         }
     }
+
 
     public void setup(BlurredBackgroundDrawableViewFactory factory) {
         setup(factory, null);
@@ -89,24 +91,6 @@ public class ChatActivityFadeView extends View implements Theme.Colorable {
             invalidate();
         }
     }
-
-    public void drawForHandoff(@NonNull Canvas canvas, float alpha) {
-        alpha = Math.max(0f, Math.min(1f, alpha));
-        if (alpha <= 0f || fadeDrawableTop == null || fadeDrawableBottom == null) {
-            return;
-        }
-        final int topAlpha = fadeDrawableTop.getAlpha();
-        final int bottomAlpha = fadeDrawableBottom.getAlpha();
-        try {
-            fadeDrawableTop.setAlpha(Math.round(topAlpha * alpha));
-            fadeDrawableBottom.setAlpha(Math.round(bottomAlpha * alpha));
-            fadeDrawableTop.draw(canvas);
-            fadeDrawableBottom.draw(canvas);
-        } finally {
-            fadeDrawableTop.setAlpha(topAlpha);
-            fadeDrawableBottom.setAlpha(bottomAlpha);
-        }
-    }
     
     private void checkBounds() {
         fadeDrawableTop.setBounds(0, 0, getMeasuredWidth(), fadeZoneTop);
@@ -133,3 +117,4 @@ public class ChatActivityFadeView extends View implements Theme.Colorable {
         }
     }
 }
+

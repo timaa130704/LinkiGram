@@ -60,7 +60,6 @@ public class ReactionsEffectOverlay {
     private final AnimationView emojiStaticImageView;
     private final FrameLayout container;
     private final int currentAccount;
-    private final BaseFragment ownerFragment;
     private ReactionsEffectOverlay nextReactionOverlay;
     boolean animateIn;
     float animateInProgress;
@@ -73,7 +72,6 @@ public class ReactionsEffectOverlay {
     int[] loc = new int[2];
     private WindowManager windowManager;
     private boolean dismissed;
-    private boolean viewRemoved;
     private float dismissProgress;
     private final int messageId;
     private final long groupId;
@@ -95,7 +93,6 @@ public class ReactionsEffectOverlay {
 
     public ReactionsEffectOverlay(Context context, BaseFragment fragment, ReactionsContainerLayout reactionsLayout, View cell, View fromAnimationView, float x, float y, ReactionsLayoutInBubble.VisibleReaction visibleReaction, int currentAccount, int animationType, boolean isStories) {
         this.isStories = isStories;
-        this.ownerFragment = fragment;
         final MessageObject messageObject;
         if (cell instanceof ChatMessageCell) {
             messageObject = ((ChatMessageCell) cell).getMessageObject();
@@ -169,8 +166,8 @@ public class ReactionsEffectOverlay {
 
                         AvatarParticle avatarParticle = new AvatarParticle();
                         avatarParticle.imageReceiver = imageReceiver;
-                        avatarParticle.fromX = 0.5f;
-                        avatarParticle.fromY = 0.5f;
+                        avatarParticle.fromX = 0.5f;// + Math.abs(random.nextInt() % 100) / 100f * 0.2f;
+                        avatarParticle.fromY = 0.5f;// + Math.abs(random.nextInt() % 100) / 100f * 0.2f;
                         avatarParticle.jumpY = 0.3f + Math.abs(random.nextInt() % 100) / 100f * 0.1f;
                         avatarParticle.randomScale = 0.8f + Math.abs(random.nextInt() % 100) / 100f * 0.4f;
                         avatarParticle.randomRotation = 60 * Math.abs(random.nextInt() % 100) / 100f;
@@ -414,6 +411,7 @@ public class ReactionsEffectOverlay {
                     y = fromY * (1f - animateInProgressY) + previewY * animateInProgressY;
                 }
 
+
                 effectImageView.setTranslationX(x);
                 effectImageView.setTranslationY(y);
                 effectImageView.setAlpha((1f - animateOutProgress));
@@ -442,7 +440,7 @@ public class ReactionsEffectOverlay {
                 if (animationType == LONG_ANIMATION && isStories) {
                     emojiImageView.setAlpha(1f - animateOutProgress);
                 }
-                
+                //emojiImageView.setAlpha(animateOutProgress < 0.5f ? 1f - (animateOutProgress / 0.5f) : 0f);
                 container.setTranslationX(x);
                 container.setTranslationY(y);
 
@@ -506,13 +504,9 @@ public class ReactionsEffectOverlay {
                             }
                             ReactionsEffectOverlay.this.animateOutProgress = 1f;
                             if (animationType == SHORT_ANIMATION) {
-                                if (currentShortOverlay == ReactionsEffectOverlay.this) {
-                                    currentShortOverlay = null;
-                                }
+                                currentShortOverlay = null;
                             } else {
-                                if (currentOverlay == ReactionsEffectOverlay.this) {
-                                    currentOverlay = null;
-                                }
+                                currentOverlay = null;
                             }
                             if (cell != null) {
                                 cell.invalidate();
@@ -530,6 +524,7 @@ public class ReactionsEffectOverlay {
                         }
                     }
                 }
+
 
                 if (!avatars.isEmpty() && effectImageView.wasPlaying) {
                     RLottieDrawable animation = effectImageView.getImageReceiver().getLottieAnimation();
@@ -721,6 +716,7 @@ public class ReactionsEffectOverlay {
             ((FrameLayout.LayoutParams) container.getLayoutParams()).topMargin = -topOffset;
             ((FrameLayout.LayoutParams) container.getLayoutParams()).leftMargin = -leftOffset;
 
+            //if (availableReaction != null) {
                 windowView.addView(effectImageView);
                 effectImageView.getLayoutParams().width = size;
                 effectImageView.getLayoutParams().height = size;
@@ -729,7 +725,8 @@ public class ReactionsEffectOverlay {
                 effectImageView.getLayoutParams().height = size;
                 ((FrameLayout.LayoutParams) effectImageView.getLayoutParams()).topMargin = -topOffset;
                 ((FrameLayout.LayoutParams) effectImageView.getLayoutParams()).leftMargin = -leftOffset;
-           
+           // }
+
             container.setPivotX(leftOffset);
             container.setPivotY(topOffset);
         } else {
@@ -742,10 +739,6 @@ public class ReactionsEffectOverlay {
     }
 
     private void removeCurrentView() {
-        if (viewRemoved) {
-            return;
-        }
-        viewRemoved = true;
         try {
             if (useWindow) {
                 windowManager.removeView(windowView);
@@ -758,11 +751,6 @@ public class ReactionsEffectOverlay {
     }
 
     public static void show(BaseFragment baseFragment, ReactionsContainerLayout reactionsLayout, View cell, View fromAnimationView, float x, float y, ReactionsLayoutInBubble.VisibleReaction visibleReaction, int currentAccount, int animationType) {
-        
-        if (app.nimarkogram.messenger.NimarkoConfig.disableReactionAnim
-                || app.nimarkogram.messenger.NimarkoConfig.disableReactionsOverlay) {
-            return;
-        }
         if (cell == null || visibleReaction == null || baseFragment == null || baseFragment.getParentActivity() == null) {
             return;
         }
@@ -812,11 +800,6 @@ public class ReactionsEffectOverlay {
     }
 
     public static void startAnimation() {
-        
-        if (app.nimarkogram.messenger.NimarkoConfig.disableReactionAnim
-                || app.nimarkogram.messenger.NimarkoConfig.disableReactionsOverlay) {
-            return;
-        }
         if (currentOverlay != null) {
             currentOverlay.started = true;
             currentOverlay.startTime = System.currentTimeMillis();
@@ -850,26 +833,18 @@ public class ReactionsEffectOverlay {
     }
 
     public static void removeCurrent(boolean instant) {
-        removeCurrent(null, instant);
-    }
-
-    public static void removeCurrent(BaseFragment ownerFragment, boolean instant) {
-        if (currentOverlay != null && (ownerFragment == null || currentOverlay.ownerFragment == ownerFragment)) {
-            if (instant) {
-                currentOverlay.removeCurrentView();
-            } else {
-                currentOverlay.dismissed = true;
+        for (int i = 0; i < 2; i++) {
+            ReactionsEffectOverlay overlay = i == 0 ? currentOverlay : currentShortOverlay;
+            if (overlay != null) {
+                if (instant) {
+                    overlay.removeCurrentView();
+                } else {
+                    overlay.dismissed = true;
+                }
             }
-            currentOverlay = null;
         }
-        if (currentShortOverlay != null && (ownerFragment == null || currentShortOverlay.ownerFragment == ownerFragment)) {
-            if (instant) {
-                currentShortOverlay.removeCurrentView();
-            } else {
-                currentShortOverlay.dismissed = true;
-            }
-            currentShortOverlay = null;
-        }
+        currentShortOverlay = null;
+        currentOverlay = null;
     }
 
     public static boolean isPlaying(int messageId, long groupId, ReactionsLayoutInBubble.VisibleReaction reaction) {
@@ -879,21 +854,6 @@ public class ReactionsEffectOverlay {
         return false;
     }
 
-    public static boolean isPlayingForMessage(BaseFragment owner,
-            int messageId, long groupId) {
-        return belongsToMessage(currentOverlay, owner, messageId, groupId)
-                || belongsToMessage(currentShortOverlay, owner, messageId,
-                        groupId);
-    }
-
-    private static boolean belongsToMessage(
-            ReactionsEffectOverlay overlay, BaseFragment owner,
-            int messageId, long groupId) {
-        return overlay != null && !overlay.dismissed && !overlay.viewRemoved
-                && (owner == null || overlay.ownerFragment == owner)
-                && (messageId == overlay.messageId
-                        || groupId != 0 && overlay.groupId == groupId);
-    }
 
     private class AnimationView extends BackupImageView {
 

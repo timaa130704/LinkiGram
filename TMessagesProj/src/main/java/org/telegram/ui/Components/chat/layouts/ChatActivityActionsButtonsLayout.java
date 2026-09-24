@@ -8,7 +8,6 @@ import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
-import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -33,17 +32,12 @@ import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 
-import app.nimarkogram.messenger.NimarkoConfig;
-import app.nimarkogram.messenger.NimarkoResourcesHelper;
-
 @SuppressLint("ViewConstructor")
 public class ChatActivityActionsButtonsLayout extends LinearLayout {
     private final Theme.ResourcesProvider resourcesProvider;
 
     private final ButtonHolder replyButton = new ButtonHolder();
     private final ButtonHolder forwardButton = new ButtonHolder();
-
-    private boolean noForwards;
 
     public ChatActivityActionsButtonsLayout(@NonNull Context context,
                                             Theme.ResourcesProvider resourcesProvider,
@@ -64,12 +58,8 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
         forwardButton.button.setOnClickListener(v -> {});
         ScaleStateListAnimator.apply(forwardButton.button, .065f, 2f);
 
-        int replyButtonIcon = NimarkoResourcesHelper.getLeftActionButtonDrawable(noForwards);
-        String replyButtonText = NimarkoResourcesHelper.getLeftActionButtonText(noForwards);
-        boolean replyIconLeft = NimarkoConfig.actionsBarLeftButton != NimarkoConfig.ACTIONS_LEFT_REPLY;
-
-        addTextView(replyButton, replyButtonText, replyButtonIcon, replyIconLeft);
-        addTextView(forwardButton, LocaleController.getString(R.string.Forward), R.drawable.input_forward, !replyIconLeft);
+        addTextView(replyButton, LocaleController.getString(R.string.Reply), R.drawable.input_reply, false);
+        addTextView(forwardButton, LocaleController.getString(R.string.Forward), R.drawable.input_forward, true);
 
         setOrientation(HORIZONTAL);
         setClipChildren(false);
@@ -99,25 +89,17 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
         forwardButton.setCompoundDrawablePadding(AndroidUtilities.dp(6));
         forwardButton.setTextColor(Theme.getColor(Theme.key_glass_defaultText, resourcesProvider));
         forwardButton.setTypeface(AndroidUtilities.bold());
-
-        if (button == replyButton && NimarkoConfig.actionsBarLeftButton != NimarkoConfig.ACTIONS_LEFT_REPLY) {
-            forwardButton.setSingleLine(true);
-            forwardButton.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-            forwardButton.setMarqueeRepeatLimit(-1);
-            forwardButton.setHorizontallyScrolling(true);
-            forwardButton.setFocusable(true);
-            forwardButton.setFocusableInTouchMode(true);
-            forwardButton.setSelected(true);
-        }
-
         Drawable image = getContext().getResources().getDrawable(iconRes).mutate();
         image.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
         forwardButton.setCompoundDrawablesWithIntrinsicBounds(iconLeft ? image : null, null, iconLeft ? null : image, null);
 
         button.textView = forwardButton;
         button.button.addView(forwardButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
-         
+        /*if (getDialogId() == UserObject.VERIFY) {
+            forwardButton.setVisibility(View.GONE);
+        }*/
     }
+
 
     public void showReplyButton(boolean visible, boolean animated) {
         replyButton.visibilityAnimator.setValue(visible, animated);
@@ -136,6 +118,11 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
         forwardButton.enabledAnimator.setValue(enabled, animated);
         forwardButton.button.setEnabled(enabled);
     }
+
+
+
+
+
 
     public void updateColors() {
         replyButton.button.updateColors();
@@ -187,38 +174,5 @@ public class ChatActivityActionsButtonsLayout extends LinearLayout {
             textView.setAlpha(lerp(0.5f, 1, enabledAnimator.getFloatValue()));
             checkHolderPositionsAndVisibility(this);
         }
-    }
-
-    public void setNoForwards(boolean b) {
-        this.noForwards = b;
-    }
-
-    public void setReplyButtonOnLongClickListener(View.OnLongClickListener listener) {
-        replyButton.button.setOnLongClickListener(listener);
-    }
-
-    public View getReplyButton() {
-        return replyButton.button;
-    }
-
-    public void updateReplyButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
-        updateButtonUI(replyButton, text, iconRes, iconLeft);
-    }
-
-    public void updateForwardButtonUI(String text, @DrawableRes int iconRes, boolean iconLeft) {
-        updateButtonUI(forwardButton, text, iconRes, iconLeft);
-    }
-
-    private void updateButtonUI(ButtonHolder holder, String text, @DrawableRes int iconRes, boolean iconLeft) {
-        if (holder.textView == null) return;
-
-        holder.textView.setText(text);
-
-        Drawable image = getContext().getResources().getDrawable(iconRes).mutate();
-        image.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider), PorterDuff.Mode.MULTIPLY));
-        holder.textView.setCompoundDrawablesWithIntrinsicBounds(iconLeft ? image : null, null, iconLeft ? null : image, null);
-
-        holder.textView.invalidate();
-        holder.button.invalidate();
     }
 }

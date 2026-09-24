@@ -257,6 +257,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
                 req.fallback = true;
                 req.flags |= 8;
 
+
                 getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                     if (response != null) {
                         TLRPC.TL_photos_photo photo2 = (TLRPC.TL_photos_photo) response;
@@ -490,6 +491,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
             }
         }
     }
+
 
     @Override
     public boolean onFragmentCreate() {
@@ -1790,7 +1792,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
                         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
                             oldAvatarView.measure(MeasureSpec.makeMeasureSpec(dp(30), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(30), MeasureSpec.EXACTLY));
-                            oldAvatarView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(60));
+                            oldAvatarView.setRoundRadius(dp(30));
                         }
 
                         @Override
@@ -2166,7 +2168,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
                                 radioCell.setText(LocaleController.getString(R.string.LastSeenContacts), currentType == TYPE_CONTACTS, nobodyRow != -1 || payRow != -1);
                             }
                         } else if (position == payRow) {
-                            if (rulesType == PRIVACY_RULES_TYPE_MESSAGES && !getUserConfig().isPremium() ) {
+                            if (rulesType == PRIVACY_RULES_TYPE_MESSAGES && !getUserConfig().isPremium()/* || rulesType == PRIVACY_RULES_TYPE_MESSAGES && !getMessagesController().newNoncontactPeersRequirePremiumWithoutOwnpremium && !getUserConfig().isPremium()*/) {
                                 radioCell.setRadioIcon(getContext().getResources().getDrawable(R.drawable.mini_switch_lock).mutate());
                             }
                             radioCell.setText(getString(R.string.PrivateMessagesChargePrice), currentType == TYPE_PAY, false);
@@ -2364,6 +2366,7 @@ public class PrivacyControlActivity extends BaseFragment implements Notification
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_CELLBACKGROUNDCOLOR, new Class[]{TextSettingsCell.class, HeaderCell.class, RadioCell.class}, null, null, null, Theme.key_windowBackgroundWhite));
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
 
+//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));

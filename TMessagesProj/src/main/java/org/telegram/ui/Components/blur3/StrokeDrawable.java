@@ -51,13 +51,8 @@ public class StrokeDrawable extends Drawable {
     public void updateColors() {
         if (colorProvider == null) return;
 
-        if (app.nimarkogram.messenger.NimarkoConfig.glareOnElements) {
-            strokeColorTop = Theme.multAlpha(colorProvider.getStrokeColorTop(), alpha);
-            strokeColorBottom = Theme.multAlpha(colorProvider.getStrokeColorBottom(), alpha);
-        } else {
-            strokeColorTop = 0;
-            strokeColorBottom = 0;
-        }
+        strokeColorTop = Theme.multAlpha(colorProvider.getStrokeColorTop(), alpha);
+        strokeColorBottom = Theme.multAlpha(colorProvider.getStrokeColorBottom(), alpha);
 
         paintStrokeTop.setColor(strokeColorTop);
         paintStrokeTop.setStrokeWidth(dpf2(1));

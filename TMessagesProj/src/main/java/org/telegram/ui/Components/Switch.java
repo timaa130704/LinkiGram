@@ -11,7 +11,6 @@ package org.telegram.ui.Components;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
@@ -28,10 +27,8 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.util.StateSet;
-import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.animation.Interpolator;
 
 import androidx.annotation.Keep;
 
@@ -54,10 +51,6 @@ public class Switch extends View {
     private boolean isChecked;
     private Paint paint;
     private Paint paint2;
-    
-    private Paint paint3;
-    private Paint paint4;
-    private Paint paint5;
 
     private int drawIconType;
     private float iconProgress = 1.0f;
@@ -111,11 +104,8 @@ public class Switch extends View {
         paint2.setStyle(Paint.Style.STROKE);
         paint2.setStrokeCap(Paint.Cap.ROUND);
         paint2.setStrokeWidth(AndroidUtilities.dp(2));
-        paint3 = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint4 = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint5 = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        setHapticFeedbackEnabled(!app.nimarkogram.messenger.NimarkoConfig.disableVibration);
+        setHapticFeedbackEnabled(true);
     }
 
     @Keep
@@ -161,7 +151,7 @@ public class Switch extends View {
     }
 
     public void setDrawIconType(int type) {
-        setDrawIconType(type, false);
+        drawIconType = type;
     }
 
     public void setDrawRipple(boolean value) {
@@ -241,20 +231,11 @@ public class Switch extends View {
         trackCheckedColorKey = trackChecked;
         thumbColorKey = thumb;
         thumbCheckedColorKey = thumbChecked;
-        colorSet = 0;
-        invalidate();
     }
 
     private void animateToCheckedState(boolean newCheckedState) {
         checkAnimator = ObjectAnimator.ofFloat(this, "progress", newCheckedState ? 1 : 0);
         checkAnimator.setDuration(200);
-
-        Interpolator interpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ValueAnimator.getDurationScale() >= 1f) {
-            interpolator = CubicBezierInterpolator.EASE_OUT_BACK;
-        }
-        checkAnimator.setInterpolator(interpolator);
-
         checkAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -267,7 +248,6 @@ public class Switch extends View {
     private void animateIcon(boolean newCheckedState) {
         iconAnimator = ObjectAnimator.ofFloat(this, "iconProgress", newCheckedState ? 1 : 0);
         iconAnimator.setDuration(200);
-        iconAnimator.setInterpolator(Easings.easeInOutQuad);
         iconAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -301,10 +281,6 @@ public class Switch extends View {
         if (checked != isChecked) {
             isChecked = checked;
             if (attachedToWindow && animated) {
-                
-                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                    vibrateChecked();
-                }
                 animateToCheckedState(checked);
             } else {
                 cancelCheckAnimator();
@@ -313,10 +289,6 @@ public class Switch extends View {
             if (onCheckedChangeListener != null) {
                 onCheckedChangeListener.onCheckedChanged(this, checked);
             }
-        } else if (!animated) {
-            
-            cancelCheckAnimator();
-            setProgress(checked ? 1.0f : 0.0f);
         }
         setDrawIconType(iconType, animated);
     }
@@ -346,11 +318,7 @@ public class Switch extends View {
                 cancelIconAnimator();
                 setIconProgress(iconType == 0 ? 1.0f : 0.0f);
             }
-        } else if (!animated) {
-            cancelIconAnimator();
-            setIconProgress(iconType == 0 ? 1.0f : 0.0f);
         }
-        invalidate();
     }
 
     public boolean hasIcon() {
@@ -409,46 +377,16 @@ public class Switch extends View {
             return;
         }
 
-        int switchStyle = app.nimarkogram.messenger.NimarkoConfig.switchStyle;
-        boolean oneUi = switchStyle == app.nimarkogram.messenger.NimarkoConfig.SWITCH_STYLE_ONEUI;
-        boolean md3 = switchStyle == app.nimarkogram.messenger.NimarkoConfig.SWITCH_STYLE_MD3;
-        int x;
-        float y;
-        int tx;
-        int width = AndroidUtilities.dp(30.5F);
-        int thumb;
-
-        if (oneUi) {
-            thumb = AndroidUtilities.dp(17.5F);
-            x = (getMeasuredWidth() - width) / 2;
-            y = getMeasuredHeight() / 2 - thumb / 2;
-
-            float start = x + thumb / 2f;
-            float end = x + width - thumb / 2f;
-
-            tx = (int) (start + (end - start) * progress + AndroidUtilities.dp(isChecked ? 2 : 1));
-        } else if (md3) {
-            
-            thumb = AndroidUtilities.dp(20);
-            x = 0;
-            y = getMeasuredHeight() / 2 - thumb / 2;
-
-            tx = ((getMeasuredWidth() - width) / 2) + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
-        } else {
-            thumb = AndroidUtilities.dp(20);
-            x = (getMeasuredWidth() - width) / 2;
-            y = (getMeasuredHeight() - AndroidUtilities.dpf2(14)) / 2;
-
-            tx = x + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
-        }
+        int width = AndroidUtilities.dp(31);
+        int thumb = AndroidUtilities.dp(20);
+        int x = (getMeasuredWidth() - width) / 2;
+        float y = (getMeasuredHeight() - AndroidUtilities.dpf2(14)) / 2;
+        int tx = x + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
         int ty = getMeasuredHeight() / 2;
+
 
         int color1;
         int color2;
-        
-        int color3;
-        int color4;
-        int color5;
         float colorProgress;
         int r1;
         int r2;
@@ -481,17 +419,11 @@ public class Switch extends View {
             } else if (overrideColorProgress == 2) {
                 colorProgress = a == 0 ? 1 : 0;
             } else {
-                
-                colorProgress = Math.max(0f, Math.min(1f, progress));
+                colorProgress = progress;
             }
 
             color1 = processColor(Theme.getColor(trackColorKey, resourcesProvider));
             color2 = processColor(Theme.getColor(trackCheckedColorKey, resourcesProvider));
-            color3 = processColor(app.nimarkogram.messenger.utils.ui.MonetHelper
-                    .getOnPrimaryColor(Color.WHITE));
-            color4 = processColor(0xff999999);                    
-            color5 = processColor(0xff656660);                    
-
             if (a == 0 && iconDrawable != null && lastIconColor != (isChecked ? color2 : color1)) {
                 iconDrawable.setColorFilter(new PorterDuffColorFilter(lastIconColor = (isChecked ? color2 : color1), PorterDuff.Mode.MULTIPLY));
             }
@@ -512,34 +444,10 @@ public class Switch extends View {
             color = ((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
             paint.setColor(color);
             paint2.setColor(color);
-            paint3.setColor(color3);
-            paint4.setColor(color4);
-            paint5.setColor(color5);
 
-            if (oneUi) {
-                
-                rectF.set(x, y, getMeasuredWidth(), getMeasuredHeight() / 2 + thumb / 2);
-                if (!isChecked) {
-                    canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(11), AndroidUtilities.dpf2(11), paint4);
-                    canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(11), paint4);
-
-                    if (Theme.isCurrentThemeDark() || Theme.isCurrentThemeNight()) {
-                        canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(11), AndroidUtilities.dpf2(11), paint5);
-                        canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(11), paint5);
-                    }
-                }
-                canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(11), AndroidUtilities.dpf2(11), paint);
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(11), paint);
-            } else if (md3) {
-                
-                rectF.set(x, y, getMeasuredWidth(), getMeasuredHeight() / 2f + thumb / 2f);
-                canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(14), AndroidUtilities.dpf2(14), paint);
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(9), paint);
-            } else {
-                rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
-                canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(10), paint);
-            }
+            rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
+            canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
+            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(10), paint);
 
             if (a == 0 && rippleDrawable != null) {
                 rippleDrawable.setBounds(tx - AndroidUtilities.dp(18), ty - AndroidUtilities.dp(18), tx + AndroidUtilities.dp(18), ty + AndroidUtilities.dp(18));
@@ -566,7 +474,7 @@ public class Switch extends View {
             } else if (overrideColorProgress == 2) {
                 colorProgress = a == 0 ? 1 : 0;
             } else {
-                colorProgress = Math.max(0f, Math.min(1f, progress));
+                colorProgress = progress;
             }
 
             color1 = Theme.getColor(thumbColorKey, resourcesProvider);
@@ -586,16 +494,9 @@ public class Switch extends View {
             alpha = (int) (a1 + (a2 - a1) * colorProgress);
             paint.setColor(((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff));
 
-            if (oneUi) {
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(9.5F), paint3);
-            } else if (md3) {
-                
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(2) * progress + AndroidUtilities.dp(5), paint);
-            } else {
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
-            }
+            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
 
-            if (a == 0 && !md3) {
+            if (a == 0) {
                 if (iconDrawable != null) {
                     final float factor = animatorIconVisibility.getFloatValue();
                     if (factor > 0) {
@@ -658,12 +559,6 @@ public class Switch extends View {
         info.setClassName("android.widget.Switch");
         info.setCheckable(true);
         info.setChecked(isChecked);
-        
-    }
-
-    private void vibrateChecked() {
-        try {
-            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-        } catch (Exception ignore) {}
+        //info.setContentDescription(isChecked ? LocaleController.getString(R.string.NotificationsOn) : LocaleController.getString(R.string.NotificationsOff));
     }
 }

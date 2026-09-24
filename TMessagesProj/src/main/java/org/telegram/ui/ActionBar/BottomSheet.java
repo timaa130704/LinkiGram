@@ -283,85 +283,6 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
 
     }
 
-    private static void nimarkoInvalidateSubtree(View view) {
-        if (view == null) {
-            return;
-        }
-        
-        try {
-            android.graphics.drawable.Drawable bg = view.getBackground();
-            if (bg != null && bg.getBounds().isEmpty() && view.getWidth() > 0 && view.getHeight() > 0) {
-                bg.setBounds(0, 0, view.getWidth(), view.getHeight());
-            }
-            
-            if (view instanceof android.widget.TextView) {
-                android.widget.TextView tv = (android.widget.TextView) view;
-                int tc = tv.getCurrentTextColor();
-                int a = (tc >>> 24) & 0xFF;
-                int rgb = tc & 0xFFFFFF;
-                if (rgb == 0 && a > 0 && a < 0xC0) {
-                    tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-                }
-            }
-        } catch (Throwable ignored) {}
-        view.invalidate();
-        if (view instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) view;
-            for (int i = 0, n = group.getChildCount(); i < n; i++) {
-                nimarkoInvalidateSubtree(group.getChildAt(i));
-            }
-        }
-    }
-
-    private static void nimarkoFixLateViews(View view) {
-        if (view == null) {
-            return;
-        }
-        boolean fixed = false;
-        try {
-            android.graphics.drawable.Drawable bg = view.getBackground();
-            if (bg != null && bg.getBounds().isEmpty() && view.getWidth() > 0 && view.getHeight() > 0) {
-                bg.setBounds(0, 0, view.getWidth(), view.getHeight());
-                fixed = true;
-            }
-            
-            if (bg instanceof android.graphics.drawable.GradientDrawable) {
-                try {
-                    android.content.res.ColorStateList csl = ((android.graphics.drawable.GradientDrawable) bg).getColor();
-                    if (csl != null) {
-                        ((android.graphics.drawable.GradientDrawable) bg).setColor(csl.getDefaultColor());
-                        fixed = true;
-                    }
-                } catch (Throwable ignored2) {}
-            }
-            if (view instanceof android.widget.TextView) {
-                android.widget.TextView tv = (android.widget.TextView) view;
-                int tc = tv.getCurrentTextColor();
-                int a = (tc >>> 24) & 0xFF;
-                int rgb = tc & 0xFFFFFF;
-                if (rgb == 0 && a > 0 && a < 0xC0) {
-                    
-                    tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-                } else {
-                    
-                    tv.setTextColor(tc);
-                }
-                
-                try { tv.setHighlightColor(tv.getHighlightColor()); } catch (Throwable ignored3) {}
-                fixed = true;
-            }
-        } catch (Throwable ignored) {}
-        if (fixed) {
-            view.invalidate();
-        }
-        if (view instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) view;
-            for (int i = 0, n = group.getChildCount(); i < n; i++) {
-                nimarkoFixLateViews(group.getChildAt(i));
-            }
-        }
-    }
-
     public class ContainerView extends FrameLayout implements NestedScrollingParent {
 
         private VelocityTracker velocityTracker = null;
@@ -504,6 +425,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             }
             onSwipeStarts();
         }
+
 
         private int internalPaddingBottom;
 
@@ -1132,7 +1054,8 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             if (type != Builder.CELL_TYPE_CALL) {
                 setBackgroundDrawable(Theme.getSelectorDrawable(false, resourcesProvider));
             }
-            
+            //setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), 0);
+
             imageView = new ImageView(context);
             imageView.setScaleType(ImageView.ScaleType.CENTER);
             imageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogIcon), PorterDuff.Mode.MULTIPLY));
@@ -1455,16 +1378,6 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                 }
 
                 @Override
-                protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-                    
-                    try {
-                        return super.drawChild(canvas, child, drawingTime);
-                    } catch (Throwable t) {
-                        return false;
-                    }
-                }
-
-                @Override
                 public void setTranslationY(float translationY) {
                     super.setTranslationY(translationY);
                     if (topBulletinContainer != null) {
@@ -1473,14 +1386,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                     onContainerTranslationYChanged(translationY);
                 }
             };
-            if (app.nimarkogram.messenger.NimarkoConfig.linkiAss
-                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Linki Ass: стеклянная подложка шита вместо плоской заливки
-                containerView.setBackgroundDrawable(new app.nimarkogram.messenger.ui.LinkiGlassDrawable(
-                        dp(14), getThemedColor(Theme.key_dialogBackground), 0.88f));
-            } else {
-                containerView.setBackgroundDrawable(shadowDrawable);
-            }
+            containerView.setBackgroundDrawable(shadowDrawable);
             containerView.setPadding(backgroundPaddingLeft, (applyTopPadding ? dp(8) : 0) + backgroundPaddingTop - 1, backgroundPaddingLeft, (applyBottomPadding ? dp(8) : 0));
         }
         containerView.setVisibility(View.INVISIBLE);
@@ -1544,14 +1450,6 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                 ViewGroup viewGroup = (ViewGroup) customView.getParent();
                 viewGroup.removeView(customView);
             }
-            
-            final View nimarkoCustomView = customView;
-            nimarkoCustomView.post(() -> nimarkoInvalidateSubtree(nimarkoCustomView));
-            
-            try {
-                nimarkoCustomView.getViewTreeObserver().addOnGlobalLayoutListener(
-                        () -> nimarkoFixLateViews(nimarkoCustomView));
-            } catch (Throwable ignored) {}
             if (!useBackgroundTopPadding) {
                 containerView.setClipToPadding(false);
                 containerView.setClipChildren(false);
@@ -1834,8 +1732,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
         containerView.setVisibility(View.VISIBLE);
 
         if (!onCustomOpenAnimation()) {
-            
-            if (useHardwareLayer && customView == null) {
+            if (useHardwareLayer) {
                 container.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             }
             if (transitionFromRight) {
@@ -1892,8 +1789,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                         if (delegate != null) {
                             delegate.onOpenAnimationEnd();
                         }
-                        
-                        if (useHardwareLayer && customView == null) {
+                        if (useHardwareLayer) {
                             container.setLayerType(View.LAYER_TYPE_NONE, null);
                         }
 
@@ -2282,7 +2178,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             try {
                 super.dismiss();
             } catch (Exception e) {
-                
+                //ignore: not attached to window manager
                 FileLog.e(e, false);
             }
         }
@@ -2503,10 +2399,16 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
         if (attachedFragment != null) {
             LaunchActivity.instance.checkSystemBarColors(true, true, true);
             AndroidUtilities.setLightNavigationBar(getWindowView(), AndroidUtilities.computePerceivedBrightness(getNavigationBarColor(getThemedColor(Theme.key_windowBackgroundGray))) >= .721f);
-
+//            AndroidUtilities.setLightStatusBar(dialog != null ? dialog.windowView : windowView, attachedToActionBar && AndroidUtilities.computePerceivedBrightness(actionBar.getBackgroundColor()) > .721f);
             return;
         }
-
+//        if (Color.alpha(color) > 120) {
+//            AndroidUtilities.setLightStatusBar(getWindow(), false);
+//            AndroidUtilities.setLightNavigationBar(getWindow(), false);
+//        } else {
+//            AndroidUtilities.setLightStatusBar(getWindow(), !useLightStatusBar);
+//            AndroidUtilities.setLightNavigationBar(getWindow(), !useLightNavBar);
+//        }
         AndroidUtilities.setNavigationBarColor(this, overlayDrawNavBarColor);
         AndroidUtilities.setLightNavigationBar(this, AndroidUtilities.computePerceivedBrightness(overlayDrawNavBarColor) > .721);
     }
@@ -2565,6 +2467,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             container.invalidate();
         }
     }
+
 
     public BaseFragment attachedFragment;
 

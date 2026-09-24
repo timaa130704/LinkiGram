@@ -475,7 +475,7 @@ public class PopupNotificationActivity extends Activity implements NotificationC
         avatarContainer.setLayoutParams(layoutParams2);
 
         avatarImageView = new BackupImageView(this);
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(42));
+        avatarImageView.setRoundRadius(AndroidUtilities.dp(21));
         avatarContainer.addView(avatarImageView);
         layoutParams2 = (FrameLayout.LayoutParams) avatarImageView.getLayoutParams();
         layoutParams2.width = AndroidUtilities.dp(42);
@@ -932,22 +932,14 @@ public class PopupNotificationActivity extends Activity implements NotificationC
                     imageView.setVisibility(View.GONE);
                     messageText.setVisibility(View.VISIBLE);
                     messageText.setTextSize(TypedValue.COMPLEX_UNIT_SP, SharedConfig.fontSize);
-                    CharSequence popupText931 = messageObject.messageText;
-                    if (popupText931 != null && popupText931.toString().contains("$")) {
-                        popupText931 = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(popupText931.toString());
-                    }
-                    messageText.setText(popupText931);
+                    messageText.setText(messageObject.messageText);
                 } else {
                     imageView.setVisibility(View.VISIBLE);
                     messageText.setVisibility(View.GONE);
                 }
             } else if (messageObject.type == MessageObject.TYPE_GEO) {
                 messageText.setVisibility(View.GONE);
-                CharSequence popupText938 = messageObject.messageText;
-                if (popupText938 != null && popupText938.toString().contains("$")) {
-                    popupText938 = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(popupText938.toString());
-                }
-                messageText.setText(popupText938);
+                messageText.setText(messageObject.messageText);
                 imageView.setVisibility(View.VISIBLE);
                 TLRPC.GeoPoint geoPoint = messageObject.messageOwner.media.geo;
                 double lat = geoPoint.lat;
@@ -1019,11 +1011,7 @@ public class PopupNotificationActivity extends Activity implements NotificationC
             }
             TextView messageText = view.findViewWithTag(301);
             messageText.setTextSize(TypedValue.COMPLEX_UNIT_SP, SharedConfig.fontSize);
-            CharSequence popupText1010 = messageObject.messageText;
-            if (popupText1010 != null && popupText1010.toString().contains("$")) {
-                popupText1010 = app.nimarkogram.messenger.utils.NimarkoLatexHelper.cleanForPreview(popupText1010.toString());
-            }
-            messageText.setText(popupText1010);
+            messageText.setText(messageObject.messageText);
         }
         if (view.getParent() == null) {
             messageContainer.addView(view);

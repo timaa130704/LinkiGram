@@ -14,7 +14,6 @@ import static org.telegram.messenger.AndroidUtilities.dpf2;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.os.SystemClock;
 import android.view.View;
 
 import androidx.core.graphics.ColorUtils;
@@ -42,10 +41,6 @@ public class SnowflakesEffect {
 
     private long lastAnimationTime;
 
-    private static int alphaToInt(float alpha) {
-        return Math.round(255f * Utilities.clamp01(alpha));
-    }
-
     private class Particle {
         float x;
         float y;
@@ -61,7 +56,7 @@ public class SnowflakesEffect {
         public void draw(Canvas canvas) {
             switch (type) {
                 case 0: {
-                    particlePaint.setAlpha(alphaToInt(alpha));
+                    particlePaint.setAlpha((int) (255 * alpha));
                     canvas.drawPoint(x, y, particlePaint);
                     break;
                 }
@@ -70,7 +65,7 @@ public class SnowflakesEffect {
                     if (particleBitmap == null) {
                         particleBitmap = createParticlesBitmap(false);
                     }
-                    bitmapPaint.setAlpha(alphaToInt(alpha));
+                    bitmapPaint.setAlpha((int) (255 * alpha));
                     canvas.save();
                     canvas.scale(scale, scale, x, y);
                     canvas.drawBitmap(particleBitmap, x, y, bitmapPaint);
@@ -86,8 +81,6 @@ public class SnowflakesEffect {
     private final ArrayList<Particle> freeParticles = new ArrayList<>();
 
     private int color;
-
-    public boolean bypassLiteMode;
 
     public SnowflakesEffect(int viewType) {
         this.viewType = viewType;
@@ -169,16 +162,12 @@ public class SnowflakesEffect {
     }
 
     public void onDraw(View parent, Canvas canvas) {
-        if (parent == null || canvas == null) {
-            return;
-        }
-        if (!bypassLiteMode && !LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
+        if (parent == null || canvas == null || !LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
             return;
         }
 
         if (batchParticlesBuffer != null) {
-            
-            final int count = Math.min(batchParticlesBuffer.vertexCount, particles.size());
+            final int count = Math.min(maxCount, particles.size());
             final int texSize = dp(TEXTURE_SIZE_DP);
 
             for (int a = 0; a < count; a++) {
@@ -187,7 +176,7 @@ public class SnowflakesEffect {
                 final float h = particle.type == 0 ? (texSize / 2f) : (texSize / 2f * particle.scale);
                 final float tx = particle.type == 0 ? texSize : 0;
 
-                batchParticlesBuffer.setParticleColor(a, ColorUtils.setAlphaComponent(color, alphaToInt(particle.alpha)));
+                batchParticlesBuffer.setParticleColor(a, ColorUtils.setAlphaComponent(color, (int) (255 * particle.alpha)));
                 batchParticlesBuffer.setParticleVertexCords(a, x - h, y - h, x + h, y + h);
                 batchParticlesBuffer.setParticleTextureCords(a, tx, 0, tx + texSize, texSize);
             }
@@ -247,14 +236,13 @@ public class SnowflakesEffect {
             }
         }
 
-        long newTime = SystemClock.elapsedRealtime();
-        long dt = lastAnimationTime == 0
-                ? 0
-                : Math.max(0, Math.min(17, newTime - lastAnimationTime));
+        long newTime = System.currentTimeMillis();
+        long dt = Math.min(17, newTime - lastAnimationTime);
         updateParticles(dt);
         lastAnimationTime = newTime;
         parent.invalidate();
     }
+
 
     private static final int TEXTURE_SIZE_DP = 10;
     private static Bitmap createParticlesBitmap(boolean useFull) {

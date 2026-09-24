@@ -499,7 +499,7 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
                 super.invalidate(l, t, r, b);
             }
         };
-        avatarImage.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(64, chatType == ChatObject.CHAT_TYPE_FORUM));
+        avatarImage.setRoundRadius(dp(chatType == ChatObject.CHAT_TYPE_FORUM ? 16 : 32));
         avatarDrawable.setInfo(5, null, null);
         avatarImage.setImageDrawable(avatarDrawable);
         avatarImage.setContentDescription(getString(R.string.ChoosePhoto));
@@ -1056,6 +1056,7 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
                 super(viewType, true);
                 this.string = string;
             }
+
 
         }
     }

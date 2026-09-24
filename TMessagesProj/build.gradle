@@ -155,6 +155,18 @@ android {
 
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
 
+    // The standalone CI APK is built against the clean Telegram 12.10.2 API
+    // surface. Keep legacy LinkiGram sources available for future migration,
+    // but exclude them from this compatibility build until their API patches
+    // are ported to 12.10.2.
+    def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
+        it.contains('TMessagesProj_AppStandalone:assemble') ||
+        it.contains('TMessagesProj:compileStandalone')
+    }
+    if (linkiGramStandaloneCiBuild) {
+        sourceSets.main.java.exclude 'app/nimarkogram/**', 'com/exteragram/**'
+    }
+
     packagingOptions {
         pickFirst 'lib/**/libpine.so'
     }

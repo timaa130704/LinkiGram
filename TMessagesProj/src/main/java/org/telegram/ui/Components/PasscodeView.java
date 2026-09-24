@@ -161,14 +161,12 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             if (stringBuilder.length() == 4) {
                 return;
             }
-            
-            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                try {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
+            try {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            } catch (Exception e) {
+                FileLog.e(e);
             }
+
 
             ArrayList<Animator> animators = new ArrayList<>();
             final int newPos = stringBuilder.length();
@@ -286,13 +284,10 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             if (stringBuilder.length() == 0) {
                 return false;
             }
-            
-            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                try {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
+            try {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            } catch (Exception e) {
+                FileLog.e(e);
             }
 
             ArrayList<Animator> animators = new ArrayList<>();
@@ -1379,8 +1374,6 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                     imageView.playAnimation();
                     showPin(true);
                     AndroidUtilities.runOnUIThread(() -> {
-                        
-                        if (app.nimarkogram.messenger.NimarkoConfig.disableVibration) return;
                         try {
                             imageView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                         } catch (Exception ignore) {}
@@ -1400,7 +1393,9 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
 
                         for (int a = 0, N = numbersFrameLayout.getChildCount(); a < N; a++) {
                             View child = numbersFrameLayout.getChildAt(a);
-
+//                            if (!(child instanceof TextView || child instanceof ImageView)) {
+//                                continue;
+//                            }
                             child.setScaleX(0.7f);
                             child.setScaleY(0.7f);
                             child.setAlpha(0.0f);
@@ -1441,6 +1436,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
                             innerAnimators.add(innerAnimator);
                         }
 
+//                        animators.add(ViewAnimationUtils.createCircularReveal(backgroundFrameLayout, x, y, 0, (float) finalRadius));
                         animators.add(ObjectAnimator.ofFloat(backgroundFrameLayout, View.ALPHA, 0.0f, 1.0f));
                         ValueAnimator animator = ValueAnimator.ofFloat(0, 1f);
                         animators.add(animator);
@@ -1672,6 +1668,7 @@ public class PasscodeView extends FrameLayout implements NotificationCenter.Noti
             imageView.setTranslationY(imageY = pos[1] - dp(100));
         }
     }
+
 
     public class FingerprintDialog extends LinearLayout {
 

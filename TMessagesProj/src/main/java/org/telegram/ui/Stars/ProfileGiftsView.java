@@ -86,10 +86,13 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     private float actionBarProgress;
 
     public void setActionBarActionMode(float progress) {
-
+//        if (Theme.isCurrentThemeDark()) {
+//            return;
+//        }
         actionBarProgress = progress;
         invalidate();
     }
+
 
     private float left, right, cy;
     private float expandY, maxExpandY;
@@ -254,8 +257,6 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     public int maxCount;
 
     public void update() {
-        
-        if (app.nimarkogram.messenger.NimarkoConfig.disablePremiumStatuses) return;
         if (!MessagesController.getInstance(currentAccount).enableGiftsInProfile) {
             return;
         }
@@ -372,7 +373,6 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
-        
         if (gifts.isEmpty() || expandProgress >= 1.0f || collapseProgress <= 0f) return;
 
         final float realX = avatarContainer.getX();
@@ -385,6 +385,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
         final float ay = Math.max(realY, (maxExpandY - sz) / 2f);
         final float aw = Math.max(realW, sz);
         final float ah = Math.max(realH, sz);
+
 
         canvas.save();
         canvas.clipRect(0, 0, getWidth(), expandY);
@@ -408,32 +409,32 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
             float delayValue;
 
             switch (gift.position) {
-                case 0: 
+                case 0: // left
                     gx = acx / 2f - (dp(20) * expandScale);
                     gy = acy - dp(13);
                     delayValue = 1.6f;
                     break;
-                case 1: 
+                case 1: // top left
                     gx = acx * 2f / 3f - (dp(6) * expandScale);
                     gy = ay - dp(4);
                     delayValue = 0;
                     break;
-                case 2: 
+                case 2: // bottom left
                     gx = acx * 2f / 3f - (dp(12) * expandScale);
                     gy = ay + ah - dp(16);
                     delayValue = 0.9f;
                     break;
-                case 3: 
+                case 3: // right
                     gx = acx * 1.5f + (dp(20) * expandScale);
                     gy = acy - dp(13);
                     delayValue = 1.6f;
                     break;
-                case 4: 
+                case 4: // top right
                     gx = acx * 4f / 3f + (dp(12) * expandScale);
                     gy = ay - dp(4);
                     delayValue = 0.9f;
                     break;
-                default: 
+                default: // bottom right
                     gx = acx * 4f / 3f + (dp(12) * expandScale);
                     gy = ay + ah - dp(16);
                     delayValue = 0;

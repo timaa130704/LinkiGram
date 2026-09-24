@@ -139,8 +139,6 @@ public final class BulletinFactory {
         PHOTO("PhotoSavedHint", R.string.PhotoSavedHint, Icon.SAVED_TO_GALLERY),
         PHOTOS("PhotosSavedHint", Icon.SAVED_TO_GALLERY),
 
-        STICKER("NM_StickerSavedHint", R.string.NM_StickerSavedHint, Icon.SAVED_TO_GALLERY),
-
         VIDEO("VideoSavedHint", R.string.VideoSavedHint, Icon.SAVED_TO_GALLERY),
         VIDEOS("VideosSavedHint", Icon.SAVED_TO_GALLERY),
 
@@ -329,27 +327,7 @@ public final class BulletinFactory {
 
     public Bulletin createSimpleBulletinWithIconSize(int iconRawId, CharSequence text, int iconSize) {
         final Bulletin.LottieLayout layout = new Bulletin.LottieLayout(getContext(), resourcesProvider);
-        
-        if (iconRawId == 0) {
-            layout.imageView.setVisibility(View.INVISIBLE);
-            android.widget.FrameLayout.LayoutParams lp =
-                    (android.widget.FrameLayout.LayoutParams) layout.textView.getLayoutParams();
-            if (lp != null) {
-                lp.setMarginStart(AndroidUtilities.dp(16));
-                layout.textView.setLayoutParams(lp);
-            }
-        } else {
-            boolean isDrawable = false;
-            try {
-                isDrawable = "drawable".equals(
-                        getContext().getResources().getResourceTypeName(iconRawId));
-            } catch (android.content.res.Resources.NotFoundException ignored) {}
-            if (isDrawable) {
-                layout.imageView.setImageResource(iconRawId);
-            } else {
-                layout.setAnimation(iconRawId, iconSize, iconSize);
-            }
-        }
+        layout.setAnimation(iconRawId, iconSize, iconSize);
         layout.textView.setText(text);
         layout.textView.setSingleLine(false);
         layout.textView.setMaxLines(2);
@@ -410,6 +388,7 @@ public final class BulletinFactory {
         layout.textView.setText(text);
         return create(layout, text.length() < 20 ? Bulletin.DURATION_SHORT : Bulletin.DURATION_LONG);
     }
+
 
     public Bulletin createSimpleBulletin(int iconRawId, CharSequence text, int maxLines, int duration) {
         final Bulletin.LottieLayout layout = new Bulletin.LottieLayout(getContext(), resourcesProvider);
@@ -598,6 +577,7 @@ public final class BulletinFactory {
             }
         }
         layout.avatarsImageView.commitTransition(false);
+
 
         if (subtitle != null) {
             layout.textView.setSingleLine(true);
@@ -1106,6 +1086,8 @@ public final class BulletinFactory {
     public Theme.ResourcesProvider getResourcesProvider() {
         return resourcesProvider;
     }
+
+    //region Static Factory
 
     @CheckResult
     public static Bulletin createMuteBulletin(BaseFragment fragment, int setting) {
@@ -1645,95 +1627,11 @@ public final class BulletinFactory {
         return create(layout, Bulletin.DURATION_LONG);
     }
 
+    //endregion
+
     public static class UndoObject {
         public CharSequence undoText;
         public Runnable onUndo;
         public Runnable onAction;
-    }
-
-    public Bulletin createEmojiBulletin2(TLRPC.Document document, CharSequence text, CharSequence button, MessageObject selectedObject, Runnable onButtonClick) {
-        final Bulletin.LottieLayout layout = new Bulletin.LottieLayout(getContext(), resourcesProvider);
-        if (MessageObject.isTextColorEmoji(document)) {
-            layout.imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_undo_infoColor), PorterDuff.Mode.SRC_IN));
-        }
-        layout.setAnimation(document, 36, 36);
-        if (layout.imageView.getImageReceiver() != null) {
-            layout.imageView.getImageReceiver().setRoundRadius(AndroidUtilities.dp(4));
-        }
-        layout.imageView.setOnClickListener(v -> {
-            app.nimarkogram.messenger.utils.chats.NimarkoChatHelper.getInstance(selectedObject.currentAccount).openEmojiPack(selectedObject, fragment);
-        });
-        layout.textView.setText(text);
-        layout.textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        layout.textView.setSingleLine(false);
-        layout.textView.setMaxLines(3);
-        layout.setButton(new Bulletin.UndoButton(getContext(), true, resourcesProvider).setText(button).setUndoAction(onButtonClick));
-        return create(layout, Bulletin.DURATION_LONG);
-    }
-
-    public Bulletin createEmojiLoadingBulletin2(TLRPC.Document document, CharSequence text, CharSequence button, MessageObject selectedObject, Runnable onButtonClick) {
-        final Bulletin.LoadingLottieLayout layout = new Bulletin.LoadingLottieLayout(getContext(), resourcesProvider);
-        if (MessageObject.isTextColorEmoji(document)) {
-            layout.imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_undo_infoColor), PorterDuff.Mode.SRC_IN));
-        }
-        layout.setAnimation(document, 36, 36);
-        layout.imageView.setOnClickListener(v -> {
-            app.nimarkogram.messenger.utils.chats.NimarkoChatHelper.getInstance(selectedObject.currentAccount).openEmojiPack(selectedObject, fragment);
-        });
-        layout.textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        layout.textView.setSingleLine(false);
-        layout.textView.setMaxLines(3);
-        layout.textLoadingView.setText(text);
-        layout.textLoadingView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        layout.textLoadingView.setSingleLine(false);
-        layout.textLoadingView.setMaxLines(3);
-        layout.setButton(new Bulletin.UndoButton(getContext(), true, resourcesProvider).setText(button).setUndoAction(onButtonClick));
-        return create(layout, Bulletin.DURATION_LONG);
-    }
-
-    public Bulletin createReplyContainsEmojiBulletin(TLRPC.Document document, MessageObject selectedObject) {
-        TLRPC.InputStickerSet inputStickerSet = MessageObject.getInputStickerSet(document);
-        if (inputStickerSet == null) {
-            return null;
-        }
-        TLRPC.TL_messages_stickerSet cachedSet = MediaDataController.getInstance(UserConfig.selectedAccount).getStickerSet(inputStickerSet, true);
-        if (cachedSet == null || cachedSet.set == null) {
-            final String loadingPlaceholder = "<{LOADING}>";
-
-            SpannableStringBuilder stringBuilder;
-            stringBuilder = new SpannableStringBuilder(AndroidUtilities.replaceTags(LocaleController.formatString(R.string.CG_ReplyContainsEmojiPack, loadingPlaceholder)));
-
-            LoadingSpan loadingSpan = null;
-            int index;
-            if ((index = stringBuilder.toString().indexOf(loadingPlaceholder)) >= 0) {
-                stringBuilder.setSpan(loadingSpan = new LoadingSpan(null, AndroidUtilities.dp(100), AndroidUtilities.dp(2), resourcesProvider), index, index + loadingPlaceholder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                loadingSpan.setColors(
-                        ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_undo_infoColor, resourcesProvider), 0x20),
-                        ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_undo_infoColor, resourcesProvider), 0x48)
-                );
-            }
-            final long startTime = System.currentTimeMillis();
-            final long minDuration = 750;
-            Bulletin bulletin = createEmojiLoadingBulletin2(document, stringBuilder, LocaleController.getString(R.string.ApplyTheme), selectedObject, () -> app.nimarkogram.messenger.utils.chats.NimarkoChatHelper.getInstance(selectedObject.currentAccount).applyReplyBackground(selectedObject, fragment));
-            if (loadingSpan != null && bulletin.getLayout() instanceof Bulletin.LoadingLottieLayout) {
-                loadingSpan.setView(((Bulletin.LoadingLottieLayout) bulletin.getLayout()).textLoadingView);
-            }
-            MediaDataController.getInstance(UserConfig.selectedAccount).getStickerSet(inputStickerSet, null, false, set -> {
-                CharSequence message;
-                if (set != null && set.set != null) {
-                    message = AndroidUtilities.replaceTags(LocaleController.formatString(R.string.CG_ReplyContainsEmojiPack, set.set.title));
-                } else {
-                    message = LocaleController.getString(R.string.AddEmojiNotFound);
-                }
-                AndroidUtilities.runOnUIThread(() -> {
-                    bulletin.onLoaded(message);
-                }, Math.max(1, minDuration - (System.currentTimeMillis() - startTime)));
-            });
-            return bulletin;
-        } else {
-            CharSequence message;
-            message = AndroidUtilities.replaceTags(LocaleController.formatString(R.string.CG_ReplyContainsEmojiPack, cachedSet.set.title));
-            return createEmojiBulletin2(document, message, LocaleController.getString(R.string.ApplyTheme), selectedObject, () -> app.nimarkogram.messenger.utils.chats.NimarkoChatHelper.getInstance(selectedObject.currentAccount).applyReplyBackground(selectedObject, fragment));
-        }
     }
 }

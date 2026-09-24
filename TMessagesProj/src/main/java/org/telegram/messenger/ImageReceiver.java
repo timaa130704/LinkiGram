@@ -1059,7 +1059,11 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     }
 
     private boolean hasRoundRadius() {
-         
+        /*for (int a = 0; a < roundRadius.length; a++) {
+            if (roundRadius[a] != 0) {
+                return true;
+            }
+        }*/
         return true;
     }
 
@@ -1856,7 +1860,10 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     }
 
     public void skipDraw() {
-
+//        RLottieDrawable lottieDrawable = getLottieAnimation();
+//        if (lottieDrawable != null) {
+//            lottieDrawable.updateCurrentFrame();
+//        }
     }
 
     public boolean draw(Canvas canvas) {
@@ -2453,70 +2460,6 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
 
     public RectF getDrawRegion() {
         return drawRegion;
-    }
-
-    public boolean getDrawRegionForBitmap(BitmapHolder holder, int orientation, RectF out) {
-        if (holder == null || holder.bitmap == null || holder.bitmap.isRecycled() || out == null) {
-            return false;
-        }
-
-        int bitmapW = holder.getWidth();
-        int bitmapH = holder.getHeight();
-        if (bitmapW <= 0 || bitmapH <= 0 || imageW <= 0 || imageH <= 0) {
-            return false;
-        }
-
-        orientation %= 360;
-        if (orientation < 0) {
-            orientation += 360;
-        }
-        if (orientation == 90 || orientation == 270) {
-            int temp = bitmapW;
-            bitmapW = bitmapH;
-            bitmapH = temp;
-        }
-
-        float realImageW = imageW - sideClip * 2f;
-        float realImageH = imageH - sideClip * 2f;
-        if (realImageW <= 0f || realImageH <= 0f) {
-            return false;
-        }
-
-        float scaleW = bitmapW / realImageW;
-        float scaleH = bitmapH / realImageH;
-        if (isAspectFit) {
-            float bitmapScale = Math.max(scaleW, scaleH);
-            float drawW = bitmapW / bitmapScale;
-            float drawH = bitmapH / bitmapScale;
-            out.set(
-                    imageX + (imageW - drawW) / 2f,
-                    imageY + (imageH - drawH) / 2f,
-                    imageX + (imageW + drawW) / 2f,
-                    imageY + (imageH + drawH) / 2f
-            );
-        } else if (Math.abs(scaleW - scaleH)
-                > (hasRoundRadius() || gradientShader != null ? 0.0005f : 0.00001f)) {
-            if (bitmapW / scaleH > realImageW) {
-                float drawW = bitmapW / scaleH;
-                out.set(
-                        imageX - (drawW - realImageW) / 2f,
-                        imageY,
-                        imageX + (drawW + realImageW) / 2f,
-                        imageY + realImageH
-                );
-            } else {
-                float drawH = bitmapH / scaleW;
-                out.set(
-                        imageX,
-                        imageY - (drawH - realImageH) / 2f,
-                        imageX + realImageW,
-                        imageY + (drawH + realImageH) / 2f
-                );
-            }
-        } else {
-            out.set(imageX, imageY, imageX + realImageW, imageY + realImageH);
-        }
-        return true;
     }
 
     public int getNewGuid() {
@@ -3279,6 +3222,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         ImageLoader.getInstance().moveToFront(currentImageKey);
         ImageLoader.getInstance().moveToFront(currentThumbKey);
     }
+
 
     public void moveLottieToFront() {
         BitmapDrawable drawable = null;

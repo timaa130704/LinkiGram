@@ -24,6 +24,7 @@ import android.widget.LinearLayout;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -49,13 +50,7 @@ public class PremiumPreviewGiftSentBottomSheet extends PremiumPreviewBottomSheet
         if (fragment == null) {
             return;
         }
-        show(fragment.getCurrentAccount(), selectedUsers);
-    }
-
-    public static void show(int currentAccount, List<TLRPC.User> selectedUsers) {
-        BaseFragment fragment = LaunchActivity.getLastFragment();
-        if (fragment == null || fragment.getCurrentAccount() != currentAccount) return;
-        PremiumPreviewGiftSentBottomSheet sheet = new PremiumPreviewGiftSentBottomSheet(fragment, currentAccount, selectedUsers, fragment.getResourceProvider());
+        PremiumPreviewGiftSentBottomSheet sheet = new PremiumPreviewGiftSentBottomSheet(fragment, UserConfig.selectedAccount, selectedUsers, fragment.getResourceProvider());
         sheet.setAnimateConfetti(true);
         sheet.setAnimateConfettiWithStars(true);
         sheet.show();

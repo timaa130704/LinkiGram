@@ -219,7 +219,10 @@ public abstract class GradientHeaderActivity extends BaseFragment {
         });
 
         backgroundView = new BackgroundView(context) {
-
+//            @Override
+//            public boolean onInterceptTouchEvent(MotionEvent ev) {
+//                return true;
+//            }
         };
 
         contentView.addView(particlesView = createParticlesView(), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -300,15 +303,8 @@ public abstract class GradientHeaderActivity extends BaseFragment {
                 }
             }
 
-            BackgroundView backgroundView = GradientHeaderActivity.this.backgroundView;
 
-            if (actionBar != null
-                    && ev.getY() < actionBar.getY() + actionBar.getMeasuredHeight()
-                    && !subtitleInterceptedTouch
-                    && !topInterceptedTouch
-                    && !bottomInterceptedTouch) {
-                return super.dispatchTouchEvent(ev);
-            }
+            BackgroundView backgroundView = GradientHeaderActivity.this.backgroundView;
 
             float topX = backgroundView.getX() + backgroundView.subtitleView.getX();
             float topY = backgroundView.getY() + backgroundView.subtitleView.getY();
@@ -654,6 +650,7 @@ public abstract class GradientHeaderActivity extends BaseFragment {
             requestLayout();
         }
     }
+
 
     public int savedScrollPosition = -1;
     public int savedScrollOffset;

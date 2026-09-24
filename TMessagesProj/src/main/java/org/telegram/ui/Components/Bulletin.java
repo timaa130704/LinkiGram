@@ -680,6 +680,7 @@ public class Bulletin {
         protected abstract void onHide();
     }
 
+    //region Offset Providers
     public static void addDelegate(BaseFragment fragment, @NonNull Delegate delegate) {
         if (fragment != null) {
             fragment.setBulletinDelegate(delegate);
@@ -760,7 +761,9 @@ public class Bulletin {
             return true;
         }
     }
-    
+    //endregion
+
+    //region Layouts
     public abstract static class Layout extends FrameLayout {
 
         private final List<Callback> callbacks = new ArrayList<>();
@@ -811,12 +814,7 @@ public class Bulletin {
 
         public void setBackground(int color, int rounding) {
             if (!hasCustomBackground) {
-                if (app.nimarkogram.messenger.NimarkoConfig.linkiAss
-                        && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    background = new app.nimarkogram.messenger.ui.LinkiGlassDrawable(dp(rounding), color);
-                } else {
-                    background = Theme.createRoundRectDrawable(dp(rounding), color);
-                }
+                background = Theme.createRoundRectDrawable(dp(rounding), color);
             }
         }
 
@@ -979,6 +977,7 @@ public class Bulletin {
             }
         }
 
+        //region Callbacks
         public void addCallback(@NonNull Callback callback) {
             callbacks.add(callback);
         }
@@ -1041,7 +1040,9 @@ public class Bulletin {
             default void onExitTransitionEnd(@NonNull Layout layout) {
             }
         }
-        
+        //endregion
+
+        //region Transitions
         @NonNull
         public Transition createTransition() {
             return new SpringTransition();
@@ -1268,7 +1269,7 @@ public class Bulletin {
         protected int getThemedColor(int key) {
             return Theme.getColor(key, resourcesProvider);
         }
-        
+        //endregion
     }
 
     @SuppressLint("ViewConstructor")
@@ -1687,7 +1688,7 @@ public class Bulletin {
             linearLayout.setOrientation(LinearLayout.VERTICAL);
             addView(linearLayout, LayoutHelper.createFrameRelatively(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL, 52, 8, 8, 8));
 
-            titleTextView = new AnimatedTextView(context, true, true, true);
+            titleTextView = new AnimatedTextView(context, true, true, true);// new LinkSpanDrawable.LinksTextView(context);
             titleTextView.setPadding(dp(4), 0, dp(4), 0);
             titleTextView.setTextColor(undoInfoColor);
             titleTextView.setTextSize(dp(14));
@@ -1741,13 +1742,11 @@ public class Bulletin {
         private SparseLongArray newMessagesByIds;
         private final BaseFragment fragment;
         private final int messagesCount;
-        private final int currentAccount;
 
         public LottieLayoutWithReactions(BaseFragment fragment, int messagesCount) {
             super(fragment.getContext(), fragment.getResourceProvider());
             this.fragment = fragment;
             this.messagesCount = messagesCount;
-            this.currentAccount = fragment.getCurrentAccount();
             init();
         }
 
@@ -1852,13 +1851,13 @@ public class Bulletin {
         @Override
         protected void onAttachedToWindow() {
             super.onAttachedToWindow();
-            NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.savedMessagesForwarded);
+            NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(this, NotificationCenter.savedMessagesForwarded);
         }
 
         @Override
         protected void onDetachedFromWindow() {
             super.onDetachedFromWindow();
-            NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.savedMessagesForwarded);
+            NotificationCenter.getInstance(UserConfig.selectedAccount).removeObserver(this, NotificationCenter.savedMessagesForwarded);
         }
 
         public void hideReactionsDialog() {
@@ -2187,7 +2186,9 @@ public class Bulletin {
             return textView.getText();
         }
     }
-    
+    //endregion
+
+    //region Buttons
     @SuppressLint("ViewConstructor")
     public abstract static class Button extends FrameLayout implements Layout.Callback {
 
@@ -2329,6 +2330,7 @@ public class Bulletin {
         }
     }
 
+    // TODO: possibility of loading icon as well
     public void onLoaded(CharSequence text) {
         loaded = true;
         if (layout instanceof LoadingLayout) {
@@ -2336,6 +2338,8 @@ public class Bulletin {
         }
         setCanHide(true);
     }
+
+    //endregion
 
     public static class EmptyBulletin extends Bulletin {
 
@@ -2451,6 +2455,8 @@ public class Bulletin {
         }
     }
 
+    // to make bulletin above everything
+    // use as BulletinFactory.of(BulletinWindow.make(context), resourcesProvider)...
     public static class BulletinWindow extends Dialog {
 
         public static BulletinWindowLayout make(Context context, Delegate delegate) {

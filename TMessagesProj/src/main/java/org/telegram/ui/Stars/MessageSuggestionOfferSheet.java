@@ -138,7 +138,7 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
             ScaleStateListAnimator.apply(balanceCloud);
             balanceCloud.setOnClickListener(v -> {
                 if (inputAmount.currency == AmountUtils.Currency.STARS) {
-                    new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show();
+                    new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
                 }
             });
         } else {
@@ -149,6 +149,9 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
 
         LinearLayout layout = new LinearLayout(context);
         layout.setOrientation(LinearLayout.VERTICAL);
+
+
+        /* Header */
 
         LinearLayout headerLayout = new LinearLayout(context);
         headerLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -176,6 +179,8 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
 
         starsCountEditField = new EditTextBoldCursor(context);
 
+        /* Tabs */
+
         if (allowTON) {
             currencyTabsView = new HorizontalRoundTabsLayout(context, resourcesProvider);
             ArrayList<CharSequence> tabs = new ArrayList<>();
@@ -194,9 +199,13 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
             currencyTabsView = null;
         }
 
+        /* Body */
+
         LinearLayout bodyLayout = new LinearLayout(context);
         bodyLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(bodyLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 1f));
+
+
 
         {
             starsCountEditOutline = new OutlineTextContainerView(context);
@@ -289,6 +298,10 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
             bodyLayout.addView(publishingTimeHint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.FILL_HORIZONTAL, 33, 4, 33, 24));
         }
 
+
+
+        /* Footer */
+
         LinearLayout footerLayout = new LinearLayout(context);
         footerLayout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(footerLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
@@ -309,7 +322,7 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
 
             if (!isMonoForumAdmin && (balance == null || balance.asNano() < inputAmount.asNano())) {
                 if (inputAmount.currency == AmountUtils.Currency.STARS) {
-                    new StarsIntroActivity.StarsNeededSheet(context, currentAccount, resourcesProvider, inputAmount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, ForumUtilities.getMonoForumTitle(currentAccount, dialogId, true), null, dialogId).show();
+                    new StarsIntroActivity.StarsNeededSheet(context, resourcesProvider, inputAmount.asDecimal(), StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, ForumUtilities.getMonoForumTitle(currentAccount, dialogId, true), null, dialogId).show();
                 } else if (inputAmount.currency == AmountUtils.Currency.TON){
                     new TONIntroActivity.StarsNeededSheet(context, resourcesProvider, inputAmount, true, null).show();
                 }
@@ -397,6 +410,17 @@ public class MessageSuggestionOfferSheet extends BottomSheet {
         if (!inputAmount.isZero() && getInputAmountMin().asNano() > inputAmount.asNano()) {
             inputAmountError |= ERROR_FLAG_AMOUNT_TOO_SMALL;
         }
+
+        /*if (!isMonoForumAdmin && !TONIntroActivity.allowTopUp() && inputAmount.currency == AmountUtils.Currency.TON) {
+            if (StarsController.getTonInstance(currentAccount).balanceAvailable()) {
+                if (inputAmount.asNano() > StarsController.getTonInstance(currentAccount).getBalanceAmount().asNano()) {
+                    inputAmountError |= ERROR_FLAG_AMOUNT_NOT_ENOUGH;
+                }
+            }
+        }*/
+
+
+
 
         final boolean currencyChanged = force || oldAmount.currency != inputAmount.currency;
         final boolean amountChanged = force || oldAmount.asNano() != inputAmount.asNano();

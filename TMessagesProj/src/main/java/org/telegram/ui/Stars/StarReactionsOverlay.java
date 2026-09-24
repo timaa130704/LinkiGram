@@ -43,6 +43,8 @@ public class StarReactionsOverlay extends View {
     private BaseCell cell;
     private int messageId;
 
+//    private final Camera camera = new Camera();
+//    private final Matrix matrix = new Matrix();
     private final int[] pos = new int[2];
     private final int[] pos2 = new int[2];
     private final RectF reactionBounds = new RectF();
@@ -51,7 +53,7 @@ public class StarReactionsOverlay extends View {
     private final Paint redPaint = new Paint();
 
     private boolean counterShown;
-
+//    private final AnimatedFloat counterX = new AnimatedFloat(this, 0, 320, CubicBezierInterpolator.EASE_OUT_QUINT);
     private final AnimatedFloat counterAlpha = new AnimatedFloat(this, 0, 420, CubicBezierInterpolator.EASE_OUT_QUINT);
     private final AnimatedTextView.AnimatedTextDrawable counter = new AnimatedTextView.AnimatedTextDrawable();
 
@@ -78,38 +80,37 @@ public class StarReactionsOverlay extends View {
         };
 
         longPressRunnable = () -> {
-            final BaseCell currentCell = cell;
-            if (currentCell == null) return;
+            if (cell == null) return;
+            try {
+                cell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            } catch (Exception ignored) {}
+            onTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0));
+
             ArrayList<TLRPC.MessageReactor> reactors = null;
             final MessageObject msg;
-            if (currentCell instanceof ChatMessageCell) {
-                final ChatMessageCell messageCell = (ChatMessageCell) currentCell;
+            if (cell instanceof ChatMessageCell) {
+                final ChatMessageCell messageCell = (ChatMessageCell) cell;
                 msg = messageCell.getPrimaryMessageObject();
+                if (msg == null) return;
                 if (msg != null && msg.messageOwner != null && msg.messageOwner.reactions != null) {
                     reactors = msg.messageOwner.reactions.top_reactors;
                 }
-            } else if (currentCell instanceof ChatActionCell) {
-                final ChatActionCell actionCell = (ChatActionCell) currentCell;
+            } else if (cell instanceof ChatActionCell) {
+                final ChatActionCell actionCell = (ChatActionCell) cell;
                 msg = actionCell.getMessageObject();
+                if (msg == null) return;
                 if (msg != null && msg.messageOwner != null && msg.messageOwner.reactions != null) {
                     reactors = msg.messageOwner.reactions.top_reactors;
                 }
             } else {
                 return;
             }
-            if (cell != currentCell || !isCurrentMessage(msg)) {
-                return;
-            }
-            try {
-                currentCell.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-            } catch (Exception ignored) {}
-            onTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0));
 
             StarsController.getInstance(msg.currentAccount).commitPaidReaction();
 
             final TLRPC.ChatFull chatFull = chatActivity.getCurrentChatInfo();
             final StarsReactionsSheet sheet = new StarsReactionsSheet(getContext(), chatActivity.getCurrentAccount(), chatActivity.getDialogId(), chatActivity, msg, reactors, chatFull == null || chatFull.paid_reactions_available, false, 0, chatActivity.getResourceProvider());
-            sheet.setMessageCell(chatActivity, msg.getId(), currentCell);
+            sheet.setMessageCell(chatActivity, msg.getId(), cell);
             sheet.show();
         };
     }
@@ -124,16 +125,9 @@ public class StarReactionsOverlay extends View {
         }
     }
 
-    private boolean isCurrentMessage(MessageObject messageObject) {
-        return messageObject != null
-                && messageObject.getId() == messageId
-                && messageObject.currentAccount == chatActivity.getCurrentAccount()
-                && messageObject.getDialogId() == chatActivity.getDialogId();
-    }
-
     private void checkBalance() {
-        final MessageObject msg = getMessageObject();
-        if (isCurrentMessage(msg)) {
+        if (getMessageObject() != null) {
+            final MessageObject msg = getMessageObject();
             final StarsController starsController = StarsController.getInstance(chatActivity.getCurrentAccount());
             final long totalStars = starsController.getPendingPaidReactions(msg);
             if (starsController.balanceAvailable() && starsController.getBalance(false) < totalStars) {
@@ -147,7 +141,7 @@ public class StarReactionsOverlay extends View {
                     TLRPC.Chat chat = chatActivity.getMessagesController().getChat(-dialogId);
                     name = chat == null ? "" : chat.title;
                 }
-                new StarsIntroActivity.StarsNeededSheet(chatActivity.getContext(), chatActivity.getCurrentAccount(), chatActivity.getResourceProvider(), totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_REACTIONS, name, () -> {
+                new StarsIntroActivity.StarsNeededSheet(chatActivity.getContext(), chatActivity.getResourceProvider(), totalStars, StarsIntroActivity.StarsNeededSheet.TYPE_REACTIONS, name, () -> {
                     starsController.sendPaidReaction(msg, chatActivity, totalStars, true, true, null);
                 }, 0).show();
             }
@@ -156,15 +150,6 @@ public class StarReactionsOverlay extends View {
 
     public void setMessageCell(BaseCell cell) {
         if (this.cell == cell) return;
-        AndroidUtilities.cancelRunOnUIThread(longPressRunnable);
-        pressed = false;
-        ReactionsLayoutInBubble previousReactions = getReactionsLayoutInBubble();
-        if (previousReactions != null) {
-            ReactionsLayoutInBubble.ReactionButton button = previousReactions.getReactionButton("stars");
-            if (button != null) {
-                button.bounce.setPressed(false);
-            }
-        }
         if (this.cell instanceof ChatMessageCell) {
             ((ChatMessageCell) this.cell).setScrimReaction(null);
             ((ChatMessageCell) this.cell).setInvalidateListener(null);
@@ -198,7 +183,7 @@ public class StarReactionsOverlay extends View {
             }
         }
         final MessageObject msg = getMessageObject();
-        if (!isCurrentMessage(msg)) {
+        if ((msg != null ? msg.getId() : 0) != messageId) {
             setMessageCell(null);
             return;
         }
@@ -218,6 +203,7 @@ public class StarReactionsOverlay extends View {
         cell.getLocationInWindow(pos);
         pos[1] += (int) chatActivity.drawingChatListViewYoffset;
         canvas.save();
+//        canvas.saveLayerAlpha(cell.getBackgroundDrawableLeft(), 0, cell.getBackgroundDrawableRight(), cell.getHeight(), 0xFF, Canvas.ALL_SAVE_FLAG);
 
         ReactionsLayoutInBubble.ReactionButton btn = reactionsLayoutInBubble.getReactionButton("stars");
         Integer hash = null;
@@ -344,33 +330,26 @@ public class StarReactionsOverlay extends View {
         if (focusAnimator != null) {
             ValueAnimator anm = focusAnimator;
             focusAnimator = null;
-            anm.removeAllUpdateListeners();
-            anm.removeAllListeners();
             anm.cancel();
         }
-        final ValueAnimator animator = ValueAnimator.ofFloat(focus, dst);
-        focusAnimator = animator;
-        animator.addUpdateListener(anm -> {
+        focusAnimator = ValueAnimator.ofFloat(focus, dst);
+        focusAnimator.addUpdateListener(anm -> {
             focus = (float) anm.getAnimatedValue();
             invalidate();
         });
-        animator.addListener(new AnimatorListenerAdapter() {
+        focusAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                if (focusAnimator != animator) {
-                    return;
-                }
-                focusAnimator = null;
                 focus = dst;
                 invalidate();
-                if (whenDone != null) {
+                if (animation == focusAnimator && whenDone != null) {
                     whenDone.run();
                 }
             }
         });
-        animator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
-        animator.setDuration(320);
-        animator.start();
+        focusAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+        focusAnimator.setDuration(320);
+        focusAnimator.start();
     }
 
     public void tap(float x, float y, boolean send, boolean ripple) {
@@ -378,7 +357,7 @@ public class StarReactionsOverlay extends View {
 
         final MessageObject msg = getMessageObject();
         final ReactionsLayoutInBubble reactionsLayoutInBubble = getReactionsLayoutInBubble();
-        if (!isCurrentMessage(msg) || reactionsLayoutInBubble == null) return;
+        if (msg == null || reactionsLayoutInBubble == null) return;
         final StarsController starsController = StarsController.getInstance(chatActivity.getCurrentAccount());
 
         playEffect();
@@ -423,15 +402,6 @@ public class StarReactionsOverlay extends View {
     public void hide() {
         hidden = true;
         AndroidUtilities.cancelRunOnUIThread(hideCounterRunnable);
-        AndroidUtilities.cancelRunOnUIThread(longPressRunnable);
-        pressed = false;
-        ReactionsLayoutInBubble reactionsLayout = getReactionsLayoutInBubble();
-        if (reactionsLayout != null) {
-            ReactionsLayoutInBubble.ReactionButton button = reactionsLayout.getReactionButton("stars");
-            if (button != null) {
-                button.bounce.setPressed(false);
-            }
-        }
         counter.setText("");
         counterShown = false;
         invalidate();
@@ -442,7 +412,7 @@ public class StarReactionsOverlay extends View {
     }
 
     public boolean isShowing(MessageObject obj) {
-        return isCurrentMessage(obj);
+        return obj != null && obj.getId() == messageId;
     }
 
     public void show() {
@@ -481,20 +451,5 @@ public class StarReactionsOverlay extends View {
         effects.clear();
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        AndroidUtilities.cancelRunOnUIThread(hideCounterRunnable);
-        AndroidUtilities.cancelRunOnUIThread(longPressRunnable);
-        if (focusAnimator != null) {
-            ValueAnimator animator = focusAnimator;
-            focusAnimator = null;
-            animator.removeAllUpdateListeners();
-            animator.removeAllListeners();
-            animator.cancel();
-        }
-        setMessageCell(null);
-        clearEffects();
-    }
 
 }

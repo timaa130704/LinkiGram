@@ -92,6 +92,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     public View backgroundView;
     boolean attached;
 
+
+    //blur variables
     public boolean needBlur;
     public boolean needBlurBottom;
     public boolean blurIsRunning;
@@ -122,7 +124,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     int count2;
     int times2;
     private float themeAnimationValue = 1f;
-    
+    //
+
     public void invalidateBlur() {
         if (!SharedConfig.chatBlurEnabled()) {
             return;
@@ -143,6 +146,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     public int getBottomPadding() {
         return 0;
     }
+
 
     public interface SizeNotifierFrameLayoutDelegate {
         void onSizeChanged(int keyboardHeight, boolean isWidthGreater);
@@ -355,6 +359,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
 
     }
 
+
     public void setBackgroundImage(Drawable bitmap, boolean motion) {
         if (backgroundDrawable == bitmap) {
             return;
@@ -416,7 +421,11 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     }
 
     private void checkLayerType() {
-
+//        if (parallaxEffect == null && backgroundDrawable instanceof MotionBackgroundDrawable && SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_HIGH) {
+//            backgroundView.setLayerType(LAYER_TYPE_HARDWARE, null);
+//        } else {
+//            backgroundView.setLayerType(LAYER_TYPE_NONE, null);
+//        }
     }
 
     public Drawable getBackgroundImage() {
@@ -432,6 +441,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     public void removeDelegate(SizeNotifierFrameLayoutDelegate delegate) {
         this.delegates.remove(delegate);
     }
+
 
     public void setOccupyStatusBar(boolean value) {
         occupyStatusBar = value;
@@ -548,17 +558,12 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     }
 
     private void checkSnowflake(Canvas canvas) {
-        
-        boolean userForced = app.nimarkogram.messenger.NimarkoConfig.drawSnowInChat;
-        boolean wantSnow = userForced
-                || (Theme.canStartHolidayAnimation() && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND));
-        if (backgroundView != null && wantSnow) {
+        if (backgroundView != null && Theme.canStartHolidayAnimation() && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
             if (snowflakesEffect == null) {
                 snowflakesEffect = new SnowflakesEffect(1);
                 snowflakesEffect.setForcedColor(0xFFFFFFFF);
             }
             snowflakesEffect.onDraw(backgroundView, canvas);
-            backgroundView.invalidate();
         }
     }
 
@@ -616,6 +621,16 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         if (lastW == 0 || lastH == 0) {
             return;
         }
+// TODO uncomment for support saturation in blur
+//        if (this.saturation != BlurSettingsBottomSheet.saturation) {
+//            this.saturation = BlurSettingsBottomSheet.saturation;
+//            ColorMatrix colorMatrix = new ColorMatrix();
+//            colorMatrix.setSaturation(saturation * 5);
+//            blurPaintTop.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+//            blurPaintTop2.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+//            blurPaintBottom.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+//            blurPaintBottom2.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+//        }
 
         invalidateBlur = false;
         blurGeneratingTuskIsRunning = true;
@@ -684,6 +699,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         } else {
             finalBitmap.needBlurBottom = false;
         }
+
 
         times2 += System.currentTimeMillis() - time;
         count2++;
@@ -802,6 +818,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     }
 
     protected void drawList(Canvas blurCanvas, boolean top, ArrayList<IViewWithInvalidateCallback> views) {
+
 
     }
 
@@ -1139,63 +1156,74 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
             super(bitmap);
         }
 
+        // all calls to render text for blur should be replaced with drawRect using SpoilerEffect.layoutDrawMaybe
+
         @Override
         public void drawText(@NonNull char[] text, int index, int count, float x, float y, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawText(text, index, count, x, y, paint);
         }
 
         @Override
         public void drawText(@NonNull String text, int start, int end, float x, float y, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawText(text, start, end, x, y, paint);
         }
 
         @Override
         public void drawText(@NonNull String text, float x, float y, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawText(text, x, y, paint);
         }
 
         @Override
         public void drawText(@NonNull CharSequence text, int start, int end, float x, float y, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawText(text, start, end, x, y, paint);
         }
 
         @Override
         public void drawTextRun(@NonNull CharSequence text, int start, int end, int contextStart, int contextEnd, float x, float y, boolean isRtl, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawTextRun(text, start, end, contextStart, contextEnd, x, y, isRtl, paint);
         }
 
         @Override
         public void drawTextRun(@NonNull MeasuredText text, int start, int end, int contextStart, int contextEnd, float x, float y, boolean isRtl, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawTextRun(text, start, end, contextStart, contextEnd, x, y, isRtl, paint);
         }
 
         @Override
         public void drawTextRun(@NonNull char[] text, int index, int count, int contextIndex, int contextCount, float x, float y, boolean isRtl, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawTextRun(text, index, count, contextIndex, contextCount, x, y, isRtl, paint);
         }
 
         @Override
         public void drawTextOnPath(@NonNull char[] text, int index, int count, @NonNull Path path, float hOffset, float vOffset, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawTextOnPath(text, index, count, path, hOffset, vOffset, paint);
         }
 
         @Override
         public void drawTextOnPath(@NonNull String text, @NonNull Path path, float hOffset, float vOffset, @NonNull Paint paint) {
-            
+            // NOP
+//            super.drawTextOnPath(text, path, hOffset, vOffset, paint);
         }
 
         @Override
         public boolean clipPath(@NonNull Path path) {
-            
+            // NOP
             return false;
-
+//            return super.clipPath(path);
         }
 
         @Override
         public boolean clipPath(@NonNull Path path, @NonNull Region.Op op) {
-            
+            // NOP
             return false;
-
+//            return super.clipPath(path, op);
         }
     }
 

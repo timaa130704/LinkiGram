@@ -55,7 +55,7 @@ public class MentionCell extends LinearLayout {
         avatarDrawable.setTextSize(dp(18));
 
         imageView = new BackupImageView(context);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(28));
+        imageView.setRoundRadius(dp(14));
         addView(imageView, LayoutHelper.createLinear(28, 28, 8, 4, 0, 0));
 
         nameTextView = new TextView(context) {

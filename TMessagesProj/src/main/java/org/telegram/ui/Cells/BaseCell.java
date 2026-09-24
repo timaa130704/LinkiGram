@@ -43,12 +43,9 @@ public abstract class BaseCell extends ViewGroup implements SizeNotifierFrameLay
             if (checkingForLongPress && getParent() != null && currentPressCount == pressCount) {
                 checkingForLongPress = false;
                 if (onLongPress()) {
-                    
-                    if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        try {
-                            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                        } catch (Exception ignore) {}
-                    }
+                    try {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    } catch (Exception ignore) {}
                     MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
                     onTouchEvent(event);
                     event.recycle();
@@ -66,8 +63,7 @@ public abstract class BaseCell extends ViewGroup implements SizeNotifierFrameLay
         super(context);
         setWillNotDraw(false);
         setFocusable(true);
-        
-        setHapticFeedbackEnabled(!app.nimarkogram.messenger.NimarkoConfig.disableVibration);
+        setHapticFeedbackEnabled(true);
     }
 
     public static void setDrawableBounds(Drawable drawable, int x, int y) {

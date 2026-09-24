@@ -298,7 +298,7 @@ public class AlertsCreator {
                     final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
                     final Theme.ResourcesProvider resourcesProvider = PhotoViewer.getInstance().isVisible() || lastFragment != null && lastFragment.hasShownSheet() ? new DarkThemeResourceProvider() : (lastFragment != null ? lastFragment.getResourceProvider() : null);
 
-                    new StarsIntroActivity.StarsNeededSheet(activity, currentAccount, resourcesProvider, price, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
+                    new StarsIntroActivity.StarsNeededSheet(activity, resourcesProvider, price, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
 
                     }, dialogId).show();
                 }, true);
@@ -1773,7 +1773,13 @@ public class AlertsCreator {
         urlView.setMaxLines(5);
         urlView.setEllipsize(TextUtils.TruncateAt.END);
         urlView.setPadding(dp(14), dp(12), dp(14), dp(12));
-         
+        /*
+        urlView.setOnClickListener(v -> {
+            open.run();
+            if (dialog[0] != null) dialog[0].dismiss();
+        });
+        */
+
         final GradientDrawable urlBackground = new GradientDrawable();
         urlBackground.setCornerRadius(dp(22));
         urlBackground.setColor(Theme.multAlpha(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider), 0.06f));
@@ -2007,7 +2013,7 @@ public class AlertsCreator {
         avatarDrawable.setTextSize(dp(12));
 
         BackupImageView imageView = new BackupImageView(context);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+        imageView.setRoundRadius(dp(20));
         frameLayout.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
         TextView textView = new TextView(context);
@@ -2044,7 +2050,20 @@ public class AlertsCreator {
         }
 
         messageTextView.setText(replaceTags(message));
-         
+        /*if (chat != null) {
+            if (TextUtils.isEmpty(title)) {
+                messageTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("ImportToChatNoTitle", R.string.ImportToChatNoTitle, chat.title)));
+            } else {
+                messageTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("ImportToChat", R.string.ImportToChat, title, chat.title)));
+            }
+        } else {
+            if (TextUtils.isEmpty(title)) {
+                messageTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("ImportToUserNoTitle", R.string.ImportToUserNoTitle, ContactsController.formatName(user.first_name, user.last_name))));
+            } else {
+                messageTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("ImportToUser", R.string.ImportToUser, title, ContactsController.formatName(user.first_name, user.last_name))));
+            }
+        }*/
+
         builder.setPositiveButton(LocaleController.getString(R.string.Import), (dialogInterface, i) -> {
             if (onProcessRunnable != null) {
                 onProcessRunnable.run();
@@ -2080,7 +2099,7 @@ public class AlertsCreator {
         avatarDrawable.setTextSize(dp(18));
 
         BackupImageView imageView = new BackupImageView(context);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+        imageView.setRoundRadius(dp(20));
         frameLayout.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
         SimpleTextView textView = new SimpleTextView(context);
@@ -2201,7 +2220,7 @@ public class AlertsCreator {
         avatarDrawable.setTextSize(dp(18));
 
         BackupImageView imageView = new BackupImageView(context);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+        imageView.setRoundRadius(dp(20));
         frameLayout.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
         SimpleTextView titleView = new SimpleTextView(context);
@@ -2350,7 +2369,7 @@ public class AlertsCreator {
         sb.append(replaceTags(LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessageMulti1", totalChats)));
         sb.append(" ");
         sb.append(replaceTags(LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessageMulti2", (int) totalPrice, LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessageMulti2Messages", messagesCount * Math.max(1, totalChats)))));
-        showAlertWithCheckboxWithBalance(activity, currentAccount, getString(R.string.MessageLockedStarsConfirmTitle), sb, getString(R.string.MessageLockedStarsConfirmMessageDontAsk), LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessagePay", messagesCount), dontAsk -> {
+        showAlertWithCheckboxWithBalance(activity, getString(R.string.MessageLockedStarsConfirmTitle), sb, getString(R.string.MessageLockedStarsConfirmMessageDontAsk), LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessagePay", messagesCount), dontAsk -> {
             if (dontAsk) {
                 SharedPreferences.Editor e = MessagesController.getInstance(currentAccount).getMainSettings().edit();
                 for (long dialogId : dialogIds) {
@@ -2368,7 +2387,7 @@ public class AlertsCreator {
                 if (balance < totalPrice) {
                     if (activity == null) return;
                     final long dialogId = dialogIds.get(0);
-                    new StarsIntroActivity.StarsNeededSheet(activity, currentAccount, resourcesProvider, totalPrice, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
+                    new StarsIntroActivity.StarsNeededSheet(activity, resourcesProvider, totalPrice, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
                         confirmed.run(prices);
                     }, dialogId).show();
                 } else {
@@ -2425,7 +2444,7 @@ public class AlertsCreator {
                     final Theme.ResourcesProvider resourcesProvider = PhotoViewer.getInstance().isVisible() || lastFragment != null && lastFragment.hasShownSheet() ? new DarkThemeResourceProvider() : (lastFragment != null ? lastFragment.getResourceProvider() : null);
 
                     if (activity == null) return;
-                    new StarsIntroActivity.StarsNeededSheet(activity, currentAccount, resourcesProvider, price, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
+                    new StarsIntroActivity.StarsNeededSheet(activity, resourcesProvider, price, StarsIntroActivity.StarsNeededSheet.TYPE_PRIVATE_MESSAGE, DialogObject.getShortName(currentAccount, dialogId), () -> {
                         confirmedPrice.run(send_paid_messages_stars);
                     }, dialogId).show();
                 } else {
@@ -2473,7 +2492,7 @@ public class AlertsCreator {
             sb.append(" ");
             sb.append(replaceTags(LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessage2Many2", messagesCount)));
         }
-        showAlertWithCheckboxWithBalance(activity, currentAccount, getString(R.string.MessageLockedStarsConfirmTitle), sb, getString(R.string.MessageLockedStarsConfirmMessageDontAsk), LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessagePay", messagesCount), dontAsk -> {
+        showAlertWithCheckboxWithBalance(activity, getString(R.string.MessageLockedStarsConfirmTitle), sb, getString(R.string.MessageLockedStarsConfirmMessageDontAsk), LocaleController.formatPluralStringComma("MessageLockedStarsConfirmMessagePay", messagesCount), dontAsk -> {
             if (dontAsk) {
                 MessagesController.getInstance(currentAccount).getMainSettings().edit().putLong("ask_paid_message_" + dialogId + "_price", stars).apply();
                 StarsController.getInstance(currentAccount).justAgreedToNotAskDialogs.put(dialogId, System.currentTimeMillis());
@@ -2483,14 +2502,14 @@ public class AlertsCreator {
     }
 
     public static AlertDialog showAlertWithCheckbox(Context context, CharSequence title, CharSequence message, CharSequence check, CharSequence button, Utilities.Callback<Boolean> onAction, Theme.ResourcesProvider resourcesProvider) {
-        return showAlertWithCheckbox(context, title, message, check, button, onAction, resourcesProvider, false, 0);
+        return showAlertWithCheckbox(context, title, message, check, button, onAction, resourcesProvider, false);
     }
 
-    public static AlertDialog showAlertWithCheckboxWithBalance(Context context, int currentAccount, CharSequence title, CharSequence message, CharSequence check, CharSequence button, Utilities.Callback<Boolean> onAction, Theme.ResourcesProvider resourcesProvider) {
-        return showAlertWithCheckbox(context, title, message, check, button, onAction, resourcesProvider, true, currentAccount);
+    public static AlertDialog showAlertWithCheckboxWithBalance(Context context, CharSequence title, CharSequence message, CharSequence check, CharSequence button, Utilities.Callback<Boolean> onAction, Theme.ResourcesProvider resourcesProvider) {
+        return showAlertWithCheckbox(context, title, message, check, button, onAction, resourcesProvider, true);
     }
 
-    public static AlertDialog showAlertWithCheckbox(Context context, CharSequence title, CharSequence message, CharSequence check, CharSequence button, Utilities.Callback<Boolean> onAction, Theme.ResourcesProvider resourcesProvider, boolean withBalance, int starsCurrentAccount) {
+    public static AlertDialog showAlertWithCheckbox(Context context, CharSequence title, CharSequence message, CharSequence check, CharSequence button, Utilities.Callback<Boolean> onAction, Theme.ResourcesProvider resourcesProvider, boolean withBalance) {
         if (context == null) {
             onAction.run(false);
             return null;
@@ -2563,7 +2582,7 @@ public class AlertsCreator {
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         AlertDialog d = builder.create();
         if (withBalance) {
-            d.setShowStarsBalance(starsCurrentAccount, true);
+            d.setShowStarsBalance(true);
         }
         d.show();
         return d;
@@ -2850,7 +2869,7 @@ public class AlertsCreator {
                 }
             }
         }
-        builder.setPositiveButton(actionText, (dialogInterface, i) -> app.nimarkogram.messenger.utils.CGCompat.runOrAskBeforeDestructive(fragment.getParentActivity(), () -> {
+        builder.setPositiveButton(actionText, (dialogInterface, i) -> {
             if (!clearingCache && !second && !secret) {
                 if (UserObject.isUserSelf(user)) {
                     createClearOrDeleteDialogAlert(fragment, clear, true, chat, user, false, checkDeleteForAll, deleteForAll[0], canDeleteHistory, onProcessRunnable, resourcesProvider);
@@ -2905,7 +2924,7 @@ public class AlertsCreator {
             if (onProcessRunnable != null) {
                 onProcessRunnable.run(second || deleteForAll[0]);
             }
-        }));
+        });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         final AlertDialog alertDialog = builder.create();
         fragment.showDialog(alertDialog);
@@ -3050,11 +3069,11 @@ public class AlertsCreator {
         String actionText = canDeleteHistory ? LocaleController.getString("Delete", R.string.Delete)
                 : canClearCacheCount != 0 ? LocaleController.getString("ClearHistoryCache", R.string.ClearHistoryCache)
                 : LocaleController.getString("ClearHistory", R.string.ClearHistory);
-        builder.setPositiveButton(actionText, (dialogInterface, i) -> app.nimarkogram.messenger.utils.CGCompat.runOrAskBeforeDestructive(fragment.getParentActivity(), () -> {
+        builder.setPositiveButton(actionText, (dialogInterface, i) -> {
             if (onProcessRunnable != null) {
                 onProcessRunnable.run(deleteForAll[0]);
             }
-        }));
+        });
         builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
         AlertDialog alertDialog = builder.create();
         fragment.showDialog(alertDialog);
@@ -3112,6 +3131,7 @@ public class AlertsCreator {
         frameLayout.addView(textView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, 11, 24, 0));
         frameLayout.addView(messageTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, 48, 24, 18));
 
+
         if (days == -1) {
             textView.setText(LocaleController.formatString("ClearHistory", R.string.ClearHistory));
             if (user != null) {
@@ -3162,9 +3182,9 @@ public class AlertsCreator {
         if (chat != null && canDeleteHistory && ChatObject.isPublic(chat) && !ChatObject.isChannelAndNotMegaGroup(chat)) {
             deleteText = LocaleController.getString(R.string.ClearForAll);
         }
-        builder.setPositiveButton(deleteText, (dialogInterface, i) -> app.nimarkogram.messenger.utils.CGCompat.runOrAskBeforeDestructive(fragment.getParentActivity(), () -> {
+        builder.setPositiveButton(deleteText, (dialogInterface, i) -> {
             onProcessRunnable.run(deleteForAll[0]);
-        }));
+        });
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         AlertDialog alertDialog = builder.create();
         fragment.showDialog(alertDialog);
@@ -3212,7 +3232,7 @@ public class AlertsCreator {
         avatarDrawable.setInfo(fragment.getCurrentAccount(), user);
 
         BackupImageView imageView = new BackupImageView(context);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+        imageView.setRoundRadius(dp(20));
         imageView.setForUserOrChat(user, avatarDrawable);
         frameLayout.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
@@ -3444,6 +3464,7 @@ public class AlertsCreator {
             lastNameEditTextView.setSelection(lastNameEditTextView.getText().toString().length());
         }
 
+
         builder.setView(dialogView);
         EditText finalLastNameEditTextView = lastNameEditTextView;
         AlertDialog.OnButtonClickListener onDoneListener = (dialogInterface, i) -> {
@@ -3538,6 +3559,7 @@ public class AlertsCreator {
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
 
         messageTextView.setText(replaceTags(LocaleController.formatString("ChatWithAdminMessage", R.string.ChatWithAdminMessage, chatWithAdmin, LocaleController.formatDateAudio(chatWithAdminDate, false))));
+
 
         TextView buttonTextView = new TextView(fragment.getParentActivity());
         buttonTextView.setPadding(dp(34), 0, dp(34), 0);
@@ -5228,6 +5250,7 @@ public class AlertsCreator {
         return builder;
     }
 
+
     public interface StatusUntilDatePickerDelegate {
         void didSelectDate(int date);
     }
@@ -5236,7 +5259,8 @@ public class AlertsCreator {
         void didSelectDate(int date, int flags);
     }
 
-    private static final int FMT_DATE_MONTH_PICKER_HALF_SIZE = 12 * 10; 
+
+    private static final int FMT_DATE_MONTH_PICKER_HALF_SIZE = 12 * 10; // 10 years
 
     public static BottomSheet.Builder createFormattedDatePickerDialog(Context context, final FormattedDatePickerDelegate datePickerDelegate, final Runnable cancelRunnable, Theme.ResourcesProvider resourcesProvider) {
         if (context == null) {
@@ -5377,7 +5401,7 @@ public class AlertsCreator {
             protected void dispatchDraw(@NonNull Canvas canvas) {
                 super.dispatchDraw(canvas);
                 final float cy = getHeight() / 2f;
-                
+                // sep1.draw(canvas, hourPicker.getX() - dp(50), cy, 0.75f);
                 sep2.draw(canvas, minutePicker.getX() - dp(50), cy);
             }
         };
@@ -5400,10 +5424,29 @@ public class AlertsCreator {
         hourPicker.setOnValueChangedListener(onValueChangeListener);
         minutePicker.setOnValueChangedListener(onValueChangeListener);
 
+
+
         final boolean[] canceled = {true};
 
         int[] flagArr = new int[1];
-         
+        /*
+        if (BuildConfig.DEBUG_PRIVATE_VERSION) {
+            String[] flagsStr = {"relative", "short_time", "long_time", "short_date", "long_date", "day_of_week"};
+            for (int a = 0; a < flagsStr.length; a++) {
+                final int flag = a;
+                final CheckBoxCell cell = new CheckBoxCell(context, 1, resourcesProvider);
+                cell.setBackground(Theme.getSelectorDrawable(false));
+                cell.setText(flagsStr[a], "", false, false);
+                container.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+                cell.setOnClickListener(v -> {
+                    CheckBoxCell cell12 = (CheckBoxCell) v;
+                    cell12.setChecked(!cell12.isChecked(), true);
+                    flagArr[0] = BitwiseUtils.setFlag(flagArr[0], 1 << flag, cell12.isChecked());
+                });
+            }
+        }
+        */
+
         buttonTextView.setPadding(dp(34), 0, dp(34), 0);
         buttonTextView.setRound();
         container.addView(buttonTextView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48, Gravity.LEFT | Gravity.BOTTOM, 16, 15, 16, 16));
@@ -5460,6 +5503,7 @@ public class AlertsCreator {
             button.setText(formatPollCloseCustomDeadline((int)((currentTime - systemTime) / 1000)));
         }
     }
+
 
     public static BottomSheet.Builder createPollCloseDatePickerDialog(Context context, long currentDate, final ScheduleDatePickerDelegate datePickerDelegate, final Runnable cancelRunnable, final ScheduleDatePickerColors datePickerColors, Theme.ResourcesProvider resourcesProvider) {
         if (context == null) {
@@ -5668,6 +5712,7 @@ public class AlertsCreator {
 
         return builder;
     }
+
 
     public static BottomSheet.Builder createStatusUntilDatePickerDialog(Context context, long currentDate, final StatusUntilDatePickerDelegate delegate) {
         if (context == null) {
@@ -7203,7 +7248,7 @@ public class AlertsCreator {
         frameLayout.addView(pin, LayoutHelper.createFrame(60, 82, Gravity.CENTER, 0, 0, 0, 0));
 
         BackupImageView imageView = new BackupImageView(activity);
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(52));
+        imageView.setRoundRadius(dp(26));
         imageView.setForUserOrChat(selfUser, new AvatarDrawable(selfUser));
         frameLayout.addView(imageView, LayoutHelper.createFrame(52, 52, Gravity.CENTER, 0, 0, 0, 11));
 
@@ -7322,6 +7367,7 @@ public class AlertsCreator {
                 outline.setRoundRect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight() + dp(6), AndroidUtilities.dpf2(6));
             }
         });
+
 
         float aspectRatio = 540f / 936f;
         View background = new View(context);
@@ -7689,8 +7735,6 @@ public class AlertsCreator {
         void didPressedNewCard();
     }
 
-    private static boolean nmDeleteAlertBypassBiometric = false;
-
     public static void createDeleteMessagesAlert(BaseFragment fragment, TLRPC.User user, TLRPC.Chat chat, TLRPC.EncryptedChat encryptedChat, TLRPC.ChatFull chatInfo, long mergeDialogId, MessageObject selectedMessage, SparseArray<MessageObject>[] selectedMessages, MessageObject.GroupedMessages selectedGroup, int topicId, int mode, TLRPC.ChannelParticipant[] channelParticipants, Runnable onDelete, Runnable hideDim, Theme.ResourcesProvider resourcesProvider) {
         final boolean scheduled = mode == ChatActivity.MODE_SCHEDULED;
         final boolean isSavedMessages = mode == ChatActivity.MODE_SAVED;
@@ -7702,23 +7746,6 @@ public class AlertsCreator {
         if (activity == null) {
             return;
         }
-        
-        if (!nmDeleteAlertBypassBiometric
-                && (app.nimarkogram.messenger.NimarkoConfig.askBiometricsBeforeDelete
-                    || app.nimarkogram.messenger.NimarkoConfig.askPasscodeBeforeDelete)) {
-            app.nimarkogram.messenger.utils.CGCompat.runOrAskBeforeDestructive(activity, () -> {
-                nmDeleteAlertBypassBiometric = true;
-                try {
-                    createDeleteMessagesAlert(fragment, user, chat, encryptedChat, chatInfo, mergeDialogId,
-                            selectedMessage, selectedMessages, selectedGroup, topicId, mode,
-                            channelParticipants, onDelete, hideDim, resourcesProvider);
-                } finally {
-                    nmDeleteAlertBypassBiometric = false;
-                }
-            });
-            return;
-        }
-        nmDeleteAlertBypassBiometric = false;
         int currentAccount = fragment.getCurrentAccount();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(activity, resourcesProvider);
@@ -7879,7 +7906,7 @@ public class AlertsCreator {
             }
         }
 
-        final boolean[] deleteForAll = {app.nimarkogram.messenger.NimarkoConfig.deleteForAll};
+        final boolean[] deleteForAll = new boolean[1];
         boolean canRevokeInbox = user != null && MessagesController.getInstance(currentAccount).canRevokePmInbox;
         int revokeTimeLimit;
         if (user != null) {
@@ -8022,11 +8049,6 @@ public class AlertsCreator {
                     cell.setText(LocaleController.getString(R.string.DeleteMessagesOption), "", false, false);
                 }
                 cell.setPadding(LocaleController.isRTL ? dp(16) : dp(8), 0, LocaleController.isRTL ? dp(8) : dp(16), 0);
-                
-                if (app.nimarkogram.messenger.NimarkoConfig.deleteForAll) {
-                    deleteForAll[0] = true;
-                    cell.setChecked(true, false);
-                }
                 frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
                 cell.setOnClickListener(v -> {
                     CheckBoxCell cell12 = (CheckBoxCell) v;
@@ -8078,20 +8100,14 @@ public class AlertsCreator {
                 FrameLayout frameLayout = new FrameLayout(activity);
                 CheckBoxCell cell = new CheckBoxCell(activity, 1, resourcesProvider);
                 cell.setBackgroundDrawable(Theme.getSelectorDrawable(false));
-                
                 if (canDeleteInbox) {
-                    cell.setText(LocaleController.formatString("DeleteMessagesOptionAlso", R.string.DeleteMessagesOptionAlso, UserObject.getFirstName(user)), "", app.nimarkogram.messenger.NimarkoConfig.deleteForAll, false);
+                    cell.setText(LocaleController.formatString("DeleteMessagesOptionAlso", R.string.DeleteMessagesOptionAlso, UserObject.getFirstName(user)), "", false, false);
                 } else if (chat != null && (hasNotOut || myMessagesCount == count)) {
-                    cell.setText(LocaleController.getString(R.string.DeleteForAll), "", app.nimarkogram.messenger.NimarkoConfig.deleteForAll, false);
+                    cell.setText(LocaleController.getString(R.string.DeleteForAll), "", false, false);
                 } else {
                     cell.setText(LocaleController.getString(R.string.DeleteMessagesOption), "", false, false);
                 }
                 cell.setPadding(LocaleController.isRTL ? dp(16) : dp(8), 0, LocaleController.isRTL ? dp(8) : dp(16), 0);
-                
-                if (app.nimarkogram.messenger.NimarkoConfig.deleteForAll) {
-                    deleteForAll[0] = true;
-                    cell.setChecked(true, false);
-                }
                 frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
                 cell.setOnClickListener(v -> {
                     CheckBoxCell cell1 = (CheckBoxCell) v;
@@ -8764,7 +8780,7 @@ public class AlertsCreator {
         popupWindow.showAsDropDown(anchorView, offsetX, offsetY);
 
         popupLayout.updateRadialSelectors();
-
+//        popupWindow.startAnimation();
         ActionBarPopupWindow.startAnimation(popupLayout);
 
         popupLayout.setOnTouchListener((v, event) -> {
@@ -9046,6 +9062,7 @@ public class AlertsCreator {
         });
         ScaleStateListAnimator.apply(buttonTextView, 0.02f, 1.2f);
 
+
         TextView buttonAnytimeTextView = new TextView(context) {
             @Override
             public CharSequence getAccessibilityClassName() {
@@ -9157,7 +9174,7 @@ public class AlertsCreator {
                     MessagesController.getInstance(currentAccount).putUsers(r.users, false);
                     MessagesController.getInstance(currentAccount).putChats(r.chats, false);
                     if (LaunchActivity.instance == null) {
-
+//                        creatingCall = false;
                         button.setLoading(false);
                         return;
                     }
@@ -9183,7 +9200,7 @@ public class AlertsCreator {
         TLObject user = MessagesController.getInstance(currentAccount).getUserOrChat(dialogId);
         final LinearLayout topView = new LinearLayout(context);
         topView.setOrientation(LinearLayout.VERTICAL);
-        topView.addView(new StarGiftSheet.GiftThemeReuseTopView(context, currentAccount, gift, user), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, -4, 0, 0));
+        topView.addView(new StarGiftSheet.GiftThemeReuseTopView(context, gift, user), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, -4, 0, 0));
         final TextView textView = new TextView(context);
         textView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
         textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);

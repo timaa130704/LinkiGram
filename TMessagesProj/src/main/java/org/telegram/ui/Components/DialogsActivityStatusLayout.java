@@ -60,4 +60,24 @@ public class DialogsActivityStatusLayout extends View {
         canvas.drawRoundRect(animatingRectF, radius, radius, fillingPaint);
     }
 
+
+
+    private final Runnable justForTestR = this::justForTest;
+
+    private void justForTest() {
+        animatorStatusBarVisible.setValue(!animatorStatusBarVisible.getValue(), true);
+        AndroidUtilities.runOnUIThread(justForTestR, 3000);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        AndroidUtilities.runOnUIThread(justForTestR, 3000);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        AndroidUtilities.cancelRunOnUIThread(justForTestR);
+    }
 }

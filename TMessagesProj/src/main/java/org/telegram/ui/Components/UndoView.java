@@ -66,7 +66,7 @@ import org.telegram.ui.PaymentFormActivity;
 import java.util.ArrayList;
 
 @SuppressWarnings("FieldCanBeLocal")
-@Deprecated 
+@Deprecated // use Bulletin instead
 public class UndoView extends FrameLayout {
 
     private int infoTextViewEmojiCacheType = AnimatedEmojiDrawable.CACHE_TYPE_MESSAGES;
@@ -290,7 +290,7 @@ public class UndoView extends FrameLayout {
         addView(leftImageView, LayoutHelper.createFrame(54, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.LEFT, 3, 0, 0, 0));
 
         avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(30));
+        avatarImageView.setRoundRadius(AndroidUtilities.dp(15));
         addView(avatarImageView, LayoutHelper.createFrame(30, 30, Gravity.CENTER_VERTICAL | Gravity.LEFT, 15, 0, 0, 0));
 
         undoButton = new LinearLayout(context);
@@ -1689,6 +1689,8 @@ public class UndoView extends FrameLayout {
                 canvas.restore();
             }
 
+           // canvas.drawText(timeLeftString, rect.centerX() - textWidth / 2, AndroidUtilities.dp(28.2f), textPaint);
+           // canvas.drawText(timeLeftString, , textPaint);
             canvas.drawArc(rect, -90, -360 * (timeLeft / 5000.0f), false, progressPaint);
         }
 
@@ -1721,6 +1723,7 @@ public class UndoView extends FrameLayout {
     }
 
     float enterOffset;
+
 
     @Keep
     public float getEnterOffset() {

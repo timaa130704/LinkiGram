@@ -122,6 +122,7 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
     private FrameLayout infoLayout;
     private UniversalRecyclerView listView;
 
+
     public interface ContactAddActivityDelegate {
         void didAddToContacts();
     }
@@ -232,11 +233,16 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
         final FrameLayout frameLayout = new FrameLayout(context);
         frameLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
 
+//        linearLayout = new LinearLayout(context);
+//        linearLayout.setOrientation(LinearLayout.VERTICAL);
+//        fra.addView(linearLayout, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
+//        linearLayout.setOnTouchListener((v, event) -> true);
+
         infoLayout = new FrameLayout(context);
         infoLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
 
         avatarImage = new BackupImageView(context);
-        avatarImage.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(64));
+        avatarImage.setRoundRadius(dp(32));
         infoLayout.addView(avatarImage, LayoutHelper.createFrame(64, 64, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 16, 13, 16, 13));
 
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -393,7 +399,7 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
                 protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
                     oldAvatarView.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(30), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(30), MeasureSpec.EXACTLY));
-                    oldAvatarView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(60));
+                    oldAvatarView.setRoundRadius(AndroidUtilities.dp(30));
                 }
 
                 @Override
@@ -480,6 +486,7 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
                 ).create());
             });
 
+//            getMessagesController().loadDialogPhotos(user_id, 2, 0, true, getClassGuid(), null);
             TLRPC.UserFull userFull = getMessagesController().getUserFull(user_id);
             if (userFull != null) {
                 prevAvatar = userFull.profile_photo;
@@ -771,6 +778,7 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
         imageUpdater.onResume();
     }
 
+
     MessageObject suggestPhotoMessageFinal;
 
     @Override
@@ -863,8 +871,9 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
         objArr.add(suggestPhotoMessageFinal = new MessageObject(currentAccount, message, false, false));
         ArrayList<TLRPC.Message> arr = new ArrayList<>();
         arr.add(message);
-      
+      //  MessagesStorage.getInstance(currentAccount).putMessages(arr, false, true, false, 0, false, 0);
         MessagesController.getInstance(currentAccount).updateInterfaceWithMessages(user_id, objArr, 0);
+
 
         getMessagesController().photoSuggestion.put(message.local_id, imageUpdater);
     }
@@ -989,6 +998,7 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
 
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_windowBackgroundWhite));
 
+//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_actionBarDefaultSelector));
@@ -1004,6 +1014,8 @@ public class ContactAddActivity extends BaseFragment implements NotificationCent
         themeDescriptions.add(new ThemeDescription(lastNameField, ThemeDescription.FLAG_HINTTEXTCOLOR, null, null, null, null, Theme.key_windowBackgroundWhiteHintText));
         themeDescriptions.add(new ThemeDescription(lastNameField, ThemeDescription.FLAG_BACKGROUNDFILTER, null, null, null, null, Theme.key_windowBackgroundWhiteInputField));
         themeDescriptions.add(new ThemeDescription(lastNameField, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_windowBackgroundWhiteInputFieldActivated));
+
+//        themeDescriptions.add(new ThemeDescription(infoTextView, ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_windowBackgroundWhiteGrayText4));
 
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, Theme.avatarDrawables, cellDelegate, Theme.key_avatar_text));
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_avatar_backgroundRed));
