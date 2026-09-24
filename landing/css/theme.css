@@ -247,6 +247,8 @@ body::after {
 .term.typing .term__line--out { opacity: 0; }
 
 .hero__cta { display: flex; gap: 16px; flex-wrap: wrap; justify-content: flex-start; margin-bottom: 40px; }
+.support-button svg { flex-shrink: 0; }
+.support-button:hover { box-shadow: 0 0 18px rgba(61, 220, 132, 0.22); }
 
 .hero__meta {
   display: flex;
