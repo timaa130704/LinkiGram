@@ -3216,18 +3216,25 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             onAuthSuccess((TLRPC.TL_auth_authorization) auth);
                         }
                     } else {
-                        android.util.Log.e("NimarkoAuth", "sendCode success flag but response is "
-                                + (response == null ? "null" : response.getClass().getName())
-                                + " (not sentCodeSuccess) -- login cannot advance");
                         if (response == null) {
                             // error == null AND response == null means the transport completed
                             // with neither a payload nor an error. Previously this fell
                             // through the cast below and threw, which the UI turned into a
                             // silent return to the phone field.
+                            android.util.Log.e("NimarkoAuth", "sendCode returned neither payload nor error -- login cannot advance");
                             needShowAlert(getString(R.string.RestorePasswordNoEmailTitle),
                                     getString(R.string.ErrorOccurred));
                             return;
                         }
+                        if (!(response instanceof TLRPC.auth_SentCode)) {
+                            android.util.Log.e("NimarkoAuth", "sendCode returned unexpected type "
+                                    + response.getClass().getName() + " -- login cannot advance");
+                            needShowAlert(getString(R.string.RestorePasswordNoEmailTitle),
+                                    getString(R.string.ErrorOccurred));
+                            return;
+                        }
+                        android.util.Log.i("NimarkoAuth", "sendCode accepted, sentCode received: "
+                                + response.getClass().getSimpleName());
                         fillNextCodeParams(params, (TLRPC.auth_SentCode) response);
                     }
                 } else {

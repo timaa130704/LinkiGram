@@ -698,6 +698,11 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         items.add(SettingCell.Factory.of(9, IconBackgroundColors.ORANGE_DEEP.top, IconBackgroundColors.ORANGE_DEEP.bottom, R.drawable.settings_power, getString(R.string.SettingsPowerSaving), getString(R.string.SettingsPowerSavingInfo)));
         items.add(SettingCell.Factory.of(10, IconBackgroundColors.PURPLE.top, IconBackgroundColors.PURPLE.bottom, R.drawable.settings_language, getString(R.string.SettingsLanguage), LocaleController.getCurrentLanguageName()));
 
+        // LinkiGram settings hub. Reachable from the regular settings screen so the fork
+        // features stay available after login; the login screen has its own button for the
+        // pre-authorization case.
+        items.add(SettingCell.Factory.of(100, IconBackgroundColors.BLUE_ALT.top, IconBackgroundColors.BLUE_ALT.bottom, R.drawable.msg_settings, getString(R.string.NimarkoGramSettings), getString(R.string.NimarkoGramSettingsInfo)));
+
         items.add(UItem.asShadow(null));
 
         if (!getMessagesController().premiumFeaturesBlocked()) {
@@ -835,6 +840,9 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
                 break;
             case 10:
                 presentSettingFragment(new LanguageSelectActivity());
+                break;
+            case 100:
+                presentSettingFragment(new app.nimarkogram.messenger.preferences.MainPreferencesActivity());
                 break;
 
             case 11:

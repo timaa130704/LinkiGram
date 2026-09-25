@@ -11225,6 +11225,7 @@
     <string name="UnsupportedUpdate">Update</string>
 
     <string name="NimarkoGramSettings">LinkiGram Settings</string>
+    <string name="NimarkoGramSettingsInfo">LinkiGram options and features</string>
     <string name="NM_HUB_Restart">Restart app</string>
     <string name="NM_RestartRequired">Restart required to apply changes</string>
     <string name="NM_Restart">Restart</string>
