@@ -148,9 +148,13 @@ dependencies {
 def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
 def privateValue = rootProject.ext.privateConfig
 def configString = rootProject.ext.buildConfigString
-def telegramApiId = privateValue('TELEGRAM_API_ID', '0')
-if (!telegramApiId.matches('[0-9]+')) {
-    telegramApiId = '0'
+def telegramApiId = privateValue('TELEGRAM_API_ID', '4')
+if (!telegramApiId.matches('[0-9]+') || telegramApiId == '0') {
+    telegramApiId = '4'
+}
+def telegramApiHash = privateValue('TELEGRAM_API_HASH', '014b35b6184100b085b0d0572f9b5103')
+if (telegramApiHash.trim().isEmpty()) {
+    telegramApiHash = '014b35b6184100b085b0d0572f9b5103'
 }
 
 def linkiGramStandaloneCiBuild = gradle.startParameter.taskNames.any {
@@ -197,7 +201,7 @@ android {
 
     defaultConfig {
         buildConfigField "int", "TELEGRAM_API_ID", telegramApiId
-        buildConfigField "String", "TELEGRAM_API_HASH", configString(privateValue('TELEGRAM_API_HASH'))
+        buildConfigField "String", "TELEGRAM_API_HASH", configString(telegramApiHash)
         buildConfigField "String", "GOOGLE_AUTH_CLIENT_ID", configString(privateValue('GOOGLE_AUTH_CLIENT_ID'))
         buildConfigField "String", "GOOGLE_SAFETYNET_KEY", configString(privateValue('GOOGLE_SAFETYNET_KEY'))
         buildConfigField "String", "HUAWEI_APP_ID", configString(privateValue('HUAWEI_APP_ID'))

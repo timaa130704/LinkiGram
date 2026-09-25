@@ -89,6 +89,9 @@ public class ConnectionsManager extends BaseController {
     public final static int ConnectionTypePush = 8;
     public final static int ConnectionTypeDownload2 = ConnectionTypeDownload | (1 << 16);
 
+    public static final int ERROR_RESPONSE_DESERIALIZATION_FAILED = -1001;
+    public static final String RESPONSE_DESERIALIZATION_FAILED = "RESPONSE_DESERIALIZATION_FAILED";
+
     public final static int FileTypePhoto = 0x01000000;
     public final static int FileTypeVideo = 0x02000000;
     public final static int FileTypeAudio = 0x03000000;
@@ -393,10 +396,54 @@ public class ConnectionsManager extends BaseController {
         return requestToken;
     }
 
-    private void sendRequestInternal(TLObject object, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+    private void sendRequestInternal(TLObject objectIn, RequestDelegate onCompleteIn, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
+        TLObject hookedObject = objectIn;
+        String requestName = "";
+        try {
+            requestName = objectIn != null ? objectIn.getClass().getSimpleName() : "";
+            TLObject pre = app.nimarkogram.messenger.plugins.PluginsController.getInstance()
+                    .executePreRequestHook(requestName, currentAccount, objectIn);
+            if (pre == null) {
+                // A hook cancelled the request. Log through android.util.Log, not FileLog:
+                // FileLog is gated on BuildVars.LOGS_ENABLED which is false in release
+                // builds, so the drop would be invisible. Without this, auth.sendCode and
+                // friends hang forever with no callback and no error.
+                android.util.Log.e("NimarkoAuth", "pre-request hook cancelled " + requestName + " (account " + currentAccount + ")");
+                return;
+            }
+            hookedObject = pre;
+        } catch (Throwable t) {
+            FileLog.e("nimarko: pre-request hook threw", t);
+        }
+
+        final RequestDelegate userOnComplete = onCompleteIn;
+        final String finalRequestName = requestName;
+        final TLObject object = hookedObject;
+        final RequestDelegate onComplete = (userOnComplete == null) ? null : (response, error) -> {
+            try {
+                app.nimarkogram.messenger.plugins.hooks.PluginsHooks.PostRequestResult post =
+                        app.nimarkogram.messenger.plugins.PluginsController.getInstance()
+                                .executePostRequestHook(finalRequestName, currentAccount, response, error);
+                if (post != null) {
+                    userOnComplete.run(post.response, post.error);
+                    return;
+                } else {
+                    // Swallowing the callback leaves the caller waiting forever. Log before
+                    // dropping it so the next capture names the responsible request.
+                    android.util.Log.e("NimarkoAuth", "post-request hook swallowed callback for " + finalRequestName + " (account " + currentAccount + ")");
+                    return;
+                }
+            } catch (Throwable t) {
+                FileLog.e("nimarko: post-request hook threw", t);
+            }
+            userOnComplete.run(response, error);
+        };
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("send request " + object + " with token = " + requestToken);
         }
+        android.util.Log.i("NimarkoAuth", "sendRequest " + object.getClass().getSimpleName()
+                + " account=" + currentAccount + " dc=" + datacenterId
+                + " type=" + connectionType + " flags=" + flags + " token=" + requestToken);
         try {
             NativeByteBuffer buffer = new NativeByteBuffer(object.getObjectSize());
             object.serializeToStream(buffer);
@@ -417,23 +464,36 @@ public class ConnectionsManager extends BaseController {
                         buff.setDataSourceType(TLDataSourceType.NETWORK);
                         buff.reused = true;
                         responseSize = buff.limit();
-                        int magic = buff.readInt32(true);
                         try {
+                            int magic = buff.readInt32(true);
                             resp = object.deserializeResponse(buff, magic, true);
                         } catch (Exception e2) {
-                            if (BuildVars.DEBUG_PRIVATE_VERSION) {
+                            boolean downloadConn = (connectionType & ConnectionTypeDownload) != 0;
+                            if (BuildVars.DEBUG_PRIVATE_VERSION && !downloadConn) {
                                 throw e2;
                             }
-                            FileLog.fatal(e2);
-                            return;
+                            if (downloadConn) {
+                                FileLog.e("Unable to deserialize download response", e2);
+                            } else {
+                                FileLog.fatal(e2);
+                            }
+                            error = new TLRPC.TL_error();
+                            error.code = ERROR_RESPONSE_DESERIALIZATION_FAILED;
+                            error.text = RESPONSE_DESERIALIZATION_FAILED;
                         }
                     } else if (errorText != null) {
                         error = new TLRPC.TL_error();
                         error.code = errorCode;
                         error.text = errorText;
+                        android.util.Log.e("NimarkoAuth", "server error for "
+                                + object.getClass().getSimpleName() + ": " + error.code + " " + error.text);
                         if (BuildVars.LOGS_ENABLED && error.code != -2000) {
                             FileLog.e(object + " got error " + error.code + " " + error.text);
                         }
+                    } else {
+                        android.util.Log.e("NimarkoAuth", "EMPTY completion for "
+                                + object.getClass().getSimpleName()
+                                + ": response=0 and errorText=null (transport returned neither payload nor error)");
                     }
                     if ((connectionType & ConnectionTypeDownload) != 0 && VideoPlayer.activePlayers.isEmpty()) {
                         long ping_time = native_getCurrentPingTime(currentAccount);
@@ -625,7 +685,8 @@ public class ConnectionsManager extends BaseController {
             FileLog.d("selected ip strategy " + selectedStrategy);
         }
         native_setIpStrategy(currentAccount, selectedStrategy);
-        native_setNetworkAvailable(currentAccount, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(), ApplicationLoader.isConnectionSlow());
+        native_setNetworkAvailable(currentAccount, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(),
+                ApplicationLoader.isConnectionSlow() || app.nimarkogram.messenger.NimarkoConfig.slowNetworkMode);
     }
 
     public void setPushConnectionEnabled(boolean value) {
@@ -774,7 +835,17 @@ public class ConnectionsManager extends BaseController {
             if (lastPauseTime == 0) {
                 lastPauseTime = System.currentTimeMillis();
             }
-            native_pauseNetwork(currentAccount);
+            if (value && SharedConfig.isProxyEnabled()) {
+                // Keep connections (and the push connection) alive in background
+                // so updates keep arriving through the proxy and notifications
+                // are delivered even without a working FCM push channel.
+                if (BuildVars.LOGS_ENABLED) {
+                    FileLog.d("proxy enabled, keeping network alive in background");
+                }
+                native_resumeNetwork(currentAccount, false);
+            } else {
+                native_pauseNetwork(currentAccount);
+            }
         } else {
             if (appPaused) {
                 return;

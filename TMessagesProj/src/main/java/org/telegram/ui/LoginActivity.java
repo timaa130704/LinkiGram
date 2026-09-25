@@ -363,6 +363,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private ImageView proxyButtonView;
     private ProxyDrawable proxyDrawable;
 
+    private ImageView nimarkoSettingsButtonView;
+
     // Open animation stuff
     private LinearLayout keyboardLinearLayout;
     private FrameLayout slideViewsContainer;
@@ -584,6 +586,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 marginLayoutParams = (MarginLayoutParams) proxyButtonView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
+                if (nimarkoSettingsButtonView != null) {
+                    marginLayoutParams = (MarginLayoutParams) nimarkoSettingsButtonView.getLayoutParams();
+                    marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
+                }
+
                 marginLayoutParams = (MarginLayoutParams) radialProgressView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
@@ -779,6 +786,21 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         radialProgressView.setScaleX(0.1f);
         radialProgressView.setScaleY(0.1f);
         sizeNotifierFrameLayout.addView(radialProgressView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.TOP, 0, 16, 16, 0));
+
+        nimarkoSettingsButtonView = new ImageView(context);
+        nimarkoSettingsButtonView.setImageResource(R.drawable.msg_settings);
+        nimarkoSettingsButtonView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.MULTIPLY));
+        nimarkoSettingsButtonView.setContentDescription(LocaleController.getString(R.string.NimarkoGramSettings));
+        nimarkoSettingsButtonView.setOnClickListener(v -> {
+            try {
+                presentFragment(new app.nimarkogram.messenger.preferences.MainPreferencesActivity());
+            } catch (Throwable t) {
+                FileLog.e("nimarko: failed to open LinkiGram settings from login screen", t);
+                BulletinFactory.of(this).createSimpleBulletin(R.raw.info, LocaleController.getString(R.string.ErrorOccurred)).show();
+            }
+        });
+        nimarkoSettingsButtonView.setPadding(padding, padding, padding, padding);
+        sizeNotifierFrameLayout.addView(nimarkoSettingsButtonView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.TOP, 0, 16, 56, 0));
 
         floatingButtonIcon = new TransformableLoginButtonView(context);
         floatingButtonIcon.setTransformType(TransformableLoginButtonView.TRANSFORM_OPEN_ARROW);
@@ -3194,6 +3216,18 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             onAuthSuccess((TLRPC.TL_auth_authorization) auth);
                         }
                     } else {
+                        android.util.Log.e("NimarkoAuth", "sendCode success flag but response is "
+                                + (response == null ? "null" : response.getClass().getName())
+                                + " (not sentCodeSuccess) -- login cannot advance");
+                        if (response == null) {
+                            // error == null AND response == null means the transport completed
+                            // with neither a payload nor an error. Previously this fell
+                            // through the cast below and threw, which the UI turned into a
+                            // silent return to the phone field.
+                            needShowAlert(getString(R.string.RestorePasswordNoEmailTitle),
+                                    getString(R.string.ErrorOccurred));
+                            return;
+                        }
                         fillNextCodeParams(params, (TLRPC.auth_SentCode) response);
                     }
                 } else {

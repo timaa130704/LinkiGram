@@ -291,6 +291,28 @@ public final class ProxyApplier {
         } catch (Throwable ignored) {}
     }
 
+    /**
+     * The LinkiGram data-bypass relay must never be forced onto a connection that has not
+     * authorized yet. The local listener is a SOCKS bridge owned by WsBypassCore; when the
+     * relay bridge is still starting (or dead) every MTProto connection routed through it
+     * simply never completes, so auth.sendCode never returns and never reports an error.
+     * That leaves the login screen spinning forever on "номер введён, дальше не идёт".
+     *
+     * LoginActivity sends auth requests with RequestFlagEnableUnauthorized, before any
+     * account is client-activated, so gate the whole apply() path on the same condition.
+     */
+    private static boolean anyAccountActivated() {
+        try {
+            for (int ac = 0; ac < UserConfig.MAX_ACCOUNT_COUNT; ac++) {
+                UserConfig uc = UserConfig.getInstance(ac);
+                if (uc != null && uc.isClientActivated()) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
     private static boolean applyToAllAccounts(boolean enable, String host, int port,
                                               String user, String pass, String secret) {
         
@@ -327,6 +349,18 @@ public final class ProxyApplier {
 
             if (enable && NimarkoWsBypassConfig.suspendOnVpn && isSystemVpnActive()) {
                 return false;
+            }
+
+            if (enable && !anyAccountActivated()) {
+                // Pre-auth: auth.sendCode/auth.signUp must not be routed through the bypass
+                // relay. Dropping the request with no callback is exactly the silent hang we
+                // are fixing, so refuse to arm the proxy and clear any stale one left over
+                // from a previous process, otherwise ConnectionsManager.init() would restore
+                // 127.0.0.1:port from prefs and block login before the user ever signs in.
+                FileLog.d("ProxyApplier.apply: skipping bypass proxy before authorization");
+                android.util.Log.i("NimarkoProxy", "apply(): skipping bypass proxy before authorization");
+                clearIfLocalProxyPersisted(host);
+                return true;
             }
 
             if (enable) {
@@ -540,6 +574,63 @@ public final class ProxyApplier {
         String host = localHost == null ? "" : localHost;
         String sec = secret == null ? "" : secret;
         return isApplyVerified(true, host, port, sec);
+    }
+
+    /**
+     * Clears a bypass proxy (and any user proxy) that is still persisted from a previous
+     * process while we are in the pre-authorization state. ConnectionsManager.init() reads
+     * "proxy_enabled"/"proxy_ip" straight from mainconfig, so a leftover 127.0.0.1 entry
+     * would otherwise be re-armed natively on the very next launch and block the login
+     * screen again.
+     */
+    private static void clearIfLocalProxyPersisted(String localHost) {
+        try {
+            final String host = localHost == null ? "" : localHost;
+            SharedPreferences settings = MessagesController.getGlobalMainSettings();
+            String persistedHost = settings.getString("proxy_ip", "");
+            int persistedPort = settings.getInt("proxy_port", 0);
+            boolean persistedEnabled = settings.getBoolean("proxy_enabled", false);
+            boolean persistedIsLocal = persistedEnabled
+                    && host.equals(persistedHost)
+                    && (persistedPort == NimarkoWsBypassConfig.localPort || persistedPort > 0);
+
+            SharedConfig.ProxyInfo curr = SharedConfig.currentProxy;
+            String currentAddr = curr == null || curr.address == null ? "" : curr.address;
+            boolean currentIsLocal = curr != null && host.equals(currentAddr);
+
+            if (!persistedIsLocal && !currentIsLocal) {
+                return;
+            }
+
+            FileLog.d("ProxyApplier: clearing stale bypass proxy before authorization");
+            android.util.Log.i("NimarkoProxy", "clearing stale bypass proxy before authorization (persisted=" + persistedIsLocal + ", current=" + currentIsLocal + ")");
+            try {
+                settings.edit()
+                        .putBoolean("proxy_enabled", false)
+                        .putBoolean("proxy_enabled_calls", false)
+                        .putBoolean("proxy_calls_enabled", false)
+                        .putBoolean("calls_use_proxy", false)
+                        .remove("proxy_ip")
+                        .remove("proxy_port")
+                        .remove("proxy_user")
+                        .remove("proxy_pass")
+                        .remove("proxy_secret")
+                        .apply();
+            } catch (Throwable ignored) {}
+
+            try {
+                applyToAllAccounts(false, "", 0, "", "", "");
+            } catch (Throwable ignored) {}
+
+            try {
+                SharedConfig.currentProxy = null;
+                SharedConfig.markProxyListChanged();
+                SharedConfig.saveProxyList();
+                SharedConfig.saveConfig();
+            } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            FileLog.e("ProxyApplier.clearIfLocalProxyPersisted", t);
+        }
     }
 
     public static synchronized void forceClearCurrent(String localHost) {
