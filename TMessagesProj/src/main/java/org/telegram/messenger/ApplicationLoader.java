@@ -283,6 +283,33 @@ public class ApplicationLoader extends Application {
 
         SharedConfig.loadConfig();
         SharedPrefsHelper.init(applicationContext);
+
+        // LinkiGram bypass relay startup.
+        //
+        // This wiring was dropped when the client was moved to 12.10.2, which left
+        // ensureStartedSync()/onAppResume() with no caller: the relay only ever came
+        // up when a VPN happened to toggle, and never on a plain app start. The
+        // controller is the only thing that can arm the local SOCKS listener, so
+        // without these calls "Bypass" stays off with no error anywhere.
+        try { app.nimarkogram.messenger.wsbypass.NimarkoVpnDetector.start(); } catch (Throwable ignored) {}
+        try { app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().ensureStartedSync(); } catch (Throwable ignored) {}
+
+        // Warm the relay auth tokens ahead of first use, but only when the matching
+        // transport is actually enabled.
+        try {
+            if (app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.enabled
+                    && app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig.isVoipBypassEnabled()) {
+                AndroidUtilities.runOnUIThread(() ->
+                        app.nimarkogram.messenger.wsbypass.voip.VoipRelayAuth.prefetchAsync(UserConfig.selectedAccount), 4000);
+            }
+        } catch (Throwable ignored) {}
+        try {
+            if (app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.enabled) {
+                AndroidUtilities.runOnUIThread(() ->
+                        app.nimarkogram.messenger.wsbypass.WsRelayAuth.prefetchAsync(UserConfig.selectedAccount), 4500);
+            }
+        } catch (Throwable ignored) {}
+
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) { //TODO improve account
             UserConfig.getInstance(a).loadConfig();
             MessagesController.getInstance(a);
@@ -297,6 +324,16 @@ public class ApplicationLoader extends Application {
                 SendMessagesHelper.getInstance(a).checkUnsentMessages();
             }
         }
+
+        // A VPN and the bypass relay both bind local listeners; let the VPN win
+        // instead of leaving a stale 127.0.0.1 entry that would break the next
+        // connection attempt.
+        try {
+            if (app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().blockedByVpn()) {
+                app.nimarkogram.messenger.wsbypass.ProxyApplier.suspendForVpn(
+                        app.nimarkogram.messenger.wsbypass.WsBypassCore.LOCAL_PROXY_HOST);
+            }
+        } catch (Throwable ignored) {}
 
         ApplicationLoader app = (ApplicationLoader) ApplicationLoader.applicationContext;
         app.initPushServices();
