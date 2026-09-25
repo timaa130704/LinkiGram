@@ -30,6 +30,32 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
+# LinkiGram fork packages.
+#
+# The standalone build type runs R8 with minifyEnabled + shrinkResources, and
+# none of these packages are reachable from anything R8 treats as a root: the
+# fork hooks into org.telegram internals, and its screens are entered through
+# reflective/indirect paths. The effect was that release 2.3 shipped with
+# app.nimarkogram.messenger.preferences, com.exteragram and de.robv stripped
+# out of the dex entirely, even though SettingsActivity references
+# MainPreferencesActivity directly -- the settings hub was unreachable at
+# runtime while the source tree looked complete.
+#
+# Keep the fork's own namespaces explicitly. Telegram's own classes are already
+# covered by the org.telegram.messenger.* rules above.
+-keep class app.nimarkogram.** { *; }
+-keep class com.exteragram.** { *; }
+-keep class de.robv.** { *; }
+-keep class top.canyie.pine.** { *; }
+
+# Plugin/settings classes are also loaded by name from the plugin loader.
+-keepclassmembers class app.nimarkogram.** {
+    public <init>(...);
+}
+-keepclassmembers class com.exteragram.** {
+    public <init>(...);
+}
+
 # https://developers.google.com/ml-kit/known-issues#android_issues
 -keep class com.google.mlkit.nl.languageid.internal.LanguageIdentificationJni { *; }
 
