@@ -1056,7 +1056,7 @@ public final class WsBypassCore {
                     while (!done.get()) {
                         int n = in.read(buf);
                         if (n <= 0) {
-                            dbg("bridge up: client(tgnet) EOF n=" + n + " after up=" + upBytes[0] + "B down=" + downBytes[0] + "B");
+                            bridgeLog("bridge up: client(tgnet) EOF n=" + n + " after up=" + upBytes[0] + "B down=" + downBytes[0] + "B");
                             if (splitter != null) {
                                 try {
                                     List<byte[]> tail = splitter.flush();
@@ -1088,7 +1088,7 @@ public final class WsBypassCore {
                             upSent[0] += data.length;
                         }
                     }
-                } catch (Throwable t) { dbg("bridge up-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage()); }
+                } catch (Throwable t) { bridgeLog("bridge up-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage() + " (upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B)"); }
                 done.set(true);
             }
         }, "wsbypass-ws-up");
@@ -1103,7 +1103,7 @@ public final class WsBypassCore {
                     byte[] clientBuffer = new byte[64 * 1024 + 32];
                     while (!done.get()) {
                         byte[] payload = ws.recv();
-                        if (payload == null) { dbg("bridge down: ws.recv returned null (CLOSE)"); break; }
+                        if (payload == null) { bridgeLog("bridge down: ws.recv returned null (relay closed) after down=" + downBytes[0] + "B"); break; }
                         if (payload.length == 0) continue;
                         downBytes[0] += payload.length;
                         plainBuffer = ensureCipherBuffer(ctx.tgDec, payload.length, plainBuffer);
@@ -1128,7 +1128,7 @@ public final class WsBypassCore {
                             markBridgeOk(generation);
                         }
                     }
-                } catch (Throwable t) { dbg("bridge down-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage()); }
+                } catch (Throwable t) { bridgeLog("bridge down-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage() + " (down=" + downBytes[0] + "B)"); }
                 done.set(true);
             }
         }, "wsbypass-ws-down");
@@ -1142,9 +1142,9 @@ public final class WsBypassCore {
         try {
             while (!done.get() && (up.isAlive() || down.isAlive())) {
                 Thread.sleep(50);
-                if (DEBUG && System.currentTimeMillis() >= nextLog) {
+                if (System.currentTimeMillis() >= nextLog) {
                     int pend = splitter == null ? 0 : splitter.pendingBytes();
-                    dbg("bridge ALIVE dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
+                    bridgeLog("bridge ALIVE dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
                             + "s upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B splitPend=" + pend
                             + "B down=" + downBytes[0] + "B"
                             + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP STUCK (read>>sent)" : ""));
@@ -1153,10 +1153,11 @@ public final class WsBypassCore {
             }
         } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         done.set(true);
-        dbg("bridge CLOSED dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
+        bridgeLog("bridge CLOSED dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
                 + "s upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B down=" + downBytes[0] + "B"
                 + (downBytes[0] == 0 ? "  <-- NO DATA FROM DC" : "")
-                + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP UNSENT (splitter held bytes)" : ""));
+                + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP UNSENT (splitter held bytes)" : "")
+                + (upBytes[0] == 0 ? "  <-- CLIENT SENT NOTHING" : ""));
         try { ws.close(); } catch (Throwable ignored) {}
         closeQuietly(client);
         try { up.join(500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
