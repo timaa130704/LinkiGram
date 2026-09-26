@@ -427,6 +427,20 @@ public final class ProxyApplier {
                 if (enable) {
                     if (localProxy != null) {
                         try {
+                            // 12.10.2 moved the real state into ProxyInfo.settings and left
+                            // address/port/username/password/secret as mirrors of it. Writing
+                            // only the mirrors left settings holding the old values, and the
+                            // connection layer rebuilt currentProxy from settings, so
+                            // isApplyVerified() then saw a stale secret and the relay never
+                            // armed. Rebuild settings and keep the mirrors in step.
+                            localProxy.settings = org.telegram.proxy.ProxySettings.builder()
+                                    .setAddress(host)
+                                    .setPort(port)
+                                    .setUser(user)
+                                    .setPassword(pass)
+                                    .setSecret(sec)
+                                    .build();
+                            localProxy.address = host;
                             localProxy.port = port;
                             localProxy.username = user;
                             localProxy.password = pass;
