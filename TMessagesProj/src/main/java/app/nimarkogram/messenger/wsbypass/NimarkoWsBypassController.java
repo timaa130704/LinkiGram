@@ -92,21 +92,39 @@ public final class NimarkoWsBypassController {
         onVpnStateChanged(NimarkoVpnDetector.isVpnActiveFresh());
     }
 
+    /**
+     * How long a tunnel that was live a moment ago still counts as connected.
+     * Telegram rotates connections continuously, and the relays drop and
+     * re-handshake, so activeBridges naturally dips to zero between them.
+     * Requiring a bridge to be up at the exact instant the row is drawn made
+     * the status flicker back to "starting" every few seconds.
+     *
+     * The state is also read from the core rather than from the `running` flag:
+     * startSync holds lifecycleLock across core.start() and ProxyApplier.apply(),
+     * so the core can already be serving tunnels while `running` is still false
+     * and `starting` is still true. Gating on that flag reported "starting" over a
+     * fully working tunnel for as long as the apply step took.
+     */
+    private static final long BRIDGE_LIVE_GRACE_MS = 20_000L;
+
     public String getConnectionState() {
         if (!app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig
                 .isDataBypassEnabled()) return STATE_OFF;
         if (blockedByVpn()) return STATE_VPN;
-        if (running) {
-            
-            try {
-                WsBypassCore core = WsBypassCore.getInstance();
-                if (!core.isRunning() || !core.isAcceptThreadAlive()) return STATE_FAILED;
-                if (!core.hasActiveBridge() || core.getLastBridgeOkAtMs() == 0L) return STATE_STARTING;
-            } catch (Throwable ignored) {}
-            return STATE_RUNNING;
-        }
+        try {
+            WsBypassCore core = WsBypassCore.getInstance();
+            if (core.isRunning() && core.isAcceptThreadAlive()) {
+                if (core.hasActiveBridge()) return STATE_RUNNING;
+                long age = core.getLastBridgeOkAgeMs();
+                if (age >= 0L && age <= BRIDGE_LIVE_GRACE_MS) return STATE_RUNNING;
+                // The core is listening but has no tunnel yet, which is exactly
+                // what "starting" is meant to say.
+                return STATE_STARTING;
+            }
+        } catch (Throwable ignored) {}
         if (starting.get()) return STATE_STARTING;
         if (lastStartFailed) return STATE_FAILED;
+        if (running) return STATE_RUNNING;
         return STATE_OFF;
     }
 

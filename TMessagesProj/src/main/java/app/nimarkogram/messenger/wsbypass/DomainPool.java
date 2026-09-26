@@ -27,6 +27,39 @@ public final class DomainPool {
         }
     }
 
+    /**
+     * Replace the cached install id.
+     *
+     * The relays reject a handshake whose X-Install is missing or empty with
+     * 403, so when the stored value turns out to be unusable the caller needs a
+     * way to substitute a fresh one for the rest of the process lifetime.
+     */
+    static void setInstallId(String id) {
+        if (id == null || id.trim().isEmpty()) return;
+        synchronized (DomainPool.class) {
+            installId = id;
+        }
+    }
+
+    /**
+     * Mint and store a new install id, returning it.
+     *
+     * The relays stop accepting an install id after a handful of handshakes and
+     * answer 403 to it from then on, across every host. Verified from the device
+     * with curl: an unused id gets 101 on the first try, an id that has been used
+     * a few times gets 403 every time. Because the id is persisted, a client that
+     * tripped the limit was refused permanently, so the only way out is a new id.
+     */
+    static String rotateInstallId(String reason) {
+        String fresh = java.util.UUID.randomUUID().toString().replace("-", "");
+        try {
+            NimarkoConfig.setWsInstallId(fresh);
+        } catch (Throwable ignored) {
+        }
+        setInstallId(fresh);
+        return fresh;
+    }
+
     private static final String[] RELAY_HOSTS_NL = {
             "r1.nimarko.org",
             "r2.nimarko.org",
