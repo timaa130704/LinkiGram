@@ -378,12 +378,13 @@ public final class NimarkoWsBypassController {
                 }
                 if (!proxyApplied) {
                     if (blockedByVpnFresh()) {
-                        
+                        WsBypassCore.logAlways("startSync: apply declined, VPN active -> suspending");
                         lastStartFailed = false;
                         lastError = "";
                         suspendForVpn();
                         return;
                     }
+                    WsBypassCore.logAlways("startSync: proxy apply failed, stopping core and retrying later");
                     lastError = "proxy apply failed";
                     lastStartFailed = true;
                     running = false;

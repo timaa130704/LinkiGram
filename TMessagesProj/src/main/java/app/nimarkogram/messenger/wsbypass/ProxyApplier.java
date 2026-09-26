@@ -521,9 +521,16 @@ public final class ProxyApplier {
             });
 
             AndroidUtilities.runOnUIThread(NOTIFY_RUNNABLE, NOTIFY_DELAY_MS);
-            return preferencesApplied && accountsApplied && isApplyVerified(enable, host, port, sec);
+            final boolean ok = preferencesApplied && accountsApplied
+                    && isApplyVerified(enable, host, port, sec);
+            if (!ok) {
+                WsBypassCore.logAlways("apply() returning false: preferencesApplied="
+                        + preferencesApplied + " accountsApplied=" + accountsApplied);
+            }
+            return ok;
         } catch (Throwable e) {
             FileLog.e("ProxyApplier.apply error", e);
+            WsBypassCore.logFailure("ProxyApplier.apply threw", e);
             return false;
         }
     }
@@ -531,7 +538,10 @@ public final class ProxyApplier {
     private static boolean isApplyVerified(boolean enable, String host, int port, String secret) {
         try {
             SharedPreferences settings = MessagesController.getGlobalMainSettings();
-            if (settings.getBoolean("proxy_enabled", false) != enable) return false;
+            if (settings.getBoolean("proxy_enabled", false) != enable) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_enabled mismatch, want " + enable);
+                return false;
+            }
             if (!enable) return true;
 
             SharedConfig.ProxyInfo current = SharedConfig.currentProxy;
@@ -539,13 +549,32 @@ public final class ProxyApplier {
                     || !host.equals(current.address == null ? "" : current.address)
                     || current.port != port
                     || !secret.equals(current.secret == null ? "" : current.secret)) {
+                WsBypassCore.logAlways("isApplyVerified: currentProxy mismatch, addr="
+                        + (current == null ? "null" : current.address + ":" + current.port)
+                        + " want " + host + ":" + port);
                 return false;
             }
-            return host.equals(settings.getString("proxy_ip", ""))
-                    && port == settings.getInt("proxy_port", 0)
-                    && secret.equals(settings.getString("proxy_secret", ""))
-                    && isLocalEntryPresent(host, port);
-        } catch (Throwable ignored) {
+            if (!host.equals(settings.getString("proxy_ip", ""))) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_ip mismatch, got '"
+                        + settings.getString("proxy_ip", "") + "' want '" + host + "'");
+                return false;
+            }
+            if (port != settings.getInt("proxy_port", 0)) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_port mismatch, got "
+                        + settings.getInt("proxy_port", 0) + " want " + port);
+                return false;
+            }
+            if (!secret.equals(settings.getString("proxy_secret", ""))) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_secret mismatch");
+                return false;
+            }
+            if (!isLocalEntryPresent(host, port)) {
+                WsBypassCore.logAlways("isApplyVerified: local entry absent from proxyList");
+                return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            WsBypassCore.logFailure("isApplyVerified threw", t);
             return false;
         }
     }
