@@ -761,7 +761,12 @@
     <string name="NM_AvatarCornersCircle">Круг</string>
     <string name="NM_ForumAvatarsLikeChats">Единое закругление</string>
     <string name="NM_ForumAvatarsLikeChats_Desc">Аватарки форумов скругляются так же, как у обычных чатов.</string>
-    <string name="NM_SwitchStyle">Стиль переключателей</string>
+    
+<string name="NM_SwitchStyle">Стиль переключателей</string><string name="NM_SettingsIconStyle">Цвета иконок настроек</string>
+<string name="NM_IconStyle_Colorful">Цветные</string>
+<string name="NM_IconStyle_Gray">Серые</string>
+<string name="NM_IconStyle_Black">Чёрные</string>
+<string name="NM_IconStyle_Light">Светлые</string>
     <string name="NM_Chat_Section">Чаты</string>
     <string name="NM_Stickers_Header">Стикеры</string>
     <string name="NM_StickerSize">Размер стикеров</string>

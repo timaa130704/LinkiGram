@@ -11811,6 +11811,11 @@
 <string name="NM_ForumAvatarsLikeChats">Unified rounding</string>
 <string name="NM_ForumAvatarsLikeChats_Desc">Forum avatars are rounded the same way as regular chats.</string>
 <string name="NM_SwitchStyle">Switch style</string>
+<string name="NM_SettingsIconStyle">Settings icon colors</string>
+<string name="NM_IconStyle_Colorful">Colorful</string>
+<string name="NM_IconStyle_Gray">Grayscale</string>
+<string name="NM_IconStyle_Black">Black</string>
+<string name="NM_IconStyle_Light">Light</string>
 <string name="NM_Chat_Section">Chats</string>
 <string name="NM_Stickers_Header">Stickers</string>
 <string name="NM_StickerSize">Sticker size</string>

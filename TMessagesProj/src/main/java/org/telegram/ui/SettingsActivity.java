@@ -1211,8 +1211,23 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             titleView.setTranslationX(icon == 0 ? dp(2) : 0);
             subtitleView.setTranslationX(icon == 0 ? dp(2) : 0);
 
-            iconBackground.setColor(iconColorTop, iconColorBottom);
-            iconView.setImageResource(icon);
+            // LinkiGram: optional monochrome remap of the per-row icon palette.
+            // Off by default, in which case the stock colours are used as-is.
+            if (app.nimarkogram.messenger.NimarkoSettingsIconStyle.isCustom()) {
+                iconBackground.setColor(
+                        app.nimarkogram.messenger.NimarkoSettingsIconStyle.stop(iconColorTop, true),
+                        app.nimarkogram.messenger.NimarkoSettingsIconStyle.stop(iconColorBottom, false));
+                iconView.setImageResource(icon);
+                iconView.setColorFilter(new android.graphics.PorterDuffColorFilter(
+                        app.nimarkogram.messenger.NimarkoSettingsIconStyle.glyph(),
+                        android.graphics.PorterDuff.Mode.SRC_IN));
+            } else {
+                if (iconView.getColorFilter() != null) {
+                    iconView.clearColorFilter();
+                }
+                iconBackground.setColor(iconColorTop, iconColorBottom);
+                iconView.setImageResource(icon);
+            }
             titleView.setText(title);
             subtitleView.setVisibility((twoLines = !TextUtils.isEmpty(subtitle)) ? View.VISIBLE : View.GONE);
             subtitleView.setText(subtitle);
