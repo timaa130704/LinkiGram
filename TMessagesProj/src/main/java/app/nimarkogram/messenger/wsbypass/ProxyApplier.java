@@ -381,6 +381,7 @@ public final class ProxyApplier {
 
             final long proxyRevision;
             boolean preferencesApplied = true;
+            boolean preferencesVerified;
             boolean accountsApplied;
             synchronized (PROXY_LIST_LOCK) {
                 SharedConfig.ProxyInfo localProxy = null;
@@ -428,17 +429,19 @@ public final class ProxyApplier {
                     if (localProxy != null) {
                         try {
                             // 12.10.2 moved the real state into ProxyInfo.settings and left
-                            // address/port/username/password/secret as mirrors of it. Writing
-                            // only the mirrors left settings holding the old values, and the
-                            // connection layer rebuilt currentProxy from settings, so
-                            // isApplyVerified() then saw a stale secret and the relay never
-                            // armed. Rebuild settings and keep the mirrors in step.
+                            // address/port/username/password/secret as mirrors of it, and the
+                            // type now decides which fields survive: ProxySettings keeps the
+                            // secret only for WEB/MTPROTO and hardcodes it to "" for SOCKS5,
+                            // which is the Builder's default. Building without an explicit
+                            // MTPROTO type silently dropped the relay secret, so the proxy was
+                            // created with an empty one and isApplyVerified() always failed.
                             localProxy.settings = org.telegram.proxy.ProxySettings.builder()
                                     .setAddress(host)
                                     .setPort(port)
                                     .setUser(user)
                                     .setPassword(pass)
                                     .setSecret(sec)
+                                    .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
                                     .build();
                             localProxy.address = host;
                             localProxy.port = port;
@@ -449,12 +452,22 @@ public final class ProxyApplier {
                         proxyObj = localProxy;
                     } else {
                         try {
-                            SharedConfig.ProxyInfo info =
-                                    new SharedConfig.ProxyInfo(host, port, user, pass, sec);
+                            // Same reason as above: the 5-arg ProxyInfo constructor routes
+                            // through the SOCKS5 default and loses the secret.
+                            SharedConfig.ProxyInfo info = new SharedConfig.ProxyInfo(
+                                    org.telegram.proxy.ProxySettings.builder()
+                                            .setAddress(host)
+                                            .setPort(port)
+                                            .setUser(user)
+                                            .setPassword(pass)
+                                            .setSecret(sec)
+                                            .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
+                                            .build());
                             proxyObj = SharedConfig.addProxy(info);
                             if (proxyObj == null) proxyObj = info;
                         } catch (Throwable t) {
                             FileLog.e(t);
+                            WsBypassCore.logFailure("apply: new branch threw", t);
                         }
                     }
 
@@ -523,6 +536,18 @@ public final class ProxyApplier {
                 accountsApplied = enable
                         ? applyToAllAccounts(true, host, port, user, pass, sec)
                         : applyToAllAccounts(false, "", 0, "", "", "");
+
+                // Verify while still holding PROXY_LIST_LOCK, against the very object we
+                // just configured.
+                //
+                // 12.10.2's loadProxyList() nulls and rebuilds currentProxy from persisted
+                // state, and the save below runs on the global queue while the "proxy_*"
+                // preference writes are asynchronous too. Verifying after releasing the
+                // lock therefore raced with that reload: currentProxy came back as the
+                // stale list entry whose secret was still empty, so verification failed on
+                // every attempt even though the relay had configured everything correctly.
+                preferencesVerified = preferencesApplied && accountsApplied
+                        && isApplyVerified(enable, host, port, sec);
             }
 
             Utilities.globalQueue.postRunnable(() -> {
@@ -535,13 +560,11 @@ public final class ProxyApplier {
             });
 
             AndroidUtilities.runOnUIThread(NOTIFY_RUNNABLE, NOTIFY_DELAY_MS);
-            final boolean ok = preferencesApplied && accountsApplied
-                    && isApplyVerified(enable, host, port, sec);
-            if (!ok) {
+            if (!preferencesVerified) {
                 WsBypassCore.logAlways("apply() returning false: preferencesApplied="
                         + preferencesApplied + " accountsApplied=" + accountsApplied);
             }
-            return ok;
+            return preferencesVerified;
         } catch (Throwable e) {
             FileLog.e("ProxyApplier.apply error", e);
             WsBypassCore.logFailure("ProxyApplier.apply threw", e);
@@ -569,13 +592,11 @@ public final class ProxyApplier {
                     || !host.equals(current.address == null ? "" : current.address)
                     || current.port != port
                     || !secret.equals(current.secret == null ? "" : current.secret)) {
-                String cur = current == null ? "<null-proxy>" : (current.secret == null ? "<null-secret>" : current.secret);
                 WsBypassCore.logAlways("isApplyVerified: currentProxy mismatch, addr="
                         + (current == null ? "null" : current.address + ":" + current.port)
                         + " want " + host + ":" + port
-                        + " | secret want len=" + secret.length() + " '" + head(secret) + "'"
-                        + " | secret got  len=" + cur.length() + " '" + head(cur) + "'"
-                        + " | sameInstance=" + (current != null && current.secret == secret));
+                        + " | secret want len=" + secret.length()
+                        + " | secret got  len=" + (current == null || current.secret == null ? -1 : current.secret.length()));
                 return false;
             }
             if (!host.equals(settings.getString("proxy_ip", ""))) {

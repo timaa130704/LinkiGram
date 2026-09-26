@@ -93,7 +93,21 @@ public final class WsBypassCore {
         }
     }
 
-    static volatile boolean DEBUG = false;   
+    static volatile boolean DEBUG = false;
+
+    /**
+     * Always-on log for bridge connection attempts and their failures.
+     *
+     * These used to go through dbg() only, which is compiled out unless DEBUG
+     * is set, so a relay that could never establish its WebSocket bridge just
+     * sat in the "starting" state with nothing to look at. One line per
+     * attempt and per failure is enough to tell an unreachable host from a
+     * rejected credential.
+     */
+    static void bridgeLog(String msg) {
+        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
+        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
+    }
     static final java.util.concurrent.atomic.AtomicInteger CONN_SEQ = new java.util.concurrent.atomic.AtomicInteger();
 
     static void decodeMtproto(int connId, String dir, byte[] plain) {
@@ -496,11 +510,11 @@ public final class WsBypassCore {
             }
 
             MtprotoHandshake.HandshakeResult hr = MtprotoHandshake.tryHandshake(initPacket, connectionSecret);
-            if (hr == null) { dbg("handshake: FAILED to parse tgnet init (" + initPacket.length + "B) — secret mismatch?"); return; }
+            if (hr == null) { bridgeLog("handshake: FAILED to parse tgnet init (" + initPacket.length + "B) -- secret mismatch?"); return; }
 
             int dc = hr.dcId;
             boolean isMedia = hr.isMedia;
-            dbg("handshake OK: dc=" + dc + " media=" + isMedia + " protoTag=" + hr.protoTag);
+            bridgeLog("handshake OK: dc=" + dc + " media=" + isMedia + " protoTag=" + hr.protoTag);
             int relayDcIdx = isMedia ? -dc : dc;
             byte[] relayInit = MtprotoHandshake.generateRelayInit(hr.protoTag, relayDcIdx);
             CryptoCtx ctx = CryptoCtx.build(hr.decPrekeyIv, connectionSecret, relayInit);
@@ -520,15 +534,15 @@ public final class WsBypassCore {
                 ws = connectWsCf(dc, isMedia, Math.min(routeDeadline,
                         System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(WS_RELAY_BUDGET_MS)),
                         generation);
-                dbg("route: CF relay OK (dc=" + dc + ")");
+                bridgeLog("route: CF relay OK (dc=" + dc + ")");
             } catch (Throwable ex) {
-                dbg("route: CF relay FAILED (dc=" + dc + "): " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                bridgeLog("route: CF relay FAILED (dc=" + dc + "): " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
                 ws = null;
             }
 
             if (ws == null) {
                 
-                dbg("route: relay unavailable; suppressing direct route (dc=" + dc + ")");
+                bridgeLog("route: relay unavailable; suppressing direct route (dc=" + dc + ")");
                 return;
             }
 
@@ -595,7 +609,7 @@ public final class WsBypassCore {
             long attemptDeadline = Math.min(deadlineNanos,
                     System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(hostBudgetMs));
             attempted++;
-            dbg("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred"));
+            bridgeLog("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred"));
             try {
                 RawWebSocket ws = RawWebSocket.connectUntil(host, host, path, headers,
                         attemptDeadline, () -> isBridgeGenerationCurrent(generation));
@@ -607,13 +621,13 @@ public final class WsBypassCore {
                     try { ws.close(); } catch (Throwable ignored) {}
                     throw new IOException("relay connect cancelled");
                 }
-                dbg("connectWsCf: 101 OK via " + host + path);
+                bridgeLog("connectWsCf: 101 OK via " + host + path);
                 return ws;
             } catch (IOException ex) {
                 if (!isBridgeGenerationCurrent(generation)) {
                     throw new IOException("relay connect cancelled", ex);
                 }
-                dbg("connectWsCf: " + host + " -> " + ex.getMessage());
+                bridgeLog("connectWsCf: FAILED " + host + " -> " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
                 int status = ex instanceof RawWebSocket.HandshakeException
                         ? ((RawWebSocket.HandshakeException) ex).statusCode : 0;
                 if (!runIfBridgeGenerationCurrent(generation, () -> {
@@ -634,12 +648,13 @@ public final class WsBypassCore {
                 if (!isBridgeGenerationCurrent(generation)) {
                     throw new IOException("relay connect cancelled", t);
                 }
-                dbg("connectWsCf: " + host + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage());
+                bridgeLog("connectWsCf: THREW " + host + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage());
                 last = new IOException(t);
             }
         }
-        if (attempted == 0) throw new IOException("relay hosts are in backoff");
+        if (attempted == 0) { bridgeLog("connectWsCf: all relay hosts in backoff, dc=" + dc); throw new IOException("relay hosts are in backoff"); }
         if (last != null) throw last;
+        bridgeLog("connectWsCf: no relay host usable, dc=" + dc);
         throw new IOException("cf websocket unavailable");
     }
 
@@ -677,6 +692,7 @@ public final class WsBypassCore {
                             System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(900L));
                     RawWebSocket ws = RawWebSocket.connectUntil(host, domain, "/apiws", null,
                             attemptDeadline);
+                    bridgeLog("connectWsDirect: OK host=" + host + " domain=" + domain);
                     synchronized (cfgLock) {
                         wsDomainPref.put(dcKey, domain);
                     }

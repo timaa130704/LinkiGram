@@ -20,6 +20,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -57,9 +58,14 @@ public final class RawWebSocket {
 
     private static final SecureRandom RNG = new SecureRandom();
     
+    // The cache below removes the steady-state flood, but the first burst after a
+    // cold start still submits one lookup per relay host per handshake. Two
+    // threads with eight queue slots rejected most of those outright, which is
+    // what produced "DNS resolver saturated". Give the resolver enough headroom
+    // that a cold burst merely takes longer instead of failing.
     private static final ExecutorService DNS_EXECUTOR = new ThreadPoolExecutor(
-            2, 2, 30L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(8),
+            4, 4, 30L, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(64),
             r -> {
                 Thread t = new Thread(r, "wsbypass-dns");
                 t.setDaemon(true);
@@ -543,8 +549,50 @@ public final class RawWebSocket {
         }
     }
 
+    /**
+     * Short-lived cache of resolved relay addresses.
+     *
+     * The relay host list is small and stable, but every connect attempt used to
+     * submit a fresh lookup to DNS_EXECUTOR, which only has two threads and an
+     * eight-slot queue. A burst of handshakes (several arriving within
+     * milliseconds, each walking the whole relay list) therefore overflowed the
+     * queue -- "DNS resolver saturated" -- and the ones still queued blew the
+     * one-second per-host budget, surfacing as "DNS timeout for ...". The
+     * network was fine; the app was refusing to use it.
+     */
+    private static final ConcurrentHashMap<String, CachedAddresses> DNS_CACHE =
+            new ConcurrentHashMap<>();
+    private static final long DNS_CACHE_TTL_MS = 5 * 60 * 1000L;
+
+    private static final class CachedAddresses {
+        final InetAddress[] addresses;
+        final long expiresAt;
+
+        CachedAddresses(InetAddress[] addresses, long expiresAt) {
+            this.addresses = addresses;
+            this.expiresAt = expiresAt;
+        }
+    }
+
+    private static InetAddress[] cachedAddresses(String host) {
+        CachedAddresses cached = DNS_CACHE.get(host);
+        if (cached == null) {
+            return null;
+        }
+        if (cached.expiresAt <= System.currentTimeMillis()) {
+            DNS_CACHE.remove(host, cached);
+            return null;
+        }
+        return cached.addresses;
+    }
+
     private static InetAddress[] resolveUntil(String host, long deadlineNanos,
                                               ConnectPermit permit) throws IOException {
+        final InetAddress[] cached = cachedAddresses(host);
+        if (cached != null) {
+            checkPermit(permit);
+            return cached;
+        }
         final Future<InetAddress[]> future;
         try {
             future = DNS_EXECUTOR.submit(() -> InetAddress.getAllByName(host));
@@ -562,6 +610,8 @@ public final class RawWebSocket {
                     if (result == null || result.length == 0) {
                         throw new IOException("no address for " + host);
                     }
+                    DNS_CACHE.put(host, new CachedAddresses(result,
+                            System.currentTimeMillis() + DNS_CACHE_TTL_MS));
                     return result;
                 } catch (java.util.concurrent.TimeoutException e) {
                     if (slice >= remaining) {
