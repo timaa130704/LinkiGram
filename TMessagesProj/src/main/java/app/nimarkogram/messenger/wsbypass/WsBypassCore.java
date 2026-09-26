@@ -168,11 +168,44 @@ public final class WsBypassCore {
     private static final double WS_FAIL_COOLDOWN_SEC = 30.0;
     private static final double WS_FAIL_COOLDOWN_MAX_SEC = 300.0;
     private static final double WS_BLACKLIST_TTL_SEC = 420.0;
-    private static final long WS_ROUTE_DEADLINE_MS = 9_000L;
-    private static final long WS_RELAY_BUDGET_MS = 3_500L;
+    private static final double WS_OVERLOAD_COOLDOWN_SEC = 3.0;
+    private static final long WS_REFUSED_QUARANTINE_MS = 20 * 1000L;
+    private static final long WS_ROUTE_DEADLINE_MS = 20_000L;
+    private static final long WS_RELAY_BUDGET_MS = 12_000L;
     private static final long WS_DIRECT_BUDGET_MS = 2_500L;
     private static final int MAX_DIRECT_ATTEMPTS = 4;
     private static final long WS_POOL_KEEPER_INTERVAL_SEC = 30L;
+
+    /**
+     * Per-attempt budget for a single relay host.
+     *
+     * This used to be 1s, shorter than a normal successful handshake: measured
+     * against the live relays from a desktop, a 101 response took 300-1800ms and
+     * under load as long as 3.5s, while the server sometimes needed ~6s just to
+     * finish the TLS handshake. Attempts were being cut off before the relay
+     * could answer, so a healthy relay looked unreachable and was recorded as
+     * failed.
+     */
+    private static final long WS_HOST_BUDGET_MS = 7_000L;
+    private static final long WS_ASIA_HOST_BUDGET_MS = 9_000L;
+
+    /**
+     * Serialises relay connect attempts with a small spread. Several MTProto
+     * handshakes arrive within milliseconds of each other and each walks the
+     * whole relay list; that burst is what the relay answers with 503, and
+     * sometimes it does not complete TLS at all.
+     */
+    private static final long WS_CONNECT_SPREAD_MS = 220L;
+    private static final Object WS_CONNECT_GATE_LOCK = new Object();
+    private static long wsNextConnectSlotMs = 0L;
+
+    private static long reserveConnectSlot(long nowMs) {
+        synchronized (WS_CONNECT_GATE_LOCK) {
+            long earliest = Math.max(nowMs, wsNextConnectSlotMs);
+            wsNextConnectSlotMs = earliest + WS_CONNECT_SPREAD_MS;
+            return Math.max(0L, earliest - nowMs);
+        }
+    }
 
     private static final int SOCK_RCVBUF = 256 * 1024;
     private static final int SOCK_SNDBUF = 512 * 1024;
@@ -570,7 +603,8 @@ public final class WsBypassCore {
                         splitter = null;
                     }
                 }
-                dbg("bridge: started (dc=" + dc + "), relayInit " + relayInit.length + "B sent, splitter=" + (splitter != null));
+                bridgeLog("bridge: started (dc=" + dc + "), relayInit " + relayInit.length
+                        + "B sent, splitter=" + (splitter != null));
                 bridgeWs(conn, ws, ctx, splitter, generation);
             } catch (Throwable t) {
                 try { ws.close(); } catch (Throwable ignored) {}
@@ -605,11 +639,32 @@ public final class WsBypassCore {
             }
             if (System.nanoTime() >= deadlineNanos) break;
             if (isRelayInBackoff(host)) continue;
-            long hostBudgetMs = DomainPool.isAsiaRelayHost(host) ? 2_500L : 1_000L;
+            long hostBudgetMs = DomainPool.isAsiaRelayHost(host)
+                    ? WS_ASIA_HOST_BUDGET_MS : WS_HOST_BUDGET_MS;
+
+            // Spread consecutive attempts so a burst of handshakes does not
+            // arrive at the relay all at once.
+            long slotWaitMs = reserveConnectSlot(nowElapsedMs());
+            if (slotWaitMs > 0L) {
+                long budgetLeftMs = Math.max(0L,
+                        TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime()));
+                if (slotWaitMs >= budgetLeftMs) {
+                    bridgeLog("connectWsCf: giving up before " + host + ", queue wait "
+                            + slotWaitMs + "ms exceeds remaining " + budgetLeftMs + "ms");
+                    break;
+                }
+                try { Thread.sleep(slotWaitMs); } catch (Throwable ignored) {}
+            }
+            if (System.nanoTime() >= deadlineNanos) break;
+            if (!isBridgeGenerationCurrent(generation)) {
+                throw new IOException("relay connect cancelled");
+            }
+
             long attemptDeadline = Math.min(deadlineNanos,
                     System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(hostBudgetMs));
             attempted++;
-            bridgeLog("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred"));
+            bridgeLog("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred")
+                    + " budget=" + hostBudgetMs + "ms");
             try {
                 RawWebSocket ws = RawWebSocket.connectUntil(host, host, path, headers,
                         attemptDeadline, () -> isBridgeGenerationCurrent(generation));
@@ -631,7 +686,8 @@ public final class WsBypassCore {
                 int status = ex instanceof RawWebSocket.HandshakeException
                         ? ((RawWebSocket.HandshakeException) ex).statusCode : 0;
                 if (!runIfBridgeGenerationCurrent(generation, () -> {
-                    if (status == 401 || status == 403) relayFailClear(host);
+                    if (status == 401 || status == 403) relayRefusedRecord(host);
+                    else if (status == 503 || status == 429) relayOverloadRecord(host);
                     else relayFailRecord(host);
                 })) {
                     throw new IOException("relay connect cancelled", ex);
@@ -767,6 +823,7 @@ public final class WsBypassCore {
         }
         try {
         final AtomicBoolean done = new AtomicBoolean(false);
+        final AtomicBoolean firstDown = new AtomicBoolean(true);
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -810,6 +867,9 @@ public final class WsBypassCore {
                         if (outBuf != null && outBuf.length > 0) {
                             out.write(outBuf);
                             out.flush();
+                            if (firstDown.compareAndSet(true, false)) {
+                                bridgeLog("bridge: first client->relay bytes forwarded, tunnel is live");
+                            }
                             markBridgeOk(generation);
                         }
                     }
@@ -930,6 +990,9 @@ public final class WsBypassCore {
                         if (outputLength > 0) {
                             out.write(clientBuffer, 0, outputLength);
                             out.flush();
+                            if (downBytes[0] <= payload.length) {
+                                bridgeLog("bridge: first relay->client bytes forwarded, tunnel is live");
+                            }
                             markBridgeOk(generation);
                         }
                     }
@@ -1053,8 +1116,44 @@ public final class WsBypassCore {
         }
     }
 
-    private void relayFailClear(String host) {
+    /**
+     * Short backoff for a relay that answered but is momentarily overloaded
+     * (503/429). The normal failure path escalates to 15s and up, which is
+     * right for a host that is actually down but far too long for "busy right
+     * now" -- it kept the only working relay parked while a healthy one was
+     * being retried.
+     */
+    private void relayOverloadRecord(String host) {
         synchronized (cfgLock) {
+            relayFailCount.put(host, 0);
+            long until = nowElapsedMs() + (long) (WS_OVERLOAD_COOLDOWN_SEC * 1000L);
+            relayFailUntilMs.put(host, until);
+        }
+    }
+
+    /**
+     * Quarantine for a relay that refuses us outright (403).
+     *
+     * This used to call relayFailClear(), i.e. no backoff at all, on the
+     * assumption that 401/403 meant a stale credential that a fresh one would
+     * fix. But the credential is optional here -- the handshake succeeds with
+     * no credential at all -- so for a relay that refuses the client outright
+     * the effect was to keep hammering it: the same host was retried three
+     * times inside 400ms, burning the route budget and starving the relays
+     * that do answer.
+     *
+     * Park it for a while instead. If the operator later fixes that relay it
+     * comes back on its own once the quarantine expires.
+     */
+    private void relayRefusedRecord(String host) {
+        synchronized (cfgLock) {
+            relayFailUntilMs.put(host, nowElapsedMs() + WS_REFUSED_QUARANTINE_MS);
+            bridgeLog("relay " + host + " refused the client (403), parked for "
+                    + (WS_REFUSED_QUARANTINE_MS / 1000L) + "s");
+        }
+    }
+
+    private void relayFailClear(String host) {        synchronized (cfgLock) {
             relayFailUntilMs.remove(host);
             relayFailCount.remove(host);
         }
