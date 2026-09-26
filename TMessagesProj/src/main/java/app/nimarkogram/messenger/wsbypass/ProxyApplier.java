@@ -549,6 +549,12 @@ public final class ProxyApplier {
         }
     }
 
+    /** Short prefix for diagnostics; the relay secret is a local loopback value. */
+    private static String head(String s) {
+        if (s == null) return "<null>";
+        return s.length() <= 10 ? s : s.substring(0, 10) + "...";
+    }
+
     private static boolean isApplyVerified(boolean enable, String host, int port, String secret) {
         try {
             SharedPreferences settings = MessagesController.getGlobalMainSettings();
@@ -563,9 +569,13 @@ public final class ProxyApplier {
                     || !host.equals(current.address == null ? "" : current.address)
                     || current.port != port
                     || !secret.equals(current.secret == null ? "" : current.secret)) {
+                String cur = current == null ? "<null-proxy>" : (current.secret == null ? "<null-secret>" : current.secret);
                 WsBypassCore.logAlways("isApplyVerified: currentProxy mismatch, addr="
                         + (current == null ? "null" : current.address + ":" + current.port)
-                        + " want " + host + ":" + port);
+                        + " want " + host + ":" + port
+                        + " | secret want len=" + secret.length() + " '" + head(secret) + "'"
+                        + " | secret got  len=" + cur.length() + " '" + head(cur) + "'"
+                        + " | sameInstance=" + (current != null && current.secret == secret));
                 return false;
             }
             if (!host.equals(settings.getString("proxy_ip", ""))) {
