@@ -119,13 +119,24 @@ public final class NimarkoWsBypassController {
 
     public void ensureStartedSync() {
         if (!app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig
-                .isDataBypassEnabled() || enforceVpnSuspensionFresh()) return;
+                .isDataBypassEnabled()) {
+            WsBypassCore.logAlways("ensureStartedSync: disabled, not starting");
+            return;
+        }
+        if (enforceVpnSuspensionFresh()) {
+            WsBypassCore.logAlways("ensureStartedSync: suspended by active VPN, not starting");
+            return;
+        }
         long token = claimStart();
-        if (token == 0L) return;
+        if (token == 0L) {
+            WsBypassCore.logAlways("ensureStartedSync: start already in progress or not current");
+            return;
+        }
         try {
             startSync(token);
         } catch (Throwable t) {
             FileLog.e("NimarkoWsBypassController.ensureStartedSync", t);
+            WsBypassCore.logFailure("ensureStartedSync threw", t);
             releaseStart(token);
         }
     }
@@ -338,6 +349,7 @@ public final class NimarkoWsBypassController {
                     lastError = err;
                     lastStartFailed = true;
                     running = false;
+                    WsBypassCore.logAlways("startSync: core.start failed on port " + desiredPort + ": " + err);
                     ensureWatchdogLocked();
                     return;
                 }

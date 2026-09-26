@@ -128,6 +128,23 @@ public final class WsBypassCore {
     }
 
     static volatile boolean SPLIT_UP = false;
+
+    /**
+     * Always-on log sink for the relay lifecycle. FileLog alone is unreadable
+     * without root, which made a start failure show up in the UI as a bare
+     * "failed" with no way to find out why. These go to logcat as well so the
+     * cause is reachable over `adb logcat`.
+     */
+    static void logAlways(String msg) {
+        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
+        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
+    }
+
+    static void logFailure(String msg, Throwable t) {
+        try { android.util.Log.e("NMWSBYPASS", msg, t); } catch (Throwable ignored) {}
+        try { FileLog.e(msg, t); } catch (Throwable ignored) {}
+    }
+
     static void dbg(String msg) {
         if (!DEBUG) return;
         try { android.util.Log.i("NMWSBYPASS", msg); } catch (Throwable ignored) {}
@@ -345,9 +362,11 @@ public final class WsBypassCore {
                 accept.start();
 
                 FileLog.d("WsBypassCore started on " + LOCAL_PROXY_HOST + ":" + this.port);
+                logAlways("WsBypassCore started on " + LOCAL_PROXY_HOST + ":" + this.port);
                 return "";
             } catch (Throwable t) {
                 FileLog.e("WsBypassCore.start failed", t);
+                logFailure("WsBypassCore.start failed", t);
                 try { stopLocked(); } catch (Throwable ignored) {}
                 return t.getMessage() == null ? "start failed" : t.getMessage();
             }
