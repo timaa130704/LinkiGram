@@ -357,10 +357,15 @@ public final class ProxyApplier {
                 // are fixing, so refuse to arm the proxy and clear any stale one left over
                 // from a previous process, otherwise ConnectionsManager.init() would restore
                 // 127.0.0.1:port from prefs and block login before the user ever signs in.
+                //
+                // Return false, not true: the controller treats false as "not applied" and
+                // retries via watchdog/resume once the account is loaded. Returning true
+                // here used to wedge the status on "starting" forever -- running=true with
+                // no proxy armed, so no client ever connected and no bridge ever formed.
                 FileLog.d("ProxyApplier.apply: skipping bypass proxy before authorization");
                 android.util.Log.i("NimarkoProxy", "apply(): skipping bypass proxy before authorization");
                 clearIfLocalProxyPersisted(host);
-                return true;
+                return false;
             }
 
             if (enable) {
