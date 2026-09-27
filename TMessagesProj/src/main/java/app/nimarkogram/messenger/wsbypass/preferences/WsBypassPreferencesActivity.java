@@ -26,7 +26,6 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
     private static final int ID_OPEN_PROXY      = 202;
     private static final int ID_VOIP_BYPASS     = 204;
     private static final int ID_SUSPEND_VPN     = 205;
-    private static final int ID_WL              = 206;
 
     private final NimarkoWsBypassController ctrl = NimarkoWsBypassController.getInstance();
 
@@ -121,8 +120,6 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
         items.add(asSettingsLink(ID_STATUS, IconBackgroundColors.BLUE,
                 R.drawable.msg_info,
                 LocaleController.getString(R.string.NM_WSB_StatusTitle), statusDetails));
-        items.add(asSettingsLink(ID_WL, IconBackgroundColors.PURPLE, R.drawable.msg_permissions,
-                LocaleController.getString(R.string.NM_WL_Title), LocaleController.getString(R.string.NM_WL_Network)));
         if (enabled) {
             boolean terminal = NimarkoWsBypassController.STATE_RUNNING.equals(state)
                     || NimarkoWsBypassController.STATE_FAILED.equals(state)
@@ -148,9 +145,6 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
     public void onClick(UItem item, View view, int position, float x, float y) {
         if (item == null) return;
         switch (item.id) {
-            case ID_WL:
-                presentFragment(new WlPreferencesActivity());
-                break;
             case ID_ENABLED:
                 NimarkoWsBypassConfig.setEnabled(!NimarkoWsBypassConfig.enabled);
                 updateCheckState(view, NimarkoWsBypassConfig.enabled);
