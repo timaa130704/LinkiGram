@@ -8972,7 +8972,7 @@ public class Theme {
 
     public static int getColor(int key, ResourcesProvider provider) {
         if (provider != null) {
-            return provider.getColor(key);
+            return app.nimarkogram.messenger.NimarkoSettingsIconStyle.remapAccentKey(key, provider.getColor(key));
         }
         return getColor(key);
     }
@@ -8993,7 +8993,7 @@ public class Theme {
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {
-                return animatingColors.valueAt(index);
+                return app.nimarkogram.messenger.NimarkoSettingsIconStyle.remapAccentKey(key, animatingColors.valueAt(index));
             }
         }
         if (serviceBitmapShader != null && (key_chat_serviceText == key || key_chat_serviceLink == key || key_chat_serviceIcon == key
@@ -9027,7 +9027,7 @@ public class Theme {
             if (fallbackKey != -1) {
                 int fallbackIndex = currentColors.indexOfKey(fallbackKey);
                 if (fallbackIndex >= 0) {
-                    return currentColors.valueAt(fallbackIndex);
+                    return app.nimarkogram.messenger.NimarkoSettingsIconStyle.remapAccentKey(key, currentColors.valueAt(fallbackIndex));
                 }
             }
 
@@ -9039,14 +9039,14 @@ public class Theme {
             } else if (key == key_chat_serviceBackgroundSelected) {
                 return serviceSelectedMessageColor;
             }
-            return getDefaultColor(key);
+            return app.nimarkogram.messenger.NimarkoSettingsIconStyle.remapAccentKey(key, getDefaultColor(key));
         } else {
             color = currentColors.valueAt(index);
         }
         if (key_windowBackgroundWhite == key || key_windowBackgroundGray == key || key_actionBarDefault == key || key_actionBarDefaultArchived == key) {
             color |= 0xff000000;
         }
-        return color;
+        return app.nimarkogram.messenger.NimarkoSettingsIconStyle.remapAccentKey(key, color);
     }
 
     private static boolean isMyMessagesBubbles(int key) {

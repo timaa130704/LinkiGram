@@ -101,4 +101,34 @@ public final class NimarkoSettingsIconStyle {
     public static int glyph() {
         return get() == LIGHT ? 0xFF202020 : 0xFFFFFFFF;
     }
+
+    /**
+     * Remaps the app-wide blue accent to the active monochrome style.
+     *
+     * Called from {@code Theme.getColor} for every key. Instead of tracking
+     * individual theme keys (switches, tabs, badges, ticks, links and FABs each
+     * use their own, and the list never ends), it matches the color itself:
+     * anything clearly blue gets desaturated, everything else passes through.
+     * In COLORFUL the color passes through untouched.
+     */
+    public static int remapAccentKey(int key, int color) {
+        if (!isCustom()) return color;
+        float[] hsv = new float[3];
+        Color.colorToHSV(color, hsv);
+        if (hsv[1] < 0.15f) return color;
+        float h = hsv[0];
+        if (h < 190f || h > 260f) return color;
+        hsv[1] = 0f;
+        switch (get()) {
+            case BLACK:
+                hsv[2] *= 0.25f;
+                break;
+            case LIGHT:
+                hsv[2] = 1f - (1f - hsv[2]) * 0.15f;
+                break;
+            default:
+                break;
+        }
+        return Color.HSVToColor(Color.alpha(color), hsv);
+    }
 }
