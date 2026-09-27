@@ -410,7 +410,8 @@ public class NimarkoUpdater {
                     throw new java.io.IOException("update has neither size nor sha256");
                 }
                 size = sizeBytes > 0 ? AndroidUtilities.formatFileSize(sizeBytes) : "";
-                uploadDate = "";
+                uploadDate = obj.optString("published_at", "");
+                if (uploadDate == null) uploadDate = "";
 
                 Update update = new Update(version, versionCode, changelog, size, downloadURL, uploadDate);
                 lastUpdate = update;   
@@ -1232,11 +1233,55 @@ public class NimarkoUpdater {
             if (!isNew && version != null && !version.isEmpty()) {
                 String current = getCurrentVersionName();
                 if (current != null && !current.isEmpty()) {
-                    isNew = compareVersions(version, current) > 0;
+                    if (version.equals(current)) {
+                        // Same version is never an update, even if the name
+                        // comparison below would say otherwise.
+                        isNew = false;
+                    } else {
+                        // Version names in this project do not order
+                        // numerically (2.2 shipped after 2.11, 2.3 after 2.21),
+                        // and every release shares one versionCode, so names
+                        // alone cannot tell newer from older. The release date
+                        // can: a release published after this APK was installed
+                        // is newer, anything older is not.
+                        int byDate = compareDates(uploadDate, getInstalledTime());
+                        isNew = byDate != 0
+                                ? byDate > 0
+                                : compareVersions(version, current) > 0;
+                    }
                 }
             }
             NimarkoUpdateConfig.setUpdateAvailable(isNew);
             return isNew;
+        }
+    }
+
+    private static long getInstalledTime() {
+        try {
+            Context ctx = ApplicationLoader.applicationContext;
+            return ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).lastUpdateTime;
+        } catch (Exception e) {
+            FileLog.e(e);
+            return 0L;
+        }
+    }
+
+    private static int compareDates(String publishedAt, long installedAt) {
+        long published = parseDate(publishedAt);
+        if (published <= 0L || installedAt <= 0L) return 0;
+        return Long.compare(published, installedAt);
+    }
+
+    private static long parseDate(String publishedAt) {
+        if (publishedAt == null || publishedAt.isEmpty()) return 0L;
+        try {
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
+            f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            java.util.Date d = f.parse(publishedAt);
+            return d == null ? 0L : d.getTime();
+        } catch (Exception e) {
+            return 0L;
         }
     }
 
