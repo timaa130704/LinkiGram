@@ -42,7 +42,14 @@ public final class WsRelayAuth {
     private static final long ACCEPT_SKEW_S = 15;
     
     private static final long REFRESH_AHEAD_S = 60 * 60;
-    private static final long AUTH_FLOW_BUDGET_MS = 45_000L;
+    /**
+     * Ceiling for one whole credential flow, covering register plus the polling
+     * window. It has to be at least as long as the poll window in
+     * NimarkoInlineAuth, otherwise the confirmation is given time to be made and
+     * then the next poll is refused for want of budget, and the flow dies with
+     * "relay auth deadline exceeded" right after the user pressed the button.
+     */
+    private static final long AUTH_FLOW_BUDGET_MS = 6 * 60_000L;
     private static final int HTTP_STAGE_TIMEOUT_MS = 10_000;
     private static final int MAX_RESPONSE_CHARS = 64 * 1024;
     private static final ThreadLocal<Long> authDeadlineMs = new ThreadLocal<>();

@@ -11,6 +11,7 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -237,11 +238,39 @@ public final class RawWebSocket {
             } catch (IOException e) {
                 last = e;
                 closeQuietly(s);
+                // A hostname can resolve to several addresses and only some of
+                // them reachable. workers.dev, for example, answers on
+                // 172.67.200.188 and blackholes 104.21.50.42 from the device's
+                // network, and the cache kept handing back the dead one until it
+                // expired. Dropping the address that just failed makes the next
+                // attempt use a different one instead of retrying a known-bad
+                // address for the rest of the TTL.
+                forgetAddress(connectHost, address);
                 if (System.nanoTime() >= deadlineNanos) break;
             }
         }
         if (last != null) throw last;
         throw new IOException("no address for " + connectHost);
+    }
+
+    /** Remove a single address from a host's cache entry, dropping the entry if
+     *  nothing is left in it. */
+    private static void forgetAddress(String host, InetAddress address) {
+        synchronized (DNS_CACHE) {
+            CachedAddresses cached = DNS_CACHE.get(host);
+            if (cached == null || cached.addresses == null) return;
+            List<InetAddress> kept = new ArrayList<>(cached.addresses.length);
+            for (InetAddress candidate : cached.addresses) {
+                if (!candidate.equals(address)) kept.add(candidate);
+            }
+            if (kept.size() == cached.addresses.length) return;
+            if (kept.isEmpty()) {
+                DNS_CACHE.remove(host, cached);
+            } else {
+                DNS_CACHE.put(host, new CachedAddresses(
+                        kept.toArray(new InetAddress[0]), cached.expiresAt));
+            }
+        }
     }
 
     private static SSLSocket wrapTls(Socket raw, String sni, long deadlineNanos,

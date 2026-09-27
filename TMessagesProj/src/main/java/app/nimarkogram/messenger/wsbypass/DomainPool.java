@@ -60,6 +60,10 @@ public final class DomainPool {
         return fresh;
     }
 
+    private static final String[] RELAY_HOSTS_SELF = {
+            "linkigram-relay.sandygram.workers.dev",
+    };
+
     private static final String[] RELAY_HOSTS_NL = {
             "r1.nimarko.org",
             "r2.nimarko.org",
@@ -70,11 +74,11 @@ public final class DomainPool {
     };
 
     private static String[] primaryPool() {
-        return RelayRegion.isAsia() ? RELAY_HOSTS_ASIA : RELAY_HOSTS_NL;
+        return RelayRegion.isAsia() ? RELAY_HOSTS_ASIA : RELAY_HOSTS_SELF;
     }
 
     private static String[] primaryPoolForDc(int dc) {
-        return dc == 5 ? RELAY_HOSTS_ASIA : RELAY_HOSTS_NL;
+        return dc == 5 ? RELAY_HOSTS_ASIA : RELAY_HOSTS_SELF;
     }
 
     private static String[] fallbackPool() {
