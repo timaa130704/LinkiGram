@@ -11,7 +11,6 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +20,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -59,14 +57,9 @@ public final class RawWebSocket {
 
     private static final SecureRandom RNG = new SecureRandom();
     
-    // The cache below removes the steady-state flood, but the first burst after a
-    // cold start still submits one lookup per relay host per handshake. Two
-    // threads with eight queue slots rejected most of those outright, which is
-    // what produced "DNS resolver saturated". Give the resolver enough headroom
-    // that a cold burst merely takes longer instead of failing.
     private static final ExecutorService DNS_EXECUTOR = new ThreadPoolExecutor(
-            4, 4, 30L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(64),
+            2, 2, 30L, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(8),
             r -> {
                 Thread t = new Thread(r, "wsbypass-dns");
                 t.setDaemon(true);
@@ -184,7 +177,7 @@ public final class RawWebSocket {
             if (code != 101) {
                 String loc = headers.get("location");
                 throw new HandshakeException(statusLine == null || statusLine.isEmpty()
-                        ? "bad websocket handshake" : statusLine, code, loc);
+                        ? "bad websocket handshake" : statusLine, code, loc, headers.get("retry-after"));
             }
             if (!containsToken(headers.get("upgrade"), "websocket")
                     || !containsToken(headers.get("connection"), "upgrade")) {
@@ -238,39 +231,11 @@ public final class RawWebSocket {
             } catch (IOException e) {
                 last = e;
                 closeQuietly(s);
-                // A hostname can resolve to several addresses and only some of
-                // them reachable. workers.dev, for example, answers on
-                // 172.67.200.188 and blackholes 104.21.50.42 from the device's
-                // network, and the cache kept handing back the dead one until it
-                // expired. Dropping the address that just failed makes the next
-                // attempt use a different one instead of retrying a known-bad
-                // address for the rest of the TTL.
-                forgetAddress(connectHost, address);
                 if (System.nanoTime() >= deadlineNanos) break;
             }
         }
         if (last != null) throw last;
         throw new IOException("no address for " + connectHost);
-    }
-
-    /** Remove a single address from a host's cache entry, dropping the entry if
-     *  nothing is left in it. */
-    private static void forgetAddress(String host, InetAddress address) {
-        synchronized (DNS_CACHE) {
-            CachedAddresses cached = DNS_CACHE.get(host);
-            if (cached == null || cached.addresses == null) return;
-            List<InetAddress> kept = new ArrayList<>(cached.addresses.length);
-            for (InetAddress candidate : cached.addresses) {
-                if (!candidate.equals(address)) kept.add(candidate);
-            }
-            if (kept.size() == cached.addresses.length) return;
-            if (kept.isEmpty()) {
-                DNS_CACHE.remove(host, cached);
-            } else {
-                DNS_CACHE.put(host, new CachedAddresses(
-                        kept.toArray(new InetAddress[0]), cached.expiresAt));
-            }
-        }
     }
 
     private static SSLSocket wrapTls(Socket raw, String sni, long deadlineNanos,
@@ -567,10 +532,19 @@ public final class RawWebSocket {
     public static final class HandshakeException extends IOException {
         public final int statusCode;
         public final String location;
+        public final long retryAfterMillis;
         HandshakeException(String message, int statusCode, String location) {
+            this(message, statusCode, location, null);
+        }
+        HandshakeException(String message, int statusCode, String location, String retryAfter) {
             super(location == null || location.isEmpty() ? message : message + " -> " + location);
             this.statusCode = statusCode;
             this.location = location;
+            long delay = 0L;
+            try {
+                if (retryAfter != null) delay = Math.min(60L, Math.max(0L, Long.parseLong(retryAfter.trim()))) * 1000L;
+            } catch (NumberFormatException ignored) { }
+            retryAfterMillis = delay;
         }
         public boolean isRedirect() {
             return statusCode == 301 || statusCode == 302 || statusCode == 303
@@ -578,50 +552,8 @@ public final class RawWebSocket {
         }
     }
 
-    /**
-     * Short-lived cache of resolved relay addresses.
-     *
-     * The relay host list is small and stable, but every connect attempt used to
-     * submit a fresh lookup to DNS_EXECUTOR, which only has two threads and an
-     * eight-slot queue. A burst of handshakes (several arriving within
-     * milliseconds, each walking the whole relay list) therefore overflowed the
-     * queue -- "DNS resolver saturated" -- and the ones still queued blew the
-     * one-second per-host budget, surfacing as "DNS timeout for ...". The
-     * network was fine; the app was refusing to use it.
-     */
-    private static final ConcurrentHashMap<String, CachedAddresses> DNS_CACHE =
-            new ConcurrentHashMap<>();
-    private static final long DNS_CACHE_TTL_MS = 5 * 60 * 1000L;
-
-    private static final class CachedAddresses {
-        final InetAddress[] addresses;
-        final long expiresAt;
-
-        CachedAddresses(InetAddress[] addresses, long expiresAt) {
-            this.addresses = addresses;
-            this.expiresAt = expiresAt;
-        }
-    }
-
-    private static InetAddress[] cachedAddresses(String host) {
-        CachedAddresses cached = DNS_CACHE.get(host);
-        if (cached == null) {
-            return null;
-        }
-        if (cached.expiresAt <= System.currentTimeMillis()) {
-            DNS_CACHE.remove(host, cached);
-            return null;
-        }
-        return cached.addresses;
-    }
-
     private static InetAddress[] resolveUntil(String host, long deadlineNanos,
                                               ConnectPermit permit) throws IOException {
-        final InetAddress[] cached = cachedAddresses(host);
-        if (cached != null) {
-            checkPermit(permit);
-            return cached;
-        }
         final Future<InetAddress[]> future;
         try {
             future = DNS_EXECUTOR.submit(() -> InetAddress.getAllByName(host));
@@ -639,8 +571,6 @@ public final class RawWebSocket {
                     if (result == null || result.length == 0) {
                         throw new IOException("no address for " + host);
                     }
-                    DNS_CACHE.put(host, new CachedAddresses(result,
-                            System.currentTimeMillis() + DNS_CACHE_TTL_MS));
                     return result;
                 } catch (java.util.concurrent.TimeoutException e) {
                     if (slice >= remaining) {

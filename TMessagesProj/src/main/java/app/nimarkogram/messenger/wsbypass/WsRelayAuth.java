@@ -20,9 +20,9 @@ public final class WsRelayAuth {
     private static final String API_URL = "https://calls.nimarko.org";
 
     public static final class Credential {
-        public final long expiry;   
-        public final long uid;      
-        public final byte[] hmac;   
+        public final long expiry;
+        public final long uid;
+        public final byte[] hmac;
 
         Credential(long expiry, long uid, byte[] hmac) {
             this.expiry = expiry;
@@ -40,16 +40,8 @@ public final class WsRelayAuth {
     private static final Object lock = new Object();
 
     private static final long ACCEPT_SKEW_S = 15;
-    
     private static final long REFRESH_AHEAD_S = 60 * 60;
-    /**
-     * Ceiling for one whole credential flow, covering register plus the polling
-     * window. It has to be at least as long as the poll window in
-     * NimarkoInlineAuth, otherwise the confirmation is given time to be made and
-     * then the next poll is refused for want of budget, and the flow dies with
-     * "relay auth deadline exceeded" right after the user pressed the button.
-     */
-    private static final long AUTH_FLOW_BUDGET_MS = 6 * 60_000L;
+    private static final long AUTH_FLOW_BUDGET_MS = 45_000L;
     private static final int HTTP_STAGE_TIMEOUT_MS = 10_000;
     private static final int MAX_RESPONSE_CHARS = 64 * 1024;
     private static final ThreadLocal<Long> authDeadlineMs = new ThreadLocal<>();
@@ -124,7 +116,6 @@ public final class WsRelayAuth {
 
     public static void prefetchAsync(final int account) {
         if (!isAuthAllowed()) return;
-        
         RelayRegion.invalidate();
         Credential c = memoryOrDisk(account);
         long uid = uidOf(account);
@@ -221,12 +212,10 @@ public final class WsRelayAuth {
                     if (token == null || !permit.isEnabled()) continue;
                     Credential fresh = fetchCredential(token, status);
                     if (fresh == null && status[0] == 401) {
-                        
                         final String rejectedToken = token;
                         final java.util.concurrent.atomic.AtomicBoolean tokenInvalidated =
                                 new java.util.concurrent.atomic.AtomicBoolean(false);
                         if (!permit.runIfEnabled(() -> {
-                            
                             String currentToken = backend.cachedToken();
                             if (uidOf(acc) == uid && rejectedToken.equals(currentToken)) {
                                 backend.cacheToken(null);
@@ -245,7 +234,6 @@ public final class WsRelayAuth {
                         final java.util.concurrent.atomic.AtomicBoolean committed =
                                 new java.util.concurrent.atomic.AtomicBoolean(false);
                         if (permit.runIfEnabled(() -> {
-                            
                             if (uidOf(acc) == credential.uid) {
                                 cached.put(acc, credential);
                                 saveCredentialToDisk(acc, credential);
@@ -359,8 +347,8 @@ public final class WsRelayAuth {
                 String token = o.optString("token", "");
                 return token.isEmpty() ? null : token;
             }
-            if (rc == 202) return null;        
-            return NimarkoInlineAuth.GIVE_UP;  
+            if (rc == 202) return null;
+            return NimarkoInlineAuth.GIVE_UP;
         } catch (Throwable t) {
             Log.e(TAG, "poll failed: " + t);
             return null;
@@ -444,7 +432,7 @@ public final class WsRelayAuth {
         return out;
     }
 
-    private static final String PREF_CRED = "ws_relay_cred";   
+    private static final String PREF_CRED = "ws_relay_cred";
     private static final String PREF_SLOT_UID = "ws_relay_slot_uid_";
 
     private static String credentialKey(long uid) { return PREF_CRED + "_" + uid; }
@@ -531,20 +519,12 @@ public final class WsRelayAuth {
     }
 
     private static boolean registerConnection(HttpURLConnection connection, long generation) {
-        // See WsDns: HttpURLConnection resolves on the calling thread and was
-        // coming back empty on the device, which silently cost us the
-        // credential. Resolve once here so the request itself hits the cache.
-        try {
-            WsDns.warm(connection.getURL().getHost());
-        } catch (Throwable ignored) {
-        }
         synchronized (authGenerationLock) {
             if (generation != authGeneration.get() || !isAuthAllowed()) {
                 try { connection.disconnect(); } catch (Throwable ignore) {}
                 return false;
             }
             activeConnections.add(connection);
-            
             if (generation != authGeneration.get() || !isAuthAllowed()) {
                 activeConnections.remove(connection);
                 try { connection.disconnect(); } catch (Throwable ignore) {}

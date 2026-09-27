@@ -35,23 +35,8 @@ public final class WsBypassCore {
     public static final String LOCAL_PROXY_HOST = "127.0.0.1";
 
     private volatile long lastBridgeOkAtMs = 0L;
+    private final WlRetryGate wlRetryGate = new WlRetryGate();
     public long getLastBridgeOkAtMs() { return lastBridgeOkAtMs; }
-
-    /**
-     * How long ago a bridge last forwarded real bytes, or -1 if none ever did
-     * since the last generation bump.
-     *
-     * The status row used to test lastBridgeOkAtMs != 0 directly, which meant
-     * a tunnel that dropped to zero bridges for a moment -- normal while
-     * Telegram rotates a connection -- immediately read as "starting" again,
-     * and with the relays flapping the row never settled. Callers should treat
-     * a recent value as still-live.
-     */
-    public long getLastBridgeOkAgeMs() {
-        long at = lastBridgeOkAtMs;
-        if (at == 0L) return -1L;
-        return Math.max(0L, System.currentTimeMillis() - at);
-    }
     private final Object bridgeStateLock = new Object();
     private int activeBridges;
     private long bridgeGeneration;
@@ -73,14 +58,6 @@ public final class WsBypassCore {
     private void markBridgeOk(long generation) {
         synchronized (bridgeStateLock) {
             if (generation == bridgeGeneration && activeBridges > 0) {
-                // markBridgeOk runs on every forwarded chunk, so only the
-                // 0 -> set transition is logged. The status row reports
-                // "starting" whenever this is 0, and there was no way to see
-                // a tunnel that came up and then dropped back to 0.
-                if (lastBridgeOkAtMs == 0L) {
-                    bridgeLog("bridge state: live, active=" + activeBridges
-                            + " gen=" + bridgeGeneration);
-                }
                 lastBridgeOkAtMs = System.currentTimeMillis();
             }
         }
@@ -93,8 +70,6 @@ public final class WsBypassCore {
             if (activeBridges++ == 0) {
                 lastBridgeOkAtMs = 0L;
             }
-            bridgeLog("bridge state: started, active=" + activeBridges
-                    + " gen=" + bridgeGeneration);
             return true;
         }
     }
@@ -109,9 +84,6 @@ public final class WsBypassCore {
             if (activeBridges == 0) {
                 lastBridgeOkAtMs = 0L;
             }
-            bridgeLog("bridge state: stopped, active=" + activeBridges
-                    + " lastOk=" + (lastBridgeOkAtMs == 0L ? "none" : "set")
-                    + " gen=" + bridgeGeneration);
         }
     }
     private void invalidateBridgeGeneration() {
@@ -122,21 +94,7 @@ public final class WsBypassCore {
         }
     }
 
-    static volatile boolean DEBUG = false;
-
-    /**
-     * Always-on log for bridge connection attempts and their failures.
-     *
-     * These used to go through dbg() only, which is compiled out unless DEBUG
-     * is set, so a relay that could never establish its WebSocket bridge just
-     * sat in the "starting" state with nothing to look at. One line per
-     * attempt and per failure is enough to tell an unreachable host from a
-     * rejected credential.
-     */
-    static void bridgeLog(String msg) {
-        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
-        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
-    }
+    static volatile boolean DEBUG = false;   
     static final java.util.concurrent.atomic.AtomicInteger CONN_SEQ = new java.util.concurrent.atomic.AtomicInteger();
 
     static void decodeMtproto(int connId, String dir, byte[] plain) {
@@ -161,7 +119,7 @@ public final class WsBypassCore {
                             : cons == 0xf5045f1fL ? "set_client_DH_params" : String.format("0x%08x", cons);
                     interp = "UNENCRYPTED auth msg: " + name + " (flen=" + flen + ")";
                 } else {
-                    interp = "ENCRYPTED (auth_key set, flen=" + flen + ") вЂ” session active";
+                    interp = "ENCRYPTED (auth_key set, flen=" + flen + ") — session active";
                 }
             } else {
                 interp = "flen=" + flen + " short";
@@ -171,79 +129,32 @@ public final class WsBypassCore {
     }
 
     static volatile boolean SPLIT_UP = false;
-
-    /**
-     * Always-on log sink for the relay lifecycle. FileLog alone is unreadable
-     * without root, which made a start failure show up in the UI as a bare
-     * "failed" with no way to find out why. These go to logcat as well so the
-     * cause is reachable over `adb logcat`.
-     */
-    static void logAlways(String msg) {
-        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
-        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
-    }
-
-    static void logFailure(String msg, Throwable t) {
-        try { android.util.Log.e("NMWSBYPASS", msg, t); } catch (Throwable ignored) {}
-        try { FileLog.e(msg, t); } catch (Throwable ignored) {}
-    }
-
     static void dbg(String msg) {
         if (!DEBUG) return;
         try { android.util.Log.i("NMWSBYPASS", msg); } catch (Throwable ignored) {}
         try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
     }
 
+    /** Always-on log line. Used by ProxyApplier for apply/verify diagnostics. */
+    static void logAlways(String msg) {
+        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
+        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
+    }
+
+    /** Always-on error log. Used by ProxyApplier for apply/verify diagnostics. */
+    static void logFailure(String msg, Throwable t) {
+        try { android.util.Log.e("NMWSBYPASS", msg, t); } catch (Throwable ignored) {}
+        try { FileLog.e("wsbypass: " + msg, t); } catch (Throwable ignored) {}
+    }
+
     private static final double WS_FAIL_COOLDOWN_SEC = 30.0;
     private static final double WS_FAIL_COOLDOWN_MAX_SEC = 300.0;
     private static final double WS_BLACKLIST_TTL_SEC = 420.0;
-    private static final double WS_OVERLOAD_COOLDOWN_SEC = 3.0;
-    private static final long WS_REFUSED_QUARANTINE_MS = 20 * 1000L;
-    /**
-     * Cap for the per-DC backoff. The escalation doubled every failure up to
-     * WS_FAIL_COOLDOWN_MAX_SEC, but nothing reset the counter on a route that
-     * never got as far as being "ok", so a run of transient relay failures
-     * pinned the DC out for the full 5 minutes. After the relays recover the
-     * UI then sits on "starting" the whole time, because every attempt is
-     * skipped with "relay hosts are in backoff" and never actually tries.
-     */
-    private static final double WS_FAIL_COOLDOWN_CAP_SEC = 8.0;
-    private static final long WS_ROUTE_DEADLINE_MS = 20_000L;
-    private static final long WS_RELAY_BUDGET_MS = 12_000L;
+    private static final long WS_ROUTE_DEADLINE_MS = 9_000L;
+    private static final long WS_RELAY_BUDGET_MS = 3_500L;
     private static final long WS_DIRECT_BUDGET_MS = 2_500L;
     private static final int MAX_DIRECT_ATTEMPTS = 4;
     private static final long WS_POOL_KEEPER_INTERVAL_SEC = 30L;
-
-    /**
-     * Per-attempt budget for a single relay host.
-     *
-     * This used to be 1s, shorter than a normal successful handshake: measured
-     * against the live relays from a desktop, a 101 response took 300-1800ms and
-     * under load as long as 3.5s, while the server sometimes needed ~6s just to
-     * finish the TLS handshake. Attempts were being cut off before the relay
-     * could answer, so a healthy relay looked unreachable and was recorded as
-     * failed.
-     */
-    private static final long WS_HOST_BUDGET_MS = 7_000L;
-    private static final long WS_ASIA_HOST_BUDGET_MS = 9_000L;
-
-    /**
-     * Serialises relay connect attempts with a small spread. Several MTProto
-     * handshakes arrive within milliseconds of each other and each walks the
-     * whole relay list; that burst is what the relay answers with 503, and
-     * sometimes it does not complete TLS at all.
-     */
-    private static final long WS_CONNECT_SPREAD_MS = 220L;
-    private static final Object WS_CONNECT_GATE_LOCK = new Object();
-    private static long wsNextConnectSlotMs = 0L;
-
-    private static long reserveConnectSlot(long nowMs) {
-        synchronized (WS_CONNECT_GATE_LOCK) {
-            long earliest = Math.max(nowMs, wsNextConnectSlotMs);
-            wsNextConnectSlotMs = earliest + WS_CONNECT_SPREAD_MS;
-            return Math.max(0L, earliest - nowMs);
-        }
-    }
 
     private static final int SOCK_RCVBUF = 256 * 1024;
     private static final int SOCK_SNDBUF = 512 * 1024;
@@ -447,11 +358,9 @@ public final class WsBypassCore {
                 accept.start();
 
                 FileLog.d("WsBypassCore started on " + LOCAL_PROXY_HOST + ":" + this.port);
-                logAlways("WsBypassCore started on " + LOCAL_PROXY_HOST + ":" + this.port);
                 return "";
             } catch (Throwable t) {
                 FileLog.e("WsBypassCore.start failed", t);
-                logFailure("WsBypassCore.start failed", t);
                 try { stopLocked(); } catch (Throwable ignored) {}
                 return t.getMessage() == null ? "start failed" : t.getMessage();
             }
@@ -477,6 +386,7 @@ public final class WsBypassCore {
 
     private void stopLocked() {
         running = false;
+        wlRetryGate.reset();
         invalidateBridgeGeneration();
         ServerSocket s = listener;
         listener = null;
@@ -581,11 +491,11 @@ public final class WsBypassCore {
             }
 
             MtprotoHandshake.HandshakeResult hr = MtprotoHandshake.tryHandshake(initPacket, connectionSecret);
-            if (hr == null) { bridgeLog("handshake: FAILED to parse tgnet init (" + initPacket.length + "B) -- secret mismatch?"); return; }
+            if (hr == null) { dbg("handshake: FAILED to parse tgnet init (" + initPacket.length + "B) — secret mismatch?"); return; }
 
             int dc = hr.dcId;
             boolean isMedia = hr.isMedia;
-            bridgeLog("handshake OK: dc=" + dc + " media=" + isMedia + " protoTag=" + hr.protoTag);
+            dbg("handshake OK: dc=" + dc + " media=" + isMedia + " protoTag=" + hr.protoTag);
             int relayDcIdx = isMedia ? -dc : dc;
             byte[] relayInit = MtprotoHandshake.generateRelayInit(hr.protoTag, relayDcIdx);
             CryptoCtx ctx = CryptoCtx.build(hr.decPrekeyIv, connectionSecret, relayInit);
@@ -605,15 +515,15 @@ public final class WsBypassCore {
                 ws = connectWsCf(dc, isMedia, Math.min(routeDeadline,
                         System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(WS_RELAY_BUDGET_MS)),
                         generation);
-                bridgeLog("route: CF relay OK (dc=" + dc + ")");
+                dbg("route: CF relay OK (dc=" + dc + ")");
             } catch (Throwable ex) {
-                bridgeLog("route: CF relay FAILED (dc=" + dc + "): " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                dbg("route: CF relay FAILED (dc=" + dc + "): " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
                 ws = null;
             }
 
             if (ws == null) {
                 
-                bridgeLog("route: relay unavailable; suppressing direct route (dc=" + dc + ")");
+                dbg("route: relay unavailable; suppressing direct route (dc=" + dc + ")");
                 return;
             }
 
@@ -641,8 +551,7 @@ public final class WsBypassCore {
                         splitter = null;
                     }
                 }
-                bridgeLog("bridge: started (dc=" + dc + "), relayInit " + relayInit.length
-                        + "B sent, splitter=" + (splitter != null));
+                dbg("bridge: started (dc=" + dc + "), relayInit " + relayInit.length + "B sent, splitter=" + (splitter != null));
                 bridgeWs(conn, ws, ctx, splitter, generation);
             } catch (Throwable t) {
                 try { ws.close(); } catch (Throwable ignored) {}
@@ -658,71 +567,53 @@ public final class WsBypassCore {
 
     private RawWebSocket connectWsCf(int dc, boolean isMedia, long deadlineNanos,
                                      long generation) throws IOException {
+        if (WlAccess.enabled()) {
+            if (wlRetryGate.remaining(nowElapsedMs()) > 0L) {
+                throw new IOException("wl_rate_limited");
+            }
+            WlAccess.Grant grant = WlAccess.cached();
+            if (grant == null) {
+                WlAccess.warm();
+                throw new IOException("wl_access_required");
+            }
+            String path = DomainPool.relayPathForDc(dc);
+            try {
+                return RawWebSocket.connectUntil(WlAccess.HOST, WlAccess.HOST, path,
+                        WlAccess.headers(grant, "GET", path, null), deadlineNanos,
+                        () -> isBridgeGenerationCurrent(generation) && WlAccess.enabled()
+                                && WlAccess.isCurrent(grant));
+            } catch (RawWebSocket.HandshakeException error) {
+                if (error.statusCode == 429 && isBridgeGenerationCurrent(generation)) {
+                    wlRetryGate.rejected(nowElapsedMs(), error.retryAfterMillis);
+                }
+                if (error.statusCode == 401 || error.statusCode == 403) WlAccess.rejected(grant);
+                throw error;
+            }
+        }
         IOException last = null;
         
         final String path = DomainPool.relayPathForDc(dc);
         
+        java.util.Map<String, String> headers = new java.util.HashMap<>();
         final int authAccount = org.telegram.messenger.UserConfig.selectedAccount;
         WsRelayAuth.Credential authCredential = null;
-        // X-Install is not optional for these relays. Probed from the device
-        // with curl on every host: the same upgrade request answers 403 with no
-        // X-Install and 101 with one. An absent or empty value is therefore a
-        // 403 on every relay, which is what pinned the client in "starting".
-        String installIdVal = DomainPool.installId();
-        if (installIdVal == null || installIdVal.trim().isEmpty()) {
-            installIdVal = java.util.UUID.randomUUID().toString().replace("-", "");
-            try { DomainPool.setInstallId(installIdVal); } catch (Throwable ignored) {}
-            bridgeLog("connectWsCf: X-Install was empty, generated a fresh one (len="
-                    + installIdVal.length() + ")");
-        }
-        java.util.Map<String, String> headers = new java.util.HashMap<>();
-        headers.put("X-Install", installIdVal);
+        try { headers.put("X-Install", DomainPool.installId()); } catch (Throwable ignored) {}
         try {
             authCredential = WsRelayAuth.getCached(authAccount);
             if (authCredential != null) headers.put("X-Cred", authCredential.header());
         } catch (Throwable ignored) {}
         int attempted = 0;
-        int skipped = 0;
-        // True only while every host we have actually reached has answered 403.
-        // Any other outcome (timeout, 503, a success) clears it, because a single
-        // working relay means the install id is fine and the rest are just busy.
-        boolean allRefused = true;
         for (String host : DomainPool.relayHostsForDc(dc)) {
             if (!isBridgeGenerationCurrent(generation)) {
                 throw new IOException("relay connect cancelled");
             }
             if (System.nanoTime() >= deadlineNanos) break;
-            if (isRelayInBackoff(host)) {
-                skipped++;
-                continue;
-            }
-            long hostBudgetMs = DomainPool.isAsiaRelayHost(host)
-                    ? WS_ASIA_HOST_BUDGET_MS : WS_HOST_BUDGET_MS;
-
-            // Spread consecutive attempts so a burst of handshakes does not
-            // arrive at the relay all at once.
-            long slotWaitMs = reserveConnectSlot(nowElapsedMs());
-            if (slotWaitMs > 0L) {
-                long budgetLeftMs = Math.max(0L,
-                        TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime()));
-                if (slotWaitMs >= budgetLeftMs) {
-                    bridgeLog("connectWsCf: giving up before " + host + ", queue wait "
-                            + slotWaitMs + "ms exceeds remaining " + budgetLeftMs + "ms");
-                    break;
-                }
-                try { Thread.sleep(slotWaitMs); } catch (Throwable ignored) {}
-            }
-            if (System.nanoTime() >= deadlineNanos) break;
-            if (!isBridgeGenerationCurrent(generation)) {
-                throw new IOException("relay connect cancelled");
-            }
-
+            if (isRelayInBackoff(host)) continue;
+            long hostBudgetMs = DomainPool.isAsiaRelayHost(host) ? 2_500L : 1_000L;
             long attemptDeadline = Math.min(deadlineNanos,
                     System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(hostBudgetMs));
             attempted++;
-            bridgeLog("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred")
-                    + " install.len=" + installIdVal.length()
-                    + " budget=" + hostBudgetMs + "ms");
+            dbg("connectWsCf: dc=" + dc + " -> " + host + path + " cred=" + headers.containsKey("X-Cred"));
             try {
                 RawWebSocket ws = RawWebSocket.connectUntil(host, host, path, headers,
                         attemptDeadline, () -> isBridgeGenerationCurrent(generation));
@@ -734,19 +625,17 @@ public final class WsBypassCore {
                     try { ws.close(); } catch (Throwable ignored) {}
                     throw new IOException("relay connect cancelled");
                 }
-                bridgeLog("connectWsCf: 101 OK via " + host + path);
+                dbg("connectWsCf: 101 OK via " + host + path);
                 return ws;
             } catch (IOException ex) {
                 if (!isBridgeGenerationCurrent(generation)) {
                     throw new IOException("relay connect cancelled", ex);
                 }
-                bridgeLog("connectWsCf: FAILED " + host + " -> " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                dbg("connectWsCf: " + host + " -> " + ex.getMessage());
                 int status = ex instanceof RawWebSocket.HandshakeException
                         ? ((RawWebSocket.HandshakeException) ex).statusCode : 0;
-                if (status != 401 && status != 403) allRefused = false;
                 if (!runIfBridgeGenerationCurrent(generation, () -> {
-                    if (status == 401 || status == 403) relayRefusedRecord(host);
-                    else if (status == 503 || status == 429) relayOverloadRecord(host);
+                    if (status == 401 || status == 403) relayFailClear(host);
                     else relayFailRecord(host);
                 })) {
                     throw new IOException("relay connect cancelled", ex);
@@ -763,86 +652,12 @@ public final class WsBypassCore {
                 if (!isBridgeGenerationCurrent(generation)) {
                     throw new IOException("relay connect cancelled", t);
                 }
-                bridgeLog("connectWsCf: THREW " + host + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage());
-                allRefused = false;
+                dbg("connectWsCf: " + host + " -> " + t.getClass().getSimpleName() + ": " + t.getMessage());
                 last = new IOException(t);
             }
         }
-        if (attempted == 0) {
-            // Nothing was tried because every host was still parked from earlier
-            // failures. Log each one with the time left so a stuck route can be
-            // told apart from a relay that is simply unreachable right now.
-            StringBuilder detail = new StringBuilder();
-            for (String host : DomainPool.relayHostsForDc(dc)) {
-                if (detail.length() > 0) detail.append(", ");
-                detail.append(host).append(" backoffLeft=")
-                        .append(Math.max(0L, relayBackoffLeftMs(host))).append("ms");
-            }
-            bridgeLog("connectWsCf: every relay host parked, dc=" + dc + " (" + skipped
-                    + " skipped) -> " + detail);
-            throw new IOException("relay hosts are in backoff");
-        }
-        // 403 from every relay means our X-Install is no longer accepted, not that the
-        // relays are down. Probed from the device with curl on every host: the same
-        // upgrade request answers 101 for an unused install id and 403 for one that has
-        // been used a few times, and the ban is per install id across all hosts. Since
-        // the id is persisted, that left the client permanently refused and the status
-        // row stuck on "starting" with no way back. Rotate the id and sweep once more.
-        if (allRefused) {
-            long leftMs = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
-            if (leftMs >= 3_000L && isBridgeGenerationCurrent(generation)) {
-                String fresh = DomainPool.rotateInstallId("refused");
-                if (fresh != null && !fresh.equals(installIdVal)) {
-                    bridgeLog("connectWsCf: relays refused our X-Install (403), rotated to a fresh "
-                            + "one and retrying, left=" + leftMs + "ms");
-                    java.util.Map<String, String> rotated = new java.util.HashMap<>(headers);
-                    rotated.put("X-Install", fresh);
-                    rotated.remove("X-Cred");
-                    for (String host : DomainPool.relayHostsForDc(dc)) {
-                        if (!isBridgeGenerationCurrent(generation) || System.nanoTime() >= deadlineNanos) break;
-                        // The park above was recorded against the refused id, so drop it
-                        // or this sweep skips every host and reports the same 403 back.
-                        runIfBridgeGenerationCurrent(generation, () -> relayFailClear(host));
-                        if (isRelayInBackoff(host)) continue;
-                        long budget = DomainPool.isAsiaRelayHost(host)
-                                ? WS_ASIA_HOST_BUDGET_MS : WS_HOST_BUDGET_MS;
-                        long retryDeadline = Math.min(deadlineNanos,
-                                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(budget));
-                        try {
-                            RawWebSocket ws2 = RawWebSocket.connectUntil(host, host, path, rotated,
-                                    retryDeadline, () -> isBridgeGenerationCurrent(generation));
-                            if (!isBridgeGenerationCurrent(generation)) {
-                                try { ws2.close(); } catch (Throwable ignored) {}
-                                throw new IOException("relay connect cancelled");
-                            }
-                            if (!runIfBridgeGenerationCurrent(generation, () -> relayFailClear(host))) {
-                                try { ws2.close(); } catch (Throwable ignored) {}
-                                throw new IOException("relay connect cancelled");
-                            }
-                            bridgeLog("connectWsCf: 101 OK via " + host + path
-                                    + " (fresh X-Install)");
-                            return ws2;
-                        } catch (IOException ex2) {
-                            if (!isBridgeGenerationCurrent(generation)) {
-                                throw new IOException("relay connect cancelled", ex2);
-                            }
-                            int st2 = ex2 instanceof RawWebSocket.HandshakeException
-                                    ? ((RawWebSocket.HandshakeException) ex2).statusCode : 0;
-                            if (!runIfBridgeGenerationCurrent(generation, () -> {
-                                if (st2 == 401 || st2 == 403) relayRefusedRecord(host);
-                                else if (st2 == 503 || st2 == 429) relayOverloadRecord(host);
-                                else relayFailRecord(host);
-                            })) throw new IOException("relay connect cancelled", ex2);
-                            last = ex2;
-                        } catch (Throwable t2) {
-                            last = new IOException(t2);
-                        }
-                    }
-                }
-            }
-        }
+        if (attempted == 0) throw new IOException("relay hosts are in backoff");
         if (last != null) throw last;
-        bridgeLog("connectWsCf: no relay host usable, dc=" + dc);
         throw new IOException("cf websocket unavailable");
     }
 
@@ -880,7 +695,6 @@ public final class WsBypassCore {
                             System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(900L));
                     RawWebSocket ws = RawWebSocket.connectUntil(host, domain, "/apiws", null,
                             attemptDeadline);
-                    bridgeLog("connectWsDirect: OK host=" + host + " domain=" + domain);
                     synchronized (cfgLock) {
                         wsDomainPref.put(dcKey, domain);
                     }
@@ -955,7 +769,6 @@ public final class WsBypassCore {
         }
         try {
         final AtomicBoolean done = new AtomicBoolean(false);
-        final AtomicBoolean firstDown = new AtomicBoolean(true);
         Thread t1 = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -999,9 +812,6 @@ public final class WsBypassCore {
                         if (outBuf != null && outBuf.length > 0) {
                             out.write(outBuf);
                             out.flush();
-                            if (firstDown.compareAndSet(true, false)) {
-                                bridgeLog("bridge: first client->relay bytes forwarded, tunnel is live");
-                            }
                             markBridgeOk(generation);
                         }
                     }
@@ -1056,7 +866,7 @@ public final class WsBypassCore {
                     while (!done.get()) {
                         int n = in.read(buf);
                         if (n <= 0) {
-                            bridgeLog("bridge up: client(tgnet) EOF n=" + n + " after up=" + upBytes[0] + "B down=" + downBytes[0] + "B");
+                            dbg("bridge up: client(tgnet) EOF n=" + n + " after up=" + upBytes[0] + "B down=" + downBytes[0] + "B");
                             if (splitter != null) {
                                 try {
                                     List<byte[]> tail = splitter.flush();
@@ -1088,7 +898,7 @@ public final class WsBypassCore {
                             upSent[0] += data.length;
                         }
                     }
-                } catch (Throwable t) { bridgeLog("bridge up-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage() + " (upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B)"); }
+                } catch (Throwable t) { dbg("bridge up-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage()); }
                 done.set(true);
             }
         }, "wsbypass-ws-up");
@@ -1103,7 +913,7 @@ public final class WsBypassCore {
                     byte[] clientBuffer = new byte[64 * 1024 + 32];
                     while (!done.get()) {
                         byte[] payload = ws.recv();
-                        if (payload == null) { bridgeLog("bridge down: ws.recv returned null (relay closed) after down=" + downBytes[0] + "B"); break; }
+                        if (payload == null) { dbg("bridge down: ws.recv returned null (CLOSE)"); break; }
                         if (payload.length == 0) continue;
                         downBytes[0] += payload.length;
                         plainBuffer = ensureCipherBuffer(ctx.tgDec, payload.length, plainBuffer);
@@ -1122,13 +932,10 @@ public final class WsBypassCore {
                         if (outputLength > 0) {
                             out.write(clientBuffer, 0, outputLength);
                             out.flush();
-                            if (downBytes[0] <= payload.length) {
-                                bridgeLog("bridge: first relay->client bytes forwarded, tunnel is live");
-                            }
                             markBridgeOk(generation);
                         }
                     }
-                } catch (Throwable t) { bridgeLog("bridge down-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage() + " (down=" + downBytes[0] + "B)"); }
+                } catch (Throwable t) { dbg("bridge down-thread end: " + t.getClass().getSimpleName() + ": " + t.getMessage()); }
                 done.set(true);
             }
         }, "wsbypass-ws-down");
@@ -1142,9 +949,9 @@ public final class WsBypassCore {
         try {
             while (!done.get() && (up.isAlive() || down.isAlive())) {
                 Thread.sleep(50);
-                if (System.currentTimeMillis() >= nextLog) {
+                if (DEBUG && System.currentTimeMillis() >= nextLog) {
                     int pend = splitter == null ? 0 : splitter.pendingBytes();
-                    bridgeLog("bridge ALIVE dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
+                    dbg("bridge ALIVE dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
                             + "s upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B splitPend=" + pend
                             + "B down=" + downBytes[0] + "B"
                             + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP STUCK (read>>sent)" : ""));
@@ -1153,11 +960,10 @@ public final class WsBypassCore {
             }
         } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
         done.set(true);
-        bridgeLog("bridge CLOSED dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
+        dbg("bridge CLOSED dur=" + ((System.currentTimeMillis() - startMs) / 1000.0)
                 + "s upRead=" + upBytes[0] + "B upSent=" + upSent[0] + "B down=" + downBytes[0] + "B"
                 + (downBytes[0] == 0 ? "  <-- NO DATA FROM DC" : "")
-                + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP UNSENT (splitter held bytes)" : "")
-                + (upBytes[0] == 0 ? "  <-- CLIENT SENT NOTHING" : ""));
+                + (upBytes[0] - upSent[0] > 1024 ? "  <-- UP UNSENT (splitter held bytes)" : ""));
         try { ws.close(); } catch (Throwable ignored) {}
         closeQuietly(client);
         try { up.join(500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
@@ -1189,7 +995,7 @@ public final class WsBypassCore {
             int next = (v == null ? 0 : v) + 1;
             int expCap = Math.max(0, Math.min(next - 1, 4));
             double backoff = WS_FAIL_COOLDOWN_SEC * (1L << expCap);
-            if (backoff > WS_FAIL_COOLDOWN_CAP_SEC) backoff = WS_FAIL_COOLDOWN_CAP_SEC;
+            if (backoff > WS_FAIL_COOLDOWN_MAX_SEC) backoff = WS_FAIL_COOLDOWN_MAX_SEC;
             backoff *= java.util.concurrent.ThreadLocalRandom.current().nextDouble(0.85, 1.16);
             long deadline = nowElapsedMs() + (long) (backoff * 1000.0);
             failCount.put(dcKey, next);
@@ -1225,13 +1031,6 @@ public final class WsBypassCore {
         }
     }
 
-    private long relayBackoffLeftMs(String host) {
-        synchronized (cfgLock) {
-            Long until = relayFailUntilMs.get(host);
-            return until == null ? 0L : Math.max(0L, until - nowElapsedMs());
-        }
-    }
-
     private boolean isRelayInBackoff(String host) {
         synchronized (cfgLock) {
             Long until = relayFailUntilMs.get(host);
@@ -1256,44 +1055,8 @@ public final class WsBypassCore {
         }
     }
 
-    /**
-     * Short backoff for a relay that answered but is momentarily overloaded
-     * (503/429). The normal failure path escalates to 15s and up, which is
-     * right for a host that is actually down but far too long for "busy right
-     * now" -- it kept the only working relay parked while a healthy one was
-     * being retried.
-     */
-    private void relayOverloadRecord(String host) {
+    private void relayFailClear(String host) {
         synchronized (cfgLock) {
-            relayFailCount.put(host, 0);
-            long until = nowElapsedMs() + (long) (WS_OVERLOAD_COOLDOWN_SEC * 1000L);
-            relayFailUntilMs.put(host, until);
-        }
-    }
-
-    /**
-     * Quarantine for a relay that refuses us outright (403).
-     *
-     * This used to call relayFailClear(), i.e. no backoff at all, on the
-     * assumption that 401/403 meant a stale credential that a fresh one would
-     * fix. But the credential is optional here -- the handshake succeeds with
-     * no credential at all -- so for a relay that refuses the client outright
-     * the effect was to keep hammering it: the same host was retried three
-     * times inside 400ms, burning the route budget and starving the relays
-     * that do answer.
-     *
-     * Park it for a while instead. If the operator later fixes that relay it
-     * comes back on its own once the quarantine expires.
-     */
-    private void relayRefusedRecord(String host) {
-        synchronized (cfgLock) {
-            relayFailUntilMs.put(host, nowElapsedMs() + WS_REFUSED_QUARANTINE_MS);
-            bridgeLog("relay " + host + " refused the client (403), parked for "
-                    + (WS_REFUSED_QUARANTINE_MS / 1000L) + "s");
-        }
-    }
-
-    private void relayFailClear(String host) {        synchronized (cfgLock) {
             relayFailUntilMs.remove(host);
             relayFailCount.remove(host);
         }
@@ -1438,5 +1201,3 @@ public final class WsBypassCore {
         return false;
     }
 }
-
-

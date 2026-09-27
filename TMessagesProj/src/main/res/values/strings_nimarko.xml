@@ -144,6 +144,9 @@
     <string name="NimarkoSectionCategories">Categories</string>
     <string name="NimarkoSectionChat">Chat</string>
     <string name="NimarkoSectionConnection">Connection</string>
+    <string name="NM_SettingsSectionConnection">Connection</string>
+    <string name="NM_WSB_StatusTitle">Connection status</string>
+    <string name="NM_WSB_TapRetry">Tap to retry</string>
     <string name="NimarkoSectionContextMenu">Context menu</string>
     <string name="NimarkoSectionDoubleTap">Double-tap</string>
     <string name="NimarkoSectionDrawerItems">Drawer items</string>

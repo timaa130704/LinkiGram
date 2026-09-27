@@ -532,13 +532,6 @@ public final class VoipRelayAuth {
     }
 
     private static boolean registerConnection(HttpURLConnection connection, long generation) {
-        // See WsDns: HttpURLConnection resolves on the calling thread and was
-        // coming back empty on the device, so the VoIP credential request died
-        // with UnknownHostException exactly like the data one did.
-        try {
-            app.nimarkogram.messenger.wsbypass.WsDns.warm(connection.getURL().getHost());
-        } catch (Throwable ignored) {
-        }
         synchronized (authGenerationLock) {
             if (generation != authGeneration.get() || !isAuthAllowed()) {
                 try { connection.disconnect(); } catch (Throwable ignore) {}
