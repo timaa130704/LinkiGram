@@ -485,6 +485,13 @@ public final class ProxyApplier {
                     ed.putString("proxy_user", user);
                     ed.putString("proxy_pass", pass);
                     ed.putString("proxy_secret", sec);
+                    // Without proxy_type, a later restart rebuilds the proxy
+                    // from prefs with the wrong type and Telegram never routes
+                    // through it until the user toggles the proxy off and on
+                    // in settings (the toggle writes the type). That is the
+                    // "works only after toggling" bug.
+                    ed.putInt("proxy_type", org.telegram.proxy.ProxySettings.typeToInt(
+                            org.telegram.proxy.ProxySettings.Type.MTPROTO));
                     ed.putBoolean("proxy_enabled", true);
 
                     boolean callsEnabled = sec.length() == 0;
