@@ -377,21 +377,9 @@ export class Relay extends DurableObject {
   async restoreIfNeeded() {
     if (this.headerReady) return;
     const state = await this.loadState();
-    if (!state || !state.clientKey) return;
+    if (!state || !state.header) return;
     this.dc = state.dc || 2;
     this.echo = !!state.echo;
-    const clientKey = fromBase64(state.clientKey);
-    const clientIv = fromBase64(state.clientIv);
-    const dcKey = fromBase64(state.dcKey);
-    const dcIv = fromBase64(state.dcIv);
-    this.fromClient = await Counter.create(clientKey, clientIv);
-    this.toClient = await Counter.create(clientKey, clientIv);
-    this.toDc = await Counter.create(dcKey, dcIv);
-    this.fromDc = await Counter.create(dcKey, dcIv);
-    await this.skipTo(this.fromClient, state.upPos || 0);
-    await this.skipTo(this.toDc, state.upPos || 0);
-    await this.skipTo(this.fromDc, state.downPos || 0);
-    await this.skipTo(this.toClient, state.downPos || 0);
     this.upBytes = state.upBytes || 0;
     this.bytesDown = state.downBytes || 0;
     this.header = fromBase64(state.header);
@@ -399,21 +387,6 @@ export class Relay extends DurableObject {
     if (!this.echo) await this.openDc();
   }
 
-  /**
-   * Advance a cipher to a byte offset without keeping the output.
-   *
-   * A gap this large means the object was evicted for a while; the session is
-   * not worth reconstructing, so it is closed rather than replayed. A gap that
-   * big would also mean the TCP socket is long gone anyway.
-   */
-  async skipTo(counter, offset) {
-    if (!counter || counter.consumed <= offset) return;
-    if (offset - counter.consumed > MAX_REPLAY_BYTES) {
-      this.close('cipher gap too large to replay');
-      return;
-    }
-    await counter.skip(offset - counter.consumed);
-  }
 
   async webSocketClose(socket, code, reason) {
     this.close('client closed: ' + reason);
@@ -438,38 +411,31 @@ export class Relay extends DurableObject {
         this.close('short header');
         return;
       }
-      // This is a proxy, not a pipe. The client and the DC each get their own
-      // obfuscated2 session with its own key and IV, and the relay translates
-      // between them: four cipher states, not two.
+      // The relay is a pipe, not a proxy, and it holds no keys at all.
       //
-      // Reusing the client's key and IV towards the DC gets the tunnel up but
-      // never a byte back, because the client's header describes the local
-      // connection rather than being a DC-side handshake.
-      const clientKey = payload.slice(KEY_OFF, KEY_OFF + KEY_LEN);
-      const clientIv = payload.slice(IV_OFF, IV_OFF + IV_LEN);
-
-      const dcSide = await makeDcHeader(this.dc);
-
-      this.fromClient = await Counter.create(clientKey, clientIv);
-      this.toDc = await Counter.create(dcSide.key, dcSide.iv);
-      this.fromDc = await Counter.create(dcSide.key, dcSide.iv);
-      this.toClient = await Counter.create(clientKey, clientIv);
-
+      // The client picks the key and IV, puts them in the header it sends, and
+      // encrypts the whole stream with them. The DC derives the same key and IV
+      // from the same header. So forwarding the header and then the bytes
+      // verbatim lines the two up for free -- there is nothing for a middleman
+      // to translate.
+      //
+      // Giving each side its own session, with the relay decrypting one and
+      // re-encrypting the other, is what the last few attempts did. That needs
+      // four cipher states and a header the DC accepts, and it produced a
+      // five byte reply: 01 6c fe ff ff, then a close. The pipe is both simpler
+      // and the design the client is actually built for -- its own
+      // CryptoCtx derives tgEnc and tgDec from relayInit and skips 64 bytes,
+      // which only makes sense if the other end derives them from the same
+      // header.
+      this.header = payload.slice(0, INIT_LEN);
       this.upBytes = 0;
       this.bytesDown = 0;
-      this.header = dcSide.header;
       this.headerReady = true;
 
       await this.saveState({
         dc: this.dc,
         echo: this.echo,
-        clientKey: toBase64(clientKey),
-        clientIv: toBase64(clientIv),
-        dcKey: toBase64(dcSide.key),
-        dcIv: toBase64(dcSide.iv),
-        header: toBase64(dcSide.header),
-        upPos: 0,
-        downPos: 0,
+        header: toBase64(this.header),
         upBytes: 0,
         downBytes: 0,
       });
@@ -479,27 +445,23 @@ export class Relay extends DurableObject {
     }
 
     if (this.echo) {
-      // No DC involved: reflect the payload back under the client's own cipher.
-      const back = await this.toClient.apply(await this.fromClient.apply(payload));
-      this.bytesDown += back.length;
-      await this.client.send(back);
+      // No DC involved: reflect the payload so the client-facing half can be
+      // checked on its own.
+      this.bytesDown += payload.length;
+      await this.client.send(payload);
       await this.persistCounters();
       return;
     }
 
     if (!this.writer) return;
-    const plain = await this.fromClient.apply(payload);
-    const cipherText = await this.toDc.apply(plain);
-    this.upBytes = (this.upBytes || 0) + cipherText.length;
-    await this.writer.write(cipherText);
+    this.upBytes = (this.upBytes || 0) + payload.length;
+    await this.writer.write(payload);
     await this.persistCounters();
   }
 
-  /** Counters are written after each message so a woken object can catch up. */
+  /** Byte counters are written after each message so a woken object catches up. */
   async persistCounters() {
     await this.saveState({
-      upPos: this.toDc ? this.toDc.consumed : 0,
-      downPos: this.toClient ? this.toClient.consumed : 0,
       upBytes: this.upBytes || 0,
       downBytes: this.bytesDown || 0,
     });
@@ -552,10 +514,8 @@ export class Relay extends DurableObject {
           first = false;
           console.log('relay: first from DC', value.length, 'bytes:', hex(value.subarray(0, 24)));
         }
-        const plain = await this.fromDc.apply(value);
-        this.bytesDown += plain.length;
-        const cipherText = await this.toClient.apply(plain);
-        await this.client.send(cipherText);
+        this.bytesDown += value.length;
+        await this.client.send(value);
         await this.persistCounters();
       }
     };
