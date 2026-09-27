@@ -94,7 +94,7 @@ public final class WsBypassCore {
         }
     }
 
-    static volatile boolean DEBUG = true; // TEMP-DIAG, revert before merge   
+    static volatile boolean DEBUG = false;   
     static final java.util.concurrent.atomic.AtomicInteger CONN_SEQ = new java.util.concurrent.atomic.AtomicInteger();
 
     static void decodeMtproto(int connId, String dir, byte[] plain) {
