@@ -170,7 +170,7 @@ async function dcTest(value) {
 
   let socket;
   try {
-    socket = connect({ hostname: host, port: 443 });
+    socket = connect({ hostname: host, port: 443, secureTransport: 'off' });
   } catch (err) {
     return { dc, host, connectThrew: describe(err), ms: Date.now() - started };
   }
@@ -509,16 +509,25 @@ export class Relay extends DurableObject {
     const host = DC_IPS[this.dc];
     let socket;
     try {
-      socket = connect({ hostname: host, port: 443 });
+      socket = connect({ hostname: host, port: 443, secureTransport: 'off' });
     } catch (err) {
       console.log('relay: connect threw', describe(err));
       this.close('dc connect failed: ' + describe(err));
       return;
     }
 
+    // The DC side is already TLS: connect() with secureTransport 'on' does the
+    // handshake as part of the connect, and there is no startTls() call. Using
+    // 'starttls' plus startTls() is rejected by the runtime here -- it insists
+    // the option was not set even though it was.
+    //
+    // No expectedServerHostname: the DC is reached by IP and its certificate
+    // names domains, so pinning one would fail. What protects this leg is that
+    // the payload it carries is already end-to-end encrypted with the key from
+    // the client's own handshake, which this relay never sees in the clear.
+
     this.tcp = socket;
     this.writer = socket.writable.getWriter();
-    console.log('relay: dc socket opening to', this.dc, host);
 
     // Hand the DC its header before any payload.
     if (this.header) {
@@ -528,6 +537,7 @@ export class Relay extends DurableObject {
 
     const pump = async () => {
       const reader = socket.readable.getReader();
+      let first = true;
       for (;;) {
         const { value, done } = await reader.read();
         if (done) {
@@ -535,6 +545,13 @@ export class Relay extends DurableObject {
           break;
         }
         this.touch();
+        // The first thing the DC says is the only diagnostic that matters here:
+        // a few bytes back means it accepted the header, and what those bytes
+        // are says whether it is speaking our protocol at all.
+        if (first) {
+          first = false;
+          console.log('relay: first from DC', value.length, 'bytes:', hex(value.subarray(0, 24)));
+        }
         const plain = await this.fromDc.apply(value);
         this.bytesDown += plain.length;
         const cipherText = await this.toClient.apply(plain);
