@@ -6968,6 +6968,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         // only restarts a core it already owns, so without this the relay stays down
         // after the process was killed while backgrounded.
         try { app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().onAppResume(); } catch (Throwable ignore) {}
+        try { app.nimarkogram.messenger.utils.LinkiReleasesAutoJoin.ensureAsync(); } catch (Throwable ignore) {}
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();
             onResumeStaticCallback = null;

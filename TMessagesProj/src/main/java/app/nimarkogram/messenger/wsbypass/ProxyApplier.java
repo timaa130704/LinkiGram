@@ -318,7 +318,22 @@ public final class ProxyApplier {
         
         boolean applied = true;
         try {
-            ConnectionsManager.setProxySettings(enable, host, port, user, pass, secret);
+            // Do NOT use the 6-arg overload: it builds ProxySettings without a
+            // type, the builder defaults to SOCKS5, and SOCKS5 hardcodes the
+            // secret to "". The native layer then gets an empty secret, the
+            // relay handshake never matches, and no bridge ever forms -- while
+            // the UI toggle uses the object overload with the real type and
+            // works. That is the "only works after toggling" bug.
+            org.telegram.proxy.ProxySettings settings =
+                    org.telegram.proxy.ProxySettings.builder()
+                            .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
+                            .setAddress(host)
+                            .setPort(port)
+                            .setUser(user)
+                            .setPassword(pass)
+                            .setSecret(secret)
+                            .build();
+            ConnectionsManager.setProxySettings(enable, settings);
         } catch (Throwable t) {
             FileLog.e(t);
             applied = false;
