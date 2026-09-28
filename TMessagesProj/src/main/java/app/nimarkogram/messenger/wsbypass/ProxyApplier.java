@@ -296,7 +296,7 @@ public final class ProxyApplier {
      * authorized yet. The local listener is a SOCKS bridge owned by WsBypassCore; when the
      * relay bridge is still starting (or dead) every MTProto connection routed through it
      * simply never completes, so auth.sendCode never returns and never reports an error.
-     * That leaves the login screen spinning forever on "номер введён, дальше не идёт".
+     * That leaves the login screen spinning forever on "РЅРѕРјРµСЂ РІРІРµРґС‘РЅ, РґР°Р»СЊС€Рµ РЅРµ РёРґС‘С‚".
      *
      * LoginActivity sends auth requests with RequestFlagEnableUnauthorized, before any
      * account is client-activated, so gate the whole apply() path on the same condition.
@@ -324,9 +324,9 @@ public final class ProxyApplier {
             // relay handshake never matches, and no bridge ever forms -- while
             // the UI toggle uses the object overload with the real type and
             // works. That is the "only works after toggling" bug.
-            org.telegram.proxy.ProxySettings settings =
-                    org.telegram.proxy.ProxySettings.builder()
-                            .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
+            org.telegram.utils.proxy.ProxySettings settings =
+                    org.telegram.utils.proxy.ProxySettings.builder()
+                            .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
                             .setAddress(host)
                             .setPort(port)
                             .setUser(user)
@@ -455,13 +455,13 @@ public final class ProxyApplier {
                             // which is the Builder's default. Building without an explicit
                             // MTPROTO type silently dropped the relay secret, so the proxy was
                             // created with an empty one and isApplyVerified() always failed.
-                            localProxy.settings = org.telegram.proxy.ProxySettings.builder()
+                            localProxy.settings = org.telegram.utils.proxy.ProxySettings.builder()
                                     .setAddress(host)
                                     .setPort(port)
                                     .setUser(user)
                                     .setPassword(pass)
                                     .setSecret(sec)
-                                    .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
+                                    .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
                                     .build();
                             localProxy.address = host;
                             localProxy.port = port;
@@ -475,13 +475,13 @@ public final class ProxyApplier {
                             // Same reason as above: the 5-arg ProxyInfo constructor routes
                             // through the SOCKS5 default and loses the secret.
                             SharedConfig.ProxyInfo info = new SharedConfig.ProxyInfo(
-                                    org.telegram.proxy.ProxySettings.builder()
+                                    org.telegram.utils.proxy.ProxySettings.builder()
                                             .setAddress(host)
                                             .setPort(port)
                                             .setUser(user)
                                             .setPassword(pass)
                                             .setSecret(sec)
-                                            .setType(org.telegram.proxy.ProxySettings.Type.MTPROTO)
+                                            .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
                                             .build());
                             proxyObj = SharedConfig.addProxy(info);
                             if (proxyObj == null) proxyObj = info;
@@ -505,8 +505,8 @@ public final class ProxyApplier {
                     // through it until the user toggles the proxy off and on
                     // in settings (the toggle writes the type). That is the
                     // "works only after toggling" bug.
-                    ed.putInt("proxy_type", org.telegram.proxy.ProxySettings.typeToInt(
-                            org.telegram.proxy.ProxySettings.Type.MTPROTO));
+                    ed.putInt("proxy_type", org.telegram.utils.proxy.ProxySettings.typeToInt(
+                            org.telegram.utils.proxy.ProxySettings.Type.MTPROTO));
                     ed.putBoolean("proxy_enabled", true);
 
                     boolean callsEnabled = sec.length() == 0;
