@@ -597,6 +597,12 @@ public final class NimarkoConfig {
         getEditor().putBoolean("localPremiumEmojis", localPremiumEmojis).apply();
     }
 
+    public static boolean blockSponsoredAds = getPreferences().getBoolean("blockSponsoredAds", true);
+    public static void toggleBlockSponsoredAds() {
+        blockSponsoredAds = !blockSponsoredAds;
+        getEditor().putBoolean("blockSponsoredAds", blockSponsoredAds).apply();
+    }
+
     public static boolean deletedGiftsInject = getPreferences().getBoolean("deletedGiftsInject", true);
     public static void toggleDeletedGiftsInject() {
         deletedGiftsInject = !deletedGiftsInject;

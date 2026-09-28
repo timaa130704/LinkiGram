@@ -11929,6 +11929,8 @@
 <string name="NM_GEN_DeletedGifts_Desc">Re-injects hidden Star gifts into the catalog so you can still send them.</string>
 <string name="NM_GEN_LocalPremiumEmoji">Local premium emoji</string>
 <string name="NM_GEN_LocalPremiumEmoji_Desc">Send premium emoji without a Premium subscription.</string>
+<string name="NM_GEN_BlockAds">Block ads</string>
+<string name="NM_GEN_BlockAds_Desc">Hide sponsored messages in chats and channels.</string>
 <string name="NM_AP_IconReplacement_Solar">Solar Icons by @Design480</string>
 <string name="NM_FO_TabsHeader">Folder tabs</string>
 <string name="NM_FO_MiscHeader">Miscellaneous</string>
