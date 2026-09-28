@@ -168,15 +168,9 @@ public final class ProxySettings {
         final String proxyPassword = preferences.getString("proxy_pass", "");
         final String proxySecret = preferences.getString("proxy_secret", "");
         final int proxyPort = preferences.getInt("proxy_port", 1080);
-        ProxySettings.Type proxyType = ProxySettings.intToType(preferences.getInt("proxy_type", ProxySettings.typeToInt(TextUtils.isEmpty(proxySecret)
-            ? ProxySettings.Type.SOCKS5
-            : ProxySettings.Type.MTPROTO)));
-
-
-
-        if (proxyType != Type.WEB || (preferences.contains("proxy_port") && proxyPort > 0)) {
-            proxyType = TextUtils.isEmpty(proxySecret) ? Type.SOCKS5 : Type.MTPROTO;
-        }
+        final ProxySettings.Type proxyType = ProxySettings.intToType(preferences.getInt("proxy_type", ProxySettings.typeToInt(TextUtils.isEmpty(proxySecret)
+                ? ProxySettings.Type.SOCKS5
+                : ProxySettings.Type.MTPROTO)));
 
         return builder()
                 .setAddress(proxyAddress)
@@ -381,11 +375,11 @@ public final class ProxySettings {
         }
     }
 
-
-
-
-
-
+    /**
+     * Returns a canonical WEB proxy address in the form {@code host[/path]}.
+     * An invalid address is preserved so that it cannot silently fall back to
+     * a proxy at the root path; {@link #isValid()} will reject it.
+     */
     private static String normalizeWebAddress(String address) {
         if (TextUtils.isEmpty(address)) {
             return "";
@@ -479,7 +473,7 @@ public final class ProxySettings {
                 return null;
             }
 
-
+            // Reject padded and other non-canonical encodings of the same bytes.
             final String canonical = Base64.encodeToString(marked,
                     Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
             return canonical.equals(secret) ? decoded : null;

@@ -76,6 +76,8 @@
 
 -keep class io.nano.tex.** {*;}
 
+-keep class org.telegram.tgnet.** { *; }
+
 # JLatexMath: macro/atom classes are loaded reflectively by Class.forName
 -keep class org.scilab.forge.jlatexmath.** { *; }
 -keep class ru.noties.jlatexmath.** { *; }
@@ -84,5 +86,3 @@
 # Use -keep to explicitly keep any other classes shrinking would remove
 #-dontoptimize
 #-dontobfuscate
-
--keep class org.telegram.tgnet.** { *; }
