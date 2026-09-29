@@ -11,7 +11,7 @@ import android.view.HapticFeedbackConstants;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.core.view.ViewCompat;
 import app.nimarkogram.messenger.utils.ui.PopupUtils;
-import com.google.android.exoplayer2.util.Consumer;
+import androidx.media3.common.util.Consumer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.ToIntFunction;
@@ -34,8 +34,10 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.ShareAlert;
 import org.telegram.ui.Components.UItem;
+import org.telegram.ui.Components.IconBackgroundColors;
 import org.telegram.ui.Components.UniversalAdapter;
 import org.telegram.ui.Components.UniversalRecyclerView;
+import org.telegram.ui.SettingsActivity;
 
 public abstract class BasePreferencesActivity extends BaseFragment {
     protected LinearLayoutManager layoutManager;
@@ -240,5 +242,15 @@ public abstract class BasePreferencesActivity extends BaseFragment {
 
     public void showListDialog(UItem uItem, CharSequence[] charSequenceArr, String str, int i, PopupUtils.OnItemClickListener onItemClickListener) {
         showListDialog(uItem, charSequenceArr, null, str, i, onItemClickListener);
+    }
+
+    protected UItem asSettingsLink(int id, IconBackgroundColors colors, int icon, CharSequence title) {
+        return SettingsActivity.SettingCell.Factory.of(id, colors.top, colors.bottom, icon, title);
+    }
+
+    protected UItem asSettingsLink(int id, IconBackgroundColors colors, int icon,
+                                   CharSequence title, CharSequence subtitle) {
+        return SettingsActivity.SettingCell.Factory.of(
+                id, colors.top, colors.bottom, icon, title, subtitle, null);
     }
 }

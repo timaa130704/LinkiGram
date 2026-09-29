@@ -4,7 +4,6 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 
 import android.app.Activity;
 import android.app.DownloadManager;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -20,7 +19,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
-import android.os.LocaleList;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -28,16 +26,12 @@ import android.util.Pair;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
-import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.graphics.ColorUtils;
-
-import com.google.android.exoplayer2.util.MimeTypes;
 
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
@@ -50,36 +44,26 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
-import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.AnimatedTextView;
 import org.telegram.ui.Components.Bulletin;
-import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.CircularProgressDrawable;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LoadingSpan;
 import org.telegram.ui.Components.RLottieDrawable;
-import org.telegram.ui.GradientClip;
 import org.telegram.ui.LaunchActivity;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 public class BotDownloads {
 
@@ -105,12 +89,12 @@ public class BotDownloads {
     }
 
     private BotDownloads(Context context, int currentAccount, long botId) {
-        this.context = context.getApplicationContext();
+        this.context = context;
         this.currentAccount = currentAccount;
         this.botId = botId;
-        this.downloadManager = (DownloadManager) this.context.getSystemService(Context.DOWNLOAD_SERVICE);
+        this.downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
 
-        final SharedPreferences prefs = this.context.getSharedPreferences(PREF + currentAccount, Activity.MODE_PRIVATE);
+        final SharedPreferences prefs = context.getSharedPreferences(PREF + currentAccount, Activity.MODE_PRIVATE);
         final Set<String> jsons = prefs.getStringSet("" + botId, null);
         if (jsons != null) {
             for (String json : jsons) {
@@ -216,7 +200,6 @@ public class BotDownloads {
 
         public boolean resaved;
         public boolean shown;
-        private boolean progressQueryInFlight;
 
         public FileDownload(String url, String file_name) {
             this.url = url;
@@ -261,74 +244,45 @@ public class BotDownloads {
 
         private final Runnable updateProgressRunnable = this::updateProgress;
         private void updateProgress() {
-            if (done || cancelled || id == null || progressQueryInFlight)
+            if (done || cancelled)
                 return;
             AndroidUtilities.cancelRunOnUIThread(updateProgressRunnable);
             last_progress_time = System.currentTimeMillis();
-            progressQueryInFlight = true;
-            final long requestedId = id;
-            Utilities.globalQueue.postRunnable(() -> {
-                final int[] status = {0};
-                final long[] progress = {loaded_size, size};
-                final String[] localUri = {null};
-                final boolean[] found = {false};
-                Cursor cursor = null;
-                try {
-                    final DownloadManager.Query query = new DownloadManager.Query();
-                    query.setFilterById(requestedId);
-                    cursor = downloadManager.query(query);
-                    if (cursor != null && cursor.moveToFirst()) {
-                        found[0] = true;
-                        status[0] = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-                        progress[0] = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                        progress[1] = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                        if (status[0] == DownloadManager.STATUS_SUCCESSFUL) {
-                            localUri[0] = cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI));
+            final DownloadManager.Query query = new DownloadManager.Query();
+            query.setFilterById(id);
+            Cursor cursor = null;
+            try {
+                cursor = downloadManager.query(query);
+                if (cursor.moveToFirst()) {
+                    int status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                    if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                        String localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
+                        this.file = new File(Uri.parse(localUri).getPath());
+                        done = true;
+                        size = this.file.length();
+                        if (size <= 0) {
+                            cancel();
                         }
+                        save();
+                    } else if (status == DownloadManager.STATUS_FAILED) {
+                        cancel();
+                        return;
+                    } else {
+                        loaded_size = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                        size = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                        AndroidUtilities.runOnUIThread(updateProgressRunnable, 160L);
                     }
-                } catch (Exception e) {
-                    FileLog.e(e);
-                    status[0] = -1;
-                } finally {
-                    if (cursor != null) {
-                        cursor.close();
-                    }
-                }
-                AndroidUtilities.runOnUIThread(() -> applyProgressResult(requestedId, found[0], status[0], progress[0], progress[1], localUri[0]));
-            });
-        }
-
-        private void applyProgressResult(long requestedId, boolean found, int status, long loaded, long total, String localUri) {
-            progressQueryInFlight = false;
-            if (done || cancelled || id == null || id != requestedId) {
-                return;
-            }
-            last_progress_time = System.currentTimeMillis();
-            if (!found) {
-                if (status == -1) {
-                    AndroidUtilities.runOnUIThread(updateProgressRunnable, 500L);
                 } else {
-                    cancel();
+                    if (!done) {
+                        cancel();
+                    }
                 }
-                return;
-            }
-            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                final String path = TextUtils.isEmpty(localUri) ? null : Uri.parse(localUri).getPath();
-                file = TextUtils.isEmpty(path) ? null : new File(path);
-                done = file != null && file.exists();
-                size = done ? file.length() : 0;
-                if (!done || size <= 0) {
-                    cancel();
-                    return;
+            } catch (Exception e) {
+                FileLog.e(e);
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
                 }
-                save();
-            } else if (status == DownloadManager.STATUS_FAILED) {
-                cancel();
-                return;
-            } else {
-                loaded_size = loaded;
-                size = total;
-                AndroidUtilities.runOnUIThread(updateProgressRunnable, 500L);
             }
             postNotify();
         }
@@ -336,7 +290,7 @@ public class BotDownloads {
         public Pair<Long, Long> getProgress() {
             if (done) return new Pair<>(size, size);
             if (id == null || cancelled) return new Pair<>(loaded_size, size);
-            if (progressQueryInFlight || (System.currentTimeMillis() - last_progress_time) < 450L)
+            if ((System.currentTimeMillis() - last_progress_time) < 150L)
                 return new Pair<>(loaded_size, size);
             updateProgress();
             return new Pair<>(loaded_size, size);
@@ -423,7 +377,13 @@ public class BotDownloads {
     public static void showAlert(Context context, String url, String file_name, String botname, Utilities.Callback<Boolean> whenDone) {
         if (whenDone == null) return;
         showAlert(context, url, file_name, botname, whenDone, 0, "");
-
+//
+//        final AlertDialog progressDialog = new AlertDialog(context, AlertDialog.ALERT_TYPE_SPINNER);
+//        progressDialog.showDelayed(300);
+//        getMimeAndSize(url, (mime, size) -> {
+//            progressDialog.dismiss();
+//            showAlert(context, url, file_name, botname, whenDone, size, mime);
+//        });
     }
 
     public static AlertDialog showAlert(Context context, String url, String file_name, String botname, Utilities.Callback<Boolean> whenDone, final long size, final String mime) {
@@ -735,7 +695,7 @@ public class BotDownloads {
                 if (this.done) return;
                 this.done = true;
                 this.cancelled = cancelled;
-                doneDrawable = new RLottieDrawable(cancelled ? R.raw.error : R.raw.contact_check, cancelled ? "error" : "contact_check", dp(40), dp(40));
+                doneDrawable = new RLottieDrawable(cancelled ? R.raw.error : R.raw.contact_check, dp(40), dp(40));
                 doneDrawable.setMasterParent(view);
                 doneDrawable.setAllowDecodeSingleFrame(true);
                 doneDrawable.start();
@@ -782,7 +742,16 @@ public class BotDownloads {
                         segment1 += CircularProgressDrawable.interpolator.getInterpolation((t - i * 1350) / 667f) * 250;
                         segment0 += CircularProgressDrawable.interpolator.getInterpolation((t - (667 + i * 1350)) / 667f) * 250;
                     }
-
+//
+////                    float offset = 0, length = 0;
+////                    if (hasPercent < 1) {
+////                        offset += (-90 + -((-1.0f + ((System.currentTimeMillis() - start) % 600) / 600.0f) * 360)) * (1.0f - hasPercent);
+////                        length += -90.0f * (1.0f - hasPercent);
+////                    }
+////                    if (hasPercent > 0) {
+////                        offset += -90 * hasPercent;
+////                        length += -animatedProgress.set(progress) * 360 * hasPercent;
+////                    }
                     strokePaint.setColor(Theme.multAlpha(0xFFFFFFFF, 1.0f * (1.0f - done)));
                     canvas.drawArc(rect, -90 - segment0, -360 * Math.max(.02f, animatedProgress.set(progress)) * hasPercent, false, strokePaint);
                     invalidateSelf();
@@ -852,7 +821,8 @@ public class BotDownloads {
             }
 
             public void setArrow(int rightMargin) {
-
+//                if (arrow == (rightMargin >= 0) && (!arrow || arrowMargin == rightMargin))
+//                    return;
                 arrow = rightMargin >= 0;
                 if (arrow) {
                     arrowMargin = rightMargin;

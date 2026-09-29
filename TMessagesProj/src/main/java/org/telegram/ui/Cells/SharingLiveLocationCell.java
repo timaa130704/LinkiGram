@@ -91,7 +91,7 @@ public class SharingLiveLocationCell extends FrameLayout {
         this.padding = padding;
 
         avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(42));
+        avatarImageView.setRoundRadius(dp(21));
 
         avatarDrawable = new AvatarDrawable();
 
@@ -229,6 +229,7 @@ public class SharingLiveLocationCell extends FrameLayout {
         }
         return lastName;
     }
+
 
     public void setDialog(MessageObject messageObject, Location userLocation, boolean userLocationDenied) {
         if (messageObject != null && messageObject.messageOwner != null && messageObject.messageOwner.local_id == -1) {

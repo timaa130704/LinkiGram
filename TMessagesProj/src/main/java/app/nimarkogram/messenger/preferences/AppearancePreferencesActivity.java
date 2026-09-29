@@ -43,6 +43,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     private final int iconPackRow = 4;
     private final int oneUISwitchesRow = 5;
+    private final int iconStyleRow = 6;
     private final int disableDividersRow = 6;
     private final int glareOnElementsRow = 10;
     private final int forumAvatarsRow = 12;
@@ -83,6 +84,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
+        items.add(UItem.asButton(iconStyleRow, getString(R.string.NM_SettingsIconStyle), getIconStyleValueText()));
         items.add(SettingsHelper.asSwitchCG(disableDividersRow, getString(R.string.AP_DisableDividers))
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.disableDividers)
         );
@@ -222,6 +224,20 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                         
                         showRestartBulletin();
                     });
+        } else if (item.id == iconStyleRow) {
+            java.util.ArrayList<CharSequence> opts = new java.util.ArrayList<>();
+            opts.add(getString(R.string.NM_IconStyle_Colorful));
+            opts.add(getString(R.string.NM_IconStyle_Gray));
+            opts.add(getString(R.string.NM_IconStyle_Black));
+            opts.add(getString(R.string.NM_IconStyle_Light));
+            app.nimarkogram.messenger.preferences.helpers.PopupHelper.show(opts, getString(R.string.NM_SettingsIconStyle),
+                    app.nimarkogram.messenger.NimarkoSettingsIconStyle.get(), getContext(), i -> {
+                        app.nimarkogram.messenger.NimarkoSettingsIconStyle.set(i);
+                        SettingsHelper.updateButtonValue(view, getIconStyleValueText());
+                        if (getParentLayout() != null) {
+                            getParentLayout().rebuildAllFragmentViews(false, false);
+                        }
+                    });
         } else if (item.id == disableDividersRow) {
             NimarkoConfig.toggleDisableDividers();
             updateCheckState(view, app.nimarkogram.messenger.NimarkoConfig.disableDividers);
@@ -314,6 +330,15 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             case NimarkoConfig.ICON_REPLACE_LIQUID_GLASS -> getString(R.string.NM_IconPack_LiquidTitle);
             case NimarkoConfig.ICON_REPLACE_PLUMPY -> getString(R.string.NM_IconPack_PlumpyTitle);
             default -> getString(R.string.Default);
+        };
+    }
+
+    private String getIconStyleValueText() {
+        return switch (app.nimarkogram.messenger.NimarkoSettingsIconStyle.get()) {
+            case app.nimarkogram.messenger.NimarkoSettingsIconStyle.GRAY -> getString(R.string.NM_IconStyle_Gray);
+            case app.nimarkogram.messenger.NimarkoSettingsIconStyle.BLACK -> getString(R.string.NM_IconStyle_Black);
+            case app.nimarkogram.messenger.NimarkoSettingsIconStyle.LIGHT -> getString(R.string.NM_IconStyle_Light);
+            default -> getString(R.string.NM_IconStyle_Colorful);
         };
     }
 

@@ -185,7 +185,8 @@ public class DownloadController extends BaseController implements NotificationCe
                     mask[a] &=~ AUTODOWNLOAD_TYPE_DOCUMENT;
                 }
             }
-            
+            //TODO stories
+            // fill flag from server
             preloadStories = true;
         }
 
@@ -606,7 +607,6 @@ public class DownloadController extends BaseController implements NotificationCe
     }
 
     public boolean canDownloadMedia(MessageObject messageObject) {
-        if (!nimarkoCanDownload(null, messageObject)) return false;
         if (messageObject.type == MessageObject.TYPE_STORY) {
             if (!SharedConfig.isAutoplayVideo()) return false;
             TLRPC.TL_messageMediaStory mediaStory = (TLRPC.TL_messageMediaStory) MessageObject.getMedia(messageObject);
@@ -650,7 +650,6 @@ public class DownloadController extends BaseController implements NotificationCe
     }
 
     public int canDownloadMediaType(MessageObject messageObject) {
-        if (!nimarkoCanDownload(null, messageObject)) return 0;
         if (messageObject.type == MessageObject.TYPE_STORY) {
             if (!SharedConfig.isAutoplayVideo()) return 0;
             TLRPC.TL_messageMediaStory mediaStory = (TLRPC.TL_messageMediaStory) MessageObject.getMedia(messageObject);
@@ -669,7 +668,6 @@ public class DownloadController extends BaseController implements NotificationCe
     }
 
     public int canDownloadMediaType(MessageObject messageObject, long overrideSize) {
-        if (!nimarkoCanDownload(null, messageObject)) return 0;
         if (messageObject.type == MessageObject.TYPE_STORY) {
             if (!SharedConfig.isAutoplayVideo()) return 0;
             TLRPC.TL_messageMediaStory mediaStory = (TLRPC.TL_messageMediaStory) MessageObject.getMedia(messageObject);
@@ -782,7 +780,6 @@ public class DownloadController extends BaseController implements NotificationCe
         if (message.messageOwner.media instanceof TLRPC.TL_messageMediaStory) {
             return canPreloadStories() ? 2 : 0;
         }
-        if (!nimarkoCanDownload(null, message)) return 0;
         TLRPC.Message msg = message.messageOwner;
         int type;
         boolean isVideo;
@@ -865,7 +862,6 @@ public class DownloadController extends BaseController implements NotificationCe
         if (message == null || message.media instanceof TLRPC.TL_messageMediaStory) {
             return canPreloadStories() ? 2 : 0;
         }
-        if (!nimarkoCanDownload(message, null)) return 0;
         int type;
         boolean isVideo;
         if ((isVideo = MessageObject.isVideoMessage(message)) || MessageObject.isGifMessage(message) || MessageObject.isRoundVideoMessage(message) || MessageObject.isGameMessage(message)) {
@@ -947,7 +943,6 @@ public class DownloadController extends BaseController implements NotificationCe
         if (message == null || media instanceof TLRPC.TL_messageMediaStory) {
             return canPreloadStories() ? 2 : 0;
         }
-        if (!nimarkoCanDownload(message, null)) return 0;
         int type;
         boolean isVideo = false;
         if (MessageObject.isVideoDocument(media.document)) {
@@ -1213,7 +1208,7 @@ public class DownloadController extends BaseController implements NotificationCe
             downloadQueueKeys.remove(fileName);
             downloadQueuePairs.remove(new Pair<>(downloadObject.id, downloadObject.type));
             if (state == 0 || state == 2) {
-                getMessagesStorage().removeFromDownloadQueue(downloadObject.id, downloadObject.type, false  );
+                getMessagesStorage().removeFromDownloadQueue(downloadObject.id, downloadObject.type, false /*state != 0*/);
             }
             if (downloadObject.type == AUTODOWNLOAD_TYPE_PHOTO) {
                 photoDownloadQueue.remove(downloadObject);
@@ -1443,6 +1438,7 @@ public class DownloadController extends BaseController implements NotificationCe
         return Math.min(1f, progressSizes[0] / (float) progressSizes[1]);
     }
 
+
     public void startDownloadFile(TLRPC.Document document, MessageObject parentObject) {
         if (parentObject == null) {
             return;
@@ -1493,8 +1489,8 @@ public class DownloadController extends BaseController implements NotificationCe
                         state.bindByteBuffer(1, data);
                         state.bindInteger(2, parentObject.getDocument().dc_id);
                         state.bindLong(3, parentObject.getDocument().id);
-                        state.bindLong(4, System.currentTimeMillis());
                         state.bindInteger(4, 0);
+                        state.bindLong(5, System.currentTimeMillis());
 
                         state.step();
                         state.dispose();
@@ -1540,46 +1536,14 @@ public class DownloadController extends BaseController implements NotificationCe
                     try {
                         String req = String.format(Locale.ENGLISH, "UPDATE downloading_documents SET state = 1, date = %d WHERE hash = %d AND id = %d", System.currentTimeMillis(), parentObject.getDocument().dc_id,  parentObject.getDocument().id);
                         getMessagesStorage().getDatabase().executeFast(req).stepThis().dispose();
-                        SQLiteCursor cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT COUNT(*) FROM downloading_documents WHERE state = 1");
-                        int count = 0;
-                        if (cursor.next()) {
-                            count = cursor.intValue(0);
-                        }
-                        cursor.dispose();
-
-                        cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT state FROM downloading_documents WHERE state = 1");
-                        if (cursor.next()) {
-                            int state = cursor.intValue(0);
-                        }
-                        cursor.dispose();
-
-                        int limitDownloadsDocuments = 100;
-                        if (count > limitDownloadsDocuments) {
-                            cursor = getMessagesStorage().getDatabase().queryFinalized("SELECT hash, id FROM downloading_documents WHERE state = 1 ORDER BY date ASC LIMIT " + (limitDownloadsDocuments - count));
-                            ArrayList<DownloadingDocumentEntry> entriesToRemove = new ArrayList<>();
-                            while (cursor.next()) {
-                                DownloadingDocumentEntry entry = new DownloadingDocumentEntry();
-                                entry.hash = cursor.intValue(0);
-                                entry.id = cursor.longValue(1);
-                                entriesToRemove.add(entry);
-                            }
-                            cursor.dispose();
-
-                            SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("DELETE FROM downloading_documents WHERE hash = ? AND id = ?");
-                            for (int i = 0; i < entriesToRemove.size(); i++) {
-                                state.requery();
-                                state.bindInteger(1, entriesToRemove.get(i).hash);
-                                state.bindLong(2, entriesToRemove.get(i).id);
-                                state.step();
-                            }
-                            state.dispose();
-                        }
+                        getMessagesStorage().getDatabase().executeFast("DELETE FROM downloading_documents WHERE state = 1 AND rowid NOT IN (SELECT rowid FROM downloading_documents WHERE state = 1 ORDER BY date DESC LIMIT 100)").stepThis().dispose();
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
                 });
             }
         });
+
 
     }
 
@@ -1653,17 +1617,13 @@ public class DownloadController extends BaseController implements NotificationCe
         return unviewedDownloads.size() > 0;
     }
 
-    private class DownloadingDocumentEntry {
-        long id;
-        int hash;
-    }
-
     public void loadDownloadingFiles() {
         getMessagesStorage().getStorageQueue().postRunnable(() -> {
             ArrayList<MessageObject> downloadingMessages = new ArrayList<>();
             ArrayList<MessageObject> recentlyDownloadedMessages = new ArrayList<>();
             ArrayList<MessageObject> newMessages = new ArrayList<>();
             try {
+                getMessagesStorage().getDatabase().executeFast("DELETE FROM downloading_documents WHERE state = 1 AND rowid NOT IN (SELECT rowid FROM downloading_documents WHERE state = 1 ORDER BY date DESC LIMIT 100)").stepThis().dispose();
                 SQLiteCursor cursor2 = getMessagesStorage().getDatabase().queryFinalized("SELECT data, state FROM downloading_documents ORDER BY date DESC");
                 while (cursor2.next()) {
                     NativeByteBuffer data = cursor2.byteBufferValue(0);
@@ -1809,16 +1769,5 @@ public class DownloadController extends BaseController implements NotificationCe
             preset = getCurrentMobilePreset();
         }
         return preset.preloadStories;
-    }
-
-    private boolean nimarkoCanDownload(TLRPC.Message message, MessageObject messageObject) {
-        if (app.nimarkogram.messenger.NimarkoConfig.enableMsgFilters) {
-            if (messageObject == null) {
-                if (message == null) return true;
-                messageObject = new MessageObject(currentAccount, message, false, false);
-            }
-            return !messageObject.shouldBlockMessage();
-        }
-        return true;
     }
 }

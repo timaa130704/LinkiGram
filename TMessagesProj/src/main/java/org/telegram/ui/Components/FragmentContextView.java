@@ -228,6 +228,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             NotificationCenter.messagesDidLoad
     });
 
+
     private boolean checkCallAfterAnimation;
     private boolean checkLiveStoryAfterAnimation;
     private boolean checkPlayerAfterAnimation;
@@ -557,7 +558,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         avatars.setVisibility(GONE);
         addView(avatars, LayoutHelper.createFrame(108, 36, Gravity.LEFT | Gravity.TOP));
 
-        muteDrawable = new RLottieDrawable(R.raw.voice_muted, "" + R.raw.voice_muted, dp(16), dp(20), true, null);
+        muteDrawable = new RLottieDrawable(R.raw.voice_muted, dp(16), dp(20), true, null);
 
         muteButton = new RLottieImageView(context) {
             boolean scheduled;
@@ -581,6 +582,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 capsuleBlobDrawable.updateState(true);
             };
 
+
             private final Runnable pressRunnable = () -> {
                 if (!scheduled || VoIPService.getSharedInstance() == null) {
                     return;
@@ -590,13 +592,11 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 isMuted = false;
 
                 AndroidUtilities.runOnUIThread(toggleMicRunnable, 90);
-                
-                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                    try {
-                        muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                    } catch (Exception ignore) {}
-                }
+                try {
+                    muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                } catch (Exception ignore) {}
             };
+
 
             @Override
             public boolean onTouchEvent(MotionEvent event) {
@@ -688,12 +688,9 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             muteButton.playAnimation();
             Theme.getFragmentContextViewWavesDrawable().updateState(true);
             capsuleBlobDrawable.updateState(true);
-            
-            if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                try {
-                    muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                } catch (Exception ignore) {}
-            }
+            try {
+                muteButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            } catch (Exception ignore) {}
         });
 
         closeButton = new ImageView(context);
@@ -1395,32 +1392,15 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             AndroidUtilities.cancelRunOnUIThread(updateScheduleTimeRunnable);
             scheduleRunnableScheduled = false;
         }
-        
-        AndroidUtilities.cancelRunOnUIThread(checkLocationRunnable);
         visible = false;
         notificationsLocker.unlock();
         topPadding = 0;
-        if (isLocation) {
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.liveLocationsChanged);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.liveLocationsCacheChanged);
-        } else {
+
+        removeObservers();
+        if (!isLocation) {
             for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingDidReset);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingDidStart);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.groupCallUpdated);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.groupCallTypingsUpdated);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.historyImportProgressChanged);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.liveStoryUpdated);
-                NotificationCenter.getInstance(a).removeObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
                 GroupCallMessagesController.getInstance(a).unsubscribeFromCallMessages(0, this);
             }
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingSpeedChanged);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didStartedCall);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didEndCall);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.webRtcSpeakerAmplitudeEvent);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.webRtcMicAmplitudeEvent);
-            NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.groupCallVisibilityChanged);
         }
 
         if (currentStyle == STYLE_ACTIVE_GROUP_CALL || currentStyle == STYLE_CONNECTING_GROUP_CALL) {
@@ -1433,31 +1413,57 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         wasDraw = false;
     }
 
+    private final NotificationCenter.ObserversGroup[] observersGroup = new NotificationCenter.ObserversGroup[UserConfig.MAX_ACCOUNT_COUNT];
+    private NotificationCenter.ObserversGroup globalObserversGroup;
+
+    private void removeObservers() {
+        if (globalObserversGroup != null) {
+            globalObserversGroup.removeAllObservers();
+            globalObserversGroup = null;
+        }
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            if (observersGroup[a] != null) {
+                observersGroup[a].removeAllObservers();
+                observersGroup[a] = null;
+            }
+        }
+    }
+
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        removeObservers();
+
         if (isLocation) {
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.liveLocationsChanged);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.liveLocationsCacheChanged);
+            globalObserversGroup = NotificationCenter.getGlobalInstance()
+                .createObserversGroup(this)
+                .add(NotificationCenter.liveLocationsChanged)
+                .add(NotificationCenter.liveLocationsCacheChanged);
             checkLiveLocation(true);
         } else {
             for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.messagePlayingDidReset);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.messagePlayingDidStart);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.groupCallUpdated);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.groupCallTypingsUpdated);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.historyImportProgressChanged);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.liveStoryUpdated);
-                NotificationCenter.getInstance(a).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
+                observersGroup[a] = NotificationCenter.getInstance(a)
+                    .createObserversGroup(this)
+                    .add(NotificationCenter.messagePlayingDidReset)
+                    .add(NotificationCenter.messagePlayingPlayStateChanged)
+                    .add(NotificationCenter.messagePlayingDidStart)
+                    .add(NotificationCenter.groupCallUpdated)
+                    .add(NotificationCenter.groupCallTypingsUpdated)
+                    .add(NotificationCenter.historyImportProgressChanged)
+                    .add(NotificationCenter.liveStoryUpdated)
+                    .add(NotificationCenter.messagePlayingProgressDidChanged);
                 GroupCallMessagesController.getInstance(a).subscribeToCallMessages(0, this);
             }
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingSpeedChanged);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didStartedCall);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didEndCall);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.webRtcSpeakerAmplitudeEvent);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.webRtcMicAmplitudeEvent);
-            NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.groupCallVisibilityChanged);
+
+            globalObserversGroup = NotificationCenter.getGlobalInstance()
+                .createObserversGroup(this)
+                .add(NotificationCenter.messagePlayingSpeedChanged)
+                .add(NotificationCenter.didStartedCall)
+                .add(NotificationCenter.didEndCall)
+                .add(NotificationCenter.webRtcSpeakerAmplitudeEvent)
+                .add(NotificationCenter.webRtcMicAmplitudeEvent)
+                .add(NotificationCenter.groupCallVisibilityChanged);
 
             if (LivePlayer.recording != null) {
                 checkLiveStory(true);
@@ -2611,6 +2617,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         }
     }
 
+
     boolean collapseTransition;
     float extraHeight;
     float collapseProgress;
@@ -2637,7 +2644,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             return;
         }
         if ((currentStyle == STYLE_ACTIVE_GROUP_CALL || currentStyle == STYLE_CONNECTING_GROUP_CALL)) {
-
+//            boolean mutedByAdmin = GroupCallActivity.groupCallInstance == null && Theme.getFragmentContextViewWavesDrawable().getState() == FragmentContextViewWavesDrawable.MUTE_BUTTON_STATE_MUTED_BY_ADMIN;
             Theme.getFragmentContextViewWavesDrawable().updateState(wasDraw);
             capsuleBlobDrawable.updateState(wasDraw);
 
@@ -2786,6 +2793,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         req.subscribed = willBeNotified;
         toggleGroupCallStartSubscriptionReqId = fragment.getConnectionsManager().sendRequest(req, null);
 
+
         if (scheduleRunnableScheduled) {
             AndroidUtilities.cancelRunOnUIThread(updateScheduleTimeRunnable);
             scheduleRunnableScheduled = false;
@@ -2817,6 +2825,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             }
         }
     }
+
 
     private static class CallMessageItem implements Destroyable {
         private final ViewGroup parent;

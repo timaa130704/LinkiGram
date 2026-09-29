@@ -150,6 +150,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         linearLayout.setClickable(true);
         headerItem = UItem.asCustom(-1, linearLayout);
 
+
         slider = new StarsReactionsSheet.StarsSlider(context, resourcesProvider) {
             @Override
             public void onValueChanged(int value) {
@@ -187,6 +188,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         setSliderValues();
 
         linearLayout.addView(slider, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.NO_GRAVITY, 0, -40, 0, -48));
+
 
         LinearLayout horizontalLayout = new LinearLayout(context);
         horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -275,6 +277,8 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
             linearLayout.addView(topBidderCells[a], LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         }
 
+
+
         buttonView = new ButtonWithCounterView(context, resourcesProvider) {
             @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -296,6 +300,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
 
         });
 
+
         if (auction.auctionUserState.bid_amount > 0) {
             slider.setValue((int) auction.auctionUserState.bid_amount);
         } else {
@@ -303,6 +308,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         }
 
         updateTable(false);
+
 
         recyclerListView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         balanceCloud = new BalanceCloud(context, currentAccount, resourcesProvider);
@@ -313,7 +319,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         balanceCloud.setClickable(false);
         container.addView(balanceCloud, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 48, 0, 0));
         ScaleStateListAnimator.apply(balanceCloud);
-        balanceCloud.setOnClickListener(v -> new StarsIntroActivity.StarsOptionsSheet(context, currentAccount, resourcesProvider).show());
+        balanceCloud.setOnClickListener(v -> new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show());
 
         bulletinContainer = new FrameLayout(context);
         container.addView(bulletinContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 100, Gravity.TOP));
@@ -360,7 +366,13 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         long myBid = auction.getCurrentMyBid();
         long topBid = auction.getCurrentTopBid();
 
-        minimumBid = 50; 
+        /*if (myBid <= 0) {
+            minimumBid = (int) minBid * 3 / 4;
+        } else {
+            minimumBid = (int) Math.min(minBid, myBid) * 3 / 4;
+        }
+        */
+        minimumBid = 50; // Math.min(5000, minimumBid);
         maximumBid = topBid > 100_000 ? (((int) topBid * 3 / 2000) * 1000) : (topBid > 30000 ? 100000 : 50000);
 
         int[] steps_arr = new int[] { 50, 100, 500, 1_000, 2_000, 5_000, 7_500, 10_000, 25_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000, 10_000_000 };
@@ -535,6 +547,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         }
     }
 
+
     private void updateSelfBidderHeader(boolean animated) {
         boolean winning = false, outbid = false;
         GiftAuctionController.Auction.BidStatus bidStatus = auction.getBidStatus();
@@ -616,7 +629,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
                 final int myValue = slider.getValue();
                 final int minimumBid = (int) auction.getMinimumBid();
                 if (myValue < minimumBid) {
-                    
+                    // slider.setValueAnimated(minimumBid);
                     shakeView(buttonView);
                     BulletinFactory.of(container, resourcesProvider).createSimpleBulletin(
                         R.raw.info, replaceTags(formatPluralString("Gift2AuctionMinimumBidIncreased", minimumBid))
@@ -633,6 +646,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         this.auction = auction;
         updateTable(isOpenAnimationEnd);
     }
+
 
     private boolean isOpenAnimationEnd;
 
@@ -708,6 +722,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         }
     }
 
+
     private boolean bidIsPending;
 
     private void sendBid(int amount) {
@@ -721,7 +736,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         if (StarsController.getInstance(currentAccount).balanceAvailable()) {
             final long totalStars = StarsController.getInstance(currentAccount).getBalance(false);
             if (totalStars < starsForSend) {
-                new StarsIntroActivity.StarsNeededSheet(getContext(), currentAccount,
+                new StarsIntroActivity.StarsNeededSheet(getContext(),
                     resourcesProvider, starsForSend, StarsIntroActivity.StarsNeededSheet.TYPE_STAR_GIFT_BUY_RESALE, null, null, 0).show();
                 return;
             }
@@ -770,6 +785,7 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
         bulletinContainer.setTranslationY(Math.max(0, shadowDrawable.getBounds().top + containerView.getY() - bulletinContainer.getMeasuredHeight() + dp(10)));
     }
 
+
     private void showCustomPlaceABid() {
         final Context context = getContext();
         final Activity activity = AndroidUtilities.findActivity(context);
@@ -793,7 +809,8 @@ public class AuctionBidSheet extends BottomSheetWithRecyclerListView implements 
                 drawable.draw(canvas);
             }
         };
-        
+        //editText.lineYFix = true;
+
         editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
         editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
         editText.setHintColor(Theme.getColor(Theme.key_groupcreate_hintText, resourcesProvider));

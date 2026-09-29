@@ -171,7 +171,7 @@ public class ProxyCard extends BaseInfoCard implements NotificationCenter.Notifi
         final int acc = observedAccount;
         proxy.checking = true;
         proxy.proxyCheckPingId = ConnectionsManager.getInstance(acc).checkProxy(
-                proxy.address, proxy.port, proxy.username, proxy.password, proxy.secret,
+                proxy.settings,
                 time -> AndroidUtilities.runOnUIThread(() -> {
                     proxy.availableCheckTime = SystemClock.elapsedRealtime();
                     proxy.checking = false;

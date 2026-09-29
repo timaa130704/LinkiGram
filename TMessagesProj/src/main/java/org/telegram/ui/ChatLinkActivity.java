@@ -543,7 +543,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         avatarDrawable.setTextSize(dp(12));
 
         BackupImageView imageView = new BackupImageView(getParentActivity());
-        imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(40));
+        imageView.setRoundRadius(dp(20));
         frameLayout2.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
         TextView textView = new TextView(getParentActivity());
@@ -702,6 +702,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
             super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), heightMeasureSpec);
         }
     }
+
 
     private class SearchAdapter extends RecyclerListView.SelectionAdapter {
 
@@ -1070,6 +1071,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND | ThemeDescription.FLAG_CHECKTAG, null, null, null, null, Theme.key_windowBackgroundGray));
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND | ThemeDescription.FLAG_CHECKTAG, null, null, null, null, Theme.key_windowBackgroundWhite));
 
+//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));

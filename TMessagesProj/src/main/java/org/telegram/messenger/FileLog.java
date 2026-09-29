@@ -44,8 +44,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileLog {
     private OutputStreamWriter streamWriter = null;
@@ -53,32 +51,11 @@ public class FileLog {
     private FastDateFormat fileDateFormat = null;
     private DispatchQueue logQueue = null;
 
-    private static final int MAX_PENDING_WRITES = 4096;
-    private final AtomicInteger pendingWrites = new AtomicInteger();
-
-    private boolean postLog(Runnable r) {
-        if (logQueue == null || streamWriter == null) {
-            return false;
-        }
-        if (pendingWrites.get() > MAX_PENDING_WRITES) {
-            return false;
-        }
-        pendingWrites.incrementAndGet();
-        return logQueue.postRunnable(() -> {
-            try {
-                r.run();
-            } finally {
-                pendingWrites.decrementAndGet();
-            }
-        });
-    }
-
     private File currentFile = null;
     private File networkFile = null;
     private File tonlibFile = null;
-    private volatile boolean initied;
-    
-    private final AtomicBoolean initStarted = new AtomicBoolean();
+    private boolean initied;
+    private boolean initiing;
     public static boolean databaseIsMalformed = false;
 
     private OutputStreamWriter tlStreamWriter = null;
@@ -95,15 +72,19 @@ public class FileLog {
                 localInstance = Instance;
                 if (localInstance == null) {
                     Instance = localInstance = new FileLog();
+                    if (BuildVars.LOGS_ENABLED) {
+                        localInstance.init();
+                    }
                 }
             }
         }
         return localInstance;
     }
 
-    public FileLog() {
-        
+    private FileLog() {
+
     }
+
 
     private static Gson gson;
     private static ExclusionStrategy exclusionStrategy;
@@ -221,6 +202,7 @@ public class FileLog {
                 privateFields.add("FLAG_" + i);
             }
 
+            //exclude file loading
             excludeRequests = new HashSet<>();
             excludeRequests.add("TL_upload_getFile");
             excludeRequests.add("TL_upload_getWebFile");
@@ -315,22 +297,24 @@ public class FileLog {
         }
     }
 
-    public void init() {
+
+    private void init() {
         if (initied) {
             return;
         }
-        
-        if (!initStarted.compareAndSet(false, true)) {
-            return;
+        if (initiing) {
+            if (BuildConfig.DEBUG_PRIVATE_VERSION) {
+                throw new IllegalStateException("double init call");
+            }
         }
+        initiing = true;
+
         dateFormat = FastDateFormat.getInstance("dd_MM_yyyy_HH_mm_ss.SSS", Locale.US);
         fileDateFormat = FastDateFormat.getInstance("dd_MM_yyyy_HH_mm_ss", Locale.US);
         String date = fileDateFormat.format(System.currentTimeMillis());
         try {
             File dir = AndroidUtilities.getLogsDir();
             if (dir == null) {
-                
-                initStarted.set(false);
                 return;
             }
             currentFile = new File(dir, date + ".txt");
@@ -339,34 +323,19 @@ public class FileLog {
             e.printStackTrace();
         }
         try {
-            
             logQueue = new DispatchQueue("logQueue");
-            final File openCurrentFile = currentFile;
-            final File openTlRequestsFile = tlRequestsFile;
-            final String openDate = date;
-            logQueue.postRunnable(() -> {
-                try {
-                    openCurrentFile.createNewFile();
-                    FileOutputStream stream = new FileOutputStream(openCurrentFile);
-                    OutputStreamWriter sw = new OutputStreamWriter(stream);
-                    sw.write("-----start log " + openDate + "-----\n");
-                    sw.flush();
-                    streamWriter = sw;
+            currentFile.createNewFile();
+            FileOutputStream stream = new FileOutputStream(currentFile);
+            streamWriter = new OutputStreamWriter(stream);
+            streamWriter.write("-----start log " + date + "-----\n");
+            streamWriter.flush();
 
-                    FileOutputStream tlStream = new FileOutputStream(openTlRequestsFile);
-                    OutputStreamWriter tlsw = new OutputStreamWriter(tlStream);
-                    tlsw.write("-----start log " + openDate + "-----\n");
-                    tlsw.flush();
-                    tlStreamWriter = tlsw;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            FileOutputStream tlStream = new FileOutputStream(tlRequestsFile);
+            tlStreamWriter = new OutputStreamWriter(tlStream);
+            tlStreamWriter.write("-----start log " + date + "-----\n");
+            tlStreamWriter.flush();
         } catch (Exception e) {
             e.printStackTrace();
-        }
-        if (BuildVars.DEBUG_VERSION) {
-            new ANRDetector(this::dumpANR);
         }
         initied = true;
     }
@@ -416,7 +385,7 @@ public class FileLog {
         ensureInitied();
         Log.e(tag, message, exception);
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " E/tmessages: " + message + "\n");
                     getInstance().streamWriter.write(exception.toString());
@@ -439,7 +408,7 @@ public class FileLog {
         ensureInitied();
         Log.e(tag, message);
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " E/tmessages: " + message + "\n");
                     getInstance().streamWriter.flush();
@@ -479,7 +448,7 @@ public class FileLog {
         ensureInitied();
         e.printStackTrace();
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " E/tmessages: " + e + "\n");
                     StackTraceElement[] stack = e.getStackTrace();
@@ -519,7 +488,7 @@ public class FileLog {
         }
     }
 
-    private void dumpANR() {
+    public static void dumpANR() {
         StringBuilder sb = new StringBuilder();
         Map<Thread, StackTraceElement[]> allThreads = Thread.getAllStackTraces();
 
@@ -535,7 +504,7 @@ public class FileLog {
         }
 
         FileLog.e("ANR thread dump\n" + sb.toString());
-        dumpMemory(false);
+        getInstance().dumpMemory(false);
     }
 
     public static void fatal(final Throwable e, boolean logToAppCenter) {
@@ -551,7 +520,7 @@ public class FileLog {
         ensureInitied();
         e.printStackTrace();
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " FATAL/tmessages: " + e + "\n");
                     StackTraceElement[] stack = e.getStackTrace();
@@ -597,7 +566,7 @@ public class FileLog {
         ensureInitied();
         Log.d(tag, message);
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " D/tmessages: " + message + "\n");
                     getInstance().streamWriter.flush();
@@ -618,7 +587,7 @@ public class FileLog {
         ensureInitied();
         Log.w(tag, message);
         if (getInstance().streamWriter != null) {
-            getInstance().postLog(() -> {
+            getInstance().logQueue.postRunnable(() -> {
                 try {
                     getInstance().streamWriter.write(getInstance().dateFormat.format(System.currentTimeMillis()) + " W/tmessages: " + message + "\n");
                     getInstance().streamWriter.flush();
@@ -659,31 +628,5 @@ public class FileLog {
             super(e);
         }
 
-    }
-
-    public class ANRDetector {
-        private final long TIMEOUT_MS = 5000; 
-        private final Handler mainHandler = new Handler(Looper.getMainLooper());
-        private boolean isUIThreadResponsive = true;
-
-        public ANRDetector(Runnable anrDetected) {
-            new Thread(() -> {
-                while (true) {
-                    isUIThreadResponsive = false;
-
-                    mainHandler.post(() -> isUIThreadResponsive = true);
-
-                    try {
-                        Thread.sleep(TIMEOUT_MS);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    if (!isUIThreadResponsive) {
-                        anrDetected.run();
-                    }
-                }
-            }).start();
-        }
     }
 }

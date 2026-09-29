@@ -95,7 +95,7 @@ public class BackButtonMenu {
             if (chat == null && user == null) {
                 imageView.setRoundRadius(0);
             } else {
-                imageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(32, chat != null && chat.forum));
+                imageView.setRoundRadius(chat != null && chat.forum ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16));
             }
             cell.addView(imageView, LayoutHelper.createFrameRelatively(32, 32, Gravity.START | Gravity.CENTER_VERTICAL, 8, 0, 0, 0));
 
@@ -196,7 +196,7 @@ public class BackButtonMenu {
                                 fragments.get(j).removeSelfFromStack();
                             }
                             if (pDialog.stackIndex < parentLayout.getFragmentStack().size()) {
-                               
+                               // parentLayout.bringToFront(pDialog.stackIndex);
                                 parentLayout.closeLastFragment(true);
                                 return;
                             }
@@ -238,6 +238,10 @@ public class BackButtonMenu {
         }
         int popupY = (int) (backButton.getBottom() - backgroundPaddings.top - AndroidUtilities.dp(1));
         scrimPopupWindow.showAtLocation(fragmentView, Gravity.LEFT | Gravity.TOP, popupX, popupY);
+
+//        try {
+//            fragmentView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+//        } catch (Exception ignore) {}
 
         return scrimPopupWindow;
     }

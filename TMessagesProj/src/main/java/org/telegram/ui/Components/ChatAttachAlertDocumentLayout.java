@@ -298,7 +298,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                         }
                     }
                     paint.setColor(Theme.getColor(Theme.key_dialogBackground));
-                   
+                   // canvas.drawRect(0, top, getMeasuredWidth(), getMeasuredHeight(), paint);
                 }
                 super.dispatchDraw(canvas);
             }
@@ -332,7 +332,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                         }
                     }
                     paint.setColor(Theme.getColor(Theme.key_dialogBackground));
-                 
+                 //   canvas.drawRect(0, top, getMeasuredWidth(), getMeasuredHeight(), paint);
                 }
                 super.dispatchDraw(canvas);
 
@@ -369,6 +369,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         listView.setAdapter(listAdapter);
         addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         searchAdapter = new SearchAdapter(context);
+
 
         listView.setOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -976,7 +977,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         if (files != null) {
             for (int a = 0; a < files.length; a++) {
                 File file = files[a];
-                if (file.isDirectory() && file.getName().equals("LinkiGram")) {
+                if (file.isDirectory() && file.getName().equals("Telegram")) {
                     checkDirectory(file);
                     continue;
                 }
@@ -1264,7 +1265,14 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             isExternalStorageManager = Environment.isExternalStorageManager();
         }
-        
+        // TODO add permission for read all files and uncomment for direct version
+//        if (!BuildVars.NO_SCOPED_STORAGE && !isExternalStorageManager) {
+//            ListItem ext = new ListItem();
+//            ext.title = LocaleController.getString(R.string.InternalStorage);
+//            ext.icon = R.drawable.files_storage;
+//            ext.subtitle = LocaleController.getString(R.string.InternalFolderInfo);
+//            items.add(ext);
+//        } else {
             String defaultPath = Environment.getExternalStorageDirectory().getPath();
             String defaultPathState = Environment.getExternalStorageState();
             if (defaultPathState.equals(Environment.MEDIA_MOUNTED) || defaultPathState.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
@@ -1339,13 +1347,14 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                     }
                 }
             }
-        
+        //}
+
         ListItem fs;
         try {
-            File telegramPath = new File(ApplicationLoader.applicationContext.getExternalFilesDir(null), "LinkiGram");
+            File telegramPath = new File(ApplicationLoader.applicationContext.getExternalFilesDir(null), "Telegram");
             if (telegramPath.exists()) {
                 fs = new ListItem();
-                fs.title = "LinkiGram";
+                fs.title = "Telegram";
                 fs.subtitle = LocaleController.getString(R.string.AppFolderInfo);
                 fs.icon = R.drawable.files_folder;
                 fs.file = telegramPath;
@@ -1401,6 +1410,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         private ArrayList<ListItem> items = new ArrayList<>();
         private ArrayList<HistoryEntry> history = new ArrayList<>();
         private ArrayList<ListItem> recentItems = new ArrayList<>();
+
 
         private Context mContext;
 
@@ -1462,7 +1472,10 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                     break;
                 case 2:
                     view = new ShadowSectionCell(mContext);
-                    
+                    // Drawable drawable = Theme.getThemedDrawableByKey(mContext, R.drawable.greydivider, Theme.key_windowBackgroundGrayShadow);
+                    // CombinedDrawable combinedDrawable = new CombinedDrawable(new ColorDrawable(getThemedColor(Theme.key_windowBackgroundGray)), drawable);
+                    // combinedDrawable.setFullsize(true);
+                    // view.setBackgroundDrawable(combinedDrawable);
                     break;
                 case 3:
                 default:

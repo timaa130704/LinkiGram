@@ -275,6 +275,7 @@ public class FiltersView extends RecyclerListView {
     private final static Pattern shortDate = Pattern.compile("^([0-9]{1,4})(\\.| |/|\\-)([0-9]{1,4})$");
     private final static Pattern longDate = Pattern.compile("^([0-9]{1,2})(\\.| |/|\\-)([0-9]{1,2})(\\.| |/|\\-)([0-9]{1,4})$");
 
+
     private final static int[] numberOfDaysEachMonth = new int[]{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     public static void fillTipDates(String query, ArrayList<DateData> dates) {
@@ -555,6 +556,7 @@ public class FiltersView extends RecyclerListView {
             monthsEng[i - 1] = c.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.ENGLISH).toLowerCase();
         }
 
+
         for (int i = 0; i < 12; i++) {
             if (monthsEng[i].startsWith(q) || months[i].startsWith(q)) {
                 return i;
@@ -589,7 +591,7 @@ public class FiltersView extends RecyclerListView {
         return false;
     }
 
-    public boolean drawDivider = !app.nimarkogram.messenger.NimarkoConfig.disableDividers;
+    public boolean drawDivider = true;
 
     @Override
     public void onDraw(Canvas c) {
@@ -752,12 +754,12 @@ public class FiltersView extends RecyclerListView {
                         Theme.setCombinedDrawableColor(combinedDrawable, getThemedColor(Theme.key_featuredStickers_buttonText), true);
                         avatarImageView.setImageDrawable(combinedDrawable);
                     } else {
-                        avatarImageView.getImageReceiver().setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(32));
+                        avatarImageView.getImageReceiver().setRoundRadius(AndroidUtilities.dp(16));
                         avatarImageView.getImageReceiver().setForUserOrChat(user, thumbDrawable);
                     }
                 } else if (data.chat instanceof TLRPC.Chat) {
                     TLRPC.Chat chat = (TLRPC.Chat) data.chat;
-                    avatarImageView.getImageReceiver().setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(32, ChatObject.isCommunity(chat)));
+                    avatarImageView.getImageReceiver().setRoundRadius(AndroidUtilities.dp(ChatObject.isCommunity(chat) ? 10 : 16));
                     avatarImageView.getImageReceiver().setForUserOrChat(chat, thumbDrawable);
                 }
             } else {

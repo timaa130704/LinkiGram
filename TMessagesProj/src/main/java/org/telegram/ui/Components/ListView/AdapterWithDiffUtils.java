@@ -13,24 +13,8 @@ public abstract class AdapterWithDiffUtils extends RecyclerListView.SelectionAda
     DiffUtilsCallback callback = new DiffUtilsCallback();
 
     public void setItems(ArrayList<? extends Item> oldItems, ArrayList<? extends Item> newItems) {
-        if (oldItems == null) {
-            oldItems = new ArrayList<>();
-        }
         if (newItems == null) {
             newItems = new ArrayList<>();
-        }
-        final int oldSize = oldItems.size();
-        final int newSize = newItems.size();
-        
-        if (oldSize == 0) {
-            if (newSize != 0) {
-                notifyItemRangeInserted(0, newSize);
-            }
-            return;
-        }
-        if (newSize == 0) {
-            notifyItemRangeRemoved(0, oldSize);
-            return;
         }
         callback.setItems(oldItems, newItems);
         DiffUtil.calculateDiff(callback).dispatchUpdatesTo(this);

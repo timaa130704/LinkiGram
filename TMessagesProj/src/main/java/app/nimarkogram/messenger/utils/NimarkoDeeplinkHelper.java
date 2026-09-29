@@ -106,7 +106,6 @@ public class NimarkoDeeplinkHelper {
                     
                     new StarsIntroActivity.StarsOptionsSheet(
                             fragment.getContext(),
-                            fragment.getCurrentAccount(),
                             fragment.getResourceProvider()
                     ).show();
                     return;

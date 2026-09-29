@@ -173,7 +173,9 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                             List<Camera.Size> list = params.getSupportedPreviewSizes();
                             for (int a = 0; a < list.size(); a++) {
                                 Camera.Size size = list.get(a);
-
+//                                if (size.width == 1280 && size.height != 720) {
+//                                    continue;
+//                                }
                                 if (size.height < 2160 && size.width < 2160) {
                                     cameraInfo.previewSizes.add(new Size(size.width, size.height));
                                     if (BuildVars.LOGS_ENABLED) {
@@ -185,7 +187,9 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                             list = params.getSupportedPictureSizes();
                             for (int a = 0; a < list.size(); a++) {
                                 Camera.Size size = list.get(a);
-
+//                                if (size.width == 1280 && size.height != 720) {
+//                                    continue;
+//                                }
                                 if (!"samsung".equals(Build.MANUFACTURER) || !"jflteuc".equals(Build.PRODUCT) || size.width < 2048) {
                                     cameraInfo.pictureSizes.add(new Size(size.width, size.height));
                                     if (BuildVars.LOGS_ENABLED) {
@@ -331,6 +335,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                 return -1;
             }
 
+            // Break if the marker is EXIF in APP1.
             if (marker == 0xE1 && length >= 8 &&
                 pack(jpeg, offset + 2, 4, false) == 0x45786966 &&
                 pack(jpeg, offset + 6, 2, false) == 0) {
@@ -400,10 +405,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
         if (sessionObject == null) {
             return false;
         }
-        if (sessionObject instanceof app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession) {
-            return ((app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession) sessionObject)
-                    .takePicture(path, callback);
-        } else if (sessionObject instanceof CameraSession) {
+        if (sessionObject instanceof CameraSession) {
             CameraSession session = (CameraSession) sessionObject;
             final CameraInfo info = session.cameraInfo;
             final boolean flipFront = session.isFlipFront();
@@ -418,9 +420,12 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                         BitmapFactory.Options options = new BitmapFactory.Options();
                         options.inJustDecodeBounds = true;
                         BitmapFactory.decodeByteArray(data, 0, data.length, options);
-                        
+                        //                    float scaleFactor = Math.max((float) options.outWidth / AndroidUtilities.getPhotoSize(), (float) options.outHeight / AndroidUtilities.getPhotoSize());
+                        //                    if (scaleFactor < 1) {
+                        //                        scaleFactor = 1;
+                        //                    }
                         options.inJustDecodeBounds = false;
-                        
+                        //    options.inSampleSize = (int) scaleFactor;
                         options.inPurgeable = true;
                         bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
                     } catch (Throwable e) {
@@ -529,6 +534,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
             }
         });
     }
+
 
     public void openRound(final CameraSession session, final SurfaceTexture texture, final Runnable callback, final Runnable configureCallback) {
         if (session == null || texture == null) {
@@ -666,11 +672,6 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                     } else if (sessionObject instanceof Camera2Session) {
                         Camera2Session session = (Camera2Session) sessionObject;
                         session.setRecordingVideo(true);
-                    } else if (sessionObject instanceof app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession) {
-                        app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession session =
-                                (app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession) sessionObject;
-                        session.enableTorch(Camera.Parameters.FLASH_MODE_ON.equals(
-                                session.getCurrentFlashMode()));
                     }
                     AndroidUtilities.runOnUIThread(() -> {
                         cameraView.startRecording(path, () -> finishRecordingVideo(createThumbnail));
@@ -701,7 +702,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                             FileLog.e(e);
                         }
                         camera.unlock();
-
+//                    camera.stopPreview();
                         try {
                             mirrorRecorderVideo = mirror;
                             recorder = new MediaRecorder();

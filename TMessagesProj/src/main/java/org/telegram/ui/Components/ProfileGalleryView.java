@@ -90,8 +90,6 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     private boolean createThumbFromParent = true;
     private boolean forceResetPosition;
     private boolean invalidateWithParent;
-    private boolean touchInProgress;
-    private int pendingActionsSize = -1;
 
     PinchToZoomHelper pinchToZoomHelper;
     private boolean hasActiveVideo;
@@ -275,7 +273,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     public ProfileGalleryView(Context context, long dialogId, ActionBar parentActionBar, RecyclerListView parentListView, ProfileActivity.AvatarImageView parentAvatarImageView, int parentClassGuid, Callback callback, ProfileGalleryBlurView blurView) {
         super(context);
         this.blurView = blurView;
-        setActionsSize(blurView == null ? 0 : blurView.actionSize);
+        setPadding(0, 0, 0, blurView == null ? 0 : blurView.actionSize);
         if (blurView != null) {
             blurView.setView(this);
         }
@@ -365,42 +363,6 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
 
         dialogPhotos = MessagesController.getInstance(currentAccount).getDialogPhotos(dialogId);
         dialogPhotos.loadCache();
-    }
-
-    public void setActionsSize(int actionsSize) {
-        actionsSize = Math.max(0, actionsSize);
-        if (touchInProgress) {
-            pendingActionsSize = actionsSize;
-            return;
-        }
-        applyActionsSize(actionsSize);
-    }
-
-    private void applyActionsSize(int actionsSize) {
-        if (getPaddingBottom() == actionsSize) {
-            return;
-        }
-        setPadding(getPaddingLeft(), getPaddingTop(), getPaddingRight(), actionsSize);
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        final int action = event.getActionMasked();
-        if (action == MotionEvent.ACTION_DOWN) {
-            touchInProgress = true;
-        }
-        try {
-            return super.dispatchTouchEvent(event);
-        } finally {
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                touchInProgress = false;
-                if (pendingActionsSize >= 0) {
-                    final int actionsSize = pendingActionsSize;
-                    pendingActionsSize = -1;
-                    applyActionsSize(actionsSize);
-                }
-            }
-        }
     }
 
     @Override
@@ -514,6 +476,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
                 return true;
             }
         }
+
 
         if (action == MotionEvent.ACTION_DOWN) {
             isScrollingListView = true;

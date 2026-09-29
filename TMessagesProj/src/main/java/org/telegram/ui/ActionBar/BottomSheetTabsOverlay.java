@@ -66,9 +66,6 @@ import java.util.List;
 
 public class BottomSheetTabsOverlay extends View {
 
-    private static final int TAB_PREVIEW_MAX_WIDTH_PX = 720;
-    private static final int TAB_PREVIEW_MAX_HEIGHT_PX = 1600;
-
     public interface Sheet {
         public SheetView getWindowView();
 
@@ -384,11 +381,11 @@ public class BottomSheetTabsOverlay extends View {
 
     public float offset;
     public float getScrollOffset() {
-        return this.offset; 
+        return this.offset; // Utilities.clamp(this.offset, getScrollMax(), getScrollMin());
     }
 
     public void setScrollOffset(float offset) {
-        this.offset = offset; 
+        this.offset = offset; // Utilities.clamp(offset, getScrollMax(), getScrollMin());
     }
 
     private float getScrollStep() {
@@ -504,7 +501,7 @@ public class BottomSheetTabsOverlay extends View {
             }
         });
         AndroidUtilities.applySpring(animator, 260, 30, 1);
-
+//        animator.setDuration(5000);
         animator.start();
 
         return true;
@@ -530,6 +527,7 @@ public class BottomSheetTabsOverlay extends View {
 
         dismissingSheet = sheet;
         sheet.setLastVisible(false);
+//        sheet.getWindowView().setDrawingFromOverlay(true);
 
         if (animator != null) {
             animator.cancel();
@@ -556,7 +554,7 @@ public class BottomSheetTabsOverlay extends View {
                 View view = tab.webView != null ? tab.webView : tab.view2;
                 if (view != null && tab.previewBitmap == null && tab.viewWidth > 0 && tab.viewHeight > 0) {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                        renderHardwareViewToBitmap(view, -tab.viewScroll, TAB_PREVIEW_MAX_WIDTH_PX, TAB_PREVIEW_MAX_HEIGHT_PX, b -> {
+                        renderHardwareViewToBitmap(view, -tab.viewScroll, b -> {
                             tab.previewBitmap = b;
                             sheet.getWindowView().setDrawingFromOverlay(false);
                             sheet.release();
@@ -565,12 +563,8 @@ public class BottomSheetTabsOverlay extends View {
                         invalidate();
                         return;
                     } else {
-                        final float previewScale = Math.min(1f, Math.min(TAB_PREVIEW_MAX_WIDTH_PX / (float) tab.viewWidth, TAB_PREVIEW_MAX_HEIGHT_PX / (float) tab.viewHeight));
-                        final int previewWidth = Math.max(1, Math.round(tab.viewWidth * previewScale));
-                        final int previewHeight = Math.max(1, Math.round(tab.viewHeight * previewScale));
-                        tab.previewBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.RGB_565);
+                        tab.previewBitmap = Bitmap.createBitmap(tab.viewWidth, tab.viewHeight, Bitmap.Config.RGB_565);
                         Canvas canvas = new Canvas(tab.previewBitmap);
-                        canvas.scale(previewScale, previewScale);
                         canvas.translate(0, -tab.viewScroll);
                         view.draw(canvas);
                     }
@@ -1152,6 +1146,7 @@ public class BottomSheetTabsOverlay extends View {
 
         private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+//        private RenderNode node;
         private final Matrix matrix = new Matrix();
         private final float[] src = new float[8];
         private final float[] dst = new float[8];
@@ -1205,7 +1200,7 @@ public class BottomSheetTabsOverlay extends View {
             this.parentView = parentView;
             this.tabData = tabData;
             this.tabDrawable = tabDrawable;
-            this.webView = null;
+            this.webView = null;// tabData.webView;
             this.bounce = new ButtonBounce(parentView);
 
             backgroundPaint.setColor(tabData.backgroundColor);
@@ -1335,16 +1330,6 @@ public class BottomSheetTabsOverlay extends View {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static void renderHardwareViewToBitmap(View view, float offsetY, Utilities.Callback<Bitmap> whenBitmapDone) {
-        renderHardwareViewToBitmap(view, offsetY, 0, 0, whenBitmapDone);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static void renderHardwareViewToBitmap(View view, float offsetY, int maxWidth, Utilities.Callback<Bitmap> whenBitmapDone) {
-        renderHardwareViewToBitmap(view, offsetY, maxWidth, 0, whenBitmapDone);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public static void renderHardwareViewToBitmap(View view, float offsetY, int maxWidth, int maxHeight, Utilities.Callback<Bitmap> whenBitmapDone) {
         if (view == null || whenBitmapDone == null || view.getWidth() <= 0 || view.getHeight() <= 0) {
             if (whenBitmapDone != null) {
                 whenBitmapDone.run(null);
@@ -1352,18 +1337,12 @@ public class BottomSheetTabsOverlay extends View {
             return;
         }
 
-        final float widthScale = maxWidth > 0 ? maxWidth / (float) view.getWidth() : 1f;
-        final float heightScale = maxHeight > 0 ? maxHeight / (float) view.getHeight() : 1f;
-        final float scale = Math.min(1f, Math.min(widthScale, heightScale));
-        final int bitmapWidth = Math.max(1, Math.round(view.getWidth() * scale));
-        final int bitmapHeight = Math.max(1, Math.round(view.getHeight() * scale));
         final SurfaceTexture surfaceTexture = new SurfaceTexture(false);
-        surfaceTexture.setDefaultBufferSize(bitmapWidth, bitmapHeight);
+        surfaceTexture.setDefaultBufferSize(view.getWidth(), view.getHeight());
         final Surface surface = new Surface(surfaceTexture);
 
-        final Bitmap bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
+        final Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
         final Canvas hwCanvas = surface.lockHardwareCanvas();
-        hwCanvas.scale(scale, scale);
         hwCanvas.translate(0, offsetY);
         view.draw(hwCanvas);
         surface.unlockCanvasAndPost(hwCanvas);

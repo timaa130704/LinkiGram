@@ -51,6 +51,7 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
     private final Theme.ResourcesProvider resourcesProvider;
     private final Context context;
     private RecyclerListView listView;
+    private final boolean sections;
     private List<Item> items;
     private HashMap<Long, Integer> chatsParticipantsCount = new HashMap<>();
     private View.OnClickListener topSectionClickListener;
@@ -61,9 +62,13 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
     public boolean needChecks2;
 
     public SelectorAdapter(Context context, boolean needChecks, Theme.ResourcesProvider resourcesProvider) {
+        this(context, needChecks, true, resourcesProvider);
+    }
+    public SelectorAdapter(Context context, boolean needChecks, boolean sections, Theme.ResourcesProvider resourcesProvider) {
         this.context = context;
         this.needChecks = needChecks;
         this.resourcesProvider = resourcesProvider;
+        this.sections = sections;
         BoostRepository.loadParticipantsCount(result -> {
             chatsParticipantsCount.clear();
             chatsParticipantsCount.putAll(result);
@@ -129,6 +134,7 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
         View view;
         if (viewType == VIEW_TYPE_PAD) {
             view = new View(context);
+            view.setTag(RecyclerListView.TAG_NOT_SECTION);
         } else if (viewType == VIEW_TYPE_USER) {
             view = new SelectorUserCell(context, needChecks, needChecks2, resourcesProvider, isGreenSelector);
         } else if (viewType == VIEW_TYPE_NO_USERS) {
@@ -139,10 +145,22 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
             view = searchEmptyView;
         } else if (viewType == VIEW_TYPE_LETTER) {
             view = new SelectorLetterCell(context, resourcesProvider);
+            view.setTag(RecyclerListView.TAG_NOT_SECTION);
+            if (sections) {
+                view.setBackground(null);
+            }
         } else if (viewType == VIEW_TYPE_COUNTRY) {
             view = new SelectorCountryCell(context, resourcesProvider);
+            view.setTag(RecyclerListView.TAG_NOT_SECTION);
+            if (sections) {
+                view.setBackground(null);
+            }
         } else if (viewType == VIEW_TYPE_TOP_SECTION) {
             view = new GraySectionCell(context, resourcesProvider);
+            view.setTag(RecyclerListView.TAG_NOT_SECTION);
+            if (sections) {
+                view.setBackground(null);
+            }
         } else if (viewType == VIEW_TYPE_BUTTON) {
             TextCell cell = new TextCell(context, resourcesProvider);
             cell.leftPadding = 23 - 7;
@@ -249,42 +267,11 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
             cell.setTextAndIcon(item.text, item.resId, false);
         } else if (viewType == VIEW_TYPE_CUSTOM) {
             FrameLayout frameLayout = (FrameLayout) holder.itemView;
-            bindCustomView(frameLayout, item.view);
-        }
-    }
-
-    private static void bindCustomView(FrameLayout container, View child) {
-        final Object bindToken = new Object();
-        container.setTag(R.id.view_reparent_token_tag, bindToken);
-        if (container.getChildCount() == (child == null ? 0 : 1)
-                && (child == null || container.getChildAt(0) == child)) {
-            return;
-        }
-
-        container.removeAllViews();
-        if (child == null) {
-            return;
-        }
-
-        AndroidUtilities.removeFromParent(child, () -> {
-            if (container.getTag(R.id.view_reparent_token_tag) != bindToken
-                    || child.getParent() != null) {
-                return;
+            if (frameLayout.getChildCount() != 1 || frameLayout.getChildAt(0) != item.view) {
+                AndroidUtilities.removeFromParent(item.view);
+                frameLayout.addView(item.view, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
             }
-            container.addView(
-                    child,
-                    LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-        });
-    }
-
-    @Override
-    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
-        if (holder.getItemViewType() == VIEW_TYPE_CUSTOM) {
-            FrameLayout container = (FrameLayout) holder.itemView;
-            container.setTag(R.id.view_reparent_token_tag, null);
-            container.removeAllViews();
         }
-        super.onViewRecycled(holder);
     }
 
     @Override
@@ -299,6 +286,61 @@ public class SelectorAdapter extends AdapterWithDiffUtils {
     public int getItemCount() {
         return items == null ? 0 : items.size();
     }
+
+//    private RecyclerListView.Adapter realAdapter() {
+//        return listView.getAdapter();
+//    }
+//
+//    @Override
+//    public void notifyItemChanged(int position) {
+//        realAdapter().notifyItemChanged(position + 1);
+//    }
+//
+//    @Override
+//    public void notifyItemChanged(int position, @Nullable Object payload) {
+//        realAdapter().notifyItemChanged(position + 1, payload);
+//    }
+//
+//    @Override
+//    public void notifyItemInserted(int position) {
+//        realAdapter().notifyItemInserted(position + 1);
+//    }
+//
+//    @Override
+//    public void notifyItemMoved(int fromPosition, int toPosition) {
+//        realAdapter().notifyItemMoved(fromPosition + 1, toPosition);
+//    }
+//
+//    @Override
+//    public void notifyItemRangeChanged(int positionStart, int itemCount) {
+//        realAdapter().notifyItemRangeChanged(positionStart + 1, itemCount);
+//    }
+//
+//    @Override
+//    public void notifyItemRangeChanged(int positionStart, int itemCount, @Nullable Object payload) {
+//        realAdapter().notifyItemRangeChanged(positionStart + 1, itemCount, payload);
+//    }
+//
+//    @Override
+//    public void notifyItemRangeInserted(int positionStart, int itemCount) {
+//        realAdapter().notifyItemRangeInserted(positionStart + 1, itemCount);
+//    }
+//
+//    @Override
+//    public void notifyItemRangeRemoved(int positionStart, int itemCount) {
+//        realAdapter().notifyItemRangeRemoved(positionStart + 1, itemCount);
+//    }
+//
+//    @Override
+//    public void notifyItemRemoved(int position) {
+//        realAdapter().notifyItemRemoved(position + 1);
+//    }
+//
+//    @SuppressLint("NotifyDataSetChanged")
+//    @Override
+//    public void notifyDataSetChanged() {
+//        realAdapter().notifyDataSetChanged();
+//    }
 
     public void notifyChangedLast() {
         if (items == null || items.isEmpty()) {

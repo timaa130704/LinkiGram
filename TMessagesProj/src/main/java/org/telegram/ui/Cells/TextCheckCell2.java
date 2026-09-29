@@ -35,7 +35,7 @@ import org.telegram.ui.Components.Switch;
 
 public class TextCheckCell2 extends FrameLayout {
 
-    public int id = Integer.MIN_VALUE;
+    public int id;
     private TextView textView;
     private TextView valueTextView;
     private Switch checkBox;
@@ -118,9 +118,7 @@ public class TextCheckCell2 extends FrameLayout {
         valueTextView.setEllipsize(TextUtils.TruncateAt.END);
         addView(valueTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 64 : 21, 35, LocaleController.isRTL ? 21 : 64, 0));
 
-        checkBox = new Switch(context, resourcesProvider);
-        checkBox.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked,
-                Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
+        checkBox = new Switch(context);
         checkBox.setDrawIconType(1);
         addView(checkBox, LayoutHelper.createFrame(37, 40, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
     }

@@ -189,15 +189,11 @@ public class ProfileGalleryBlurView extends View {
     }
 
     public void setSize(int size) {
-        final int blurSize = (int) (dp(64) * 1.5f);
-        if (this.actionSize == size && this.size == blurSize) {
-            return;
+        if (this.actionSize != size) {
+            invalidate();
         }
         this.actionSize = size;
-        this.size = blurSize;
-        sizeChanged = true;
-        requestLayout();
-        postInvalidateOnAnimation();
+        this.size = (int) (dp(64) * 1.5f);
     }
 
     public void setView(ProfileGalleryView view) {
@@ -313,7 +309,8 @@ public class ProfileGalleryBlurView extends View {
         if (view == null || view.isZooming()) return false;
 
         int viewportWidth = view.getMeasuredWidth();
-        
+        // int viewportHeight = Math.max(view.getMeasuredWidth(), view.getMeasuredHeight());
+
         int w = (int) (viewportWidth / 6.0f);
         int h = (int) (size / 6.0f);
         if (w <= 0 || h <= 0) {
@@ -400,6 +397,8 @@ public class ProfileGalleryBlurView extends View {
         if (i >= 2 || bitmap == null || bitmap.isRecycled()) {
             return;
         }
+
+        // float hScale = dy / size;
 
         LinearGradient alphaGradient = new LinearGradient(
                 0, 0, 0, size / 6f,
@@ -547,10 +546,10 @@ public class ProfileGalleryBlurView extends View {
             AndroidUtilities.adjustSaturationColorMatrix(colorMatrix, .65f);
             AndroidUtilities.multiplyBrightnessColorMatrix(colorMatrix, .5f);
 
-            actionsBlurNode.setRenderEffect(
-
+            actionsBlurNode.setRenderEffect(//RenderEffect.createChainEffect(
+//                    RenderEffect.createBlurEffect(8, 2, Shader.TileMode.CLAMP),
                 RenderEffect.createColorFilterEffect(new ColorMatrixColorFilter(colorMatrix))
-             );
+            /*)*/);
         }
         shouldBlurActions = true;
     }

@@ -581,28 +581,6 @@ public class ActionBarMenu extends LinearLayout {
         return w;
     }
 
-    public int getVisibleItemsCount() {
-        int count = 0;
-        for (int i = 0, n = getChildCount(); i < n; i++) {
-            View view = getChildAt(i);
-            if (view instanceof ActionBarMenuItem && view.getVisibility() != View.GONE) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    public int getVisibleItemsMeasuredWidthForCenterTitle() {
-        int w = 0;
-        for (int i = 0, n = getChildCount(); i < n; i++) {
-            View view = getChildAt(i);
-            if (view.getVisibility() == View.VISIBLE && (!(view instanceof ActionBarMenuItem) || view.getVisibility() != View.GONE)) {
-                w += view.getMeasuredWidth();
-            }
-        }
-        return w;
-    }
-
     public int getVisibleItemsMeasuredWidthWithAlpha() {
         float w = 0;
         for (int i = 0, count = getChildCount(); i < count; i++) {
@@ -680,6 +658,7 @@ public class ActionBarMenu extends LinearLayout {
         float mLeft = Float.POSITIVE_INFINITY;
         float mRight = Float.NEGATIVE_INFINITY;
         boolean found = false;
+
 
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View view = getChildAt(a);

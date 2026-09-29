@@ -5,7 +5,6 @@ import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.os.Process;
@@ -24,8 +23,6 @@ import java.util.Arrays;
 
 public class SpoilerEffectBitmapFactory {
 
-    private static final long FRAME_TIME_TOLERANCE_NANOS = 2_000_000L;
-
     private static SpoilerEffectBitmapFactory factory;
 
     public static SpoilerEffectBitmapFactory getInstance() {
@@ -43,17 +40,13 @@ public class SpoilerEffectBitmapFactory {
     private Bitmap backgroundBitmap;
     private Canvas backgroundCanvas;
     private Paint shaderPaint;
-    private long nextUpdateFrameTimeNanos;
+    private long lastUpdateTime;
     private ArrayList<SpoilerEffect> shaderSpoilerEffects;
     private boolean isRunning;
-    private final long targetFrameIntervalNanos;
     final int size;
 
     private SpoilerEffectBitmapFactory() {
-        int performanceClass = SharedConfig.getDevicePerformanceClass();
-        int targetFps = performanceClass == SharedConfig.PERFORMANCE_CLASS_HIGH ? 60 : 30;
-        targetFrameIntervalNanos = 1_000_000_000L / targetFps;
-        int maxSize = performanceClass == SharedConfig.PERFORMANCE_CLASS_HIGH ? AndroidUtilities.dp(150) : AndroidUtilities.dp(100);
+        int maxSize = SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_HIGH ? AndroidUtilities.dp(150) : AndroidUtilities.dp(100);
         int size = (int) Math.min(Math.min(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y) * 0.5f, maxSize);
         if (size < AndroidUtilities.dp(80)) {
             size = AndroidUtilities.dp(80);
@@ -82,19 +75,18 @@ public class SpoilerEffectBitmapFactory {
                 }
             }
             doDraw(new Canvas(bitmapBuffers[0].bitmap), new Rect(0, 0, size, size));
-            backgroundBitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8);
-            backgroundCanvas = new Canvas(backgroundBitmap);
-            backgroundCanvas.drawBitmap(bitmapBuffers[0].bitmap, 0, 0, null);
             shaderPaint.setShader(bitmapBuffers[0].shader);
-            nextUpdateFrameTimeNanos = 0;
+            lastUpdateTime = System.currentTimeMillis();
         } else if (isDrawnWithClipRegion && !LiteMode.isEnabled(LiteMode.FLAG_CHAT_SPOILER)) {
-            
+            // restore full-drawn texture
+
             currentBitmapBuffer = 0;
             doDraw(new Canvas(bitmapBuffers[0].bitmap), new Rect(0, 0, size, size));
             shaderPaint.setShader(bitmapBuffers[0].shader);
-            nextUpdateFrameTimeNanos = 0;
+            lastUpdateTime = System.currentTimeMillis();
             isDrawnWithClipRegion = false;
         }
+
 
         return shaderPaint;
     }
@@ -117,10 +109,6 @@ public class SpoilerEffectBitmapFactory {
 
     public void checkUpdate(Rect region) {
         applyClip(region);
-        scheduleFrameCallbackIfNeeded();
-    }
-
-    private void scheduleFrameCallbackIfNeeded() {
         if (!invalidated && !clipRegion.isEmpty()) {
             invalidated = true;
             Choreographer.getInstance().postFrameCallback(postFrameCallback);
@@ -144,115 +132,41 @@ public class SpoilerEffectBitmapFactory {
     }
 
     private final Choreographer.FrameCallback postFrameCallback = frameTimeNanos -> {
+        checkUpdateImpl();
+        clipRegion.set(0, 0, 0, 0);
         invalidated = false;
-        checkUpdateImpl(frameTimeNanos);
-        
-        scheduleFrameCallbackIfNeeded();
     };
 
+    private final Rect clipRegionDump = new Rect();
     private boolean isDrawnWithClipRegion;
 
-    private void checkUpdateImpl(long frameTimeNanos) {
-        if (clipRegion.isEmpty()) {
-            return;
-        }
-        if (isRunning) {
-            return;
-        }
-        if (nextUpdateFrameTimeNanos != 0
-                && frameTimeNanos + FRAME_TIME_TOLERANCE_NANOS < nextUpdateFrameTimeNanos) {
-            return;
-        }
+    private void checkUpdateImpl() {
+        long time = System.currentTimeMillis();
+        if (time - lastUpdateTime > 32 && !isRunning && !clipRegion.isEmpty()) {
+            lastUpdateTime = time;
+            isRunning = true;
+            clipRegionDump.set(clipRegion);
 
-        advanceFrameDeadline(frameTimeNanos);
-        isRunning = true;
-
-        final Rect updateRegion = new Rect(clipRegion);
-        clipRegion.setEmpty();
-        final int nextBitmapBuffer = (currentBitmapBuffer + 1) % 2;
-        dispatchQueue.postRunnable(() -> {
-            try {
+            final int nextBitmapBuffer = (currentBitmapBuffer + 1) % 2;
+            dispatchQueue.postRunnable(() -> {
                 if (bitmapBuffers[nextBitmapBuffer] == null) {
                     bitmapBuffers[nextBitmapBuffer] = new Buffer(size);
                 }
-                if (backgroundBitmap == null || backgroundBitmap.isRecycled()) {
+                if (backgroundBitmap == null) {
                     backgroundBitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ALPHA_8);
                     backgroundCanvas = new Canvas(backgroundBitmap);
-                    doDraw(backgroundCanvas, new Rect(0, 0, size, size));
+                } else {
+                    backgroundBitmap.eraseColor(Color.TRANSPARENT);
                 }
-
-                int save = backgroundCanvas.save();
-                try {
-                    backgroundCanvas.clipRect(updateRegion);
-                    backgroundCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                    doDraw(backgroundCanvas, updateRegion);
-                } finally {
-                    backgroundCanvas.restoreToCount(save);
-                }
-
-                final String copyMode = copyBitmap(backgroundBitmap,
-                        bitmapBuffers[nextBitmapBuffer].bitmap);
-                if (copyMode == null) {
-                    failUpdate(updateRegion);
-                    return;
-                }
-
+                doDraw(backgroundCanvas, clipRegionDump);
+                Utilities.copyBitmaps(backgroundBitmap, bitmapBuffers[nextBitmapBuffer].bitmap);
                 AndroidUtilities.runOnUIThread(() -> {
                     currentBitmapBuffer = nextBitmapBuffer;
                     shaderPaint.setShader(bitmapBuffers[currentBitmapBuffer].shader);
                     isRunning = false;
                     isDrawnWithClipRegion = true;
-                    scheduleFrameCallbackIfNeeded();
                 });
-            } catch (RuntimeException error) {
-                failUpdate(updateRegion);
-            }
-        });
-    }
-
-    private void advanceFrameDeadline(long frameTimeNanos) {
-        if (nextUpdateFrameTimeNanos == 0
-                || frameTimeNanos - nextUpdateFrameTimeNanos > targetFrameIntervalNanos * 4) {
-            nextUpdateFrameTimeNanos = frameTimeNanos + targetFrameIntervalNanos;
-            return;
-        }
-
-        nextUpdateFrameTimeNanos += targetFrameIntervalNanos;
-        if (nextUpdateFrameTimeNanos <= frameTimeNanos) {
-            long missedFrames = (frameTimeNanos - nextUpdateFrameTimeNanos)
-                    / targetFrameIntervalNanos + 1;
-            nextUpdateFrameTimeNanos += missedFrames * targetFrameIntervalNanos;
-        }
-    }
-
-    private void failUpdate(Rect updateRegion) {
-        AndroidUtilities.runOnUIThread(() -> {
-            isRunning = false;
-            clipRegion.union(updateRegion);
-            scheduleFrameCallbackIfNeeded();
-        });
-    }
-
-    private String copyBitmap(Bitmap source, Bitmap destination) {
-        if (source == null || source.isRecycled()
-                || destination == null || destination.isRecycled()) {
-            return null;
-        }
-        try {
-            if (Utilities.copyBitmaps(source, destination)) {
-                return "native";
-            }
-        } catch (LinkageError linkageError) {
-        } catch (RuntimeException error) {
-        }
-
-        try {
-            Canvas canvas = new Canvas(destination);
-            destination.eraseColor(Color.TRANSPARENT);
-            canvas.drawBitmap(source, 0, 0, null);
-            return "canvas";
-        } catch (RuntimeException error) {
-            return null;
+            });
         }
     }
 

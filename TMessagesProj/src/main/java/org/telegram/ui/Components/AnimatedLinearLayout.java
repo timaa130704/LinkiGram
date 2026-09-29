@@ -201,10 +201,6 @@ public class AnimatedLinearLayout extends LinearLayout {
         return listAnimator.getMetadata();
     }
 
-    public boolean isAnimating() {
-        return listAnimator.isAnimating();
-    }
-
     protected void onItemsChanged() {
 
     }

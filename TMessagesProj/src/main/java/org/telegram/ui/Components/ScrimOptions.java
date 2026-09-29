@@ -61,7 +61,6 @@ import org.telegram.ui.Components.blur3.utils.Blur3Utils;
 import org.telegram.ui.Components.chat.ViewPositionWatcher;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class ScrimOptions extends Dialog {
     public final Context context;
@@ -217,10 +216,7 @@ public class ScrimOptions extends Dialog {
         if (dismissing) return;
         dismissing = true;
         animateOpenTo(false, () -> {
-            AndroidUtilities.runOnUIThread(() -> {
-                releaseBlurBitmaps();
-                ScrimOptions.super.dismiss();
-            });
+            AndroidUtilities.runOnUIThread(super::dismiss);
         });
         windowView.invalidate();
     }
@@ -229,27 +225,9 @@ public class ScrimOptions extends Dialog {
         if (dismissing) return;
         dismissing = true;
         animateOpenTo(false, 2f, () -> {
-            AndroidUtilities.runOnUIThread(() -> {
-                releaseBlurBitmaps();
-                ScrimOptions.super.dismiss();
-            });
+            AndroidUtilities.runOnUIThread(super::dismiss);
         });
         windowView.invalidate();
-    }
-
-    private void releaseBlurBitmaps() {
-        Bitmap background = blurBitmap;
-        Bitmap options = iBlur3SourceBitmap.getBitmap();
-        blurBitmap = null;
-        blurBitmapShader = null;
-        blurBitmapPaint = null;
-        blurMatrix = null;
-        iBlur3SourceBitmap.setBitmap(null);
-        iBlur3Factory.invalidateAllLinkedViews();
-        recycleBitmap(background);
-        if (options != background) {
-            recycleBitmap(options);
-        }
     }
 
     private ValueAnimator openAnimator;
@@ -261,8 +239,10 @@ public class ScrimOptions extends Dialog {
             openAnimator.cancel();
         }
 
-        final boolean animateOptions = false; 
-
+        final boolean animateOptions = false; // open && optionsView != null && optionsView instanceof ActionBarPopupWindow.ActionBarPopupWindowLayout;
+//        if (animateOptions) {
+//            ActionBarPopupWindow.startAnimation((ActionBarPopupWindow.ActionBarPopupWindowLayout) optionsView);
+//        }
         openAnimator = ValueAnimator.ofFloat(openProgress, open ? 1 : 0);
         openAnimator.addUpdateListener(anm -> {
             openProgress = (float) anm.getAnimatedValue();
@@ -271,7 +251,15 @@ public class ScrimOptions extends Dialog {
                 optionsView.setScaleY(AndroidUtilities.lerp(.8f, 1f, openProgress));
                 optionsView.setAlpha(openProgress);
             }
-
+//            if (scrimCell != null && !isGroup) {
+//                scrimCell.setTranslationX(scrimDrawableTx * openProgress);
+//                scrimCell.setTranslationY(scrimDrawableTy * openProgress);
+//                scrimCell.invalidate();
+//                scrimCell.invalidateOutbounds();
+//                if (scrimCell.getParent() instanceof View) {
+//                    ((View) scrimCell.getParent()).invalidate();
+//                }
+//            }
             windowView.invalidate();
             containerView.invalidate();
         });
@@ -284,7 +272,15 @@ public class ScrimOptions extends Dialog {
                     optionsView.setScaleY(AndroidUtilities.lerp(.8f, 1f, openProgress));
                     optionsView.setAlpha(openProgress);
                 }
-
+//                if (scrimCell != null && !isGroup) {
+//                    scrimCell.setTranslationX(scrimDrawableTx * openProgress);
+//                    scrimCell.setTranslationY(scrimDrawableTy * openProgress);
+//                    scrimCell.invalidate();
+//                    scrimCell.invalidateOutbounds();
+//                    if (scrimCell.getParent() instanceof View) {
+//                        ((View) scrimCell.getParent()).invalidate();
+//                    }
+//                }
                 windowView.invalidate();
                 containerView.invalidate();
                 if (after != null) {
@@ -297,6 +293,7 @@ public class ScrimOptions extends Dialog {
         openAnimator.setDuration(duration);
         openAnimator.start();
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -338,10 +335,6 @@ public class ScrimOptions extends Dialog {
             if (withoutView != null) {
                 withoutView.setVisibility(View.VISIBLE);
             }
-            if (bitmapBg == null || bitmapOptions == null) {
-                return;
-            }
-            releaseBlurBitmaps();
             blurBitmap = bitmapBg;
 
             blurBitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -354,111 +347,24 @@ public class ScrimOptions extends Dialog {
     }
 
     public static void makeGlobalBlurBitmaps(Utilities.Callback2<Bitmap, Bitmap> bitmaps) {
-        AndroidUtilities.makeGlobalBlurBitmap(bitmap -> deliverProcessedBlur(bitmap, bitmaps), 15);
-    }
-
-    public static void makeGlobalBlurBitmapsExcluding(
-            View excludedView,
-            Utilities.Callback2<Bitmap, Bitmap> bitmaps
-    ) {
-        if (excludedView == null || !excludedView.isAttachedToWindow()) {
-            makeGlobalBlurBitmaps(bitmaps);
-            return;
-        }
-        View excludedRoot = AndroidUtilities.getRootView(excludedView);
-        List<View> excludedRoots = new ArrayList<>(1);
-        excludedRoots.add(excludedRoot);
-        AndroidUtilities.makeGlobalBlurBitmap(
-                bitmap -> deliverProcessedBlur(bitmap, bitmaps),
-                15f,
-                15,
-                null,
-                excludedRoots);
-    }
-
-    public static void makeGlobalBlurBitmapsWithout(
-            View withoutView,
-            Utilities.Callback2<Bitmap, Bitmap> bitmaps) {
-        if (withoutView == null) {
-            makeGlobalBlurBitmaps(bitmaps);
-            return;
-        }
-        final int previousVisibility = withoutView.getVisibility();
-        final boolean[] restored = {false};
-        final Runnable restore = () -> {
-            if (!restored[0]) {
-                restored[0] = true;
-                withoutView.setVisibility(previousVisibility);
-            }
-        };
-        withoutView.setVisibility(View.INVISIBLE);
-        try {
-            makeGlobalBlurBitmaps((bitmapBg, bitmapOptions) -> {
-                restore.run();
-                bitmaps.run(bitmapBg, bitmapOptions);
-            });
-        } catch (Throwable t) {
-            restore.run();
-            throw t;
-        }
-    }
-
-    private static void deliverProcessedBlur(Bitmap bitmap, Utilities.Callback2<Bitmap, Bitmap> bitmaps) {
-        if (bitmap == null || bitmap.isRecycled()) {
-            deliverFallbackBlur(bitmaps);
-            return;
-        }
-        Bitmap bitmapBg = null;
-        Bitmap bitmapOptions = null;
-        try {
+        AndroidUtilities.makeGlobalBlurBitmap(bitmap -> {
             final ColorMatrix colorMatrixBg = new ColorMatrix();
             AndroidUtilities.adjustSaturationColorMatrix(colorMatrixBg, Theme.isCurrentThemeDark() ? .04f : +.25f);
             AndroidUtilities.adjustBrightnessColorMatrix(colorMatrixBg, Theme.isCurrentThemeDark() ? -.04f : -.07f);
-            bitmapBg = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixBg);
+            final Bitmap bitmapBg = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixBg);
             bitmapBg.setHasAlpha(false);
 
             final ColorMatrix colorMatrixOptions = new ColorMatrix();
             colorMatrixOptions.setSaturation(Theme.isCurrentThemeDark() ? 2 : 3);
-            AndroidUtilities.adjustBrightnessColorMatrix(colorMatrixOptions, Theme.isCurrentThemeDark() ? -.2f : -.07f);
-            bitmapOptions = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixOptions);
+            if (!Theme.isCurrentThemeDark()) {
+                AndroidUtilities.adjustBrightnessColorMatrix(colorMatrixOptions, Theme.isCurrentThemeDark() ? -.2f : -.07f);
+            }
+            final Bitmap bitmapOptions = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixOptions);
             bitmapOptions.setHasAlpha(false);
-        } catch (OutOfMemoryError | RuntimeException e) {
-            org.telegram.messenger.FileLog.e(e);
-            recycleBitmap(bitmapBg);
-            recycleBitmap(bitmapOptions);
-            deliverFallbackBlur(bitmaps);
-            return;
-        } finally {
-            recycleBitmap(bitmap);
-        }
-        bitmaps.run(bitmapBg, bitmapOptions);
-    }
 
-    private static void deliverFallbackBlur(Utilities.Callback2<Bitmap, Bitmap> bitmaps) {
-        Bitmap bitmapBg = null;
-        Bitmap bitmapOptions = null;
-        try {
-            final int color = Theme.getColor(Theme.key_windowBackgroundWhite);
-            bitmapBg = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-            bitmapBg.eraseColor(color);
-            bitmapBg.setHasAlpha(false);
-            bitmapOptions = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-            bitmapOptions.eraseColor(color);
-            bitmapOptions.setHasAlpha(false);
-        } catch (OutOfMemoryError | RuntimeException e) {
-            org.telegram.messenger.FileLog.e(e);
-            recycleBitmap(bitmapBg);
-            recycleBitmap(bitmapOptions);
-            bitmaps.run(null, null);
-            return;
-        }
-        bitmaps.run(bitmapBg, bitmapOptions);
-    }
-
-    private static void recycleBitmap(Bitmap bitmap) {
-        if (bitmap != null && !bitmap.isRecycled()) {
             bitmap.recycle();
-        }
+            bitmaps.run(bitmapBg, bitmapOptions);
+        }, 15);
     }
 
     public static void makeGlobalBlurBitmaps(View cutToContainer, Utilities.Callback2<Bitmap, Bitmap> bitmaps) {
@@ -467,33 +373,32 @@ public class ScrimOptions extends Dialog {
             return;
         }
         AndroidUtilities.makeGlobalBlurBitmap(bitmap -> {
-            if (bitmap == null || bitmap.isRecycled()) {
-                deliverFallbackBlur(bitmaps);
-                return;
-            }
-            try {
-                if (cutToContainer.getWidth() > 0 && cutToContainer.getHeight() > 0) {
-                    int[] pos = new int[2];
-                    cutToContainer.getLocationOnScreen(pos);
-                    final int x = Utilities.clamp((int) ((float) pos[0] / AndroidUtilities.displaySize.x * bitmap.getWidth()), bitmap.getWidth(), 0);
-                    final int y = Utilities.clamp((int) ((float) pos[1] / (AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight + AndroidUtilities.navigationBarHeight) * bitmap.getHeight()), bitmap.getHeight(), 0);
-                    final int w = Utilities.clamp((int) ((float) (cutToContainer.getWidth()) / AndroidUtilities.displaySize.x * bitmap.getWidth()), bitmap.getWidth() - x, 0);
-                    final int h = Utilities.clamp((int) ((float) (cutToContainer.getHeight()) / (AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight + AndroidUtilities.navigationBarHeight) * bitmap.getHeight()), bitmap.getHeight() - y, 0);
-                    if ((x != 0 || y != 0 || w != bitmap.getWidth() || h != bitmap.getHeight()) && w > 0 && h > 0) {
-                        Bitmap original = bitmap;
-                        bitmap = Bitmap.createBitmap(original, x, y, w, h);
-                        if (bitmap != original) {
-                            recycleBitmap(original);
-                        }
-                    }
+            if (cutToContainer.getWidth() > 0 && cutToContainer.getHeight() > 0) {
+                int[] pos = new int[2];
+                cutToContainer.getLocationOnScreen(pos);
+                final int x = Utilities.clamp((int) ((float) pos[0] / AndroidUtilities.displaySize.x * bitmap.getWidth()), bitmap.getWidth(), 0);
+                final int y = Utilities.clamp((int) ((float) pos[1] / (AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight + AndroidUtilities.navigationBarHeight) * bitmap.getHeight()), bitmap.getHeight(), 0);
+                final int w = Utilities.clamp((int) ((float) (cutToContainer.getWidth()) / AndroidUtilities.displaySize.x * bitmap.getWidth()), bitmap.getWidth() - x, 0);
+                final int h = Utilities.clamp((int) ((float) (cutToContainer.getHeight()) / (AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight + AndroidUtilities.navigationBarHeight) * bitmap.getHeight()), bitmap.getHeight() - y, 0);
+                if ((x != 0 || y != 0 || w != bitmap.getWidth() || h != bitmap.getHeight()) && w > 0 && h > 0) {
+                    bitmap = Bitmap.createBitmap(bitmap, x, y, w, h);
                 }
-            } catch (OutOfMemoryError | RuntimeException e) {
-                org.telegram.messenger.FileLog.e(e);
-                recycleBitmap(bitmap);
-                deliverFallbackBlur(bitmaps);
-                return;
             }
-            deliverProcessedBlur(bitmap, bitmaps);
+
+            final ColorMatrix colorMatrixBg = new ColorMatrix();
+            AndroidUtilities.adjustSaturationColorMatrix(colorMatrixBg, Theme.isCurrentThemeDark() ? .04f : +.25f);
+            AndroidUtilities.adjustBrightnessColorMatrix(colorMatrixBg, Theme.isCurrentThemeDark() ? -.04f : -.07f);
+            final Bitmap bitmapBg = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixBg);
+            bitmapBg.setHasAlpha(false);
+
+            final ColorMatrix colorMatrixOptions = new ColorMatrix();
+            colorMatrixOptions.setSaturation(Theme.isCurrentThemeDark() ? 2 : 3);
+            AndroidUtilities.adjustBrightnessColorMatrix(colorMatrixOptions, Theme.isCurrentThemeDark() ? -.2f : -.07f);
+            final Bitmap bitmapOptions = AndroidUtilities.applyColorMatrix(bitmap, colorMatrixOptions);
+            bitmapOptions.setHasAlpha(false);
+
+            bitmap.recycle();
+            bitmaps.run(bitmapBg, bitmapOptions);
         }, 15);
     }
 
@@ -533,6 +438,7 @@ public class ScrimOptions extends Dialog {
                 scrimDrawableTy1 = 0f;
             }
 
+
             final float bb = boundsBottom + (scrimDrawableBackground != null ? dp(21) : 0);
 
             if (bb + optionsContainer.getMeasuredHeight() > windowView.getMeasuredHeight() - dp(16)) {
@@ -550,6 +456,8 @@ public class ScrimOptions extends Dialog {
     public void setScrim(ChatMessageCell cell) {
 
     }
+
+
 
     public void setScrimDrawable(Drawable drawable, int width, int height) {
         scrimDrawableBackground = iBlur3Factory.create()

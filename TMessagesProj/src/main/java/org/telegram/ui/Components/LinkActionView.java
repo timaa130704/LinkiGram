@@ -37,7 +37,6 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
@@ -54,7 +53,6 @@ import java.util.ArrayList;
 public class LinkActionView extends LinearLayout {
 
     TextView linkView;
-    private final TextView incomingLinkView;
     String link;
     BaseFragment fragment;
     ImageView optionsView;
@@ -77,9 +75,6 @@ public class LinkActionView extends LinearLayout {
     private boolean canEdit = true;
     private final boolean isChannel;
     private final float[] point = new float[2];
-    private String displayedLinkText;
-    private int linkTextAnimationGeneration;
-    private boolean linkTextInitialized;
 
     public LinkActionView(Context context, BaseFragment fragment, BottomSheet bottomSheet, long chatId, boolean permanent, boolean isChannel) {
         super(context);
@@ -90,15 +85,13 @@ public class LinkActionView extends LinearLayout {
         setOrientation(VERTICAL);
         frameLayout = new FrameLayout(context);
         linkView = new TextView(context);
-        configureLinkTextView(linkView);
-
-        incomingLinkView = new TextView(context);
-        configureLinkTextView(incomingLinkView);
-        incomingLinkView.setAlpha(0f);
+        linkView.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(13), AndroidUtilities.dp(40), AndroidUtilities.dp(13));
+        linkView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        linkView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+        linkView.setSingleLine(true);
 
         int containerPadding = 4;
-        frameLayout.addView(linkView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48));
-        frameLayout.addView(incomingLinkView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48));
+        frameLayout.addView(linkView);
         optionsView = new ImageView(context);
         optionsView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_ab_other));
         optionsView.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
@@ -138,6 +131,7 @@ public class LinkActionView extends LinearLayout {
         shareView.setTypeface(AndroidUtilities.bold());
         shareView.setSingleLine(true);
         linearLayout.addView(shareView, LayoutHelper.createLinear(0, 42, 1f, 4, 0, containerPadding, 0));
+
 
         removeView = new TextView(context);
         ScaleStateListAnimator.apply(removeView, .025f, 1.2f);
@@ -272,6 +266,7 @@ public class LinkActionView extends LinearLayout {
                 container = bottomSheet.getContainer();
             }
 
+
             if (container != null) {
                 float x = 0;
                 float y;
@@ -309,6 +304,7 @@ public class LinkActionView extends LinearLayout {
                 dimView.setAlpha(0);
                 dimView.animate().alpha(1f).setDuration(150);
                 layout.measure(MeasureSpec.makeMeasureSpec(container.getMeasuredWidth(), MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(container.getMeasuredHeight(), MeasureSpec.UNSPECIFIED));
+
 
                 actionBarPopupWindow = new ActionBarPopupWindow(layout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
                 actionBarPopupWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
@@ -356,14 +352,6 @@ public class LinkActionView extends LinearLayout {
             }
         });
         updateColors();
-    }
-
-    private static void configureLinkTextView(TextView textView) {
-        textView.setPadding(AndroidUtilities.dp(18), 0, AndroidUtilities.dp(40), 0);
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        textView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-        textView.setSingleLine(true);
-        textView.setGravity(Gravity.CENTER_VERTICAL | (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT));
     }
 
     public void showBulletin(int resId, CharSequence str) {
@@ -426,9 +414,8 @@ public class LinkActionView extends LinearLayout {
         removeView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(21), Theme.getColor(Theme.key_chat_attachAudioBackground), ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhite), 120)));
         frameLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(21), Theme.getColor(Theme.key_graySection), ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_listSelector), (int) (255 * 0.3f))));
         linkView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        incomingLinkView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         optionsView.setColorFilter(Theme.getColor(Theme.key_dialogTextGray3));
-        
+        //optionsView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
         avatarsContainer.countTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
         avatarsContainer.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(6), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText), (int) (255 * 0.3f))));
 
@@ -437,65 +424,16 @@ public class LinkActionView extends LinearLayout {
         }
     }
 
+
     public void setLink(String link) {
         this.link = link;
-        final String text;
         if (link == null) {
-            text = LocaleController.getString(R.string.Loading);
+            linkView.setText(LocaleController.getString(R.string.Loading));
         } else if (link.startsWith("https://")) {
-            text = link.substring("https://".length());
+            linkView.setText(link.substring("https://".length()));
         } else {
-            text = link;
+            linkView.setText(link);
         }
-
-        if (TextUtils.equals(displayedLinkText, text)) {
-            return;
-        }
-        displayedLinkText = text;
-
-        final int generation = ++linkTextAnimationGeneration;
-        linkView.animate().cancel();
-        incomingLinkView.animate().cancel();
-
-        final boolean animated = linkTextInitialized
-                && link != null
-                && isAttachedToWindow()
-                && isShown()
-                && SharedConfig.animationsEnabled();
-        linkTextInitialized = true;
-        if (!animated) {
-            linkView.setText(text);
-            linkView.setAlpha(1f);
-            incomingLinkView.setText(null);
-            incomingLinkView.setAlpha(0f);
-            return;
-        }
-
-        incomingLinkView.setText(text);
-        incomingLinkView.setAlpha(0f);
-        linkView.animate()
-                .alpha(0f)
-                .setDuration(160)
-                .setInterpolator(CubicBezierInterpolator.DEFAULT)
-                .start();
-        incomingLinkView.animate()
-                .alpha(1f)
-                .setDuration(180)
-                .setInterpolator(CubicBezierInterpolator.DEFAULT)
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        if (generation != linkTextAnimationGeneration) {
-                            return;
-                        }
-                        linkView.setText(text);
-                        linkView.setAlpha(1f);
-                        incomingLinkView.setText(null);
-                        incomingLinkView.setAlpha(0f);
-                        incomingLinkView.animate().setListener(null);
-                    }
-                })
-                .start();
     }
 
     public void setRevoke(boolean revoked) {
@@ -528,23 +466,8 @@ public class LinkActionView extends LinearLayout {
     public void hideOptions() {
         optionsView.setVisibility(View.GONE);
         linkView.setGravity(Gravity.CENTER);
-        incomingLinkView.setGravity(Gravity.CENTER);
         removeView.setVisibility(View.GONE);
         avatarsContainer.setVisibility(View.GONE);
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        ++linkTextAnimationGeneration;
-        linkView.animate().cancel();
-        incomingLinkView.animate().cancel();
-        if (displayedLinkText != null) {
-            linkView.setText(displayedLinkText);
-        }
-        linkView.setAlpha(1f);
-        incomingLinkView.setText(null);
-        incomingLinkView.setAlpha(0f);
-        super.onDetachedFromWindow();
     }
 
     private class AvatarsContainer extends FrameLayout {

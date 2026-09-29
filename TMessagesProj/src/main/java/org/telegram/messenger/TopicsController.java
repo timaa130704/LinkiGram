@@ -46,7 +46,6 @@ public class TopicsController extends BaseController {
     LongSparseArray<ArrayList<TLRPC.TL_forumTopic>> topicsByChatId = new LongSparseArray<>();
     LongSparseArray<LongSparseArray<TLRPC.TL_forumTopic>> topicsMapByChatId = new LongSparseArray<>();
     LongSparseIntArray topicsIsLoading = new LongSparseIntArray();
-    LongSparseIntArray topicsLoadError = new LongSparseIntArray();
     LongSparseIntArray endIsReached = new LongSparseIntArray();
     LongSparseArray<TLRPC.TL_forumTopic> topicsByTopMsgId = new LongSparseArray<>();
 
@@ -73,7 +72,6 @@ public class TopicsController extends BaseController {
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("load topics " + chatId + " fromCache=" + fromCache + " loadType=" + loadType);
         }
-        topicsLoadError.delete(chatId);
         topicsIsLoading.put(chatId, 1);
 
         if (fromCache) {
@@ -85,6 +83,7 @@ public class TopicsController extends BaseController {
 
                     topicsIsLoading.put(chatId, 0);
                     processTopics(chatId, topics, null, fromCache, loadType, -1);
+                    sortTopics(chatId);
                 });
             });
             return;
@@ -152,6 +151,7 @@ public class TopicsController extends BaseController {
 
                     topicsIsLoading.put(chatId, 0);
                     processTopics(chatId, ForumUtilities.monoForumTopicToTopic(topics.dialogs), messagesMap, false, loadType, topics.dialogs.size());
+                    sortTopics(chatId);
                     getMessagesStorage().saveTopics(-chatId, topicsByChatId.get(chatId), true, true, getConnectionsManager().getCurrentTime());
                     getMessagesStorage().putMessages(topics.messages, false, true, false, 0, false, 0, 0);
 
@@ -177,6 +177,7 @@ public class TopicsController extends BaseController {
 
                     topicsIsLoading.put(chatId, 0);
                     processTopics(chatId, ForumUtilities.monoForumTopicToTopic(topics.dialogs), messagesMap, false, loadType, topics.count);
+                    sortTopics(chatId);
                     getMessagesStorage().saveTopics(-chatId, topicsByChatId.get(chatId), true, true, getConnectionsManager().getCurrentTime());
                     getMessagesStorage().putMessages(topics.messages, false, true, false, 0, false, 0, 0);
 
@@ -214,6 +215,7 @@ public class TopicsController extends BaseController {
 
                     topicsIsLoading.put(chatId, 0);
                     processTopics(chatId, topics.topics, messagesMap, false, loadType, ((TLRPC.TL_messages_forumTopics) response).count);
+                    sortTopics(chatId);
                     getMessagesStorage().saveTopics(-chatId, topicsByChatId.get(chatId), true, true, getConnectionsManager().getCurrentTime());
                     getMessagesStorage().putMessages(topics.messages, false, true, false, 0, false, 0, 0);
 
@@ -229,7 +231,6 @@ public class TopicsController extends BaseController {
             } else {
                 AndroidUtilities.runOnUIThread(() -> {
                     topicsIsLoading.put(chatId, 0);
-                    topicsLoadError.put(chatId, 1);
                     getNotificationCenter().postNotificationName(NotificationCenter.topicsDidLoaded, chatId, false);
                 });
             }
@@ -238,9 +239,6 @@ public class TopicsController extends BaseController {
     }
 
     public void processTopics(long chatId, ArrayList<TLRPC.TL_forumTopic> newTopics, LongSparseArray<TLRPC.Message> messagesMap, boolean fromCache, int loadType, int totalCount) {
-        if (newTopics != null) {
-            topicsLoadError.delete(chatId);
-        }
         if (loadType == LOAD_TYPE_HASH_CHECK && getMessagesController().isMonoForum(-chatId)) {
             getUserConfig().getPreferences().edit().remove("topics_end_reached_" + chatId).apply();
             topicsByChatId.remove(chatId);
@@ -330,7 +328,6 @@ public class TopicsController extends BaseController {
                 for (int j = 0; j < topics.size(); j++) {
                     if (topics.get(j).id == deletedTopics.get(i)) {
                         topics.remove(j);
-                        changed = true;
                         break;
                     }
                 }
@@ -380,6 +377,7 @@ public class TopicsController extends BaseController {
     private long messageHash(int messageId, long chatId) {
         return chatId + ((long) messageId << 12);
     }
+
 
     public ArrayList<TLRPC.TL_forumTopic> getTopics(long chatId) {
         return topicsByChatId.get(chatId);
@@ -466,6 +464,7 @@ public class TopicsController extends BaseController {
                             getMessagesStorage().getDatabase().executeFast(String.format(Locale.US, "UPDATE topics SET top_message = %d WHERE did = %d AND topic_id = %d", topicsToUpdate.get(i).top_message, dialogId, topicsToUpdate.get(i).id)).stepThis().dispose();
                         }
                     }
+
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -557,6 +556,7 @@ public class TopicsController extends BaseController {
                         getMessagesStorage().removeTopic(-chatId, topicId);
                         onTopicsDeletedServerSide(chatId, topicId);
                     }
+
 
                     if (callback != null) {
                         callback.run();
@@ -809,7 +809,7 @@ public class TopicsController extends BaseController {
                     updated = true;
                     topic.pinned = newPinned;
                     topic.pinnedOrder = newPinnedOrder;
-                    getMessagesStorage().updateTopicData(-chatId, topic, TopicsController.TOPIC_FLAG_PIN);
+                    getMessagesStorage().updateTopicData(chatId, topic, TopicsController.TOPIC_FLAG_PIN);
                 }
             }
         } else {
@@ -837,7 +837,11 @@ public class TopicsController extends BaseController {
             topic.hidden = req.hidden;
             if (topic.hidden) {
                 topic.closed = true;
-
+//                topic.pinned = true;
+//                ArrayList<Integer> order = getCurrentPinnedOrder(chatId);
+//                order.remove((Integer) topicId);
+//                order.add(0, topicId);
+//                applyPinnedOrder(chatId, order);
             }
             updateTopicInUi(-chatId, topic, TOPIC_FLAG_PIN | TOPIC_FLAG_HIDE | TOPIC_FLAG_CLOSE);
             getMessagesStorage().updateTopicData(-chatId, topic, TOPIC_FLAG_PIN | TOPIC_FLAG_HIDE | TOPIC_FLAG_CLOSE);
@@ -1003,7 +1007,12 @@ public class TopicsController extends BaseController {
             return offset;
         }
         return new TopicsLoadOffset();
-
+//        SharedPreferences sharedPreferences = getUserConfig().getPreferences();
+//        TopicsLoadOffset topicsLoadOffset = new TopicsLoadOffset();
+//        topicsLoadOffset.lastMessageId = sharedPreferences.getInt("topics_load_offset_message_id_" + chatId, 0);
+//        topicsLoadOffset.lastMessageDate = sharedPreferences.getInt("topics_load_offset_date_" + chatId, 0);
+//        topicsLoadOffset.lastMessageId = sharedPreferences.getInt("topics_load_offset_topic_id_" + chatId, 0);
+//        return topicsLoadOffset;
     }
 
     public void saveLoadOffset(long chatId, int lastMessageId, int lastMessageDate, long lastTopicId) {
@@ -1012,20 +1021,24 @@ public class TopicsController extends BaseController {
         offset.lastMessageDate = lastMessageDate;
         offset.lastTopicId = lastTopicId;
         offsets.put(chatId, offset);
-
+//        SharedPreferences.Editor editor = getUserConfig().getPreferences().edit();
+//        editor.putInt("topics_load_offset_message_id_" + chatId, lastMessageId);
+//        editor.putInt("topics_load_offset_date_" + chatId, lastMessageDate);
+//        editor.putInt("topics_load_offset_topic_id_" + chatId, lastTopicId);
+//        editor.apply();
     }
 
     public void clearLoadingOffset(long chatId) {
         offsets.remove(chatId);
-
+//        SharedPreferences.Editor editor = getUserConfig().getPreferences().edit();
+//        editor.remove("topics_load_offset_message_id_" + chatId);
+//        editor.remove("topics_load_offset_date_" + chatId);
+//        editor.remove("topics_load_offset_topic_id_" + chatId);
+//        editor.apply();
     }
 
     public boolean endIsReached(long chatId) {
         return endIsReached.get(chatId, 0) == 1;
-    }
-
-    public boolean hasLoadError(long chatId) {
-        return topicsLoadError.get(chatId, 0) == 1;
     }
 
     public void processUpdate(List<TopicUpdate> topicUpdates) {
@@ -1144,11 +1157,8 @@ public class TopicsController extends BaseController {
             getUserConfig().getPreferences().edit().remove("topics_end_reached_" + chatId).apply();
             topicsByChatId.remove(chatId);
             topicsMapByChatId.remove(chatId);
-            topicsLoadError.delete(chatId);
             endIsReached.delete(chatId);
             clearLoadingOffset(chatId);
-            getNotificationCenter().postNotificationName(
-                    NotificationCenter.topicsDidLoaded, chatId, false);
 
             TLRPC.Chat chat = getMessagesController().getChat(chatId);
             if (chat != null && (chat.forum || chat.monoforum)) {
@@ -1162,7 +1172,6 @@ public class TopicsController extends BaseController {
         AndroidUtilities.runOnUIThread(() -> {
             topicsByChatId.clear();
             topicsMapByChatId.clear();
-            topicsLoadError.clear();
             endIsReached.clear();
 
             SharedPreferences.Editor editor = getUserConfig().getPreferences().edit();
@@ -1198,7 +1207,8 @@ public class TopicsController extends BaseController {
                     }
                 }
             }
-            
+            //TODO topics
+            // optimize move to mask update
             for (Long chatId : updatedChats) {
                 NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.topicsDidLoaded, chatId, true);
             }
@@ -1260,6 +1270,7 @@ public class TopicsController extends BaseController {
                 }
 
                 processTopics(chatId, topics, null, true, LOAD_TYPE_PRELOAD, -1);
+                sortTopics(chatId);
                 if (findTopic(chatId, topicId) != null) {
                     runnable.run();
                 } else {
@@ -1291,6 +1302,7 @@ public class TopicsController extends BaseController {
         boolean onlyCounters;
         boolean checkForDelete;
     }
+
 
     public void onTopicFragmentResume(long chatId) {
         int v = openedTopicsByChatId.get(chatId, 0);
@@ -1349,6 +1361,7 @@ public class TopicsController extends BaseController {
         }
         return 0;
     }
+
 
     public static long calculateHashSavedDialogs(ArrayList<TLRPC.TL_forumTopic> topics, int start, int limit) {
         if (topics == null) {

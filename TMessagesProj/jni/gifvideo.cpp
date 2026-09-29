@@ -46,6 +46,7 @@ jmethodID jclass_AnimatedFileDrawableStream_getFinishedFilePath;
 struct OffsetIOContext;
 struct VideoInfo;
 static void freeOffsetIO(VideoInfo *info);
+static JavaVM *videoJvm(VideoInfo *info);
 
 typedef struct VideoInfo {
 
@@ -67,21 +68,24 @@ typedef struct VideoInfo {
             src = nullptr;
         }
         if (stream != nullptr) {
-            JNIEnv *jniEnv = nullptr;
-            JavaVMAttachArgs jvmArgs;
-            jvmArgs.version = JNI_VERSION_1_6;
+            JavaVM *vm = videoJvm(this);
+            if (vm != nullptr) {
+                JNIEnv *jniEnv = nullptr;
+                JavaVMAttachArgs jvmArgs;
+                jvmArgs.version = JNI_VERSION_1_6;
 
-            bool attached;
-            if (JNI_EDETACHED == javaVm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
-                javaVm->AttachCurrentThread(&jniEnv, &jvmArgs);
-                attached = true;
-            } else {
-                attached = false;
-            }
-            DEBUG_DELREF("gifvideo.cpp stream");
-            jniEnv->DeleteGlobalRef(stream);
-            if (attached) {
-                javaVm->DetachCurrentThread();
+                bool attached;
+                if (JNI_EDETACHED == vm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
+                    vm->AttachCurrentThread(&jniEnv, &jvmArgs);
+                    attached = true;
+                } else {
+                    attached = false;
+                }
+                DEBUG_DELREF("gifvideo.cpp stream");
+                jniEnv->DeleteGlobalRef(stream);
+                if (attached) {
+                    vm->DetachCurrentThread();
+                }
             }
             stream = nullptr;
         }
@@ -125,11 +129,23 @@ typedef struct VideoInfo {
     AVIOContext *offsetIoContext = nullptr;
     struct OffsetIOContext *offsetIoOpaque = nullptr;
     jobject stream = nullptr;
+    // VM cached from the creating JNI env; preferred over the global javaVm.
+    JavaVM *jvm = nullptr;
     int32_t account = 0;
     int fd = -1;
     int64_t file_size = 0;
     int64_t last_seek_p = 0;
 };
+
+// Preferred VM for streaming callbacks: per-decoder cache first, global fallback.
+// The global javaVm must be set via native_setJava at startup, but if it is ever
+// null the callbacks below must degrade gracefully instead of crashing.
+static JavaVM *videoJvm(VideoInfo *info) {
+    if (info != nullptr && info->jvm != nullptr) {
+        return info->jvm;
+    }
+    return javaVm;
+}
 
 void custom_log(void *ptr, int level, const char* fmt, va_list vl){
     va_list vl2;
@@ -200,20 +216,22 @@ int open_codec_context(int *stream_idx, AVCodecContext **dec_ctx, AVFormatContex
 }
 
 void requestFd(VideoInfo *info) {
-    JNIEnv *jniEnv = nullptr;
+    JavaVM *vm = videoJvm(info);
+    if (vm != nullptr) {
+        JNIEnv *jniEnv = nullptr;
 
-    JavaVMAttachArgs jvmArgs;
-    jvmArgs.version = JNI_VERSION_1_6;
+        JavaVMAttachArgs jvmArgs;
+        jvmArgs.version = JNI_VERSION_1_6;
 
-    bool attached;
-    if (JNI_EDETACHED == javaVm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
-        javaVm->AttachCurrentThread(&jniEnv, &jvmArgs);
-        attached = true;
-    } else {
-        attached = false;
-    }
-    jniEnv->CallIntMethod(info->stream, jclass_AnimatedFileDrawableStream_read, (jint) 0, (jint) 1);
-    jboolean loaded = jniEnv->CallBooleanMethod(info->stream, jclass_AnimatedFileDrawableStream_isFinishedLoadingFile);
+        bool attached;
+        if (JNI_EDETACHED == vm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
+            vm->AttachCurrentThread(&jniEnv, &jvmArgs);
+            attached = true;
+        } else {
+            attached = false;
+        }
+        jniEnv->CallIntMethod(info->stream, jclass_AnimatedFileDrawableStream_read, (jint) 0, (jint) 1);
+        jboolean loaded = jniEnv->CallBooleanMethod(info->stream, jclass_AnimatedFileDrawableStream_isFinishedLoadingFile);
     if (loaded) {
         delete[] info->src;
         jstring src = (jstring) jniEnv->CallObjectMethod(info->stream, jclass_AnimatedFileDrawableStream_getFinishedFilePath);
@@ -228,7 +246,8 @@ void requestFd(VideoInfo *info) {
     }
 
     if (attached) {
-        javaVm->DetachCurrentThread();
+        vm->DetachCurrentThread();
+    }
     }
     info->fd = open(info->src, O_RDONLY, S_IRUSR);
 }
@@ -244,23 +263,32 @@ int readCallback(void *opaque, uint8_t *buf, int buf_size) {
                 buf_size = (int) (info->file_size - info->last_seek_p);
             }
             if (buf_size > 0) {
+                JavaVM *vm = videoJvm(info);
+                if (vm == nullptr) {
+                    return AVERROR_EOF;
+                }
                 JNIEnv *jniEnv = nullptr;
 
                 JavaVMAttachArgs jvmArgs;
                 jvmArgs.version = JNI_VERSION_1_6;
 
                 bool attached;
-                if (JNI_EDETACHED == javaVm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
-                    javaVm->AttachCurrentThread(&jniEnv, &jvmArgs);
+                if (JNI_EDETACHED == vm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6) || jniEnv == nullptr) {
+                    if (jniEnv == nullptr) {
+                        vm->AttachCurrentThread(&jniEnv, &jvmArgs);
+                    }
                     attached = true;
                 } else {
                     attached = false;
+                }
+                if (jniEnv == nullptr) {
+                    return AVERROR_EOF;
                 }
 
                 buf_size = jniEnv->CallIntMethod(info->stream, jclass_AnimatedFileDrawableStream_read, (jint) info->last_seek_p, (jint) buf_size);
                 info->last_seek_p += buf_size;
                 if (attached) {
-                    javaVm->DetachCurrentThread();
+                    vm->DetachCurrentThread();
                 }
                 if (buf_size == 0) {
                     return AVERROR_EXIT;
@@ -506,25 +534,33 @@ static bool isStreamCanceled(VideoInfo *info) {
     if (info->stream == nullptr) {
         return false;
     }
+    JavaVM *vm = videoJvm(info);
+    if (vm == nullptr) {
+        return false;
+    }
     JNIEnv *jniEnv = nullptr;
     JavaVMAttachArgs jvmArgs;
     jvmArgs.version = JNI_VERSION_1_6;
 
     bool attached = false;
-    if (JNI_EDETACHED == javaVm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
-        javaVm->AttachCurrentThread(&jniEnv, &jvmArgs);
+    if (JNI_EDETACHED == vm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
+        vm->AttachCurrentThread(&jniEnv, &jvmArgs);
         attached = true;
+    }
+    if (jniEnv == nullptr) {
+        return false;
     }
     jboolean canceled = jniEnv->CallBooleanMethod(
             info->stream, jclass_AnimatedFileDrawableStream_isCanceled);
     if (attached) {
-        javaVm->DetachCurrentThread();
+        vm->DetachCurrentThread();
     }
     return canceled;
 }
 
 extern "C" JNIEXPORT jlong JNICALL Java_org_telegram_ui_Components_AnimatedFileNative_nCreateDecoder(JNIEnv *env, jclass clazz, jstring src, jintArray data, jint account, jlong streamFileSize, jobject stream, jboolean preview) {
     VideoInfo *info = new VideoInfo();
+    env->GetJavaVM(&info->jvm);
 
     char const *srcString = env->GetStringUTFChars(src, 0);
     size_t len = strlen(srcString);
@@ -555,6 +591,10 @@ extern "C" JNIEXPORT jlong JNICALL Java_org_telegram_ui_Components_AnimatedFileN
         }
 
         info->fmt_ctx = avformat_alloc_context();
+        if (info->fmt_ctx == nullptr) {
+            delete info;
+            return 0;
+        }
         info->fmt_ctx->pb = info->ioContext;
 
         AVDictionary *options = NULL;
@@ -645,20 +685,25 @@ extern "C" JNIEXPORT void JNICALL Java_org_telegram_ui_Components_AnimatedFileNa
     }
     VideoInfo *info = (VideoInfo *) (intptr_t) ptr;
     if (info->stream != nullptr) {
-        JNIEnv *jniEnv = nullptr;
-        JavaVMAttachArgs jvmArgs;
-        jvmArgs.version = JNI_VERSION_1_6;
+        JavaVM *vm = videoJvm(info);
+        if (vm != nullptr) {
+            JNIEnv *jniEnv = nullptr;
+            JavaVMAttachArgs jvmArgs;
+            jvmArgs.version = JNI_VERSION_1_6;
 
-        bool attached;
-        if (JNI_EDETACHED == javaVm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
-            javaVm->AttachCurrentThread(&jniEnv, &jvmArgs);
-            attached = true;
-        } else {
-            attached = false;
-        }
-        jniEnv->CallVoidMethod(info->stream, jclass_AnimatedFileDrawableStream_cancel);
-        if (attached) {
-            javaVm->DetachCurrentThread();
+            bool attached;
+            if (JNI_EDETACHED == vm->GetEnv((void **) &jniEnv, JNI_VERSION_1_6)) {
+                vm->AttachCurrentThread(&jniEnv, &jvmArgs);
+                attached = true;
+            } else {
+                attached = false;
+            }
+            if (jniEnv != nullptr) {
+                jniEnv->CallVoidMethod(info->stream, jclass_AnimatedFileDrawableStream_cancel);
+            }
+            if (attached) {
+                vm->DetachCurrentThread();
+            }
         }
     }
     delete info;

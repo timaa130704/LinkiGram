@@ -6,29 +6,23 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.view.animation.OvershootInterpolator;
 
 import androidx.annotation.Nullable;
-import androidx.core.graphics.ColorUtils;
-
-import app.nimarkogram.messenger.utils.ui.MonetHelper;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BotInlineKeyboard;
 import org.telegram.messenger.MessageObject;
-import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
+import org.telegram.messenger.utils.tlutils.TLKeyboardHelper;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.tl.TL_keyboard;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.LoadingDrawable;
 import org.telegram.ui.Components.Text;
@@ -47,7 +41,7 @@ class BotButton {
     public int positionFlags;
     public Text title;
     @Nullable
-    public TLRPC.KeyboardButton button;
+    public TL_keyboard.KeyboardInlineButton button;
     @Nullable
     public BotInlineKeyboard.ButtonCustom buttonCustom;
     public BotInlineKeyboard.Button buttonImpl;
@@ -62,12 +56,6 @@ class BotButton {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF loadingRect = new RectF();
     private final float[] radii = new float[8];
-    private boolean contrastCacheValid;
-    private boolean contrastCacheSemantic;
-    private int contrastCacheInputSurface;
-    private int contrastCacheInputForeground;
-    private int contrastCacheSurface;
-    private int contrastCacheForeground;
 
     public LoadingDrawable loadingDrawable;
     public Drawable selectorDrawable;
@@ -108,18 +96,9 @@ class BotButton {
         path.addRoundRect(rect, radii, Path.Direction.CW);
         canvas.drawPath(path, Theme.getThemePaint(Theme.key_paint_chatActionBackground, resourcesProvider));
 
-        int buttonSurfaceColor = Theme.getColor(
-                Theme.key_chat_serviceBackground, resourcesProvider);
-        if (Color.alpha(buttonSurfaceColor) != 255) {
-            int wallpaperColor = Theme.getColor(Theme.key_chat_wallpaper, resourcesProvider);
-            wallpaperColor = ColorUtils.setAlphaComponent(wallpaperColor, 255);
-            buttonSurfaceColor = ColorUtils.compositeColors(buttonSurfaceColor, wallpaperColor);
-        }
-
         final BotInlineKeyboard.BackgroundColor bgColor =
             buttonImpl != null ? buttonImpl.getColor() :
             BotInlineKeyboard.BackgroundColor.NONE;
-        int semanticForegroundColor = 0;
 
         if (bgColor != BotInlineKeyboard.BackgroundColor.NONE) {
             switch (bgColor) {
@@ -133,23 +112,24 @@ class BotButton {
                     paint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_botKeyboard_button_primary, resourcesProvider), 0.7f));
                     break;
             }
-            buttonSurfaceColor = ColorUtils.compositeColors(paint.getColor(), buttonSurfaceColor);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    && MonetHelper.isActiveMonetTheme()) {
-                resolveMonetContrast(0, buttonSurfaceColor, true);
-                semanticForegroundColor = contrastCacheForeground;
-                if (semanticForegroundColor != 0) {
-                    buttonSurfaceColor = contrastCacheSurface;
-                    
-                    paint.setColor(buttonSurfaceColor);
-                }
-            }
             canvas.drawPath(path, paint);
         }
         final boolean hasGradientService = resourcesProvider != null ? resourcesProvider.hasGradientService() : Theme.hasGradientService();
         if (hasGradientService && (bgColor == BotInlineKeyboard.BackgroundColor.NONE || resourcesProvider != null && resourcesProvider.isDark())) {
             canvas.drawPath(path, Theme.chat_actionBackgroundGradientDarkenPaint);
         }
+
+//        boolean drawProgress = (button instanceof TLRPC.TL_keyboardButtonCallback_layer228 || button instanceof TLRPC.TL_keyboardButtonGame || button instanceof TLRPC.TL_keyboardButtonBuy_layer228 || button instanceof TLRPC.TL_keyboardButtonUrlAuth_layer228) && SendMessagesHelper.getInstance(currentAccount).isSendingCallback(currentMessageObject, button)
+//                || button instanceof TLRPC.TL_keyboardButtonRequestGeoLocation && SendMessagesHelper.getInstance(currentAccount).isSendingCurrentLocation(currentMessageObject, button)
+//                || button instanceof TLRPC.TL_keyboardButtonUrl && delegate != null && delegate.isProgressLoading(this, ChatActivity.PROGRESS_BOT_BUTTON) && delegate.getProgressLoadingBotButtonUrl(this) == button.url;
+//
+//        if (button.buttonCustom != null && currentMessageObject != null) {
+//            if (button.buttonCustom.id == BotInlineKeyboard.ButtonCustom.SUGGESTION_ACCEPT) {
+//                drawProgress |= MessagesController.getInstance(currentAccount).isSendingSuggestedMessageApproval(currentMessageObject.getDialogId(), currentMessageObject.getId(), true);
+//            } else if (button.buttonCustom.id == BotInlineKeyboard.ButtonCustom.SUGGESTION_DECLINE) {
+//                drawProgress |= MessagesController.getInstance(currentAccount).isSendingSuggestedMessageApproval(currentMessageObject.getDialogId(), currentMessageObject.getId(), false);
+//            }
+//        }
 
         canvas.save();
         canvas.clipPath(path);
@@ -217,24 +197,10 @@ class BotButton {
             titleX += iconWithMarginPx;
         }
         title.ellipsize(Math.max(1, rect.width() - dp(15) - iconWithMarginPx));
-        final int originalTitleColor = title.paint.getColor();
-        final int originalLinkColor = title.paint.linkColor;
-        final int titleColor;
-        if (semanticForegroundColor != 0) {
-            titleColor = semanticForegroundColor;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && MonetHelper.isActiveMonetTheme()) {
-            resolveMonetContrast(originalTitleColor, buttonSurfaceColor, false);
-            titleColor = contrastCacheForeground;
-        } else {
-            titleColor = originalTitleColor;
-        }
-        title.draw(canvas, titleX, rect.centerY(), titleColor, isLocked ? 0.5f: 1f);
-        
-        title.paint.setColor(originalTitleColor);
-        title.paint.linkColor = originalLinkColor;
+        title.draw(canvas, titleX, rect.centerY(), isLocked ? 0.5f: 1f);
         canvas.restore();
 
+        final TL_keyboard.TL_inlineButtonTypeUrl buttonTypeUrl = TLKeyboardHelper.getType(button, TL_keyboard.TL_inlineButtonTypeUrl.class);
         if (buttonCustom != null) {
             if (isLocked) {
                 final Drawable drawable = Theme.getThemeDrawable(Theme.key_drawable_botLock, resourcesProvider);
@@ -243,14 +209,14 @@ class BotButton {
                 drawable.draw(canvas);
             }
 
-        } else if (button instanceof TLRPC.TL_keyboardButtonWebView) {
+        } else if (TLKeyboardHelper.isButtonWebView(button)) {
             final Drawable drawable = Theme.getThemeDrawable(Theme.key_drawable_botWebView, resourcesProvider);
             final int x = (int) rect.right - dp(3) - drawable.getIntrinsicWidth();
             BaseCell.setDrawableBounds(drawable, x, rect.top + dp(3));
             drawable.draw(canvas);
-        } else if (button instanceof TLRPC.TL_keyboardButtonUrl) {
+        } else if (buttonTypeUrl != null) {
             final Drawable drawable;
-            if (LinkManager.isWebAppLink(button.url)) {
+            if (LinkManager.isWebAppLink(buttonTypeUrl.url)) {
                 drawable = Theme.getThemeDrawable(Theme.key_drawable_botWebView, resourcesProvider);
             } else if (isInviteButton) {
                 drawable = Theme.getThemeDrawable(Theme.key_drawable_botInvite, resourcesProvider);
@@ -260,12 +226,12 @@ class BotButton {
             int x = (int) rect.right - dp(3) - drawable.getIntrinsicWidth();
             BaseCell.setDrawableBounds(drawable, x, rect.top + dp(3));
             drawable.draw(canvas);
-        } else if (button instanceof TLRPC.TL_keyboardButtonSwitchInline || button instanceof TLRPC.TL_keyboardButtonRequestPeer) {
+        } else if (TLKeyboardHelper.isType(button, TL_keyboard.TL_inlineButtonTypeSwitchInline.class) || TLKeyboardHelper.isType(button, TL_keyboard.TL_buttonTypeRequestPeer.class)) {
             final Drawable drawable = Theme.getThemeDrawable(Theme.key_drawable_botInline, resourcesProvider);
             final int x = (int) rect.right - dp(3) - drawable.getIntrinsicWidth();
             BaseCell.setDrawableBounds(drawable, x, rect.top + dp(3));
             drawable.draw(canvas);
-        } else if (button instanceof TLRPC.TL_keyboardButtonBuy && drawBuyCard) {
+        } else if (TLKeyboardHelper.isType(button, TL_keyboard.TL_inlineButtonTypeBuy.class) && drawBuyCard) {
             final int x = (int) rect.right - dp(5) - Theme.chat_botCardDrawable.getIntrinsicWidth();
             BaseCell.setDrawableBounds(Theme.chat_botCardDrawable, x, rect.top + dp(4));
             Theme.chat_botCardDrawable.draw(canvas);
@@ -274,28 +240,6 @@ class BotButton {
         canvas.restore();
 
         return invalidate;
-    }
-
-    private void resolveMonetContrast(int foreground, int surface, boolean semantic) {
-        if (contrastCacheValid
-                && contrastCacheSemantic == semantic
-                && contrastCacheInputForeground == foreground
-                && contrastCacheInputSurface == surface) {
-            return;
-        }
-        contrastCacheValid = true;
-        contrastCacheSemantic = semantic;
-        contrastCacheInputForeground = foreground;
-        contrastCacheInputSurface = surface;
-        if (semantic) {
-            contrastCacheForeground = MonetHelper.getSemanticButtonForeground(0);
-            contrastCacheSurface = contrastCacheForeground != 0
-                    ? MonetHelper.ensureSemanticButtonBackground(surface, contrastCacheForeground)
-                    : surface;
-        } else {
-            contrastCacheForeground = MonetHelper.ensureReadableForeground(foreground, surface);
-            contrastCacheSurface = surface;
-        }
     }
 
     public void setPressed(boolean pressed) {

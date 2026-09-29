@@ -118,8 +118,7 @@ public class StoriesViewPager extends ViewPager {
 
             @Override
             public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
-                PageLayout child = (PageLayout) object;
-                child.cancelPreload();
+                FrameLayout child = (FrameLayout) object;
                 container.removeView(child);
                 PeerStoriesView peerStoriesView = (PeerStoriesView) child.getChildAt(0);
                 AndroidUtilities.removeFromParent(peerStoriesView);
@@ -135,7 +134,12 @@ public class StoriesViewPager extends ViewPager {
             PageLayout pageLayout = (PageLayout) page;
             if (Math.abs(position) >= 1f) {
                 pageLayout.setVisible(false);
-                pageLayout.schedulePreload();
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (pageLayout.day != null) {
+                        pageLayout.peerStoryView.day = pageLayout.day;
+                    }
+                    pageLayout.peerStoryView.preloadMainImage(pageLayout.dialogId);
+                }, 16);
                 return;
             }
             if (!pageLayout.isVisible) {
@@ -308,7 +312,7 @@ public class StoriesViewPager extends ViewPager {
         if (a == null || b == null) return false;
         if (a.size() != b.size()) return false;
         for (int i = 0; i < a.size(); ++i) {
-            if (a.get(i).intValue() != b.get(i).intValue())
+            if (a.get(i) != b.get(i))
                 return false;
         }
         return true;
@@ -465,9 +469,6 @@ public class StoriesViewPager extends ViewPager {
         ArrayList<Integer> day;
 
         boolean isVisible;
-        private Runnable preloadRunnable;
-        private long preloadedDialogId = Long.MIN_VALUE;
-        private ArrayList<Integer> preloadedDay;
 
         public PageLayout(@NonNull Context context) {
             super(context);
@@ -482,44 +483,12 @@ public class StoriesViewPager extends ViewPager {
         }
 
         public void setVisible(boolean visible) {
-            if (visible) {
-                cancelPreload();
-            }
             if (isVisible != visible) {
                 isVisible = visible;
                 invalidate();
                 peerStoryView.setIsVisible(visible);
 
                 checkAllowScreenshots();
-            }
-        }
-
-        void schedulePreload() {
-            if (preloadRunnable != null || isVisible || peerStoryView == null
-                    || (preloadedDialogId == dialogId && preloadedDay == day)) {
-                return;
-            }
-            final long expectedDialogId = dialogId;
-            final ArrayList<Integer> expectedDay = day;
-            AndroidUtilities.runOnUIThread(preloadRunnable = () -> {
-                preloadRunnable = null;
-                if (isVisible || getParent() == null || peerStoryView == null
-                        || dialogId != expectedDialogId || day != expectedDay) {
-                    return;
-                }
-                if (expectedDay != null) {
-                    peerStoryView.day = expectedDay;
-                }
-                preloadedDialogId = expectedDialogId;
-                preloadedDay = expectedDay;
-                peerStoryView.preloadMainImage(expectedDialogId);
-            }, 16);
-        }
-
-        void cancelPreload() {
-            if (preloadRunnable != null) {
-                AndroidUtilities.cancelRunOnUIThread(preloadRunnable);
-                preloadRunnable = null;
             }
         }
     }
@@ -551,7 +520,8 @@ public class StoriesViewPager extends ViewPager {
                             pageLayout.peerStoryView.setDialogId(pageLayout.dialogId, positionInPage);
                         }
                     }
-
+//                    updateVisibleItemPosition = position;
+//                    selectedPositionInPage = positionInPage;
                 } else {
                     getCurrentPeerView().selectPosition(positionInPage);
                 }

@@ -122,12 +122,11 @@ object MainTabsManager {
 
             TabType.SEARCH -> {
                 if (showSearch) {
-                    GlassTabView.createStaticTab(
+                    GlassTabView.createMainTab(
                         context,
                         resourceProvider,
-                        R.drawable.outline_header_search,
-                        R.string.Search,
-                        false
+                        GlassTabView.TabAnimation.SEARCH,
+                        R.string.Search
                     )
                 } else {
                     GlassTabView(context).apply {

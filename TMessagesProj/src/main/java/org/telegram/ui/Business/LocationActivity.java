@@ -232,7 +232,7 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
             protected void dispatchDraw(Canvas canvas) {
                 pin.setBounds(0, 0, dp(62), dp(85));
                 pin.draw(canvas);
-                avatarImage.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(124));
+                avatarImage.setRoundRadius(dp(62));
                 avatarImage.setImageCoords(dp(6), dp(6), dp(50), dp(50));
                 avatarImage.draw(canvas);
             }

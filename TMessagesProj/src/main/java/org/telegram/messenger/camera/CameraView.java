@@ -98,7 +98,7 @@ import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 
 @SuppressLint("NewApi")
-public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView implements TextureView.SurfaceTextureListener, CameraController.ICameraView, CameraController.ErrorCallback  {
+public class CameraView extends FrameLayout implements TextureView.SurfaceTextureListener, CameraController.ICameraView, CameraController.ErrorCallback  {
 
     public boolean WRITE_TO_FILE_IN_BACKGROUND = false;
 
@@ -122,8 +122,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
     private int focusAreaSize;
     private Drawable thumbDrawable;
 
-    private boolean useCamera2 = app.nimarkogram.messenger.NimarkoConfig.cameraType == app.nimarkogram.messenger.camera.CameraXUtils.CAMERA_2;
-    private boolean useCameraX = app.nimarkogram.messenger.camera.CameraXUtils.isCurrentCameraCameraX();
+    private final boolean useCamera2 = false && SharedConfig.isUsingCamera2(UserConfig.selectedAccount);
     private final CameraSessionWrapper[] cameraSession = new CameraSessionWrapper[2];
     private CameraSessionWrapper cameraSessionRecording;
 
@@ -147,147 +146,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
     private File cameraFile;
 
-    private final int[] nmCamera2OpenRetries = new int[2];
-    private final int[] nmCameraXOpenRetries = new int[2];
-    private final int[] nmCamera2OpenGeneration = new int[2];
-    private final int[] nmCameraXOpenGeneration = new int[2];
-    private static final int NM_CAMERA2_MAX_OPEN_RETRIES = 2;
-    private final Object nmCameraXCloseLock = new Object();
-    private final ArrayList<app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession>
-            nmClosingCameraXSessions = new ArrayList<>(2);
-    private final ArrayList<Runnable> nmCameraXCloseWaiters = new ArrayList<>(1);
-    private static final long NM_CAMERAX_INITIAL_WIDE_TIMEOUT_MS = 1450L;
-    private volatile app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession
-            nmCameraXInitialWideWaitSession;
-    private volatile long nmCameraXInitialWideWaitStartedMs;
-
-    private Size getCameraXStoryCaptureSize() {
-        int shortSide = app.nimarkogram.messenger.NimarkoConfig.cameraResolution;
-        if (shortSide <= 0) shortSide = 720;
-        shortSide = Math.max(240, Math.min(shortSide, 2160));
-        int longSide = Math.round(shortSide * 16f / 9f);
-        if ((shortSide & 1) != 0) shortSide++;
-        if ((longSide & 1) != 0) longSide++;
-        
-        return new Size(longSide, shortSide);
-    }
-
-    private void nmDestroyCameraSession(CameraSessionWrapper session, boolean async,
-                                        Runnable before, Runnable after) {
-        if (session == null) {
-            if (after != null) {
-                after.run();
-            }
-            return;
-        }
-        final app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession cameraXSession =
-                session.cameraXSession;
-        if (cameraXSession == null) {
-            session.destroy(async, before, after);
-            return;
-        }
-        final boolean trackClose;
-        synchronized (nmCameraXCloseLock) {
-            trackClose = !nmClosingCameraXSessions.contains(cameraXSession);
-            if (trackClose) {
-                nmClosingCameraXSessions.add(cameraXSession);
-            }
-        }
-        session.destroy(async, before, () -> {
-            try {
-                if (after != null) {
-                    try {
-                        after.run();
-                    } catch (Throwable error) {
-                        FileLog.e(error);
-                    }
-                }
-            } finally {
-                if (trackClose) {
-                    nmOnCameraXSessionClosed(cameraXSession);
-                }
-            }
-        });
-    }
-
-    private void nmOnCameraXSessionClosed(
-            app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession session) {
-        ArrayList<Runnable> waiters = null;
-        synchronized (nmCameraXCloseLock) {
-            if (!nmClosingCameraXSessions.remove(session)
-                    || !nmClosingCameraXSessions.isEmpty()
-                    || nmCameraXCloseWaiters.isEmpty()) {
-                return;
-            }
-            waiters = new ArrayList<>(nmCameraXCloseWaiters);
-            nmCameraXCloseWaiters.clear();
-        }
-        for (Runnable waiter : waiters) {
-            try {
-                waiter.run();
-            } catch (Throwable error) {
-                FileLog.e(error);
-            }
-        }
-    }
-
-    private void nmRunAfterCameraXSessionsClosed(Runnable action) {
-        boolean runImmediately;
-        synchronized (nmCameraXCloseLock) {
-            runImmediately = nmClosingCameraXSessions.isEmpty();
-            if (!runImmediately) {
-                nmCameraXCloseWaiters.add(action);
-            }
-        }
-        if (runImmediately) {
-            action.run();
-        }
-    }
-
-    private void nmSetCameraXInitialWideWait(
-            app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession session,
-            boolean wait) {
-        nmCameraXInitialWideWaitSession = wait ? session : null;
-        nmCameraXInitialWideWaitStartedMs = wait
-                ? android.os.SystemClock.elapsedRealtime() : 0L;
-    }
-
-    private void nmClearCameraXInitialWideWait(
-            app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession session) {
-        if (session == null || nmCameraXInitialWideWaitSession == session) {
-            nmCameraXInitialWideWaitSession = null;
-            nmCameraXInitialWideWaitStartedMs = 0L;
-        }
-    }
-
-    private boolean nmShouldHoldCameraXStoryInitialWideFrame(
-            CameraSessionWrapper session, boolean primaryFrameUpdated) {
-        final app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession waitingSession =
-                nmCameraXInitialWideWaitSession;
-        if (waitingSession == null || session == null
-                || session.cameraXSession != waitingSession) {
-            return false;
-        }
-        if (!useCameraX || !isStory || dual || isFrontface
-                || !app.nimarkogram.messenger.NimarkoConfig.startFromUltraWideCam) {
-            nmClearCameraXInitialWideWait(waitingSession);
-            return false;
-        }
-
-        if (!primaryFrameUpdated) {
-            return true;
-        }
-
-        final long waitMs = android.os.SystemClock.elapsedRealtime()
-                - nmCameraXInitialWideWaitStartedMs;
-        if (waitingSession.isInitialLensReady()
-                || waitMs >= NM_CAMERAX_INITIAL_WIDE_TIMEOUT_MS) {
-            nmClearCameraXInitialWideWait(waitingSession);
-            return false;
-        }
-        return true;
-    }
-
     boolean firstFrameRendered;
     boolean firstFrame2Rendered;
     private final Object layoutLock = new Object();
@@ -295,13 +153,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
     private float[][] mMVPMatrix = new float[2][16];
     private float[][] mSTMatrix = new float[2][16];
     private float[][] moldSTMatrix = new float[2][16];
-    private final float[][] nmCameraXTransformScratch = new float[2][16];
-    private final float[] nmCameraXMirrorMatrix = new float[] {
-            -1, 0, 0, 0,
-             0, 1, 0, 0,
-             0, 0, 1, 0,
-             0, 0, 0, 1
-    };
 
     private FloatBuffer vertexBuffer;
     private FloatBuffer textureBuffer;
@@ -372,7 +223,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 textureView.setRotationY(rotation);
                 blurredStubView.setRotationY(rotation);
                 if (halfReached && !flipHalfReached) {
-
+//                    blurredStubView.setAlpha(1f);
                     flipHalfReached = true;
                 }
             }
@@ -391,7 +242,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 blurredStubView.setRotationY(0);
 
                 if (!flipHalfReached) {
-
+//                    blurredStubView.setAlpha(1f);
                     flipHalfReached = true;
                 }
                 invalidate();
@@ -405,40 +256,14 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
     protected boolean dual;
     private boolean dualCameraAppeared;
-    private boolean enableDualAfterFirstFrame;
     private Matrix dualMatrix = new Matrix();
     private long toggleDualUntil;
     private boolean closingDualCamera;
-    private boolean preparingCameraXDual;
     private boolean initFirstCameraAfterSecond;
     public boolean toggledDualAsSave;
 
     public boolean isDual() {
         return dual;
-    }
-
-    public void enableDualWhenReady() {
-        if (dual) {
-            enableDualAfterFirstFrame = false;
-            return;
-        }
-        enableDualAfterFirstFrame = true;
-        if (firstFrameRendered && getMeasuredWidth() > 0 && getMeasuredHeight() > 0) {
-            post(this::enableRequestedDual);
-        }
-    }
-
-    private void enableRequestedDual() {
-        if (dual) {
-            enableDualAfterFirstFrame = false;
-            return;
-        }
-        if (!enableDualAfterFirstFrame || cameraThread == null
-                || cameraSession[0] == null || !cameraSession[0].isInitiated()) {
-            return;
-        }
-        enableDualAfterFirstFrame = false;
-        toggleDual();
     }
 
     private void enableDualInternal() {
@@ -447,51 +272,19 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 return;
             }
             closingDualCamera = true;
-            final CameraSessionWrapper closingSession = cameraSession[1];
-            cameraSession[1] = null;
-            ++nmCameraXOpenGeneration[1];
-            ++nmCamera2OpenGeneration[1];
-            if (cameraSessionRecording == closingSession) {
-                cameraSessionRecording = null;
-            }
-            nmDestroyCameraSession(closingSession, false, null, () -> {
+            cameraSession[1].destroy(false, null, () -> {
                 closingDualCamera = false;
                 enableDualInternal();
             });
+            if (cameraSessionRecording == cameraSession[1]) {
+                cameraSessionRecording = null;
+            }
+            cameraSession[1] = null;
             addToDualWait(400L);
             return;
         }
-        if (useCameraX && !preparingCameraXDual && cameraSession[0] != null
-                && cameraSession[0].cameraXSession != null
-                && cameraSession[0].cameraXSession.isInitiated()) {
-            preparingCameraXDual = true;
-            final CameraSessionWrapper primary = cameraSession[0];
-            final int primaryGeneration = nmCameraXOpenGeneration[0];
-            primary.cameraXSession.releaseSurfaceForRebind(() -> AndroidUtilities.runOnUIThread(() -> {
-                preparingCameraXDual = false;
-                if (!dual || cameraSession[0] != primary
-                        || primaryGeneration != nmCameraXOpenGeneration[0]
-                        || cameraThread == null) {
-                    if (cameraSession[0] == primary && primary.cameraXSession != null) {
-                        primary.cameraXSession.rebindSingle();
-                    }
-                    return;
-                }
-                updateCameraInfoSize(1);
-                Handler handler = cameraThread.getHandler();
-                if (handler != null) {
-                    int cameraId = info[1] != null ? info[1].cameraId : 0;
-                    cameraThread.sendMessage(handler.obtainMessage(
-                            cameraThread.DO_DUAL_START, cameraId, 0, dualMatrix), 0);
-                }
-                addToDualWait(800L);
-            }));
-            addToDualWait(800L);
-            return;
-        }
-        if (!useCameraX && !isFrontface && "samsung".equalsIgnoreCase(Build.MANUFACTURER)
-                && !toggledDualAsSave && cameraSession[0] != null) {
-            final Handler handler = cameraThread != null ? cameraThread.getHandler() : null;
+        if (!isFrontface && "samsung".equalsIgnoreCase(Build.MANUFACTURER) && !toggledDualAsSave && cameraSession[0] != null) {
+            final Handler handler = cameraThread.getHandler();
             if (handler != null) {
                 cameraThread.sendMessage(handler.obtainMessage(cameraThread.BLUR_CAMERA1), 0);
             }
@@ -507,11 +300,9 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             return;
         }
         updateCameraInfoSize(1);
-        
-        final Handler handler = cameraThread != null ? cameraThread.getHandler() : null;
+        final Handler handler = cameraThread.getHandler();
         if (handler != null) {
-            int cameraId = info[1] != null ? info[1].cameraId : 0;
-            cameraThread.sendMessage(handler.obtainMessage(cameraThread.DO_DUAL_START, cameraId, 0, dualMatrix), 0);
+            cameraThread.sendMessage(handler.obtainMessage(cameraThread.DO_DUAL_START, info[1].cameraId, 0, dualMatrix), 0);
         }
         addToDualWait(800L);
     }
@@ -538,40 +329,29 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             }
             if (cameraSession[1] != null) {
                 closingDualCamera = true;
-                final CameraSessionWrapper closingSession = cameraSession[1];
-                cameraSession[1] = null;
-                ++nmCameraXOpenGeneration[1];
-                ++nmCamera2OpenGeneration[1];
-                if (cameraSessionRecording == closingSession) {
+                if (cameraSessionRecording == cameraSession[1]) {
                     cameraSessionRecording = null;
                 }
-                nmDestroyCameraSession(closingSession, false, null, () -> {
+                cameraSession[1].destroy(false, null, () -> {
                     closingDualCamera = false;
-                    if (useCameraX && cameraSession[0] != null
-                            && cameraSession[0].cameraXSession != null) {
-                        cameraSession[0].cameraXSession.rebindSingle();
-                    }
                     dualCameraAppeared = false;
                     addToDualWait(400L);
-                    final CameraGLThread thread = cameraThread;
-                    final Handler handler = thread == null ? null : thread.getHandler();
+                    final Handler handler = cameraThread.getHandler();
                     if (handler != null) {
-                        thread.sendMessage(handler.obtainMessage(thread.DO_DUAL_END), 0);
+                        cameraThread.sendMessage(handler.obtainMessage(cameraThread.DO_DUAL_END), 0);
                     }
                 });
+                cameraSession[1] = null;
                 previewSize[1] = null;
                 pictureSize[1] = null;
                 info[1] = null;
-                
-                return;
             } else {
                 dualCameraAppeared = false;
             }
             if (!closingDualCamera) {
-                final CameraGLThread thread = cameraThread;
-                final Handler handler = thread == null ? null : thread.getHandler();
+                final Handler handler = cameraThread.getHandler();
                 if (handler != null) {
-                    thread.sendMessage(handler.obtainMessage(thread.DO_DUAL_END), 0);
+                    cameraThread.sendMessage(handler.obtainMessage(cameraThread.DO_DUAL_END), 0);
                 }
             }
         }
@@ -617,19 +397,11 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
     }
 
     public CameraView(Context context, boolean frontface) {
-        this(context, frontface, false, false);
+        this(context, frontface, false);
     }
 
     public CameraView(Context context, boolean frontface, boolean lazy) {
-        this(context, frontface, lazy, false);
-    }
-
-    public CameraView(Context context, boolean frontface, boolean lazy, boolean story) {
         super(context, null);
-
-        isStory = story;
-
-        setBackgroundColor(android.graphics.Color.BLACK);
 
         CameraController.getInstance().addOnErrorListener(this);
 
@@ -717,8 +489,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
     }
 
     private int lastWidth = -1, lastHeight = -1;
-    
-    public boolean fit = true;
+    public boolean fit;
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec),
@@ -737,8 +508,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 frameHeight = previewSize[0].getWidth();
             }
             float s;
-            
-            if (fit && !isStory) {
+            if (fit) {
                 s = Math.min(width / (float) frameWidth, height / (float) frameHeight);
             } else {
                 s = Math.max(width / (float) frameWidth, height / (float) frameHeight);
@@ -753,10 +523,14 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
         pixelW = getMeasuredWidth();
         pixelH = getMeasuredHeight();
-
+//        if (previewSize[1] != null) {
+//            pixelDualW = previewSize[1].getWidth();
+//            pixelDualH = previewSize[1].getHeight();
+//        }
+//        if (pixelDualW <= 0) {
         pixelDualW = getMeasuredWidth();
         pixelDualH = getMeasuredHeight();
-
+//        }
     }
 
     public float getTextureHeight(float width, float height) {
@@ -866,20 +640,12 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             }
             return;
         }
-        nmClearCameraXInitialWideWait(null);
         startSwitchingAnimation();
-        
-        isFrontface = !isFrontface;
         if (cameraSession[0] != null) {
-            final CameraSessionWrapper closingSession = cameraSession[0];
-            cameraSession[0] = null;
-            ++nmCameraXOpenGeneration[0];
-            ++nmCamera2OpenGeneration[0];
-            if (cameraSessionRecording == closingSession) {
+            if (cameraSessionRecording == cameraSession[0]) {
                 cameraSessionRecording = null;
             }
-            nmDestroyCameraSession(closingSession, false, null, () -> {
-                if (cameraSession[0] != null || cameraThread == null) return;
+            cameraSession[0].destroy(false, null, () -> {
                 inited = false;
                 synchronized (layoutLock) {
                     firstFrameRendered = false;
@@ -887,25 +653,21 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 updateCameraInfoSize(0);
                 cameraThread.reinitForNewCamera();
             });
+            cameraSession[0] = null;
         }
+        isFrontface = !isFrontface;
     }
 
     public void resetCamera() {
-        nmClearCameraXInitialWideWait(null);
         if (cameraSession[0] != null) {
-            final CameraSessionWrapper closingSession = cameraSession[0];
-            cameraSession[0] = null;
-            ++nmCameraXOpenGeneration[0];
-            ++nmCamera2OpenGeneration[0];
-            if (cameraSessionRecording == closingSession) {
+            if (cameraSessionRecording == cameraSession[0]) {
                 cameraSessionRecording = null;
             }
             final Handler handler = cameraThread.getHandler();
             if (handler != null) {
                 cameraThread.sendMessage(handler.obtainMessage(cameraThread.BLUR_CAMERA1), 0);
             }
-            nmDestroyCameraSession(closingSession, false, null, () -> {
-                if (cameraSession[0] != null || cameraThread == null) return;
+            cameraSession[0].destroy(false, null, () -> {
                 inited = false;
                 synchronized (layoutLock) {
                     firstFrameRendered = false;
@@ -913,6 +675,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 updateCameraInfoSize(0);
                 cameraThread.reinitForNewCamera();
             });
+            cameraSession[0] = null;
         }
     }
 
@@ -980,7 +743,10 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             aspectRatio = new Size(1, 1);
             photoMaxWidth = wantedWidth = 720;
             photoMaxHeight = wantedHeight = 720;
-
+//        } else if (!isStory) {
+//            photoMaxWidth = wantedWidth = AndroidUtilities.displaySize.x;
+//            photoMaxHeight = wantedHeight = AndroidUtilities.displaySize.y;
+//            aspectRatio = new Size(wantedWidth, wantedHeight);
         } else if (initialFrontface) {
             aspectRatio = new Size(16, 9);
             photoMaxWidth = wantedWidth = 1280;
@@ -994,9 +760,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 if (SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW) {
                     photoMaxWidth = 1280;
                     photoMaxHeight = 960;
-                } else if (app.nimarkogram.messenger.NimarkoConfig.largePhotos) {
-                    photoMaxWidth = 2560;
-                    photoMaxHeight = 1920;
                 } else {
                     photoMaxWidth = 1920;
                     photoMaxHeight = 1440;
@@ -1009,9 +772,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 if (SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW) {
                     photoMaxWidth = 1280;
                     photoMaxHeight = 960;
-                } else if (app.nimarkogram.messenger.NimarkoConfig.largePhotos && !isStory) {
-                    photoMaxWidth = 2560;
-                    photoMaxHeight = 1440;
                 } else {
                     photoMaxWidth = isStory ? 1280 : 1920;
                     photoMaxHeight = isStory ? 720 : 1080;
@@ -1019,23 +779,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             }
         }
 
-        if (optimizeForBarcode || useMaxPreview) {
-            
-            final long maxArea = 1920L * 1440L;
-            org.telegram.messenger.camera.Size barcodePreview = null;
-            long bestArea = 0;
-            for (org.telegram.messenger.camera.Size s : info[i].getPreviewSizes()) {
-                long area = (long) s.getWidth() * s.getHeight();
-                if (area <= maxArea && area > bestArea) {
-                    bestArea = area;
-                    barcodePreview = s;
-                }
-            }
-            previewSize[i] = barcodePreview != null ? barcodePreview
-                    : CameraController.chooseOptimalSize(info[i].getPreviewSizes(), wantedWidth, wantedHeight, aspectRatio, isStory);
-        } else {
-            previewSize[i] = CameraController.chooseOptimalSize(info[i].getPreviewSizes(), wantedWidth, wantedHeight, aspectRatio, isStory);
-        }
+        previewSize[i] = CameraController.chooseOptimalSize(info[i].getPreviewSizes(), wantedWidth, wantedHeight, aspectRatio, isStory);
         pictureSize[i] = CameraController.chooseOptimalSize(info[i].getPictureSizes(), photoMaxWidth, photoMaxHeight, aspectRatio, false);
 
         if (BuildVars.LOGS_ENABLED) {
@@ -1053,26 +797,17 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-        final CameraGLThread closingThread = cameraThread;
-        nmClearCameraXInitialWideWait(null);
-        
-        cameraThread = null;
-        for (int i = 0; i < cameraSession.length; i++) {
-            ++nmCameraXOpenGeneration[i];
-            ++nmCamera2OpenGeneration[i];
-            CameraSessionWrapper closingSession = cameraSession[i];
-            cameraSession[i] = null;
-            if (closingSession != null) {
-                nmDestroyCameraSession(closingSession, true, null, null);
-            }
+        if (cameraThread != null) {
+            cameraThread.shutdown(0);
+            cameraThread.postRunnable(() -> this.cameraThread = null);
         }
-        nmRunAfterCameraXSessionsClosed(() -> {
-            if (closingThread != null) {
-                closingThread.shutdown(0);
-            }
-        });
-        
-        return closingThread == null;
+        if (cameraSession[0] != null) {
+            cameraSession[0].destroy(true, null, null);
+        }
+        if (cameraSession[1] != null) {
+            cameraSession[1].destroy(true, null, null);
+        }
+        return false;
     }
 
     @Override
@@ -1150,13 +885,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     android.opengl.Matrix.setIdentityM(mMVPMatrix[i], 0);
                     if (rotationAngle != 0) {
                         android.opengl.Matrix.rotateM(mMVPMatrix[i], 0, rotationAngle, 0, 0, 1);
-                    }
-                    if (cameraThread.currentSession[i].isMirrored()
-                            && !cameraThread.currentSession[i].hasCameraTransform()) {
-                        android.opengl.Matrix.multiplyMM(nmCameraXTransformScratch[i], 0,
-                                nmCameraXMirrorMatrix, 0, mMVPMatrix[i], 0);
-                        System.arraycopy(nmCameraXTransformScratch[i], 0,
-                                mMVPMatrix[i], 0, 16);
                     }
                 }
             }
@@ -1267,51 +995,14 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
         return cameraSessionRecording;
     }
 
-    @Override
     public void destroy(boolean async, final Runnable beforeDestroyRunnable) {
-        nmClearCameraXInitialWideWait(null);
         for (int i = 0; i < 2; ++i) {
-            nmCameraXOpenGeneration[i]++;
-            nmCamera2OpenGeneration[i]++;
             if (cameraSession[i] != null) {
-                
-                final CameraSessionWrapper session = cameraSession[i];
-                cameraSession[i] = null;
-                nmDestroyCameraSession(session, async, beforeDestroyRunnable, null);
+                cameraSession[i].destroy(async, beforeDestroyRunnable, null);
             }
         }
         CameraController.getInstance().removeOnErrorListener(this);
     }
-
-    @Override
-    public String getCurrentFlashMode() {
-        CameraSessionWrapper s = getCameraSession();
-        return s != null ? s.getCurrentFlashMode() : "off";
-    }
-
-    @Override
-    public String setNextFlashMode() {
-        CameraSessionWrapper s = getCameraSession();
-        if (s == null) return "off";
-        String next = s.getNextFlashMode();
-        s.setCurrentFlashMode(next);
-        return next;
-    }
-
-    @Override
-    public boolean isFlashAvailable() {
-        CameraSessionWrapper s = getCameraSession();
-        return s != null && s.hasFlashModes();
-    }
-
-    @Override
-    public boolean isSameTakePictureOrientation() {
-        CameraSessionWrapper s = getCameraSession();
-        return s == null || s.isSameTakePictureOrientation();
-    }
-
-    @Override
-    public void closeCamera() { destroy(true, null); }
 
     public Matrix getMatrix() {
         return txform;
@@ -1520,7 +1211,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
         private final static int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
         private final static int EGL_OPENGL_ES2_BIT = 4;
         private SurfaceTexture surfaceTexture;
-        private volatile boolean shutdownRequested;
         private EGL10 egl10;
         private EGLDisplay eglDisplay;
         private EGLContext eglContext;
@@ -1687,7 +1377,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             }
 
             android.opengl.Matrix.setIdentityM(mSTMatrix[0], 0);
-            android.opengl.Matrix.setIdentityM(mSTMatrix[1], 0);
 
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, AndroidUtilities.readRes(R.raw.camera_vert));
             int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag));
@@ -1864,8 +1553,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             return true;
         }
 
-        private boolean dualFramePending;
-
         private void updTex(SurfaceTexture surfaceTexture) {
             if (surfaceTexture == cameraSurface[0]) {
                 if (!ignoreCamera1Upd && System.currentTimeMillis() > camera1AppearedUntil) {
@@ -1873,7 +1560,13 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 }
                 requestRender(true, false);
             } else if (surfaceTexture == cameraSurface[1]) {
-                dualFramePending = true;
+                if (!dualAppeared) {
+                    synchronized (layoutLock) {
+                        dualCameraAppeared = true;
+                        addToDualWait(1200L);
+                    }
+                }
+                dualAppeared = true;
                 requestRender(false, true);
             }
         }
@@ -1980,16 +1673,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 try {
                     if (cameraSurface[1] != null && cameraId2 >= 0) {
                         cameraSurface[1].updateTexImage();
-                        if (dualFramePending) {
-                            dualFramePending = false;
-                            if (!dualAppeared) {
-                                synchronized (layoutLock) {
-                                    dualCameraAppeared = true;
-                                    addToDualWait(1200L);
-                                }
-                            }
-                            dualAppeared = true;
-                        }
                     }
                 } catch (Throwable e) {
                     FileLog.e(e);
@@ -2006,7 +1689,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                         shouldRenderFrame = false;
                     } else {
                         nextFrameTimeNs += (long) (TimeUnit.SECONDS.toNanos(1) / fpsLimit);;
-                        
+                        // The time for the next frame should always be in the future.
                         nextFrameTimeNs = Math.max(nextFrameTimeNs, currentTimeNs);
                         shouldRenderFrame = true;
                     }
@@ -2014,11 +1697,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             }
 
             if (currentSession[0] == null || currentSession[0].getCameraId() != cameraId1) {
-                return;
-            }
-
-            if (nmShouldHoldCameraXStoryInitialWideFrame(
-                    currentSession[0], updateTexImage1)) {
                 return;
             }
 
@@ -2057,10 +1735,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     continue;
                 }
                 if (i != 0 && (currentSession[i] == null || !currentSession[i].isInitiated()) || i == 0 && cameraId1 < 0 && !dual || i == 1 && cameraId2 < 0) {
-                    continue;
-                }
-                if (currentSession[i] == null || currentSession[i].getCameraId()
-                        != (i == 0 ? cameraId1 : cameraId2)) {
                     continue;
                 }
 
@@ -2234,18 +1908,9 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 case DO_RENDER_MESSAGE:
                     onDraw(inputMessage.arg1, inputMessage.arg2, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex1, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex2);
                     break;
-                case DO_SHUTDOWN_MESSAGE: {
+                case DO_SHUTDOWN_MESSAGE:
                     finishBlur();
                     finish();
-                    SurfaceTexture outputSurface = surfaceTexture;
-                    surfaceTexture = null;
-                    if (outputSurface != null) {
-                        try {
-                            outputSurface.release();
-                        } catch (Throwable error) {
-                            FileLog.e(error);
-                        }
-                    }
                     if (recording) {
                         videoEncoder.stopRecording(inputMessage.arg1);
                     }
@@ -2254,7 +1919,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                         looper.quit();
                     }
                     break;
-                }
                 case DO_DUAL_START:
                 case DO_REINIT_MESSAGE: {
                     final int i = what == DO_REINIT_MESSAGE ? 0 : 1;
@@ -2267,8 +1931,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     }
 
                     if (cameraSurface[i] != null) {
-                        
-                        System.arraycopy(mSTMatrix[i], 0, moldSTMatrix[i], 0, 16);
+                        cameraSurface[i].getTransformMatrix(moldSTMatrix[i]);
                         cameraSurface[i].setOnFrameAvailableListener(null);
                         cameraSurface[i].release();
                         cameraSurface[i] = null;
@@ -2316,7 +1979,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
                     if (i == 1) {
                         dualAppeared = false;
-                        dualFramePending = false;
                         synchronized (layoutLock) {
                             dualCameraAppeared = false;
                             firstFrame2Rendered = false;
@@ -2333,10 +1995,9 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     }
                     if (currentSession[i] != newSession) {
                         currentSession[i] = newSession;
+                        cameraId[i] = newSession.getCameraId();
                     }
-                    
-                    cameraId[i] = newSession.getCameraId();
-
+//                    currentSession[i].updateRotation();
                     int rotationAngle = currentSession[i].getWorldAngle();
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.d("CameraView " + "set gl renderer session " + i + " angle=" + rotationAngle);
@@ -2344,13 +2005,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     android.opengl.Matrix.setIdentityM(mMVPMatrix[i], 0);
                     if (rotationAngle != 0) {
                         android.opengl.Matrix.rotateM(mMVPMatrix[i], 0, rotationAngle, 0, 0, 1);
-                    }
-                    if (currentSession[i].isMirrored()
-                            && !currentSession[i].hasCameraTransform()) {
-                        android.opengl.Matrix.multiplyMM(nmCameraXTransformScratch[i], 0,
-                                nmCameraXMirrorMatrix, 0, mMVPMatrix[i], 0);
-                        System.arraycopy(nmCameraXTransformScratch[i], 0,
-                                mMVPMatrix[i], 0, 16);
                     }
                     break;
                 }
@@ -2380,7 +2034,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                         return;
                     }
                     if (cameraSurface[1] != null) {
-                        System.arraycopy(mSTMatrix[1], 0, moldSTMatrix[1], 0, 16);
+                        cameraSurface[1].getTransformMatrix(moldSTMatrix[1]);
                         cameraSurface[1].setOnFrameAvailableListener(null);
                         cameraSurface[1].release();
                         cameraSurface[1] = null;
@@ -2522,11 +2176,8 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
             m4x4[15] = m3x3[8];
         }
 
+
         public void shutdown(int send) {
-            if (shutdownRequested) {
-                return;
-            }
-            shutdownRequested = true;
             Handler handler = getHandler();
             if (handler != null) {
                 sendMessage(handler.obtainMessage(DO_SHUTDOWN_MESSAGE, send, 0), 0);
@@ -2546,7 +2197,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 return;
             }
             if (!updateTexImage1 && !updateTexImage2 && recording) {
-                
+                // todo: currently video timestamps are messed up in that case
                 return;
             }
             Handler handler = getHandler();
@@ -2603,19 +2254,12 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     }
                 }).setDuration(120).start();
             }
-            if (enableDualAfterFirstFrame) {
-                post(this::enableRequestedDual);
-            }
         } else {
             onDualCameraSuccess();
         }
     }
 
     protected void onDualCameraSuccess() {
-
-    }
-
-    protected void onDualCameraFailure() {
 
     }
 
@@ -2635,44 +2279,6 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
         return shader;
     }
 
-    private void nmHandleCameraXDualFailure() {
-        AndroidUtilities.runOnUIThread(() -> {
-            if (!useCameraX) return;
-            dual = false;
-            dualCameraAppeared = false;
-            closingDualCamera = true;
-            ++nmCameraXOpenGeneration[1];
-            CameraSessionWrapper secondary = cameraSession[1];
-            final CameraSessionWrapper primary = cameraSession[0];
-            final int primaryGeneration = nmCameraXOpenGeneration[0];
-            cameraSession[1] = null;
-            previewSize[1] = null;
-            pictureSize[1] = null;
-            info[1] = null;
-            Runnable finish = () -> AndroidUtilities.runOnUIThread(() -> {
-                closingDualCamera = false;
-                if (!useCameraX) return;
-                if (primaryGeneration == nmCameraXOpenGeneration[0]
-                        && cameraSession[0] == primary
-                        && primary != null && primary.cameraXSession != null) {
-                    primary.cameraXSession.rebindSingle();
-                }
-                addToDualWait(400L);
-                CameraGLThread thread = cameraThread;
-                Handler handler = thread == null ? null : thread.getHandler();
-                if (handler != null) {
-                    thread.sendMessage(handler.obtainMessage(thread.DO_DUAL_END), 0);
-                }
-                onDualCameraFailure();
-            });
-            if (secondary != null) {
-                nmDestroyCameraSession(secondary, true, null, finish);
-            } else {
-                finish.run();
-            }
-        });
-    }
-
     private void createCamera(final SurfaceTexture surfaceTexture, int i) {
         AndroidUtilities.runOnUIThread(() -> {
             CameraGLThread cameraThread = this.cameraThread;
@@ -2683,161 +2289,13 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                 FileLog.d("CameraView " + "create camera"+(useCamera2 ? "2" : "")+" session " + i);
             }
 
-            if (app.nimarkogram.messenger.NimarkoCameraLog.DEBUG) app.nimarkogram.messenger.NimarkoCameraLog.log(
-                    "CameraView create slot=" + i + " useCX=" + useCameraX
-                            + " useCamera2=" + useCamera2 + " story=" + isStory
-                            + " dual=" + dual + " front=" + isFrontface
-                            + " surface=" + surfaceTexture);
-
-            if (useCameraX) {
-                final int slot = i;
-                final int generation = ++nmCameraXOpenGeneration[slot];
-                if (previewSize[slot] == null) updateCameraInfoSize(slot);
-                final Size cameraXTarget = isStory ? getCameraXStoryCaptureSize() : previewSize[slot];
-                final int targetWidth = cameraXTarget != null ? cameraXTarget.getWidth() : 1280;
-                final int targetHeight = cameraXTarget != null ? cameraXTarget.getHeight() : 720;
-                if (app.nimarkogram.messenger.NimarkoCameraLog.DEBUG) app.nimarkogram.messenger.NimarkoCameraLog.log(
-                        "CameraView CX target slot=" + slot + " generation=" + generation
-                                + " target=" + targetWidth + "x" + targetHeight);
-                final app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession[] holder =
-                        new app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession[1];
-                holder[0] = new app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession(
-                        getContext(), surfaceTexture, slot == 0 ? isFrontface : !isFrontface,
-                        targetWidth, targetHeight, true, dual, isStory,
-                        new app.nimarkogram.messenger.camera.NimarkoCameraXSurfaceSession.Callback() {
-                            @Override
-                            public void onReady(int width, int height) {
-                                if (app.nimarkogram.messenger.NimarkoCameraLog.DEBUG) app.nimarkogram.messenger.NimarkoCameraLog.log(
-                                        "CameraView CX ready slot=" + slot + " generation="
-                                                + generation + " size=" + width + "x" + height);
-                                if (generation != nmCameraXOpenGeneration[slot]
-                                        || cameraSession[slot] == null
-                                        || cameraSession[slot].getObject() != holder[0]) return;
-                                
-                                if (!isStory) {
-                                    previewSize[slot] = new Size(width, height);
-                                }
-                                if (dual && cameraSession[0] != null && cameraSession[1] != null
-                                        && cameraSession[0].cameraXSession != null
-                                        && cameraSession[1].cameraXSession != null
-                                        && cameraSession[0].cameraXSession.isPrepared()
-                                        && cameraSession[1].cameraXSession.isPrepared()
-                                        && !cameraSession[0].cameraXSession.isConcurrentWith(
-                                                cameraSession[1].cameraXSession)) {
-                                    if (!cameraSession[0].cameraXSession.bindConcurrentWith(
-                                            cameraSession[1].cameraXSession)) {
-                                        nmHandleCameraXDualFailure();
-                                        return;
-                                    }
-                                }
-                                nmCameraXOpenRetries[slot] = 0;
-                                
-                                cameraThread.setCurrentSession(cameraSession[slot], slot);
-                                if (!isStory) requestLayout();
-                            }
-
-                            @Override
-                            public void onFailure(Throwable error) {
-                                nmClearCameraXInitialWideWait(holder[0]);
-                                if (app.nimarkogram.messenger.NimarkoCameraLog.DEBUG) app.nimarkogram.messenger.NimarkoCameraLog.log(
-                                        "CameraView CX FAILED slot=" + slot + " generation="
-                                                + generation, error);
-                                AndroidUtilities.runOnUIThread(() -> {
-                                    if (generation != nmCameraXOpenGeneration[slot]
-                                            || cameraSession[slot] == null
-                                            || cameraSession[slot].getObject() != holder[0]) return;
-                                    FileLog.e("CameraView CameraX bind failed", error);
-                                    CameraSessionWrapper failed = cameraSession[slot];
-                                    cameraSession[slot] = null;
-                                    previewSize[slot] = null;
-                                    final int retryGeneration = ++nmCameraXOpenGeneration[slot];
-                                    nmDestroyCameraSession(failed, true, null, () -> AndroidUtilities.runOnUIThread(() -> {
-                                        if (slot == 1 && dual) {
-                                            nmHandleCameraXDualFailure();
-                                            return;
-                                        }
-                                        if (retryGeneration != nmCameraXOpenGeneration[slot]
-                                                || cameraSession[slot] != null || cameraThread == null) return;
-                                        if (nmCameraXOpenRetries[slot]++ < NM_CAMERA2_MAX_OPEN_RETRIES) {
-                                            updateCameraInfoSize(slot);
-                                            cameraThread.reinitForNewCamera();
-                                        } else {
-                                            FileLog.e("CameraView CameraX retries exhausted for slot " + slot);
-                                        }
-                                    }));
-                                });
-                            }
-                        });
-                if (slot == 0) {
-                    nmSetCameraXInitialWideWait(holder[0], isStory && !dual
-                            && !isFrontface
-                            && app.nimarkogram.messenger.NimarkoConfig.startFromUltraWideCam);
-                }
-                cameraSession[slot] = CameraSessionWrapper.of(holder[0]);
-                cameraThread.setCurrentSession(cameraSession[slot], slot);
-            } else if (useCamera2) {
-                final int generation = ++nmCamera2OpenGeneration[i];
+            if (useCamera2) {
                 Camera2Session session = Camera2Session.create(i == 0 ? isFrontface : !isFrontface, surfaceWidth, surfaceHeight);
                 if (session == null) return;
                 cameraSession[i] = CameraSessionWrapper.of(session);
                 previewSize[i] = new Size(session.getPreviewWidth(), session.getPreviewHeight());
                 cameraThread.setCurrentSession(cameraSession[i], i);
-                
-                final int slot = i;
-                session.whenError(err -> AndroidUtilities.runOnUIThread(() -> {
-                    
-                    if (generation != nmCamera2OpenGeneration[slot]
-                            || cameraSession[slot] == null
-                            || cameraSession[slot].getObject() != session) {
-                        return;
-                    }
-                    
-                    if (slot != 0) {
-                        return;
-                    }
-                    if (nmCamera2OpenRetries[slot] >= NM_CAMERA2_MAX_OPEN_RETRIES) {
-                        if (BuildVars.LOGS_ENABLED) {
-                            FileLog.e("CameraView camera2 open failed (err=" + err + ") slot=" + slot + " — retries exhausted, falling back to Camera1");
-                        }
-                        final CameraSessionWrapper failed = cameraSession[slot];
-                        final int fallbackGeneration = ++nmCamera2OpenGeneration[slot];
-                        cameraSession[slot] = null;
-                        previewSize[slot] = null;
-                        useCamera2 = false;
-                        nmDestroyCameraSession(failed, true, null, () -> AndroidUtilities.runOnUIThread(() -> {
-                            
-                            if (fallbackGeneration != nmCamera2OpenGeneration[slot]
-                                    || cameraSession[slot] != null || cameraThread == null) {
-                                return;
-                            }
-                            updateCameraInfoSize(slot);
-                            cameraThread.reinitForNewCamera();
-                        }));
-                        return;
-                    }
-                    nmCamera2OpenRetries[slot]++;
-                    if (BuildVars.LOGS_ENABLED) {
-                        FileLog.e("CameraView camera2 open failed (err=" + err + ") slot=" + slot + " — retry " + nmCamera2OpenRetries[slot] + "/" + NM_CAMERA2_MAX_OPEN_RETRIES);
-                    }
-                    final CameraSessionWrapper failed = cameraSession[slot];
-                    final int retryGeneration = ++nmCamera2OpenGeneration[slot];
-                    cameraSession[slot] = null;
-                    previewSize[slot] = null;
-                    nmDestroyCameraSession(failed, true, null, () -> AndroidUtilities.runOnUIThread(() -> {
-                        
-                        if (retryGeneration == nmCamera2OpenGeneration[slot]
-                                && useCamera2 && cameraSession[slot] == null && cameraThread != null) {
-                            cameraThread.reinitForNewCamera();
-                        }
-                    }));
-                }));
                 session.whenDone(() -> {
-                    if (generation != nmCamera2OpenGeneration[slot]
-                            || cameraSession[slot] == null
-                            || cameraSession[slot].getObject() != session) {
-                        return;
-                    }
-                    nmCamera2OpenRetries[slot] = 0;   
                     requestLayout();
                     if (dual && i == 1 && initFirstCameraAfterSecond) {
                         initFirstCameraAfterSecond = false;
@@ -2888,18 +2346,18 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
     }
 
+
     private class VideoRecorder implements Runnable {
 
         private static final String VIDEO_MIME_TYPE = "video/hevc";
         private static final String AUDIO_MIME_TYPE = "audio/mp4a-latm";
-        private static final int DEFAULT_FRAME_RATE = 30;
+        private static final int FRAME_RATE = 30;
         private static final int IFRAME_INTERVAL = 1;
 
         private File videoFile;
         private File fileToWrite;
         private boolean writingToDifferentFile;
         private int videoBitrate;
-        private int frameRate = DEFAULT_FRAME_RATE;
         private boolean videoConvertFirstWrite = true;
         private boolean blendEnabled;
 
@@ -3062,28 +2520,16 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
             Size pictureSize;
             int bitrate;
-            frameRate = DEFAULT_FRAME_RATE;
-            pictureSize = useCameraX && isStory
-                    ? getCameraXStoryCaptureSize() : previewSize[0];
-            long pixels = (long) pictureSize.mHeight * pictureSize.mWidth;
-            if (isStory && pixels >= 7_000_000L) {
-                bitrate = 12_000_000;
-            } else if (isStory && pixels >= 3_000_000L) {
-                bitrate = 8_000_000;
-            } else if (isStory && pixels >= 1_500_000L) {
-                bitrate = 6_000_000;
-            } else if (Math.min(pictureSize.mHeight, pictureSize.mWidth) >= 720) {
+            pictureSize = previewSize[0];
+            if (Math.min(pictureSize.mHeight, pictureSize.mWidth) >= 720) {
                 bitrate = 3500000;
             } else {
                 bitrate = 1800000;
             }
+
             videoFile = outputFile;
 
-            if (useCameraX && isStory) {
-                
-                videoWidth = Math.min(pictureSize.getWidth(), pictureSize.getHeight());
-                videoHeight = Math.max(pictureSize.getWidth(), pictureSize.getHeight());
-            } else if (cameraSession[0].getWorldAngle() == 90 || cameraSession[0].getWorldAngle() == 270) {
+            if (cameraSession[0].getWorldAngle() == 90 || cameraSession[0].getWorldAngle() == 270) {
                 videoWidth = pictureSize.getWidth();
                 videoHeight = pictureSize.getHeight();
             } else {
@@ -3104,7 +2550,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
                     try {
                         sync.wait();
                     } catch (InterruptedException ie) {
-                        
+                        // ignore
                     }
                 }
             }
@@ -3579,7 +3025,7 @@ public class CameraView extends app.nimarkogram.messenger.camera.BaseCameraView 
 
                 format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
                 format.setInteger(MediaFormat.KEY_BIT_RATE, videoBitrate);
-                format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
+                format.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
                 format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
 
                 videoEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);

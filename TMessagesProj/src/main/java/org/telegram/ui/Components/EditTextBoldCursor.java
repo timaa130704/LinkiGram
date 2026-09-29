@@ -17,10 +17,12 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
@@ -33,6 +35,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 
 import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
@@ -82,8 +85,6 @@ public class EditTextBoldCursor extends EditTextEffects {
     private static Class editorClass;
     private static Field mCursorDrawableResField;
     private static Method mEditorInvalidateDisplayList;
-    private static Field mShowSuggestionRunnableField;
-    private static boolean mShowSuggestionRunnableFieldFetched;
 
     private Drawable mCursorDrawable;
     private Object editor;
@@ -93,42 +94,6 @@ public class EditTextBoldCursor extends EditTextEffects {
     float rightHintOffset;
 
     private final Choreographer60FpsContent.FrameCallback invalidateCallback = d -> invalidate();
-
-    @SuppressLint("PrivateApi")
-    private void cancelStaleSuggestionsPopup() {
-        try {
-            if (editorClass == null || mEditor == null) {
-                editorClass = Class.forName("android.widget.Editor");
-                mEditor = TextView.class.getDeclaredField("mEditor");
-                mEditor.setAccessible(true);
-            }
-            if (!mShowSuggestionRunnableFieldFetched) {
-                mShowSuggestionRunnableFieldFetched = true;
-                mShowSuggestionRunnableField = editorClass.getDeclaredField("mShowSuggestionRunnable");
-                mShowSuggestionRunnableField.setAccessible(true);
-            }
-            if (mShowSuggestionRunnableField == null) {
-                return;
-            }
-            Object currentEditor = editor != null ? editor : mEditor.get(this);
-            if (currentEditor == null) {
-                return;
-            }
-            Runnable pendingShow = (Runnable) mShowSuggestionRunnableField.get(currentEditor);
-            if (pendingShow != null) {
-                removeCallbacks(pendingShow);
-                mShowSuggestionRunnableField.set(currentEditor, null);
-            }
-        } catch (Throwable ignore) {
-            
-        }
-    }
-
-    @Override
-    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-        cancelStaleSuggestionsPopup();
-        super.onTextChanged(text, start, lengthBefore, lengthAfter);
-    }
 
     private Paint linePaint;
     private Paint activeLinePaint;
@@ -176,6 +141,7 @@ public class EditTextBoldCursor extends EditTextEffects {
 
     private boolean nextSetTextAnimated;
     private boolean transformHintToHeader;
+    private boolean transformHintToHeaderOnFocus = true;
     private boolean currentDrawHintAsHeader;
     private AnimatorSet headerTransformAnimation;
     private float headerAnimationProgress;
@@ -296,6 +262,9 @@ public class EditTextBoldCursor extends EditTextEffects {
         super.removeTextChangedListener(watcher);
     }
 
+    /**
+     * Dispatches text changed event to all text watchers
+     */
     public void dispatchTextWatchersTextChanged() {
         for (TextWatcher w : registeredTextWatchers) {
             w.beforeTextChanged("", 0, length(), length());
@@ -304,6 +273,12 @@ public class EditTextBoldCursor extends EditTextEffects {
         }
     }
 
+    /**
+     * Sets text watchers suppress state
+     *
+     * @param textWatchersSuppressed    Suppress flag
+     * @param dispatchChanged           If we should notify watchers about text changed. Works only if textWatchersSuppressed = false
+     */
     public void setTextWatchersSuppressed(boolean textWatchersSuppressed, boolean dispatchChanged) {
         if (isTextWatchersSuppressed == textWatchersSuppressed) return;
         isTextWatchersSuppressed = textWatchersSuppressed;
@@ -324,6 +299,9 @@ public class EditTextBoldCursor extends EditTextEffects {
         }
     }
 
+    /**
+     * @return  If text watchers are suppressed (Not listening to events)
+     */
     public boolean isTextWatchersSuppressed() {
         return isTextWatchersSuppressed;
     }
@@ -388,6 +366,7 @@ public class EditTextBoldCursor extends EditTextEffects {
 
             setTextCursorDrawable(cursorDrawable);
         }
+
 
         try {
             if (!mScrollYGet && mScrollYField == null) {
@@ -476,6 +455,12 @@ public class EditTextBoldCursor extends EditTextEffects {
             headerTransformAnimation.cancel();
             headerTransformAnimation = null;
         }
+    }
+
+    public void setTransformHintToHeaderOnFocus(boolean value) {
+        if (transformHintToHeaderOnFocus == value) return;
+        transformHintToHeaderOnFocus = value;
+        checkHeaderVisibility(false);
     }
 
     public void setAllowDrawCursor(boolean value) {
@@ -691,7 +676,8 @@ public class EditTextBoldCursor extends EditTextEffects {
     }
 
     private void checkHeaderVisibility(boolean animated) {
-        boolean newHintHeader = transformHintToHeader && (isFocused() || getText().length() > 0);
+        boolean newHintHeader = transformHintToHeader
+            && (getText().length() > 0 || transformHintToHeaderOnFocus && isFocused());
         if (currentDrawHintAsHeader != newHintHeader) {
             if (headerTransformAnimation != null) {
                 headerTransformAnimation.cancel();
@@ -708,6 +694,14 @@ public class EditTextBoldCursor extends EditTextEffects {
                 headerAnimationProgress = newHintHeader ? 1.0f : 0.0f;
             }
             invalidate();
+        }
+    }
+
+    @Override
+    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+        super.onTextChanged(text, start, lengthBefore, lengthAfter);
+        if (transformHintToHeader && !transformHintToHeaderOnFocus) {
+            checkHeaderVisibility(true);
         }
     }
 
@@ -761,7 +755,7 @@ public class EditTextBoldCursor extends EditTextEffects {
             return;
         }
         try {
-            
+            // on hardware accelerated edittext to invalidate imagespan display list must be invalidated
             if (mEditorInvalidateDisplayList != null) {
                 if (editor == null) {
                     editor = mEditor.get(this);
@@ -1063,7 +1057,12 @@ public class EditTextBoldCursor extends EditTextEffects {
             canvas.restore();
             canvas.restore();
         }
-         
+        /*if (errorLayout != null) {
+            canvas.save();
+            canvas.translate(getScrollX(), lineY + AndroidUtilities.dp(3));
+            errorLayout.draw(canvas);
+            canvas.restore();
+        }*/
     }
 
     public void setWindowView(View view) {
@@ -1279,23 +1278,82 @@ public class EditTextBoldCursor extends EditTextEffects {
         return null;
     }
 
+    private Drawable mTextSelectHandleLeft;
+    private Drawable mTextSelectHandleRight;
+    private Drawable mTextSelectHandle;
+    private ColorFilter mHandlesColorFilter;
+    private int mHandlesColor;
+
+    private Drawable updateHandleDrawable(Drawable d, boolean mutate) {
+        if (d != null) {
+            if (mutate) {
+                d = d.mutate();
+            }
+            if (mHandlesColorFilter != null) {
+                d.setColorFilter(mHandlesColorFilter);
+            }
+        }
+
+        return d;
+    }
+
     public void setHandlesColor(int color) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || XiaomiUtilities.isMIUI()) {
             return;
         }
-        try {
-            Drawable left = getTextSelectHandleLeft();
-            left.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            setTextSelectHandleLeft(left);
+        if (mHandlesColor != color) {
+            mHandlesColor = color;
+            mHandlesColorFilter = new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN);
 
-            Drawable middle = getTextSelectHandle();
-            middle.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            setTextSelectHandle(middle);
+            updateHandleDrawable(mTextSelectHandleLeft, false);
+            updateHandleDrawable(mTextSelectHandleRight, false);
+            updateHandleDrawable(mTextSelectHandle, false);
+        }
+    }
 
-            Drawable right = getTextSelectHandleRight();
-            right.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            setTextSelectHandleRight(right);
-        } catch (Exception ignore) {}
+    @Nullable
+    @Override
+    public Drawable getTextSelectHandleLeft() {
+        if (mTextSelectHandleLeft == null) {
+            mTextSelectHandleLeft = updateHandleDrawable(super.getTextSelectHandleLeft(), true);
+        }
+        return mTextSelectHandleLeft;
+    }
+
+    @Nullable
+    @Override
+    public Drawable getTextSelectHandleRight() {
+        if (mTextSelectHandleRight == null) {
+            mTextSelectHandleRight = updateHandleDrawable(super.getTextSelectHandleRight(), true);
+        }
+        return mTextSelectHandleRight;
+    }
+
+    @Nullable
+    @Override
+    public Drawable getTextSelectHandle() {
+        if (mTextSelectHandle == null) {
+            mTextSelectHandle = updateHandleDrawable(super.getTextSelectHandle(), true);
+        }
+        return mTextSelectHandle;
+    }
+
+    @Override
+    public void setTextSelectHandleLeft(@NonNull Drawable drawable) {
+        mTextSelectHandleLeft = updateHandleDrawable(drawable, true);
+        super.setTextSelectHandleLeft(mTextSelectHandleLeft);
+    }
+
+    @Override
+    public void setTextSelectHandleRight(@NonNull Drawable drawable) {
+        mTextSelectHandleRight = updateHandleDrawable(drawable, true);
+        super.setTextSelectHandleRight(mTextSelectHandleRight);
+    }
+
+    @Override
+    public void setTextSelectHandle(@NonNull Drawable drawable) {
+        mTextSelectHandle = updateHandleDrawable(drawable, true);
+        super.setTextSelectHandle(mTextSelectHandle);
     }
 
     private Runnable onPremiumMenuLockClickListener;

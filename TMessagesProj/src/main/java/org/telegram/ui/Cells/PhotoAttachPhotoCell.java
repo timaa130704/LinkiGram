@@ -135,7 +135,8 @@ public class PhotoAttachPhotoCell extends FrameLayout {
                             path.addCircle(spoilerRevealX, spoilerRevealY, spoilerMaxRadius * spoilerRevealProgress, Path.Direction.CW);
                             canvas.clipPath(path, Region.Op.DIFFERENCE);
                         }
-
+//                        float alphaProgress = CubicBezierInterpolator.DEFAULT.getInterpolation(1f - imageViewCrossfadeProgress);
+//                        float alpha = hasSpoiler ? alphaProgress : 1f - alphaProgress;
                         spoilerEffect2.draw(canvas, container, imageView.getMeasuredWidth(), imageView.getMeasuredHeight());
                         if (photoEntry != null && photoEntry.starsAmount > 0) {
                             imageView.drawBlurredText(canvas, 1f);
@@ -183,7 +184,6 @@ public class PhotoAttachPhotoCell extends FrameLayout {
                     if (spoilerEffect2 == null) {
                         if (spoilerEffect == null) {
                             spoilerEffect = new SpoilerEffect();
-                            spoilerEffect.setParentView(this);
                             spoilerEffect.setColor(ColorUtils.setAlphaComponent(Color.WHITE, (int) (Color.alpha(Color.WHITE) * 0.325f)));
                         }
                         spoilerEffect.setBounds(0, 0, getWidth(), getHeight());

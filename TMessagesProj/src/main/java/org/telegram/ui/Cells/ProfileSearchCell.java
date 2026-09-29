@@ -19,7 +19,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.text.Layout;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -28,7 +27,6 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.MotionEvent;
-import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import androidx.annotation.NonNull;
@@ -138,7 +136,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
     private StaticLayout statusLayout;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable botVerificationDrawable;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
-    private app.nimarkogram.messenger.api.dto.BadgeDTO currentNimarkoBadge;
     public StoriesUtilities.AvatarStoryParams avatarStoryParams = new StoriesUtilities.AvatarStoryParams(false);
 
     private final RectF adBounds = new RectF();
@@ -159,7 +156,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         this.resourcesProvider = resourcesProvider;
 
         avatarImage = new ImageReceiver(this);
-        avatarImage.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(46));
+        avatarImage.setRoundRadius(dp(23));
         avatarDrawable = new AvatarDrawable();
 
         checkBox = new CheckBox2(context, 21, resourcesProvider);
@@ -212,11 +209,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
     private boolean allowEmojiStatus = true;
     public void setAllowEmojiStatus(boolean allowEmojiStatus) {
         this.allowEmojiStatus = allowEmojiStatus;
-        update(0);
-    }
-
-    private boolean shouldAllowEmojiStatus() {
-        return allowEmojiStatus && !app.nimarkogram.messenger.NimarkoConfig.disablePremiumStatuses;
     }
     public void setData(Object object, TLRPC.EncryptedChat ec, CharSequence n, CharSequence s, boolean needCount, boolean saved) {
         currentName = n;
@@ -390,6 +382,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         customPaints = true;
     }
 
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         if (checkBox != null) {
@@ -470,8 +463,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             }
             nameLockTop = dp(21);
             drawCheck = user.verified;
-            
-            drawPremium = !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user) && !app.nimarkogram.messenger.NimarkoConfig.disablePremiumStatuses;
+            drawPremium = !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user);
             updateStatus(drawCheck, user, null, false);
         } else if (contact != null) {
             dialog_id = 0;
@@ -630,7 +622,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         }
         if (!statusDrawable.isEmpty()) {
             if (LocaleController.isRTL) {
-                
+                // nameLeft += statusDrawable.getIntrinsicWidth();
             } else {
                 nameWidth -= statusDrawable.getIntrinsicWidth();
             }
@@ -795,35 +787,16 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
     public void updateStatus(boolean verified, TLRPC.User user, TLRPC.Chat chat, boolean animated) {
         statusDrawable.center = LocaleController.isRTL;
-        currentNimarkoBadge = null;
-        final boolean showStatus = shouldAllowEmojiStatus();
-        
-        app.nimarkogram.messenger.api.dto.BadgeDTO nimarkoBadge = null;
-        if (showStatus && !savedMessages) {
-            try {
-                org.telegram.tgnet.TLObject badgeTarget = user != null ? user : chat;
-                nimarkoBadge = app.nimarkogram.messenger.badges.BadgesController.getInstance().i(badgeTarget);
-                if (nimarkoBadge != null && nimarkoBadge.getDocumentId() == 0L) nimarkoBadge = null;
-            } catch (Throwable ignored) {}
-        }
-        
-        statusDrawable.setParticles(false, animated);
-        
-        if (verified) {
+        if (allowEmojiStatus && verified) {
             statusDrawable.set(new CombinedDrawable(Theme.dialogs_verifiedDrawable, Theme.dialogs_verifiedCheckDrawable, 0, 0), animated);
             statusDrawable.setColor(null);
-        } else if (showStatus && user != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
+        } else if (allowEmojiStatus && user != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
             statusDrawable.set(DialogObject.getEmojiStatusDocumentId(user.emoji_status), animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-        } else if (showStatus && chat != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
+        } else if (allowEmojiStatus && chat != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
             statusDrawable.set(DialogObject.getEmojiStatusDocumentId(chat.emoji_status), animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-        } else if (nimarkoBadge != null) {
-            currentNimarkoBadge = nimarkoBadge;
-            statusDrawable.set(nimarkoBadge.getDocumentId(), animated);
-            statusDrawable.setParticles(true, animated);
-            statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-        } else if (showStatus && user != null && !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user)) {
+        } else if (allowEmojiStatus && user != null && !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user)) {
             statusDrawable.set(PremiumGradient.getInstance().premiumStarDrawableMini, animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
         } else {
@@ -891,7 +864,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             avatarImage.setImage(null, null, avatarDrawable, null, null, 0);
         }
 
-        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(46, chat != null && chat.forum));
+        avatarImage.setRoundRadius(ChatObject.isCommunity(chat) ? DrawableUtils.getCommunityCardDrawableRadius(dp(46)) : chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
         if (mask != 0) {
             boolean continueUpdate = false;
             if ((mask & MessagesController.UPDATE_MASK_AVATAR) != 0 && user != null || (mask & MessagesController.UPDATE_MASK_CHAT_AVATAR) != 0 && chat != null) {
@@ -1163,12 +1136,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         if (drawCheck) {
             builder.append(", ").append(getString(R.string.AccDescrVerified)).append("\n");
         }
-        if (currentNimarkoBadge != null) {
-            CharSequence badgeLabel = app.nimarkogram.messenger.badges.BadgeUi.accessibilityLabel(currentNimarkoBadge);
-            builder.append(", ").append(badgeLabel);
-            info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
-                    R.id.acc_action_badge_info, badgeLabel));
-        }
         if (statusLayout != null) {
             if (builder.length() > 0) {
                 builder.append(", ");
@@ -1181,16 +1148,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             info.setChecked(checkBox.isChecked());
             info.setClassName("android.widget.CheckBox");
         }
-    }
-
-    @Override
-    public boolean performAccessibilityAction(int action, Bundle arguments) {
-        if (action == R.id.acc_action_badge_info && currentNimarkoBadge != null) {
-            app.nimarkogram.messenger.badges.BadgeUi.showBulletin(currentAccount, currentNimarkoBadge);
-            sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
-            return true;
-        }
-        return super.performAccessibilityAction(action, arguments);
     }
 
     public long getDialogId() {

@@ -90,6 +90,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * image filter types
+ * suffixes:
+ * f - image is wallpaper
+ * isc - ignore cache for small images
+ * b - need blur image
+ * g - autoplay
+ * lastframe - return lastframe for Lottie animation
+ * lastreactframe - return lastframe for Lottie animation + some scale ReactionLastFrame magic
+ * firstframe - return firstframe for Lottie or Video animation
+ * ignoreOrientation - do not extract EXIF orientation and do not apply it to an imagereceiver
+ * exif — check exif contents of invert/orientation
+ */
 public class ImageLoader {
 
     public static final int CACHE_TYPE_NONE = 0;
@@ -399,7 +412,7 @@ public class ImageLoader {
                 String location = cacheImage.imageLocation.path;
                 URL downloadUrl = new URL(location.replace("athumb://", "https://"));
                 httpConnection = (HttpURLConnection) downloadUrl.openConnection();
-                
+                //httpConnection.addRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 10_0 like Mac OS X) AppleWebKit/602.1.38 (KHTML, like Gecko) Version/10.0 Mobile/14A5297c Safari/602.1");
                 httpConnection.setConnectTimeout(5000);
                 httpConnection.setReadTimeout(5000);
                 httpConnection.connect();
@@ -838,20 +851,6 @@ public class ImageLoader {
         }
     }
 
-    private static float parseFilterDimension(String value) {
-        if (value == null) {
-            return Float.NaN;
-        }
-        try {
-            float dimension = Float.parseFloat(value);
-            if (dimension > 0 && !Float.isInfinite(dimension)) {
-                return dimension;
-            }
-        } catch (NumberFormatException ignore) {
-        }
-        return Float.NaN;
-    }
-
     private class CacheOutTask implements Runnable {
         private Thread runningThread;
         private final Object sync = new Object();
@@ -925,16 +924,14 @@ public class ImageLoader {
                 if (cacheImage.filter != null) {
                     String[] args = cacheImage.filter.split("_");
                     if (args.length >= 2) {
-                        float w_filter = parseFilterDimension(args[0]);
-                        float h_filter = parseFilterDimension(args[1]);
-                        if (!Float.isNaN(w_filter) && !Float.isNaN(h_filter)) {
-                            w = Math.min(512, (int) (w_filter * AndroidUtilities.density));
-                            h = Math.min(512, (int) (h_filter * AndroidUtilities.density));
-                            if (w_filter <= 90 && h_filter <= 90 && !cacheImage.filter.contains("nolimit")) {
-                                w = Math.min(w, 160);
-                                h = Math.min(h, 160);
-                                limitFps = true;
-                            }
+                        float w_filter = Float.parseFloat(args[0]);
+                        float h_filter = Float.parseFloat(args[1]);
+                        w = Math.min(512, (int) (w_filter * AndroidUtilities.density));
+                        h = Math.min(512, (int) (h_filter * AndroidUtilities.density));
+                        if (w_filter <= 90 && h_filter <= 90 && !cacheImage.filter.contains("nolimit")) {
+                            w = Math.min(w, 160);
+                            h = Math.min(h, 160);
+                            limitFps = true;
                         }
                         if (args.length >= 3 && "pcache".equals(args[2])) {
                             precache = true;
@@ -1617,10 +1614,10 @@ public class ImageLoader {
             int patternColor;
 
             boolean applyPattern = true;
-            if (wallPaper.settings.second_background_color == 0) { 
+            if (wallPaper.settings.second_background_color == 0) { //one color
                 patternColor = AndroidUtilities.getPatternColor(wallPaper.settings.background_color);
                 canvas.drawColor(ColorUtils.setAlphaComponent(wallPaper.settings.background_color, 255));
-            } else if (wallPaper.settings.third_background_color == 0) { 
+            } else if (wallPaper.settings.third_background_color == 0) { //two color
                 int color1 = ColorUtils.setAlphaComponent(wallPaper.settings.background_color, 255);
                 int color2 = ColorUtils.setAlphaComponent(wallPaper.settings.second_background_color, 255);
                 patternColor = AndroidUtilities.getAverageColor(color1, color2);
@@ -1756,7 +1753,7 @@ public class ImageLoader {
                         runningThread.interrupt();
                     }
                 } catch (Exception e) {
-                    
+                    //don't promt
                 }
             }
         }
@@ -2046,13 +2043,6 @@ public class ImageLoader {
             }
         }
         return localInstance;
-    }
-
-    public static void clearMemoryIfInitialized() {
-        ImageLoader localInstance = Instance;
-        if (localInstance != null) {
-            localInstance.clearMemory();
-        }
     }
 
     public ImageLoader() {
@@ -2455,14 +2445,14 @@ public class ImageLoader {
                     try {
                         if (ApplicationLoader.applicationContext.getExternalMediaDirs().length > 0) {
                             publicMediaDir = getPublicStorageDir();
-                            publicMediaDir = new File(publicMediaDir, "LinkiGram");
+                            publicMediaDir = new File(publicMediaDir, "Telegram");
                             publicMediaDir.mkdirs();
                         }
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
                     newPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
-                    telegramPath = new File(newPath, "LinkiGram");
+                    telegramPath = new File(newPath, "Telegram");
                 } else {
                     boolean isSdCard = !TextUtils.isEmpty(SharedConfig.storageCacheDir) && path.getAbsolutePath().startsWith(SharedConfig.storageCacheDir);
                     if (!isSdCard) {
@@ -2471,7 +2461,7 @@ public class ImageLoader {
                             path = ApplicationLoader.applicationContext.getExternalFilesDir(null);
                         }
                     }
-                    telegramPath = new File(path, "LinkiGram");
+                    telegramPath = new File(path, "Telegram");
                 }
                 telegramPath.mkdirs();
 
@@ -2481,7 +2471,7 @@ public class ImageLoader {
                         File dir = dirs.get(a);
                         if (dir != null && !TextUtils.isEmpty(SharedConfig.storageCacheDir) && dir.getAbsolutePath().startsWith(SharedConfig.storageCacheDir)) {
                             path = dir;
-                            telegramPath = new File(path, "LinkiGram");
+                            telegramPath = new File(path, "Telegram");
                             telegramPath.mkdirs();
                             break;
                         }
@@ -2490,7 +2480,7 @@ public class ImageLoader {
 
                 if (telegramPath.isDirectory()) {
                     try {
-                        File imagePath = new File(telegramPath, "LinkiGram Images");
+                        File imagePath = new File(telegramPath, "Telegram Images");
                         imagePath.mkdir();
                         if (imagePath.isDirectory() && canMoveFiles(cachePath, imagePath, FileLoader.MEDIA_DIR_IMAGE)) {
                             mediaDirs.put(FileLoader.MEDIA_DIR_IMAGE, imagePath);
@@ -2503,7 +2493,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File videoPath = new File(telegramPath, "LinkiGram Video");
+                        File videoPath = new File(telegramPath, "Telegram Video");
                         videoPath.mkdir();
                         if (videoPath.isDirectory() && canMoveFiles(cachePath, videoPath, FileLoader.MEDIA_DIR_VIDEO)) {
                             mediaDirs.put(FileLoader.MEDIA_DIR_VIDEO, videoPath);
@@ -2516,7 +2506,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File audioPath = new File(telegramPath, "LinkiGram Audio");
+                        File audioPath = new File(telegramPath, "Telegram Audio");
                         audioPath.mkdir();
                         if (audioPath.isDirectory() && canMoveFiles(cachePath, audioPath, FileLoader.MEDIA_DIR_AUDIO)) {
                             AndroidUtilities.createEmptyFile(new File(audioPath, ".nomedia"));
@@ -2530,7 +2520,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File documentPath = new File(telegramPath, "LinkiGram Documents");
+                        File documentPath = new File(telegramPath, "Telegram Documents");
                         documentPath.mkdir();
                         if (documentPath.isDirectory() && canMoveFiles(cachePath, documentPath, FileLoader.MEDIA_DIR_DOCUMENT)) {
                             AndroidUtilities.createEmptyFile(new File(documentPath, ".nomedia"));
@@ -2544,7 +2534,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File normalNamesPath = new File(telegramPath, "LinkiGram Files");
+                        File normalNamesPath = new File(telegramPath, "Telegram Files");
                         normalNamesPath.mkdir();
                         if (normalNamesPath.isDirectory() && canMoveFiles(cachePath, normalNamesPath, FileLoader.MEDIA_DIR_FILES)) {
                             AndroidUtilities.createEmptyFile(new File(normalNamesPath, ".nomedia"));
@@ -2558,7 +2548,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File normalNamesPath = new File(telegramPath, "LinkiGram Stories");
+                        File normalNamesPath = new File(telegramPath, "Telegram Stories");
                         normalNamesPath.mkdir();
                         if (normalNamesPath.isDirectory() && canMoveFiles(cachePath, normalNamesPath, FileLoader.MEDIA_DIR_STORIES)) {
                             AndroidUtilities.createEmptyFile(new File(normalNamesPath, ".nomedia"));
@@ -2573,7 +2563,7 @@ public class ImageLoader {
                 }
                 if (publicMediaDir != null && publicMediaDir.isDirectory()) {
                     try {
-                        File imagePath = new File(publicMediaDir, "LinkiGram Images");
+                        File imagePath = new File(publicMediaDir, "Telegram Images");
                         imagePath.mkdir();
                         if (imagePath.isDirectory() && canMoveFiles(cachePath, imagePath, FileLoader.MEDIA_DIR_IMAGE)) {
                             mediaDirs.put(FileLoader.MEDIA_DIR_IMAGE_PUBLIC, imagePath);
@@ -2586,7 +2576,7 @@ public class ImageLoader {
                     }
 
                     try {
-                        File videoPath = new File(publicMediaDir, "LinkiGram Video");
+                        File videoPath = new File(publicMediaDir, "Telegram Video");
                         videoPath.mkdir();
                         if (videoPath.isDirectory() && canMoveFiles(cachePath, videoPath, FileLoader.MEDIA_DIR_VIDEO)) {
                             mediaDirs.put(FileLoader.MEDIA_DIR_VIDEO_PUBLIC, videoPath);
@@ -3612,6 +3602,7 @@ public class ImageLoader {
             mediaKey = imageReceiver.getUniqKeyPrefix() + mediaKey;
         }
 
+
         if (imageLocation != null && imageLocation.path != null) {
             createLoadOperationForImageReceiver(imageReceiver, thumbKey, thumbUrl, thumbExt, thumbLocation, thumbFilter, 0, 1, ImageReceiver.TYPE_THUMB, thumbSet ? 2 : 1, guid);
             createLoadOperationForImageReceiver(imageReceiver, imageKey, imageUrl, imageExt, imageLocation, imageFilter, imageReceiver.getSize(), 1, ImageReceiver.TYPE_IMAGE, 0, guid);
@@ -4188,14 +4179,17 @@ public class ImageLoader {
             fileDir = location.volume_id != Integer.MIN_VALUE ? FileLoader.getDirectory(FileLoader.MEDIA_DIR_IMAGE) : FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE);
         }
         final File cacheFile = new File(fileDir, fileName);
-        
+        //TODO was crash in DEBUG_PRIVATE
+//        if (compressFormat == Bitmap.CompressFormat.JPEG && progressive && BuildVars.DEBUG_VERSION) {
+//            photoSize.size = Utilities.saveProgressiveJpeg(scaledBitmap, scaledBitmap.getWidth(), scaledBitmap.getHeight(), scaledBitmap.getRowBytes(), quality, cacheFile.getAbsolutePath());
+//        } else {
         FileOutputStream stream = new FileOutputStream(cacheFile);
         scaledBitmap.compress(compressFormat, quality, stream);
         if (!cache) {
             photoSize.size = (int) stream.getChannel().size();
         }
         stream.close();
-        
+        // }
         if (cache) {
             ByteArrayOutputStream stream2 = new ByteArrayOutputStream();
             scaledBitmap.compress(compressFormat, quality, stream2);
@@ -4387,6 +4381,7 @@ public class ImageLoader {
             }
         }
     }
+
 
     public static void saveMessageThumbs(TLRPC.Message message, TLRPC.MessageMedia media) {
         if (message == null || media == null) {

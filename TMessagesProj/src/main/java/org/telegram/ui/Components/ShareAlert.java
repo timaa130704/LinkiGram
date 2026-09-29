@@ -56,7 +56,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
-import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -112,7 +111,6 @@ import org.telegram.ui.Cells.ShareDialogCell;
 import org.telegram.ui.Cells.ShareTopicCell;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.Forum.ForumUtilities;
-import org.telegram.ui.Components.Premium.LimitReachedBottomSheet;
 import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
 import org.telegram.ui.Components.blur3.BlurredBackgroundWithFadeDrawable;
 import org.telegram.ui.Components.blur3.DownscaleScrollableNoiseSuppressor;
@@ -440,9 +438,9 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         }
         iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
 
+
         this.resourcesProvider = theme;
-        
-        this.includeStory = app.nimarkogram.messenger.NimarkoConfig.shareDrawStoryButton && includeStory;
+        this.includeStory = includeStory;
 
         parentActivity = AndroidUtilities.findActivity(context);
 
@@ -467,7 +465,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         shadowDrawable = context.getResources().getDrawable(R.drawable.sheet_shadow_round).mutate();
         int backgroundColor = getThemedColor(behindKeyboardColorKey = Theme.key_dialogBackground);
         shadowDrawable.setColorFilter(new PorterDuffColorFilter(backgroundColor, PorterDuff.Mode.MULTIPLY));
-
+//        fixNavigationBar(backgroundColor);
         occupyNavigationBarWithoutKeyboard = true;
 
         isFullscreen = fullScreen;
@@ -528,6 +526,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             }));
         }
 
+
         sizeNotifierFrameLayout = new SizeNotifierFrameLayout(context) {
 
             private boolean ignoreLayout = false;
@@ -541,6 +540,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
 
             private int fromOffsetTop;
             private int toOffsetTop;
+
 
             {
                 adjustPanLayoutHelper = new AdjustPanLayoutHelper(this) {
@@ -1085,10 +1085,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         });
 
         frameLayout.addView(searchView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 40, Gravity.BOTTOM | Gravity.LEFT, 11, 7, 11, 11));
-
-        foldersView = new FoldersView(context);
-        frameLayout.addView(foldersView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT, 0, 0, 0, 58));
-
         topicsBackActionBar = new ActionBar(context);
         topicsBackActionBar.setOccupyStatusBar(false);
         topicsBackActionBar.setBackButtonImage(R.drawable.ic_ab_back);
@@ -1187,6 +1183,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         gridView.setLayoutManager(layoutManager = new GridLayoutManager(getContext(), 4));
 
         iBlur3Capture = new ViewGroupPartRenderer(gridView, containerView, gridView::drawChild);
+
 
         layoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override
@@ -1418,7 +1415,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 });
                 ScaleStateListAnimator.apply(linkCopyButton);
 
-                containerView.addView(pickerBottom, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44 + 7 + 7, Gravity.LEFT | Gravity.BOTTOM)); 
+                containerView.addView(pickerBottom, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44 + 7 + 7, Gravity.LEFT | Gravity.BOTTOM)); // (video_timestamp != null ? 0 : 11);
 
                 LinearLayout sharesLayout = null;
                 int rightMargin = 11;
@@ -1477,7 +1474,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 } else {
                     pickerTextView.setText(LocaleController.getString(R.string.CopyLink).toUpperCase());
                 }
-                
+                // ScaleStateListAnimator.apply(pickerTextView, 0.015f, 1.2f);
                 pickerTextView.setOnClickListener(v -> {
                     if (selectedDialogs.size() == 0 && (isChannel || linkToCopy[0] != null)) {
                         dismiss();
@@ -1641,13 +1638,23 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             @Override
             protected void showPopup(int show) {
                 super.showPopup(show);
-
+//                if (darkTheme) {
+//                    navBarColorKey = -1;
+//                    AndroidUtilities.setNavigationBarColor(ShareAlert.this.getWindow(), ShareAlert.this.getThemedColor(Theme.key_windowBackgroundGray), true, color -> {
+//                        ShareAlert.this.setOverlayNavBarColor(navBarColor = color);
+//                    });
+//                }
             }
 
             @Override
             public void hidePopup(boolean byBackButton) {
                 super.hidePopup(byBackButton);
-
+//                if (darkTheme) {
+//                    navBarColorKey = -1;
+//                    AndroidUtilities.setNavigationBarColor(ShareAlert.this.getWindow(), ShareAlert.this.getThemedColor(Theme.key_voipgroup_inviteMembersBackground), true, color -> {
+//                        ShareAlert.this.setOverlayNavBarColor(navBarColor = color);
+//                    });
+//                }
             }
 
             @Override
@@ -1676,7 +1683,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             commentTextView.getEditText().setTextColor(getThemedColor(Theme.key_voipgroup_nameText));
             commentTextView.getEditText().setCursorColor(getThemedColor(Theme.key_voipgroup_nameText));
         }
-
+//        commentTextView.setBackgroundColor(backgroundColor);
         commentTextView.setHint(LocaleController.getString(R.string.ShareComment));
         commentTextView.onResume();
         commentTextView.setPadding(0, 0, dp(84), 0);
@@ -1801,11 +1808,13 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             }
         }
 
+
         fadeDrawable = new BlurredBackgroundWithFadeDrawable(
                 iBlur3FactoryFade.create(bottomFadeView, null));
         if (!SharedConfig.chatBlurEnabled() || LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) || true) {
             fadeDrawable.setFadeHeight(dp(72), true);
         }
+
 
         emojiViewChildBg = iBlur3FactoryFrostedLiquidGlass.create(sizeNotifierFrameLayout, BlurredBackgroundProviderImpl.inputFieldShareAlert(resourcesProvider));
         emojiViewChildBg.enableInAppKeyboardOptimization();
@@ -2053,7 +2062,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                                     gridView.setVisibility(View.GONE);
                                     searchGridView.setVisibility(View.GONE);
                                     searchView.setVisibility(View.GONE);
-                                    if (foldersView != null) foldersView.setVisibility(View.GONE);
 
                                     topicsAnimation = null;
                                 });
@@ -2149,7 +2157,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
 
         getMainGridView().setVisibility(View.VISIBLE);
         searchView.setVisibility(View.VISIBLE);
-        if (foldersView != null) foldersView.setVisibility(View.VISIBLE);
 
         if (searchIsVisible || searchWasVisibleBeforeTopics) {
             sizeNotifierFrameLayout.adjustPanLayoutHelper.ignoreOnce();
@@ -2201,14 +2208,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         searchView.setScaleY(0.9f + (1f - value) * 0.1f);
         searchView.setAlpha(1f - value);
 
-        if (foldersView != null) {
-            foldersView.setPivotX(foldersView.getWidth() / 2f);
-            foldersView.setPivotY(0);
-            foldersView.setScaleX(0.9f + (1f - value) * 0.1f);
-            foldersView.setScaleY(0.9f + (1f - value) * 0.1f);
-            foldersView.setAlpha(1f - value);
-        }
-
         topicsBackActionBar.getBackButton().setTranslationX(-dp(16) * (1f - value));
         topicsBackActionBar.getTitleTextView().setTranslationY(dp(16) * (1f - value));
         topicsBackActionBar.getSubtitleTextView().setTranslationY(dp(16) * (1f - value));
@@ -2245,7 +2244,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         return containerView.getMeasuredHeight() - containerViewTop;
     }
 
-    private boolean showSendersName = !app.nimarkogram.messenger.NimarkoConfig.forwardWithoutAuthor;
+    private boolean showSendersName = true;
     private ActionBarPopupWindow sendPopupWindow;
     private boolean onSendLongClick(View view) {
         if (parentActivity == null) {
@@ -2288,9 +2287,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             }
             sendPopupLayout1.addView(showSendersNameView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
             showSendersNameView.setTextAndIcon(false ? LocaleController.getString(R.string.ShowSenderNames) : LocaleController.getString(R.string.ShowSendersName), 0);
-            
-            showSendersName = !app.nimarkogram.messenger.NimarkoConfig.forwardWithoutAuthor;
-            showSendersNameView.setChecked(showSendersName);
+            showSendersNameView.setChecked(showSendersName = true);
 
             ActionBarMenuSubItem hideSendersNameView = new ActionBarMenuSubItem(getContext(), true, false, true, resourcesProvider);
             if (darkTheme) {
@@ -2507,10 +2504,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                         params.monoForumPeer = monoForumPeerId;
                         SendMessagesHelper.getInstance(currentAccount).sendMessage(params);
                     }
-                    
-                    boolean ngStripAuthor = !showSendersName || !app.nimarkogram.messenger.NimarkoConfig.forwardAuthorship;
-                    boolean ngStripCaption = !app.nimarkogram.messenger.NimarkoConfig.forwardCaptions;
-                    result = SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, ngStripAuthor, ngStripCaption, withSound, 0, 0, replyTopMsg, video_timestamp, price == null ? 0 : price, monoForumPeerId, null);
+                    result = SendMessagesHelper.getInstance(currentAccount).sendMessage(sendingMessageObjects, key, !showSendersName,false, withSound, 0, 0, replyTopMsg, video_timestamp, price == null ? 0 : price, monoForumPeerId, null);
                     if (result != 0) {
                         removeKeys.add(key);
                     }
@@ -2651,16 +2645,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id == NotificationCenter.dialogsNeedReload) {
             if (listAdapter != null) {
-                
-                if (foldersView != null && foldersView.filterTabsView != null) {
-                    if (foldersView.filterTabsView.currentTabIsDefault()) {
-                        listAdapter.fetchDialogs();
-                    } else {
-                        if (!app.nimarkogram.messenger.NimarkoConfig.tabsHideAllChats) foldersView.applyFilter(foldersView.filterTabsView.getFirstTabId());
-                    }
-                } else {
-                    listAdapter.fetchDialogs();
-                }
+                listAdapter.fetchDialogs();
             }
             NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.dialogsNeedReload);
         }
@@ -2920,16 +2905,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
 
         public ShareDialogsAdapter(Context context) {
             this.context = context;
-            
-            if (foldersView != null && foldersView.filterTabsView != null && hasFolders()) {
-                if (foldersView.filterTabsView.currentTabIsDefault()) {
-                    fetchDialogs();
-                } else {
-                    foldersView.applyFilter(foldersView.filterTabsView.getFirstTabId());
-                }
-            } else {
-                fetchDialogs();
-            }
+            fetchDialogs();
         }
 
         public void fetchDialogs() {
@@ -2990,25 +2966,6 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                             dialogs.add(dialogs.get(dialogs.size() - 1));
                         }
                         break;
-                }
-            }
-            notifyDataSetChanged();
-        }
-
-        public void setDialogs(List<TLRPC.Dialog> newDialogs) {
-            dialogs.clear();
-            dialogsMap.clear();
-            if (app.nimarkogram.messenger.NimarkoConfig.tabsHideAllChats && foldersView != null && foldersView.filterTabsView != null && hasFolders() && includeStory) {
-                MyStoryDialog d = new MyStoryDialog();
-                dialogs.add(d);
-                dialogsMap.put(d.id, d);
-            }
-            if (newDialogs != null) {
-                for (TLRPC.Dialog d : newDialogs) {
-                    if (d instanceof TLRPC.TL_dialog) {
-                        dialogs.add(d);
-                        dialogsMap.put(d.id, d);
-                    }
                 }
             }
             notifyDataSetChanged();
@@ -3589,6 +3546,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
             return true;
         }
 
+
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view;
@@ -3712,7 +3670,8 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
             if (holder.getItemViewType() == 0 || holder.getItemViewType() == 5) {
-
+//                ShareDialogCell cell = (ShareDialogCell) holder.itemView;
+//                ProfileSearchCell cell = (ProfileSearchCell) holder.itemView;
                 CharSequence name = null;
                 TLObject object = null;
                 TLRPC.EncryptedChat ec = null;
@@ -3796,6 +3755,7 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
                 ((RecyclerListView) holder.itemView).getAdapter().notifyDataSetChanged();
             }
         }
+
 
         @Override
         public int getItemViewType(int position) {
@@ -4005,6 +3965,10 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         collapseTopics();
     }
 
+
+
+    /* Blur */
+
     private final @Nullable DownscaleScrollableNoiseSuppressor scrollableViewNoiseSuppressor;
     private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceGlassFrosted;
     private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceGlass;
@@ -4034,256 +3998,4 @@ public class ShareAlert extends BottomSheet implements NotificationCenter.Notifi
         scrollableViewNoiseSuppressor.setupRenderNodes(iBlur3Positions, 1);
         scrollableViewNoiseSuppressor.invalidateResultRenderNodes(iBlur3Capture, containerView.getMeasuredWidth(), containerView.getMeasuredHeight());
     }
-
-    private final FoldersView foldersView;
-
-    @SuppressWarnings("FieldCanBeLocal")
-    private class FoldersView extends FrameLayout {
-
-        private final FilterTabsView filterTabsView;
-
-        private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rect = new RectF();
-
-        public FoldersView(Context context) {
-            super(context);
-            setWillNotDraw(false);
-
-            int color = Theme.getColor(Theme.key_switchTrack);
-            backgroundPaint.setColor(ColorUtils.setAlphaComponent(color, 20));
-
-            outlinePaint.setStyle(Paint.Style.STROKE);
-            outlinePaint.setStrokeWidth(Math.max(2, dp(1f)));
-            outlinePaint.setColor(ColorUtils.setAlphaComponent(color, 0x3F));
-
-            filterTabsView = new FilterTabsView(context, resourcesProvider) {
-                @Override
-                public boolean onInterceptTouchEvent(MotionEvent ev) {
-                    getParent().requestDisallowInterceptTouchEvent(true);
-                    return super.onInterceptTouchEvent(ev);
-                }
-
-                @Override
-                public void setTranslationY(float translationY) {
-                    if (getTranslationY() != translationY) {
-                        super.setTranslationY(translationY);
-                        if (containerView != null) {
-                            containerView.invalidate();
-                        }
-                    }
-                }
-            };
-
-            filterTabsView.setDelegate(new FilterTabsView.FilterTabsViewDelegate() {
-                @Override
-                public void onPageSelected(FilterTabsView.Tab tab, boolean forward) {
-                    if (tab.isLocked) {
-                        filterTabsView.shakeLock(tab.id);
-                        showDialog(new LimitReachedBottomSheet(parentFragment, context, LimitReachedBottomSheet.TYPE_FOLDERS, currentAccount, getResourcesProvider()));
-                        return;
-                    }
-
-                    if (checkSearchVisible()) {
-                        return;
-                    }
-
-                    if (filterTabsView.currentTabIsDefault()) {
-                        listAdapter.fetchDialogs();
-                    } else {
-                        applyFilter(tab.id);
-                    }
-                }
-
-                @Override
-                public void onPageScrolled(float progress) {
-                    if (progress == 1 && !checkSearchVisible()) {
-                        return;
-                    }
-                    if (progress == 1) {
-                        filterTabsView.stopAnimatingIndicator();
-                    }
-                }
-
-                @Override
-                public void onSamePageSelected() {
-                    int top = getCurrentTop();
-                    if (top > 0) {
-                        layoutManager.scrollToPositionWithOffset(0, -top);
-                    }
-                }
-
-                @Override
-                public int getTabCounter(int tabId) {
-                    return 0;
-                }
-
-                @Override
-                public boolean didSelectTab(FilterTabsView.TabView tabView, boolean selected) {
-                    return checkSearchVisible();
-                }
-
-                @Override
-                public boolean isTabMenuVisible() {
-                    return false;
-                }
-
-                @Override
-                public void onDeletePressed(int id) {
-
-                }
-
-                @Override
-                public void onPageReorder(int fromId, int toId) {
-
-                }
-
-                @Override
-                public boolean canPerformActions() {
-                    return !checkSearchVisible();
-                }
-            });
-
-            addView(filterTabsView, LayoutHelper.createFrame(
-                    LayoutHelper.MATCH_PARENT, getFoldersHeight(),
-                    Gravity.LEFT | Gravity.TOP,
-                    0,
-                    45,
-                    0,
-                    10
-            ));
-
-            updateFilterTabs(true, true);
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (!hasFolders()) return;
-
-            float w = foldersView.getMeasuredWidth();
-            float h = foldersView.getMeasuredHeight();
-
-            float radius = dp(50);
-
-            float stroke = outlinePaint.getStrokeWidth() / 2;
-            rect.set(stroke + dp(8), stroke + dp(8) + (h / 2), w - stroke - dp(8), h - stroke - dp(2));
-
-            canvas.drawRoundRect(rect, radius, radius, backgroundPaint);
-            canvas.drawRoundRect(rect, radius, radius, outlinePaint);
-        }
-
-        private void updateFilterTabs(boolean force, boolean animated) {
-            if (filterTabsView == null || searchAdapter.isSearching()) {
-                return;
-            }
-            ArrayList<MessagesController.DialogFilter> filters = getFolders();
-            if (hasFolders()) {
-                if (force || filterTabsView.getVisibility() != View.VISIBLE) {
-                    boolean animatedUpdateItems = animated;
-                    if (filterTabsView.getVisibility() != View.VISIBLE) {
-                        animatedUpdateItems = false;
-                    }
-                    int id = filterTabsView.getCurrentTabId();
-                    int stableId = filterTabsView.getCurrentTabStableId();
-                    boolean selectWithStableId = false;
-                    if (id != filterTabsView.getDefaultTabId() && id >= filters.size()) {
-                        filterTabsView.resetTabId();
-                        selectWithStableId = true;
-                    }
-                    filterTabsView.removeTabs();
-                    for (int a = 0, N = filters.size(); a < N; a++) {
-                        if (filters.get(a).isDefault()) {
-                            if (!app.nimarkogram.messenger.NimarkoConfig.tabsHideAllChats) filterTabsView.addTab(a, 0, LocaleController.getString(R.string.FilterAllChats), null, false, true, filters.get(a).locked, filters.get(a).emoticon);
-                        } else {
-                            final MessagesController.DialogFilter filter = filters.get(a);
-                            filterTabsView.addTab(a, filter.localId, filter.name, filter.entities, filter.title_noanimate, false, filters.get(a).locked, filter.emoticon);
-                        }
-                    }
-                    if (app.nimarkogram.messenger.NimarkoConfig.tabsHideAllChats && stableId <= 0) {
-                        id = filterTabsView.getFirstTabId();
-                        filterTabsView.selectTabWithStableId(filterTabsView.getStableId(0));
-                    } else if (stableId >= 0) {
-                        if (selectWithStableId) {
-                            if (!filterTabsView.selectTabWithStableId(stableId)) {
-                                while (id >= 0 && !filterTabsView.selectTabWithStableId(filterTabsView.getStableId(id))) {
-                                    id--;
-                                }
-                                if (id < 0) {
-                                    id = 0;
-                                }
-                            }
-                        }
-                    }
-                    filterTabsView.finishAddingTabs(animatedUpdateItems);
-                    if (filterTabsView.isLocked(filterTabsView.getCurrentTabId())) {
-                        filterTabsView.selectFirstTab();
-                    }
-                }
-            } else {
-                if (filterTabsView.getVisibility() != View.GONE) {
-                    filterTabsView.setIsEditing(false);
-
-                    filterTabsView.resetTabId();
-                }
-            }
-        }
-
-        private void applyFilter(int tabId) {
-            final MessagesController messagesController = MessagesController.getInstance(currentAccount);
-            final ArrayList<TLRPC.Dialog> source = messagesController.getAllDialogs();
-            if (source == null || source.isEmpty()) return;
-
-            final ArrayList<TLRPC.Dialog> source2 = new ArrayList<>(source);
-            final AccountInstance account = AccountInstance.getInstance(currentAccount);
-            final int defaultTabId = filterTabsView.getDefaultTabId();
-
-            Utilities.globalQueue.postRunnable(() -> {
-                ArrayList<TLRPC.Dialog> filtered = new ArrayList<>();
-                MessagesController.DialogFilter filter = null;
-
-                if (tabId != defaultTabId && tabId >= 0 && tabId < getFolders().size()) {
-                    filter = getFolders().get(tabId);
-                }
-
-                if (filter == null) {
-                    for (TLRPC.Dialog d : source2) {
-                        if (d != null) filtered.add(d);
-                    }
-                } else {
-                    for (TLRPC.Dialog d : source2) {
-                        if (d != null && filter.includesDialog(account, d.id)) {
-                            filtered.add(d);
-                        }
-                    }
-                }
-
-                AndroidUtilities.runOnUIThread(() -> {
-                    if (listAdapter == null) return;
-
-                    listAdapter.setDialogs(filtered);
-                });
-            });
-        }
-    }
-
-    private boolean hasFolders() {
-        return getFolders().size() > 1;
-    }
-
-    private ArrayList<MessagesController.DialogFilter> getFolders() {
-        return MessagesController.getInstance(currentAccount).getDialogFilters();
-    }
-
-    private int getFoldersHeight() {
-        if (hasFolders()) {
-            return 55;
-        } else {
-            return 0;
-        }
-    }
-
-    private boolean checkSearchVisible() {
-        return !TextUtils.isEmpty(searchView.editText.getText()) || (keyboardVisible && searchView.editText.hasFocus()) || searchWasVisibleBeforeTopics;
-    }
-     
 }

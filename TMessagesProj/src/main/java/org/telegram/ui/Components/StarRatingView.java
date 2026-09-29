@@ -127,9 +127,10 @@ public class StarRatingView extends View {
         return isVisibleAnimator.get();
     }
 
+
+    /**/
+
     public void updateColors(MessagesController.PeerColor peerColor) {
-        
-        if (!app.nimarkogram.messenger.NimarkoConfig.profileBackgroundColor) peerColor = null;
         colors.update(peerColor);
         invalidate();
     }

@@ -32,7 +32,6 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.ShareBroadcastReceiver;
-import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.support.customtabs.CustomTabsCallback;
 import org.telegram.messenger.support.customtabs.CustomTabsClient;
@@ -195,7 +194,7 @@ public class Browser {
         if (equals) {
             return url.equals("telegra.ph") || url.equals("te.legra.ph") || url.equals("graph.org");
         }
-        return url.matches("^(https" + (forceHttps ? "" : "?") + "://)?(te\\.?legra\\.ph|graph\\.org)(/.*|$)"); 
+        return url.matches("^(https" + (forceHttps ? "" : "?") + "://)?(te\\.?legra\\.ph|graph\\.org)(/.*|$)"); // telegra.ph, te.legra.ph, graph.org
     }
 
     public static String extractUsername(String link) {
@@ -224,9 +223,9 @@ public class Browser {
     public static boolean urlMustNotHaveConfirmation(String url) {
         return (
             isTelegraphUrl(url, false, true) ||
-            url.matches("^(https://)?t\\.me/iv\\??(/.*|$)") || 
-            url.matches("^(https://)?telegram\\.org/(blog|tour)(/.*|$)") || 
-            url.matches("^(https://)?fragment\\.com(/.*|$)") 
+            url.matches("^(https://)?t\\.me/iv\\??(/.*|$)") || // t.me/iv?
+            url.matches("^(https://)?telegram\\.org/(blog|tour)(/.*|$)") || // telegram.org/blog, telegram.org/tour
+            url.matches("^(https://)?fragment\\.com(/.*|$)") // fragment.com
         );
     }
 
@@ -377,7 +376,6 @@ public class Browser {
                     .appendQueryParameter("autologin_token", autologin_token)
                     .build();
             }
-            
             if (allowCustom && !(uri != null && MessagesController.getInstance(currentAccount).isWebBrowserOpenInApp(uri.toString()) || isInstantViewOpen()) && MessagesController.getInstance(currentAccount).isWebBrowserUseCustomTabs() && !internalUri && !scheme.equals("tel") && !isTonsite(uri.toString())) {
                 if (forceBrowser[0] || !openInExternalApp(context, uri.toString(), false) || !hasAppToOpen(context, uri.toString())) {
                     if (MessagesController.getInstance(currentAccount).authDomains.contains(host)) {
@@ -411,9 +409,9 @@ public class Browser {
         }
         try {
 
+
             final boolean inappBrowser = (
                 allowInAppBrowser && BubbleActivity.instance == null &&
-                
                 (uri != null && MessagesController.getInstance(currentAccount).isWebBrowserOpenInApp(uri.toString()) || isInstantViewOpen()) &&
                 TextUtils.isEmpty(browserPackage) &&
                 (uri.getScheme() == null || "https".equals(uri.getScheme()) || "http".equals(uri.getScheme()) || "tonsite".equals(uri.getScheme()))

@@ -624,7 +624,7 @@ public class AvatarPreviewer {
                 if (!showing) {
                     value = 1f - value;
                 }
-                blurView.setAlpha(value); 
+                blurView.setAlpha(value); // Linear value
                 invalidate();
             });
 
@@ -675,7 +675,7 @@ public class AvatarPreviewer {
 
             backupImageView = new BackupImageView(context);
             backupImageView.setAspectFit(true);
-            backupImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(24));
+            backupImageView.setRoundRadius(dp(12));
             addView(backupImageView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
             radialProgress = new RadialProgress2(this, resourcesProvider);

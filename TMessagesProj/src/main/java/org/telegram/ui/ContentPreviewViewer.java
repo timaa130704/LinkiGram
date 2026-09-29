@@ -479,6 +479,7 @@ public class ContentPreviewViewer {
             }
             closeOnDismiss = true;
 
+
             if (delegate != null) {
                 ItemOptions io = delegate.getCustomItemOptions(containerView, containerView);
                 if (io != null) {
@@ -514,15 +515,14 @@ public class ContentPreviewViewer {
                     int top = lastInsets.top;
                     int size = Math.min(containerView.getWidth(), containerView.getHeight() - insets) - AndroidUtilities.dp(40f);
 
+
                     int y = (int) (moveY + Math.max(size / 2 + top + (stickerEmojiLayout != null ? AndroidUtilities.dp(40) : 0), (containerView.getHeight() - insets - keyboardHeight) / 2) + size / 2);
                     y += AndroidUtilities.dp(24) - moveY;
                     popupWindow.showAtLocation(containerView, 0, (int) ((containerView.getMeasuredWidth() - previewMenu.getMeasuredWidth()) / 2f), y);
 
-                    if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        try {
-                            containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                        } catch (Exception ignored) {}
-                    }
+                    try {
+                        containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    } catch (Exception ignored) {}
 
                     if (moveY != 0) {
                         if (finalMoveY == 0) {
@@ -543,6 +543,7 @@ public class ContentPreviewViewer {
                     return;
                 }
             }
+
 
             int flags = 0;
             if (currentContentType == CONTENT_TYPE_CUSTOM_STIKER || canShowFullVotersList()) {
@@ -669,13 +670,35 @@ public class ContentPreviewViewer {
                 previewMenu.addViewToSwipeBack(linearLayout);
                 backContainer.setOnClickListener(view -> previewMenu.getSwipeBack().closeForeground());
 
+//                popupWindow = new ActionBarPopupWindow(previewMenu, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT) {
+//                    @Override
+//                    public void dismiss() {
+//                        super.dismiss();
+//                        popupWindow = null;
+//                        menuVisible = false;
+//                        if (closeOnDismiss) {
+//                            close();
+//                        }
+//                    }
+//                };
+//                popupWindow.setPauseNotifications(true);
+//                popupWindow.setDismissAnimationDuration(100);
+//                popupWindow.setScaleOut(true);
+//                popupWindow.setOutsideTouchable(false);
+//                popupWindow.setClippingEnabled(false);
+//                popupWindow.setAnimationStyle(R.style.PopupContextAnimation);
+//                popupWindow.setFocusable(false);
+//                previewMenu.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST));
+//                popupWindow.setInputMethodMode(ActionBarPopupWindow.INPUT_METHOD_NOT_NEEDED);
+//                popupWindow.getContentView().setFocusableInTouchMode(true);
+
                 int insets = lastInsets.bottom + lastInsets.top;
                 int top = lastInsets.top;
                 int size = (int) (Math.min(containerView.getWidth(), containerView.getHeight() - insets) / 1.8f);
                 int y = (int) (moveY + Math.max(size / 2 + top, (containerView.getHeight() - insets - keyboardHeight) / 2) + size / 2);
                 y += AndroidUtilities.dp(24 + 60);
                 containerView.addView(previewMenu, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, (float) (y / AndroidUtilities.density), 0, 0));
-
+//                popupWindow.showAtLocation(containerView, 0, x, y);
                 popupLayout = previewMenu;
                 popupLayout.setTranslationY(-dp(12));
                 popupLayout.setAlpha(0f);
@@ -692,12 +715,9 @@ public class ContentPreviewViewer {
                     showUnlockPremiumView();
                     menuVisible = true;
                     containerView.invalidate();
-                    
-                    if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                        try {
-                            containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                        } catch (Exception ignored) {}
-                    }
+                    try {
+                        containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    } catch (Exception ignored) {}
                     return;
                 }
                 final boolean inFavs = MediaDataController.getInstance(currentAccount).isStickerInFavorites(currentDocument);
@@ -747,7 +767,7 @@ public class ContentPreviewViewer {
                 if (currentStickerSet != null && currentDocument != null) {
                     final MediaDataController mediaDataController = MediaDataController.getInstance(currentAccount);
                     TLRPC.TL_messages_stickerSet stickerSet = mediaDataController.getStickerSet(currentStickerSet, true);
-                    if (stickerSet != null &&  !StickersAlert.DISABLE_STICKER_EDITOR) {
+                    if (stickerSet != null && /*stickerSet.set.creator && */!StickersAlert.DISABLE_STICKER_EDITOR) {
                         if (delegate != null && delegate.canEditSticker() && !stickerSet.set.emojis && !stickerSet.set.masks) {
                             items.add(LocaleController.getString(R.string.EditSticker));
                             icons.add(R.drawable.msg_edit);
@@ -871,11 +891,9 @@ public class ContentPreviewViewer {
                 }
                 popupWindow.showAtLocation(containerView, 0, (int) ((containerView.getMeasuredWidth() - previewMenu.getMeasuredWidth()) / 2f), y);
 
-                if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-                    try {
-                        containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                    } catch (Exception ignored) {}
-                }
+                try {
+                    containerView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                } catch (Exception ignored) {}
             } else if (currentContentType == CONTENT_TYPE_EMOJI && delegate != null) {
                 ArrayList<CharSequence> items = new ArrayList<>();
                 final ArrayList<Integer> actions = new ArrayList<>();
@@ -1120,6 +1138,7 @@ public class ContentPreviewViewer {
                 int insets = lastInsets.bottom + lastInsets.top;
                 int top = lastInsets.top;
                 int size = Math.min(containerView.getWidth(), containerView.getHeight() - insets) - AndroidUtilities.dp(40f);
+
 
                 int y = (int) (moveY + Math.max(size / 2 + top + (stickerEmojiLayout != null ? AndroidUtilities.dp(40) : 0), (containerView.getHeight() - insets - keyboardHeight) / 2) + size / 2);
                 y += AndroidUtilities.dp(24) - moveY;
@@ -1569,7 +1588,7 @@ public class ContentPreviewViewer {
                     listView.requestDisallowInterceptTouchEvent(true);
                     openPreviewRunnable = null;
                     setParentActivity(AndroidUtilities.findActivity(listView.getContext()));
-                    
+                    //setKeyboardHeight(height);
                     clearsInputField = false;
                     if (currentPreviewCell instanceof StickerEmojiCell) {
                         StickerEmojiCell stickerEmojiCell = (StickerEmojiCell) currentPreviewCell;
@@ -1914,6 +1933,7 @@ public class ContentPreviewViewer {
             }
             WindowManager wm = (WindowManager) parentActivity.getSystemService(Context.WINDOW_SERVICE);
             wm.addView(windowView, windowLayoutParams);
+
 
             isVisible = true;
             showProgress = 0.0f;

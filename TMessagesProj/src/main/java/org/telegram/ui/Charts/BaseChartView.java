@@ -86,6 +86,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
     float animateToMaxHeight = 0;
     float animateToMinHeight = 0;
 
+
     float thresholdMaxHeight = 0;
 
     int startXIndex;
@@ -95,6 +96,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
     boolean landscape = false;
 
     public boolean enabled = true;
+
 
     Paint emptyPaint = new Paint();
 
@@ -254,6 +256,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
 
         legendSignatureView = createLegendView();
 
+
         legendSignatureView.setVisibility(GONE);
 
         whiteLinePaint.setColor(Color.WHITE);
@@ -284,6 +287,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         chartActiveLineAlpha = selectedLinePaint.getAlpha();
         signaturePaintAlpha = signaturePaint.getAlpha() / 255f;
         bottomSignaturePaintAlpha = bottomSignaturePaint.getAlpha() / 255f;
+
 
         for (LineViewData l : lines) {
             l.updateColors();
@@ -318,6 +322,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             );
         }
 
+
         if (getMeasuredWidth() != lastW || getMeasuredHeight() != lastH) {
             lastW = getMeasuredWidth();
             lastH = getMeasuredHeight();
@@ -338,6 +343,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             setSystemGestureExclusionRects(exclusionRects);
         }
     }
+
 
     private void measureSizes() {
         if (getMeasuredHeight() <= 0 || getMeasuredWidth() <= 0) {
@@ -365,9 +371,11 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         thresholdMaxHeight = ((float) animateToMaxHeight / chartHeight) * SIGNATURE_TEXT_SIZE;
     }
 
+
     protected void drawPickerChart(Canvas canvas) {
 
     }
+
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -428,6 +436,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         }
     }
 
+
     void drawBottomSignature(Canvas canvas) {
         if (chartData == null) return;
 
@@ -459,6 +468,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
 
             start += bottomSignatureOffset;
             end += bottomSignatureOffset;
+
 
             float offset = chartFullWidth * (pickerDelegate.pickerStart) - HORIZONTAL_PADDING;
 
@@ -518,6 +528,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         if (selectedIndex < 0 || !legendShowing || chartData == null) return;
 
         int alpha = (int) (chartActiveLineAlpha * selectionA);
+
 
         float fullWidth = (chartWidth / (pickerDelegate.pickerEnd - pickerDelegate.pickerStart));
         float offset = fullWidth * (pickerDelegate.pickerStart) - HORIZONTAL_PADDING;
@@ -676,6 +687,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                     canvas.drawBitmap(bottomChartBitmap, HORIZONTAL_PADDING, getMeasuredHeight() - PICKER_PADDING - pikerHeight, emptyPaint);
                     canvas.restore();
 
+
                 } else if (transitionMode == TRANSITION_MODE_CHILD) {
                     float pY = top + (bottom - top) >> 1;
                     float pX = HORIZONTAL_PADDING + pickerWidth * transitionParams.xPercentage;
@@ -695,6 +707,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                     canvas.drawBitmap(bottomChartBitmap, HORIZONTAL_PADDING, getMeasuredHeight() - PICKER_PADDING - pikerHeight, emptyPaint);
                 }
             }
+
 
             if (transitionMode == TRANSITION_MODE_PARENT) {
                 return;
@@ -726,13 +739,16 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                     end,
                     bottom);
 
+
             pickerDelegate.middlePickerArea.set(pickerRect);
+
 
             canvas.drawPath(RoundedRect(pathTmp, pickerRect.left,
                     pickerRect.top - DP_1,
                     pickerRect.left + DP_12,
                     pickerRect.bottom + DP_1, DP_8, DP_8,
                     true, false, false, true), pickerSelectorPaint);
+
 
             canvas.drawPath(RoundedRect(pathTmp, pickerRect.right - DP_12,
                     pickerRect.top - DP_1, pickerRect.right,
@@ -747,11 +763,13 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                     pickerRect.top - DP_1, pickerRect.right - DP_12,
                     pickerRect.top, pickerSelectorPaint);
 
+
             canvas.drawLine(pickerRect.left + DP_6, pickerRect.centerY() - DP_6,
                     pickerRect.left + DP_6, pickerRect.centerY() + DP_6, whiteLinePaint);
 
             canvas.drawLine(pickerRect.right - DP_6, pickerRect.centerY() - DP_6,
                     pickerRect.right - DP_6, pickerRect.centerY() + DP_6, whiteLinePaint);
+
 
             ChartPickerDelegate.CapturesData middleCap = pickerDelegate.getMiddleCaptured();
 
@@ -759,7 +777,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             int cY = pickerRect.top + r;
 
             if (middleCap != null) {
-               
+               // canvas.drawCircle(pickerRect.left + ((pickerRect.right - pickerRect.left) >> 1), cY, r * middleCap.aValue + HORIZONTAL_PADDING, ripplePaint);
             } else {
                 ChartPickerDelegate.CapturesData lCap = pickerDelegate.getLeftCaptured();
                 ChartPickerDelegate.CapturesData rCap = pickerDelegate.getRightCaptured();
@@ -788,6 +806,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         }
     }
 
+
     long lastTime = 0;
 
     private void setMaxMinValue(long newMaxHeight, long newMinHeight, boolean animated) {
@@ -804,6 +823,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         final ChartHorizontalLinesData newData = createHorizontalLinesData(newMaxHeight, newMinHeight, chartData.yTickFormatter);
         newMaxHeight = newData.values[newData.values.length - 1];
         newMinHeight = newData.values[0];
+
 
         if (!useAnimator) {
             float k = (currentMaxHeight - currentMinHeight) / (newMaxHeight - newMinHeight);
@@ -842,7 +862,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         measureHeightThreshold();
 
         long t = System.currentTimeMillis();
-        
+        //  debounce
         if (t - lastTime < 320 && !force) {
             return;
         }
@@ -861,6 +881,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             newData.alpha = 255;
             return;
         }
+
 
         horizontalLines.add(newData);
 
@@ -937,6 +958,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             chartCaptured = false;
             return false;
         }
+
 
         int x = (int) event.getX(event.getActionIndex());
         int y = (int) event.getY(event.getActionIndex());
@@ -1023,6 +1045,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                 setMaxMinValue(findMaxValue(startXIndex, endXIndex), min, true, true, false);
                 return true;
 
+
         }
 
         return false;
@@ -1098,6 +1121,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
 
         selectionAnimator.addListener(selectorAnimatorEndListener);
 
+
         selectionAnimator.start();
     }
 
@@ -1136,6 +1160,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         }
         return maxValue;
     }
+
 
     public long findMinValue(int startXIndex, int endXIndex) {
         int linesSize = lines.size();
@@ -1308,6 +1333,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         updateDates(step);
     }
 
+
     private void updateDates(int step) {
         if (currentBottomSignatures == null || step >= currentBottomSignatures.stepMax || step <= currentBottomSignatures.stepMin) {
             step = Integer.highestOneBit(step) << 1;
@@ -1323,6 +1349,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             int stepMax = (int) (step + step * 0.2);
             int stepMin = (int) (step - step * 0.2);
 
+
             final ChartBottomSignatureData data = new ChartBottomSignatureData(step, stepMax, stepMin);
             data.alpha = 255;
 
@@ -1334,6 +1361,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
             }
 
             currentBottomSignatures = data;
+
 
             tmpN = bottomSignatureDate.size();
             for (int i = 0; i < tmpN; i++) {
@@ -1446,6 +1474,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         outState.putFloat("chart_start", pickerDelegate.pickerStart);
         outState.putFloat("chart_end", pickerDelegate.pickerEnd);
 
+
         if (lines != null) {
             int n = lines.size();
             boolean[] bArray = new boolean[n];
@@ -1484,12 +1513,9 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         legendSignatureView.setVisibility(VISIBLE);
         selectionA = 1f;
         moveLegend(chartFullWidth * (pickerDelegate.pickerStart) - HORIZONTAL_PADDING);
-        
-        if (!app.nimarkogram.messenger.NimarkoConfig.disableVibration) {
-            try {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-            } catch (Exception ignored) {}
-        }
+        try {
+            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+        } catch (Exception ignored) {}
     }
 
     public long getStartDate() {
@@ -1589,6 +1615,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
         private Bitmap pickerRoundBitmap;
         private Canvas canvas;
 
+
         private RectF rectF = new RectF();
         private Paint xRefP = new Paint(Paint.ANTI_ALIAS_FLAG);
         private Theme.ResourcesProvider resourcesProvider;
@@ -1617,6 +1644,7 @@ public abstract class BaseChartView<T extends ChartData, L extends LineViewData>
                 canvas.drawColor(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
                 canvas.drawRoundRect(rectF, AndroidUtilities.dp(6), AndroidUtilities.dp(6), xRefP);
             }
+
 
             return pickerRoundBitmap;
         }

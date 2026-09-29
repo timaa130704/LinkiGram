@@ -99,6 +99,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     private final int deletedGiftsRow = 15;
     private final int localPremiumEmojisRow = 16;
+    private final int blockAdsRow = 17;
 
     private boolean uiAlive;
     private int uiGeneration;
@@ -212,6 +213,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         );
         items.add(SettingsHelper.asSwitchCG(localPremiumEmojisRow, getString(R.string.NM_GEN_LocalPremiumEmoji), getString(R.string.NM_GEN_LocalPremiumEmoji_Desc))
                 .setChecked(NimarkoConfig.localPremiumEmojis)
+        );
+        items.add(SettingsHelper.asSwitchCG(blockAdsRow, getString(R.string.NM_GEN_BlockAds), getString(R.string.NM_GEN_BlockAds_Desc))
+                .setChecked(NimarkoConfig.blockSponsoredAds)
         );
         items.add(UItem.asShadow(null));
 
@@ -385,6 +389,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         } else if (item.id == localPremiumEmojisRow) {
             NimarkoConfig.toggleLocalPremiumEmojis();
             SettingsHelper.updateCheckState(view, NimarkoConfig.localPremiumEmojis);
+        } else if (item.id == blockAdsRow) {
+            NimarkoConfig.toggleBlockSponsoredAds();
+            SettingsHelper.updateCheckState(view, NimarkoConfig.blockSponsoredAds);
         } else if (item.id == ghostTypingRow) {
             NimarkoConfig.toggleGhostTyping();
             SettingsHelper.updateCheckState(view, NimarkoConfig.ghostTyping);

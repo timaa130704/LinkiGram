@@ -15,8 +15,8 @@ public class StarAppsSheet extends BottomSheetWithRecyclerListView {
 
     private DialogsBotsAdapter adapter;
 
-    public StarAppsSheet(Context context, int currentAccount) {
-        super(context, null, true, false, false, currentAccount, null);
+    public StarAppsSheet(Context context) {
+        super(context, null, true, false, false, null);
 
         fixNavigationBar();
         handleOffset = true;
@@ -51,5 +51,6 @@ public class StarAppsSheet extends BottomSheetWithRecyclerListView {
         adapter.setApplyBackground(false);
         return adapter;
     }
+
 
 }

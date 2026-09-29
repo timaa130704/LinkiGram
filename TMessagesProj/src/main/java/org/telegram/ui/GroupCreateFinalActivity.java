@@ -20,7 +20,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Bundle;
@@ -62,7 +61,6 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.AutoDeletePopupWrapper;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
-import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.EditTextEmoji;
 import org.telegram.ui.Components.FillLastLinearLayoutManager;
 import org.telegram.ui.Components.FragmentFloatingButton;
@@ -501,7 +499,7 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
                 super.invalidate(l, t, r, b);
             }
         };
-        avatarImage.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCornersForChat(64, chatType == ChatObject.CHAT_TYPE_FORUM));
+        avatarImage.setRoundRadius(dp(chatType == ChatObject.CHAT_TYPE_FORUM ? 16 : 32));
         avatarDrawable.setInfo(5, null, null);
         avatarImage.setImageDrawable(avatarDrawable);
         avatarImage.setContentDescription(getString(R.string.ChoosePhoto));
@@ -546,7 +544,7 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
             avatarEditor.playAnimation();
         });
 
-        cameraDrawable = new RLottieDrawable(R.raw.camera, "" + R.raw.camera, dp(60), dp(60), false, null);
+        cameraDrawable = new RLottieDrawable(R.raw.camera, dp(60), dp(60), false, null);
 
         avatarEditor = new RLottieImageView(context) {
             @Override
@@ -1058,6 +1056,7 @@ public class GroupCreateFinalActivity extends BaseFragment implements Notificati
                 super(viewType, true);
                 this.string = string;
             }
+
 
         }
     }

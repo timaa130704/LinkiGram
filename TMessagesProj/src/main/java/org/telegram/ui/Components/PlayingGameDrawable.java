@@ -21,9 +21,6 @@ import org.telegram.ui.ActionBar.Theme;
 
 public class PlayingGameDrawable extends StatusDrawable {
 
-    private boolean useCenteredOverride = false;
-    public void setUseCenteredOverride(boolean v) { useCenteredOverride = v; }
-
     private boolean isChat = false;
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int currentAccount = UserConfig.selectedAccount;
@@ -81,19 +78,14 @@ public class PlayingGameDrawable extends StatusDrawable {
         int size = AndroidUtilities.dp(10);
         int y = getBounds().top + (getIntrinsicHeight() - size) / 2;
         if (isChat) {
-            
+            //y = AndroidUtilities.dp(8.5f) + getBounds().top;
         } else {
             y += AndroidUtilities.dp(1);
-            
+            //y = AndroidUtilities.dp(9.3f) + getBounds().top;
         }
 
         paint.setColor(Theme.getColor(isDialogScreen ? Theme.key_chats_actionMessage : Theme.key_chat_status, resourcesProvider));
-        
-        float ngOffsetX = 0;
-        if (app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride) {
-            ngOffsetX = getBounds().centerX() - AndroidUtilities.dp(10);
-        }
-        rect.set(ngOffsetX, y, ngOffsetX + size, y + size);
+        rect.set(0, y, size, y + size);
         int rad;
         if (progress < 0.5f) {
             rad = (int) (35 * (1.0f - progress / 0.5f));
@@ -101,7 +93,7 @@ public class PlayingGameDrawable extends StatusDrawable {
             rad = (int) (35 * (progress - 0.5f) / 0.5f);
         }
         for (int a = 0; a < 3; a++) {
-            float x = ngOffsetX + a * AndroidUtilities.dp(5) + AndroidUtilities.dp(9.2f) - AndroidUtilities.dp(5) * progress;
+            float x = a * AndroidUtilities.dp(5) + AndroidUtilities.dp(9.2f) - AndroidUtilities.dp(5) * progress;
             if (a == 2) {
                 paint.setAlpha(Math.min(255, (int) (255 * progress / 0.5f)));
             } else if (a == 0) {
@@ -118,7 +110,7 @@ public class PlayingGameDrawable extends StatusDrawable {
         paint.setAlpha(255);
         canvas.drawArc(rect, rad, 360 - rad * 2, true, paint);
         paint.setColor(Theme.getColor(isDialogScreen ? Theme.key_windowBackgroundWhite : Theme.key_actionBarDefault));
-        canvas.drawCircle(ngOffsetX + AndroidUtilities.dp(4), y + size / 2 - AndroidUtilities.dp(2), AndroidUtilities.dp(1), paint);
+        canvas.drawCircle(AndroidUtilities.dp(4), y + size / 2 - AndroidUtilities.dp(2), AndroidUtilities.dp(1), paint);
 
         checkUpdate();
     }
@@ -150,7 +142,7 @@ public class PlayingGameDrawable extends StatusDrawable {
 
     @Override
     public int getIntrinsicWidth() {
-        return AndroidUtilities.dp(app.nimarkogram.messenger.NimarkoConfig.centerChatTitle && useCenteredOverride ? 16 : 20);
+        return AndroidUtilities.dp(20);
     }
 
     @Override

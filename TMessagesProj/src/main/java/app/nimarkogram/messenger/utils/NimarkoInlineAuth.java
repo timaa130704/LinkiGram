@@ -34,6 +34,22 @@ public final class NimarkoInlineAuth {
 
     private static final EnablePredicate ALWAYS_ENABLED = () -> true;
 
+    /**
+     * How long to keep polling for the confirmation, and how long to wait
+     * between attempts.
+     *
+     * This is a human step: the code has to be confirmed in a chat with a bot
+     * on another client. At 15 attempts two seconds apart the window was half a
+     * minute, which is not enough time to notice the message, find the chat and
+     * press the button -- and once the window closed the next cycle registered
+     * a different code, so the confirmation applied to nothing. Five minutes is
+     * still bounded, and claimPrefetchOwner in the callers means only one flow
+     * per account is ever in flight, so a long wait here does not pile up
+     * threads or duplicate registrations.
+     */
+    private static final int POLL_ATTEMPTS = 150;
+    private static final long POLL_INTERVAL_MS = 2_000L;
+
     public static String ensureToken(int account, Object lock, Backend backend) {
         return ensureToken(account, lock, backend, ALWAYS_ENABLED);
     }
@@ -62,7 +78,11 @@ public final class NimarkoInlineAuth {
 
             sendInlineVerification(account, reg.botUsername, reg.code, enabled, uid);
 
-            for (int i = 0; i < 15; i++) {
+            android.util.Log.i("NMWSBYPASS", "auth: waiting up to "
+                    + (POLL_ATTEMPTS * POLL_INTERVAL_MS / 1000L) + "s for confirmation in @"
+                    + reg.botUsername + " (code " + reg.code + ") for uid " + uid);
+
+            for (int i = 0; i < POLL_ATTEMPTS; i++) {
                 if (!isEnabledForAccount(enabled, account, uid)) return null;
                 String token = backend.poll(uid, reg.code);
                 if (GIVE_UP.equals(token)) return null;
@@ -80,7 +100,7 @@ public final class NimarkoInlineAuth {
                     return token;
                 }
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(POLL_INTERVAL_MS);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     return null;

@@ -59,6 +59,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
         liquidGlassEffect = new LiquidGlassEffect(renderNodeFill);
     }
 
+
     @Override
     public BlurredBackgroundSource getSource() {
         return source;
@@ -93,11 +94,13 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
         renderNodeInvalidated = true;
     }
 
+    @Override
     public boolean hasDisplayList() {
         return renderNode.hasDisplayList();
     }
 
-    private void updateDisplayList() {
+    @Override
+    public void updateDisplayList() {
         final float offsetX = sourceOffsetX;
         final float offsetY = sourceOffsetY;
 
@@ -129,6 +132,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
         c.save();
         renderNodeFill.endRecording();
 
+
         c = renderNode.beginRecording();
         if (Color.alpha(backgroundColor) == 255) {
             c.drawColor(backgroundColor);
@@ -147,16 +151,6 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
             drawStroke(c, 0, 0, boundProps.boundsWithPadding.width(),
                     boundProps.boundsWithPadding.height(), boundProps.radii,
                     boundProps.strokeWidthBottom, false, paintStrokeBottom);
-        }
-        
-        if (strokeColorFull != 0) {
-            paintStrokeTop.setColor(strokeColorFull);
-            drawStroke(c, 0, 0, boundProps.boundsWithPadding.width(),
-                    boundProps.boundsWithPadding.height(), boundProps.radii,
-                    boundProps.strokeWidthTop, true, paintStrokeTop);
-            drawStroke(c, 0, 0, boundProps.boundsWithPadding.width(),
-                    boundProps.boundsWithPadding.height(), boundProps.radii,
-                    boundProps.strokeWidthTop, false, paintStrokeTop);
         }
         renderNode.endRecording();
     }
@@ -210,10 +204,6 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
     @Override
     public void setAlpha(int alpha) {
         final int oldAlpha = getAlpha();
-        if (alpha == oldAlpha) {
-            
-            return;
-        }
 
         super.setAlpha(alpha);
         renderNode.setAlpha(alpha / 255f);

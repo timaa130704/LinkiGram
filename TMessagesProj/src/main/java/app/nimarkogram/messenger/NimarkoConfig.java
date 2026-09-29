@@ -577,10 +577,30 @@ public final class NimarkoConfig {
         return wsInstallId;
     }
 
+    /**
+     * Overwrite the stored install id.
+     *
+     * The relays begin refusing an install id with 403 once it has been used for
+     * a handful of handshakes, and they refuse it from every host. Since the id
+     * is persisted, a client that tripped the limit had no way to recover, so the
+     * rotation has to be written back rather than kept in memory only.
+     */
+    public static synchronized void setWsInstallId(String id) {
+        if (id == null || id.trim().isEmpty()) return;
+        wsInstallId = id;
+        getEditor().putString("wsInstallId", id).apply();
+    }
+
     public static boolean localPremiumEmojis = getPreferences().getBoolean("localPremiumEmojis", true);
     public static void toggleLocalPremiumEmojis() {
         localPremiumEmojis = !localPremiumEmojis;
         getEditor().putBoolean("localPremiumEmojis", localPremiumEmojis).apply();
+    }
+
+    public static boolean blockSponsoredAds = getPreferences().getBoolean("blockSponsoredAds", true);
+    public static void toggleBlockSponsoredAds() {
+        blockSponsoredAds = !blockSponsoredAds;
+        getEditor().putBoolean("blockSponsoredAds", blockSponsoredAds).apply();
     }
 
     public static boolean deletedGiftsInject = getPreferences().getBoolean("deletedGiftsInject", true);

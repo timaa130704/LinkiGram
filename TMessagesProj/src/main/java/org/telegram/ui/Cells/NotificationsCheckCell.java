@@ -82,11 +82,6 @@ public class NotificationsCheckCell extends FrameLayout {
         textView.setSingleLine(true);
         textView.setGravity((LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
         textView.setEllipsize(TextUtils.TruncateAt.END);
-        
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            textView.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
-            textView.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
-        }
         addView(textView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 80 : (withImage ? 64 : padding), 13 + (currentHeight - 70) / 2, LocaleController.isRTL ? (withImage ? 64 : padding) : 80, 0));
 
         valueTextView = new AnimatedTextView(context);
@@ -132,17 +127,7 @@ public class NotificationsCheckCell extends FrameLayout {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         if (isMultiline) {
-            final int w = MeasureSpec.getSize(widthMeasureSpec);
-            
-            measureChildWithMargins(textView, MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), 0,
-                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), 0);
-            android.view.ViewGroup.MarginLayoutParams titleLp = (android.view.ViewGroup.MarginLayoutParams) textView.getLayoutParams();
-            android.view.ViewGroup.MarginLayoutParams subLp = (android.view.ViewGroup.MarginLayoutParams) multilineValueTextView.getLayoutParams();
-            int subTop = titleLp.topMargin + textView.getMeasuredHeight() + dp(2);
-            if (subLp.topMargin != subTop) {
-                subLp.topMargin = subTop;
-            }
-            super.onMeasure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         } else {
             super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(currentHeight), MeasureSpec.EXACTLY));
         }
@@ -184,14 +169,6 @@ public class NotificationsCheckCell extends FrameLayout {
 
     public void setMultiline(boolean multiline) {
         isMultiline = multiline;
-        
-        if (multiline) {
-            textView.setSingleLine(false);
-            textView.setMaxLines(2);
-        } else {
-            textView.setSingleLine(true);
-            textView.setMaxLines(1);
-        }
         if (multiline) {
             multilineValueTextView.setVisibility(View.VISIBLE);
             valueTextView.setVisibility(View.GONE);

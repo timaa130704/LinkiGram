@@ -108,7 +108,7 @@ public class JoinGroupAlert extends BottomSheet {
         int participants_count = 0;
 
         BackupImageView avatarImageView = new BackupImageView(context);
-        avatarImageView.setRoundRadius(app.nimarkogram.messenger.NimarkoConfig.getAvatarCorners(90));
+        avatarImageView.setRoundRadius(dp(45));
         linearLayout.addView(avatarImageView, LayoutHelper.createLinear(90, 90, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 27, 0, 0));
 
         if (chatInvite != null) {

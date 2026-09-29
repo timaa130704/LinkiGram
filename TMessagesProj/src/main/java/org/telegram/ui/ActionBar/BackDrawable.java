@@ -13,7 +13,6 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.view.animation.DecelerateInterpolator;
 
@@ -27,10 +26,6 @@ public class BackDrawable extends Drawable {
 
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint prevPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private Paint packPaint;              
-    private android.graphics.PorterDuffColorFilter packColorFilter;
-    private int packColorFilterColor;
-    private final Rect packDst = new Rect();
     private boolean reverseAngle;
     private long lastFrameTime;
     private boolean animationInProgress;
@@ -103,13 +98,6 @@ public class BackDrawable extends Drawable {
         rotated = value;
     }
 
-    private float translationX;
-
-    public BackDrawable setTranslationX(float translationX) {
-        this.translationX = translationX;
-        return this;
-    }
-
     @Override
     public void draw(@NonNull Canvas canvas) {
         if (currentRotation != finalRotation) {
@@ -131,61 +119,29 @@ public class BackDrawable extends Drawable {
             invalidateSelf();
         }
 
-        float packAlpha = 0f;
-        android.graphics.Bitmap packBmp = null;
-        if (!alwaysClose && arrowRotation == 0) {
-            packAlpha = 1f - Math.min(1f, currentRotation / 0.35f);
-            if (packAlpha > 0.001f) {
-                packBmp = app.nimarkogram.messenger.icons.NimarkoIconResources.activeBackArrowBitmap();
-                if (packBmp == null || packBmp.isRecycled()) {
-                    packBmp = null;
-                    packAlpha = 0f;
-                }
-            }
-        }
-
         paint.setColor(ColorUtils.blendARGB(color, rotatedColor, currentRotation));
-        final int fullAlpha = paint.getAlpha();
-        if (packAlpha < 0.999f) {   
-            paint.setAlpha((int) (fullAlpha * (1f - packAlpha)));
-            canvas.save();
-            canvas.translate(getIntrinsicWidth() / 2f + translationX, getIntrinsicHeight() / 2f);
-            if (arrowRotation != 0) {
-                canvas.rotate(arrowRotation);
-            }
-            float rotation = currentRotation;
-            canvas.translate(-AndroidUtilities.dp(0.66f) , 0);
-            if (!alwaysClose) {
-                canvas.rotate(currentRotation * (reverseAngle ? -225 : 135));
-            } else {
-                canvas.rotate(135 + currentRotation * (reverseAngle ? -180 : 180));
-                rotation = 1.0f;
-            }
-            canvas.drawLine(AndroidUtilities.dp(AndroidUtilities.lerp(-6.75f, -8f, rotation)), 0, AndroidUtilities.dp(8) - (paint.getStrokeWidth() / 2f) * (1f - rotation), 0, paint);
-            float startYDiff = AndroidUtilities.dp(-0.25f);
-            float endYDiff = AndroidUtilities.dp(AndroidUtilities.lerp(7f, 8f, rotation)) - (paint.getStrokeWidth() / 4f) * (1f - rotation);
-            float startXDiff = AndroidUtilities.dp(AndroidUtilities.lerp(-7f - 0.25f, 0f, rotation));
-            float endXDiff = 0;
-            canvas.drawLine(startXDiff, -startYDiff, endXDiff, -endYDiff, paint);
-            canvas.drawLine(startXDiff, startYDiff, endXDiff, endYDiff, paint);
-            canvas.restore();
-            paint.setAlpha(fullAlpha);
-        }
 
-        if (packBmp != null && packAlpha > 0.001f) {
-            if (packPaint == null) {
-                packPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-            }
-            if (packColorFilter == null || packColorFilterColor != color) {
-                packColorFilterColor = color;
-                packColorFilter = new android.graphics.PorterDuffColorFilter(
-                        color, android.graphics.PorterDuff.Mode.SRC_IN);
-                packPaint.setColorFilter(packColorFilter);
-            }
-            packPaint.setAlpha((int) (fullAlpha * packAlpha));
-            packDst.set(0, 0, getIntrinsicWidth(), getIntrinsicHeight());
-            canvas.drawBitmap(packBmp, null, packDst, packPaint);
+        canvas.save();
+        canvas.translate(getIntrinsicWidth() / 2f, getIntrinsicHeight() / 2f);
+        if (arrowRotation != 0) {
+            canvas.rotate(arrowRotation);
         }
+        float rotation = currentRotation;
+        canvas.translate(-AndroidUtilities.dp(0.66f)/* * (rotation)*/, 0);
+        if (!alwaysClose) {
+            canvas.rotate(currentRotation * (reverseAngle ? -225 : 135));
+        } else {
+            canvas.rotate(135 + currentRotation * (reverseAngle ? -180 : 180));
+            rotation = 1.0f;
+        }
+        canvas.drawLine(AndroidUtilities.dp(AndroidUtilities.lerp(-6.75f, -8f, rotation)), 0, AndroidUtilities.dp(8) - (paint.getStrokeWidth() / 2f) * (1f - rotation), 0, paint);
+        float startYDiff = AndroidUtilities.dp(-0.25f);
+        float endYDiff = AndroidUtilities.dp(AndroidUtilities.lerp(7f, 8f, rotation)) - (paint.getStrokeWidth() / 4f) * (1f - rotation);
+        float startXDiff = AndroidUtilities.dp(AndroidUtilities.lerp(-7f - 0.25f, 0f, rotation));
+        float endXDiff = 0;
+        canvas.drawLine(startXDiff, -startYDiff, endXDiff, -endYDiff, paint);
+        canvas.drawLine(startXDiff, startYDiff, endXDiff, endYDiff, paint);
+        canvas.restore();
     }
 
     @Override

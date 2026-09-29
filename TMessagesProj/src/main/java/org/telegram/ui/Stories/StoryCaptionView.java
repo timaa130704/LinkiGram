@@ -359,7 +359,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
     @Override
     public void dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, @Nullable int[] offsetInWindow, int type, @NonNull int[] consumed) {
         if (dyUnconsumed != 0) {
-            final int topMargin = 0;
+            final int topMargin = 0;//(isStatusBarVisible() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
             final int dy = Math.round(dyUnconsumed * (1f - Math.abs((-overScrollY / (captionContainer.getTop() - topMargin)))));
 
             if (dy != 0) {
@@ -438,11 +438,14 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
         return 1f;
     }
 
+
     @Override
     public void draw(Canvas canvas) {
         if (disableDraw) {
             return;
         }
+
+        // captionTextview.allowClickSpoilers = !canScrollVertically(1);
 
         final int width = getWidth();
         final int height = getHeight();
@@ -450,6 +453,14 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
 
         final int saveCount = canvas.save();
         canvas.clipRect(0, scrollY, width, height + scrollY + blackoutBottomOffset);
+
+//        int gradientHeight = AndroidUtilities.dp(24);
+//        int gradientTop = (int) (captionContainer.getTop() + captionTextview.getTranslationY() - AndroidUtilities.dp(4));
+//        int gradientBottom = gradientTop + gradientHeight;
+//        paint.setColor(gradientColor);
+//        topOverlayGradient.setBounds(0, gradientTop, getMeasuredWidth(), gradientBottom);
+//        topOverlayGradient.draw(canvas);
+//        canvas.drawRect(0, gradientBottom, width, height + scrollY + blackoutBottomOffset, paint);
 
         canvas.clipRect(0, scrollY, width, height + scrollY);
         super.draw(canvas);
@@ -476,6 +487,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
         super.scrollBy(x, y);
         invalidate();
     }
+
 
     @Override
     public void invalidate() {
@@ -515,7 +527,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
         valueAnimator.setDuration(250);
         valueAnimator.setInterpolator(CubicBezierInterpolator.DEFAULT);
         valueAnimator.start();
-        
+        //fullScroll(View.FOCUS_DOWN);
     }
 
     public void collapse() {
@@ -553,7 +565,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
     boolean touched;
 
     public void cancelTouch() {
-        
+        //captionTextview.clearPressedLinks();
         touched = false;
     }
 
@@ -912,7 +924,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
 
                     eff.setOnRippleEndCallback(() -> post(() -> {
                         isSpoilersRevealed = true;
-                        
+                        // invalidateSpoilers();
                     }));
 
                     float rad = (float) Math.sqrt(Math.pow(getWidth(), 2) + Math.pow(getHeight(), 2));
@@ -1159,11 +1171,11 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
                             if (lineInfo == null) {
                                 continue;
                             }
-                            if (lineInfo.collapsedX == lineInfo.finalX && progressToExpand == 0) {
-                                continue;
-                            }
                             canvas.save();
                             if (lineInfo.collapsedX == lineInfo.finalX) {
+                                if (progressToExpand == 0) {
+                                    continue;
+                                }
                                 canvas.translate(horizontalPadding + lineInfo.finalX, verticalPadding + replyOffset + lineInfo.finalY);
                                 canvas.saveLayerAlpha(0, 0, lineInfo.staticLayout.getWidth(), lineInfo.staticLayout.getHeight(), (int) (255 * progressToExpand), Canvas.ALL_SAVE_FLAG);
                                 drawLayout(lineInfo.staticLayout, canvas, spoilers);
@@ -1172,15 +1184,16 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
                                     putLayoutRects(lineInfo.staticLayout, horizontalPadding + lineInfo.finalX, verticalPadding + replyOffset + lineInfo.finalY);
                                 }
 
+                                lineInfo.staticLayout.draw(canvas);
                                 lineInfo.layoutEmoji = AnimatedEmojiSpan.update(AnimatedEmojiDrawable.CACHE_TYPE_MESSAGES, StoryCaptionTextView.this, lineInfo.layoutEmoji, lineInfo.staticLayout);
                                 AnimatedEmojiSpan.drawAnimatedEmojis(canvas, lineInfo.staticLayout, lineInfo.layoutEmoji, 0, spoilers, 0, 0, 0, progressToExpand, emojiColorFilter);
                                 canvas.restore();
-                                
+                                //textPaint.setAlpha(255);
                             } else {
                                 float offsetX = lerp(lineInfo.collapsedX, lineInfo.finalX, progressToExpand);
                                 float offsetY = lerp(lineInfo.collapsedY, lineInfo.finalY, CubicBezierInterpolator.EASE_OUT.getInterpolation(progressToExpand));
                                 canvas.translate(horizontalPadding + offsetX, verticalPadding + replyOffset + offsetY);
-                                
+                                //drawLayout(lineInfo.staticLayout, canvas, -offsetX, -offsetY);
                                 if (drawLoading) {
                                     putLayoutRects(lineInfo.staticLayout, horizontalPadding + offsetX, verticalPadding + replyOffset + offsetY);
                                 }
@@ -1267,7 +1280,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
                             if (emoji != null && emoji.length != 0) {
                                 touchEmoji = emoji[0];
                                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                                    linkResult = true; 
+                                    linkResult = true; // links.clear();
                                     pressedLink = null;
                                     pressedEmoji = emoji[0];
                                 }
@@ -1324,6 +1337,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
 
         float progressToExpand;
 
+        //spoilers
         private boolean isSpoilersRevealed;
         private Path path = new Path();
         public boolean allowClickSpoilers = true;
@@ -1338,7 +1352,7 @@ public class StoryCaptionView extends NestedScrollView implements ItemOptions.Sc
             state[1] = null;
 
             textPaint.setColor(Color.WHITE);
-            textPaint.linkColor = Color.WHITE;
+            textPaint.linkColor = Color.WHITE;//Theme.getColor(Theme.key_chat_messageLinkIn, resourcesProvider);
             textPaint.setTextSize(dp(15));
 
             showMorePaint.setColor(Color.WHITE);

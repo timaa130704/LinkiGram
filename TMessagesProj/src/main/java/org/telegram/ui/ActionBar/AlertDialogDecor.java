@@ -167,7 +167,7 @@ public class AlertDialogDecor extends AlertDialog {
         isDismissed = true;
         AndroidUtilities.cancelRunOnUIThread(showRunnable);
         if (rootView.getVisibility() != View.VISIBLE) {
-            AndroidUtilities.removeFromParent(rootView);
+            getDecorView().removeView(rootView);
             return;
         }
 
@@ -194,7 +194,7 @@ public class AlertDialogDecor extends AlertDialog {
         dimView.animate().setDuration(DIM_DURATION).alpha(0f).setListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                AndroidUtilities.removeFromParent(rootView);
+                getDecorView().removeView(rootView);
                 if (onDismissListener != null) {
                     onDismissListener.onDismiss(AlertDialogDecor.this);
                 }

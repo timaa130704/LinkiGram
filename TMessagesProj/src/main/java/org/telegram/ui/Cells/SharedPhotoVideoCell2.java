@@ -692,7 +692,6 @@ public class SharedPhotoVideoCell2 extends FrameLayout {
                 } else {
                     if (mediaSpoilerEffect == null) {
                         mediaSpoilerEffect = new SpoilerEffect();
-                        mediaSpoilerEffect.setParentView(this);
                     }
                     int sColor = Color.WHITE;
                     mediaSpoilerEffect.setColor(ColorUtils.setAlphaComponent(sColor, (int) (Color.alpha(sColor) * 0.325f)));
@@ -847,7 +846,7 @@ public class SharedPhotoVideoCell2 extends FrameLayout {
         clipPath.rewind();
 
         AndroidUtilities.rectTmp.set(0, 0, width, height);
-        
+        // AndroidUtilities.rectTmp.inset(getPadding(), getPadding());
         float r = dp(12) * progress;
         clipPath.addRoundRect(AndroidUtilities.rectTmp, r, r, Path.Direction.CW);
         clipPath.close();

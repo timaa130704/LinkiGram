@@ -14,7 +14,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
 
+import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
@@ -177,7 +179,7 @@ public abstract class QrCodeLoginView extends SlideView {
         private void drawLoading(Canvas canvas, int i, int i2, float f) {
             RLottieDrawable rLottieDrawable = this.loadingMatrix;
             if (rLottieDrawable == null) {
-                RLottieDrawable rLottieDrawable2 = new RLottieDrawable(R.raw.qr_matrix, "qr_matrix", AndroidUtilities.dp(200.0f), AndroidUtilities.dp(200.0f));
+                RLottieDrawable rLottieDrawable2 = new RLottieDrawable(R.raw.qr_matrix, AndroidUtilities.dp(200.0f), AndroidUtilities.dp(200.0f));
                 this.loadingMatrix = rLottieDrawable2;
                 rLottieDrawable2.setMasterParent(this);
                 this.loadingMatrix.setAutoRepeat(1);
@@ -278,7 +280,13 @@ public abstract class QrCodeLoginView extends SlideView {
             map.put(EncodeHintType.MARGIN, 0);
             int iMax = (Math.max(1, i / 37) * 37) + 32;
             try {
-                bitmapEncode = new QRCodeWriter().encode(str, iMax, iMax, map, null, 0.75f, 0, -16777216);
+                BitMatrix matrix = new QRCodeWriter().encode(str, BarcodeFormat.QR_CODE, iMax, iMax, map);
+                bitmapEncode = Bitmap.createBitmap(matrix.getWidth(), matrix.getHeight(), Bitmap.Config.ARGB_8888);
+                for (int y = 0; y < matrix.getHeight(); y++) {
+                    for (int x = 0; x < matrix.getWidth(); x++) {
+                        bitmapEncode.setPixel(x, y, matrix.get(x, y) ? -16777216 : -1);
+                    }
+                }
             } catch (Exception e) {
                 FileLog.e(e);
                 bitmapEncode = null;

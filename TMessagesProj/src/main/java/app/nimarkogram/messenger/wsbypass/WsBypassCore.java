@@ -35,6 +35,7 @@ public final class WsBypassCore {
     public static final String LOCAL_PROXY_HOST = "127.0.0.1";
 
     private volatile long lastBridgeOkAtMs = 0L;
+    private final WlRetryGate wlRetryGate = new WlRetryGate();
     public long getLastBridgeOkAtMs() { return lastBridgeOkAtMs; }
     private final Object bridgeStateLock = new Object();
     private int activeBridges;
@@ -132,6 +133,18 @@ public final class WsBypassCore {
         if (!DEBUG) return;
         try { android.util.Log.i("NMWSBYPASS", msg); } catch (Throwable ignored) {}
         try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
+    }
+
+    /** Always-on log line. Used by ProxyApplier for apply/verify diagnostics. */
+    static void logAlways(String msg) {
+        try { android.util.Log.w("NMWSBYPASS", msg); } catch (Throwable ignored) {}
+        try { FileLog.d("wsbypass: " + msg); } catch (Throwable ignored) {}
+    }
+
+    /** Always-on error log. Used by ProxyApplier for apply/verify diagnostics. */
+    static void logFailure(String msg, Throwable t) {
+        try { android.util.Log.e("NMWSBYPASS", msg, t); } catch (Throwable ignored) {}
+        try { FileLog.e("wsbypass: " + msg, t); } catch (Throwable ignored) {}
     }
 
     private static final double WS_FAIL_COOLDOWN_SEC = 30.0;
@@ -373,6 +386,7 @@ public final class WsBypassCore {
 
     private void stopLocked() {
         running = false;
+        wlRetryGate.reset();
         invalidateBridgeGeneration();
         ServerSocket s = listener;
         listener = null;
@@ -553,6 +567,29 @@ public final class WsBypassCore {
 
     private RawWebSocket connectWsCf(int dc, boolean isMedia, long deadlineNanos,
                                      long generation) throws IOException {
+        if (WlAccess.enabled()) {
+            if (wlRetryGate.remaining(nowElapsedMs()) > 0L) {
+                throw new IOException("wl_rate_limited");
+            }
+            WlAccess.Grant grant = WlAccess.cached();
+            if (grant == null) {
+                WlAccess.warm();
+                throw new IOException("wl_access_required");
+            }
+            String path = DomainPool.relayPathForDc(dc);
+            try {
+                return RawWebSocket.connectUntil(WlAccess.HOST, WlAccess.HOST, path,
+                        WlAccess.headers(grant, "GET", path, null), deadlineNanos,
+                        () -> isBridgeGenerationCurrent(generation) && WlAccess.enabled()
+                                && WlAccess.isCurrent(grant));
+            } catch (RawWebSocket.HandshakeException error) {
+                if (error.statusCode == 429 && isBridgeGenerationCurrent(generation)) {
+                    wlRetryGate.rejected(nowElapsedMs(), error.retryAfterMillis);
+                }
+                if (error.statusCode == 401 || error.statusCode == 403) WlAccess.rejected(grant);
+                throw error;
+            }
+        }
         IOException last = null;
         
         final String path = DomainPool.relayPathForDc(dc);

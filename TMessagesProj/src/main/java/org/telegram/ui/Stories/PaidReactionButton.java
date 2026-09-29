@@ -3,8 +3,6 @@ package org.telegram.ui.Stories;
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.ilerp;
 import static org.telegram.messenger.AndroidUtilities.lerp;
-import static org.telegram.ui.Stories.HighlightMessageSheet.TIER_COLOR1;
-import static org.telegram.ui.Stories.HighlightMessageSheet.getTierOption;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -17,19 +15,16 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.view.Gravity;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
-import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.ColorUtils;
-import androidx.core.math.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ImageReceiver;
@@ -38,9 +33,6 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLObject;
-import org.telegram.tgnet.TLRPC;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Components.AnimatedColor;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.AnimatedTextView;
 import org.telegram.ui.Components.AvatarDrawable;
@@ -174,6 +166,16 @@ public class PaidReactionButton extends View {
 
             final float cx = reactionBounds.centerX();
             final float cy = reactionBounds.top - dp(1);
+//            canvas.save();
+//            float t = counterAlpha.set(counterShown);
+//            canvas.translate(0, counterShown ? dp(60) * (1f - t) : -dp(30) * (1f - t));
+//            final float counterScale = AndroidUtilities.lerp(counterShown ? 1.8f : 1.3f, 1f, t);
+//            canvas.scale(counterScale, counterScale, cx, cy);
+//            counter.setAlpha((int) (0xFF * t));
+//            counter.setShadowLayer(dp(12), 0, dp(3.5f), Theme.multAlpha(0xAA000000, t));
+//            counter.setBounds(cx - dp(100), reactionBounds.top - dp(24 + 24), cx + dp(100), reactionBounds.top - dp(24));
+//            counter.draw(canvas);
+//            canvas.restore();
 
             canvas.save();
             canvas.translate(cx, cy);
@@ -198,7 +200,7 @@ public class PaidReactionButton extends View {
                 drawable.recycle(true);
             }
             final int asset = effectAssets[Utilities.fastRandom.nextInt(effectAssets.length)];
-            RLottieDrawable drawable = new RLottieDrawable(asset, "" + asset, dp(70), dp(70));
+            RLottieDrawable drawable = new RLottieDrawable(asset, dp(70), dp(70));
             drawable.setMasterParent(this);
             drawable.setAllowDecodeSingleFrame(true);
             drawable.setAutoRepeat(0);
@@ -241,15 +243,12 @@ public class PaidReactionButton extends View {
             private final AvatarDrawable avatarDrawable;
             private final ImageReceiver imageReceiver;
             private final Text text;
-            private final View hostView;
-            private final OnAttachStateChangeListener attachStateListener;
 
             private boolean isKilled;
             public final AnimatedFloat progress;
             public final AnimatedFloat killProgress;
 
             public Chip(View view, int currentAccount, long dialogId, int stars, int totalStars, boolean withEffect) {
-                hostView = view;
                 this.dialogId = dialogId;
                 this.stars = stars;
                 this.randomTranslation = Utilities.clamp01(Utilities.fastRandom.nextFloat());
@@ -257,7 +256,7 @@ public class PaidReactionButton extends View {
 
                 if (withEffect) {
                     final int asset = effectAssets[Utilities.fastRandom.nextInt(effectAssets.length)];
-                    effect = new RLottieDrawable(asset, "" + asset, dp(70), dp(70));
+                    effect = new RLottieDrawable(asset, dp(70), dp(70));
                     effect.setMasterParent(view);
                     effect.setAllowDecodeSingleFrame(true);
                     effect.setAutoRepeat(0);
@@ -271,7 +270,7 @@ public class PaidReactionButton extends View {
                 imageReceiver.setImageCoords(dp(2), dp(2), dp(14), dp(14));
                 imageReceiver.setRoundRadius(dp(7));
                 imageReceiver.setForUserOrChat(object, avatarDrawable);
-                attachStateListener = new OnAttachStateChangeListener() {
+                view.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
                     @Override
                     public void onViewAttachedToWindow(@NonNull View view) {
                         imageReceiver.onAttachedToWindow();
@@ -281,12 +280,12 @@ public class PaidReactionButton extends View {
                     public void onViewDetachedFromWindow(@NonNull View view) {
                         imageReceiver.onDetachedFromWindow();
                     }
-                };
-                view.addOnAttachStateChangeListener(attachStateListener);
+                });
                 if (view.isAttachedToWindow()) {
                     imageReceiver.onAttachedToWindow();
                 }
 
+//                backgroundPaint.setColor(getTierOption(totalStars, TIER_COLOR1));
                 backgroundPaint.setColor(0xFFEEAC0D);
 
                 final SpannableStringBuilder sb = new SpannableStringBuilder("⭐️");
@@ -357,13 +356,7 @@ public class PaidReactionButton extends View {
             }
 
             public void detach() {
-                hostView.removeOnAttachStateChangeListener(attachStateListener);
                 imageReceiver.onDetachedFromWindow();
-                if (effect != null) {
-                    effect.setMasterParent(null);
-                    effect.recycle(true);
-                    effect = null;
-                }
             }
 
             public void kill() {

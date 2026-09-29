@@ -90,6 +90,7 @@ public class EmojiThemes {
         this.key = ThemeKey.of(chatThemeObject);
         this.chatTheme = chatThemeObject;
 
+
         ThemeItem lightTheme = new ThemeItem();
         lightTheme.tlChatThemeGift = chatThemeObject;
         lightTheme.settingsIndex = 0;
@@ -123,6 +124,7 @@ public class EmojiThemes {
         }
         return chatTheme;
     }
+
 
     public static EmojiThemes createChatThemesDefault(int currentAccount) {
 
@@ -297,6 +299,7 @@ public class EmojiThemes {
         }
         return key.emoticon;
     }
+
 
     public TLRPC.TL_theme getTlTheme(int index) {
         return items.get(index).tlTheme;
@@ -578,6 +581,13 @@ public class EmojiThemes {
         }
         Bitmap bitmap = ChatThemeController.getInstance(currentAccount).getWallpaperThumbBitmap(themeId);
         File file = getWallpaperThumbFile(themeId);
+        if (bitmap == null && file.exists() && file.length() > 0) {
+            try {
+                bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        }
         if (bitmap != null) {
             if (callback != null) {
                 callback.onComplete(new Pair<>(themeId, bitmap));
@@ -585,34 +595,6 @@ public class EmojiThemes {
             return;
         }
 
-        if (file.exists() && file.length() > 0) {
-            
-            if (callback == null) {
-                return;
-            }
-            Utilities.globalQueue.postRunnable(() -> {
-                Bitmap decodedBitmap = null;
-                try {
-                    decodedBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
-                Bitmap result = decodedBitmap;
-                AndroidUtilities.runOnUIThread(() -> {
-                    if (result != null) {
-                        callback.onComplete(new Pair<>(themeId, result));
-                    } else {
-                        loadWallpaperThumbFromNetwork(wallpaper, themeId, file, callback);
-                    }
-                });
-            });
-            return;
-        }
-
-        loadWallpaperThumbFromNetwork(wallpaper, themeId, file, callback);
-    }
-
-    private void loadWallpaperThumbFromNetwork(TLRPC.WallPaper wallpaper, long themeId, File file, ResultCallback<Pair<Long, Bitmap>> callback) {
         if (wallpaper.document == null) {
             if (callback != null) {
                 callback.onComplete(new Pair<>(themeId, null));
@@ -802,6 +784,7 @@ public class EmojiThemes {
         public int patternBgGradientColor3;
         public int patternBgRotation;
 
+
         @Override
         public long getThemeId() {
             if (tlTheme != null) {
@@ -874,7 +857,12 @@ public class EmojiThemes {
     }
 
     public static void loadWallpaperGiftPattern(int currentAccount, long hash, TL_stars.StarGift gift, ResultCallback<Pair<Long, Bitmap>> callback) {
-        
+        //ChatThemeController.getInstance(currentAccount).getWallpaperBitmap(hash, cachedBitmap -> {
+            /*if (cachedBitmap != null && callback != null) {
+                callback.onComplete(new Pair<>(hash, cachedBitmap));
+                return;
+            }*/
+
         TLRPC.Document document = TlUtils.getGiftDocumentPattern(gift);
         ImageLocation imageLocation = ImageLocation.getForDocument(document);
         ImageReceiver imageReceiver = new ImageReceiver();
@@ -893,10 +881,10 @@ public class EmojiThemes {
             if (callback != null) {
                 callback.onComplete(new Pair<>(hash, bitmap));
             }
-            
+            // ChatThemeController.getInstance(currentAccount).saveWallpaperBitmap(bitmap, hash);
         });
         ImageLoader.getInstance().loadImageForImageReceiver(imageReceiver);
-        
+        //});
     }
 
 }

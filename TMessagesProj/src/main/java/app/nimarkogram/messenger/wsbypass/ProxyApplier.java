@@ -18,7 +18,7 @@ public final class ProxyApplier {
 
     private ProxyApplier() {}
 
-    private static final Object PROXY_LIST_LOCK = SharedConfig.getProxyListSync();
+    private static final Object PROXY_LIST_LOCK = SharedConfig.proxyList;
 
     private static final AtomicBoolean NOTIFY_IN_FLIGHT = new AtomicBoolean(false);
 
@@ -291,12 +291,49 @@ public final class ProxyApplier {
         } catch (Throwable ignored) {}
     }
 
+    /**
+     * The LinkiGram data-bypass relay must never be forced onto a connection that has not
+     * authorized yet. The local listener is a SOCKS bridge owned by WsBypassCore; when the
+     * relay bridge is still starting (or dead) every MTProto connection routed through it
+     * simply never completes, so auth.sendCode never returns and never reports an error.
+     * That leaves the login screen spinning forever on "РЅРѕРјРµСЂ РІРІРµРґС‘РЅ, РґР°Р»СЊС€Рµ РЅРµ РёРґС‘С‚".
+     *
+     * LoginActivity sends auth requests with RequestFlagEnableUnauthorized, before any
+     * account is client-activated, so gate the whole apply() path on the same condition.
+     */
+    private static boolean anyAccountActivated() {
+        try {
+            for (int ac = 0; ac < UserConfig.MAX_ACCOUNT_COUNT; ac++) {
+                UserConfig uc = UserConfig.getInstance(ac);
+                if (uc != null && uc.isClientActivated()) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
     private static boolean applyToAllAccounts(boolean enable, String host, int port,
                                               String user, String pass, String secret) {
         
         boolean applied = true;
         try {
-            ConnectionsManager.setProxySettings(enable, host, port, user, pass, secret);
+            // Do NOT use the 6-arg overload: it builds ProxySettings without a
+            // type, the builder defaults to SOCKS5, and SOCKS5 hardcodes the
+            // secret to "". The native layer then gets an empty secret, the
+            // relay handshake never matches, and no bridge ever forms -- while
+            // the UI toggle uses the object overload with the real type and
+            // works. That is the "only works after toggling" bug.
+            org.telegram.utils.proxy.ProxySettings settings =
+                    org.telegram.utils.proxy.ProxySettings.builder()
+                            .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
+                            .setAddress(host)
+                            .setPort(port)
+                            .setUser(user)
+                            .setPassword(pass)
+                            .setSecret(secret)
+                            .build();
+            ConnectionsManager.setProxySettings(enable, settings);
         } catch (Throwable t) {
             FileLog.e(t);
             applied = false;
@@ -329,6 +366,23 @@ public final class ProxyApplier {
                 return false;
             }
 
+            if (enable && !anyAccountActivated()) {
+                // Pre-auth: auth.sendCode/auth.signUp must not be routed through the bypass
+                // relay. Dropping the request with no callback is exactly the silent hang we
+                // are fixing, so refuse to arm the proxy and clear any stale one left over
+                // from a previous process, otherwise ConnectionsManager.init() would restore
+                // 127.0.0.1:port from prefs and block login before the user ever signs in.
+                //
+                // Return false, not true: the controller treats false as "not applied" and
+                // retries via watchdog/resume once the account is loaded. Returning true
+                // here used to wedge the status on "starting" forever -- running=true with
+                // no proxy armed, so no client ever connected and no bridge ever formed.
+                FileLog.d("ProxyApplier.apply: skipping bypass proxy before authorization");
+                android.util.Log.i("NimarkoProxy", "apply(): skipping bypass proxy before authorization");
+                clearIfLocalProxyPersisted(host);
+                return false;
+            }
+
             if (enable) {
                 captureSnapshotIfMissing(host);
                 
@@ -347,6 +401,7 @@ public final class ProxyApplier {
 
             final long proxyRevision;
             boolean preferencesApplied = true;
+            boolean preferencesVerified;
             boolean accountsApplied;
             synchronized (PROXY_LIST_LOCK) {
                 SharedConfig.ProxyInfo localProxy = null;
@@ -393,6 +448,22 @@ public final class ProxyApplier {
                 if (enable) {
                     if (localProxy != null) {
                         try {
+                            // 12.10.2 moved the real state into ProxyInfo.settings and left
+                            // address/port/username/password/secret as mirrors of it, and the
+                            // type now decides which fields survive: ProxySettings keeps the
+                            // secret only for WEB/MTPROTO and hardcodes it to "" for SOCKS5,
+                            // which is the Builder's default. Building without an explicit
+                            // MTPROTO type silently dropped the relay secret, so the proxy was
+                            // created with an empty one and isApplyVerified() always failed.
+                            localProxy.settings = org.telegram.utils.proxy.ProxySettings.builder()
+                                    .setAddress(host)
+                                    .setPort(port)
+                                    .setUser(user)
+                                    .setPassword(pass)
+                                    .setSecret(sec)
+                                    .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
+                                    .build();
+                            localProxy.address = host;
                             localProxy.port = port;
                             localProxy.username = user;
                             localProxy.password = pass;
@@ -401,12 +472,22 @@ public final class ProxyApplier {
                         proxyObj = localProxy;
                     } else {
                         try {
-                            SharedConfig.ProxyInfo info =
-                                    new SharedConfig.ProxyInfo(host, port, user, pass, sec);
+                            // Same reason as above: the 5-arg ProxyInfo constructor routes
+                            // through the SOCKS5 default and loses the secret.
+                            SharedConfig.ProxyInfo info = new SharedConfig.ProxyInfo(
+                                    org.telegram.utils.proxy.ProxySettings.builder()
+                                            .setAddress(host)
+                                            .setPort(port)
+                                            .setUser(user)
+                                            .setPassword(pass)
+                                            .setSecret(sec)
+                                            .setType(org.telegram.utils.proxy.ProxySettings.Type.MTPROTO)
+                                            .build());
                             proxyObj = SharedConfig.addProxy(info);
                             if (proxyObj == null) proxyObj = info;
                         } catch (Throwable t) {
                             FileLog.e(t);
+                            WsBypassCore.logFailure("apply: new branch threw", t);
                         }
                     }
 
@@ -419,6 +500,13 @@ public final class ProxyApplier {
                     ed.putString("proxy_user", user);
                     ed.putString("proxy_pass", pass);
                     ed.putString("proxy_secret", sec);
+                    // Without proxy_type, a later restart rebuilds the proxy
+                    // from prefs with the wrong type and Telegram never routes
+                    // through it until the user toggles the proxy off and on
+                    // in settings (the toggle writes the type). That is the
+                    // "works only after toggling" bug.
+                    ed.putInt("proxy_type", org.telegram.utils.proxy.ProxySettings.typeToInt(
+                            org.telegram.utils.proxy.ProxySettings.Type.MTPROTO));
                     ed.putBoolean("proxy_enabled", true);
 
                     boolean callsEnabled = sec.length() == 0;
@@ -475,6 +563,18 @@ public final class ProxyApplier {
                 accountsApplied = enable
                         ? applyToAllAccounts(true, host, port, user, pass, sec)
                         : applyToAllAccounts(false, "", 0, "", "", "");
+
+                // Verify while still holding PROXY_LIST_LOCK, against the very object we
+                // just configured.
+                //
+                // 12.10.2's loadProxyList() nulls and rebuilds currentProxy from persisted
+                // state, and the save below runs on the global queue while the "proxy_*"
+                // preference writes are asynchronous too. Verifying after releasing the
+                // lock therefore raced with that reload: currentProxy came back as the
+                // stale list entry whose secret was still empty, so verification failed on
+                // every attempt even though the relay had configured everything correctly.
+                preferencesVerified = preferencesApplied && accountsApplied
+                        && isApplyVerified(enable, host, port, sec);
             }
 
             Utilities.globalQueue.postRunnable(() -> {
@@ -487,17 +587,31 @@ public final class ProxyApplier {
             });
 
             AndroidUtilities.runOnUIThread(NOTIFY_RUNNABLE, NOTIFY_DELAY_MS);
-            return preferencesApplied && accountsApplied && isApplyVerified(enable, host, port, sec);
+            if (!preferencesVerified) {
+                WsBypassCore.logAlways("apply() returning false: preferencesApplied="
+                        + preferencesApplied + " accountsApplied=" + accountsApplied);
+            }
+            return preferencesVerified;
         } catch (Throwable e) {
             FileLog.e("ProxyApplier.apply error", e);
+            WsBypassCore.logFailure("ProxyApplier.apply threw", e);
             return false;
         }
+    }
+
+    /** Short prefix for diagnostics; the relay secret is a local loopback value. */
+    private static String head(String s) {
+        if (s == null) return "<null>";
+        return s.length() <= 10 ? s : s.substring(0, 10) + "...";
     }
 
     private static boolean isApplyVerified(boolean enable, String host, int port, String secret) {
         try {
             SharedPreferences settings = MessagesController.getGlobalMainSettings();
-            if (settings.getBoolean("proxy_enabled", false) != enable) return false;
+            if (settings.getBoolean("proxy_enabled", false) != enable) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_enabled mismatch, want " + enable);
+                return false;
+            }
             if (!enable) return true;
 
             SharedConfig.ProxyInfo current = SharedConfig.currentProxy;
@@ -505,13 +619,34 @@ public final class ProxyApplier {
                     || !host.equals(current.address == null ? "" : current.address)
                     || current.port != port
                     || !secret.equals(current.secret == null ? "" : current.secret)) {
+                WsBypassCore.logAlways("isApplyVerified: currentProxy mismatch, addr="
+                        + (current == null ? "null" : current.address + ":" + current.port)
+                        + " want " + host + ":" + port
+                        + " | secret want len=" + secret.length()
+                        + " | secret got  len=" + (current == null || current.secret == null ? -1 : current.secret.length()));
                 return false;
             }
-            return host.equals(settings.getString("proxy_ip", ""))
-                    && port == settings.getInt("proxy_port", 0)
-                    && secret.equals(settings.getString("proxy_secret", ""))
-                    && isLocalEntryPresent(host, port);
-        } catch (Throwable ignored) {
+            if (!host.equals(settings.getString("proxy_ip", ""))) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_ip mismatch, got '"
+                        + settings.getString("proxy_ip", "") + "' want '" + host + "'");
+                return false;
+            }
+            if (port != settings.getInt("proxy_port", 0)) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_port mismatch, got "
+                        + settings.getInt("proxy_port", 0) + " want " + port);
+                return false;
+            }
+            if (!secret.equals(settings.getString("proxy_secret", ""))) {
+                WsBypassCore.logAlways("isApplyVerified: proxy_secret mismatch");
+                return false;
+            }
+            if (!isLocalEntryPresent(host, port)) {
+                WsBypassCore.logAlways("isApplyVerified: local entry absent from proxyList");
+                return false;
+            }
+            return true;
+        } catch (Throwable t) {
+            WsBypassCore.logFailure("isApplyVerified threw", t);
             return false;
         }
     }
@@ -540,6 +675,63 @@ public final class ProxyApplier {
         String host = localHost == null ? "" : localHost;
         String sec = secret == null ? "" : secret;
         return isApplyVerified(true, host, port, sec);
+    }
+
+    /**
+     * Clears a bypass proxy (and any user proxy) that is still persisted from a previous
+     * process while we are in the pre-authorization state. ConnectionsManager.init() reads
+     * "proxy_enabled"/"proxy_ip" straight from mainconfig, so a leftover 127.0.0.1 entry
+     * would otherwise be re-armed natively on the very next launch and block the login
+     * screen again.
+     */
+    private static void clearIfLocalProxyPersisted(String localHost) {
+        try {
+            final String host = localHost == null ? "" : localHost;
+            SharedPreferences settings = MessagesController.getGlobalMainSettings();
+            String persistedHost = settings.getString("proxy_ip", "");
+            int persistedPort = settings.getInt("proxy_port", 0);
+            boolean persistedEnabled = settings.getBoolean("proxy_enabled", false);
+            boolean persistedIsLocal = persistedEnabled
+                    && host.equals(persistedHost)
+                    && (persistedPort == NimarkoWsBypassConfig.localPort || persistedPort > 0);
+
+            SharedConfig.ProxyInfo curr = SharedConfig.currentProxy;
+            String currentAddr = curr == null || curr.address == null ? "" : curr.address;
+            boolean currentIsLocal = curr != null && host.equals(currentAddr);
+
+            if (!persistedIsLocal && !currentIsLocal) {
+                return;
+            }
+
+            FileLog.d("ProxyApplier: clearing stale bypass proxy before authorization");
+            android.util.Log.i("NimarkoProxy", "clearing stale bypass proxy before authorization (persisted=" + persistedIsLocal + ", current=" + currentIsLocal + ")");
+            try {
+                settings.edit()
+                        .putBoolean("proxy_enabled", false)
+                        .putBoolean("proxy_enabled_calls", false)
+                        .putBoolean("proxy_calls_enabled", false)
+                        .putBoolean("calls_use_proxy", false)
+                        .remove("proxy_ip")
+                        .remove("proxy_port")
+                        .remove("proxy_user")
+                        .remove("proxy_pass")
+                        .remove("proxy_secret")
+                        .apply();
+            } catch (Throwable ignored) {}
+
+            try {
+                applyToAllAccounts(false, "", 0, "", "", "");
+            } catch (Throwable ignored) {}
+
+            try {
+                SharedConfig.currentProxy = null;
+                SharedConfig.markProxyListChanged();
+                SharedConfig.saveProxyList();
+                SharedConfig.saveConfig();
+            } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            FileLog.e("ProxyApplier.clearIfLocalProxyPersisted", t);
+        }
     }
 
     public static synchronized void forceClearCurrent(String localHost) {

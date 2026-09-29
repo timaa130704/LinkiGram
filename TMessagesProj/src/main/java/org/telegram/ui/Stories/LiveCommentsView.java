@@ -431,7 +431,7 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
         arrowButton.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
         arrowButton.setRotation(90.0f);
         arrowButton.setBackground(Theme.createSelectorDrawable(0x40FFFFFF));
-
+//        addView(arrowButton, LayoutHelper.createFrame(26, 26, Gravity.LEFT | Gravity.BOTTOM, 10, 9, 10, 9));
         arrowButton.setOnClickListener(v -> {
             setCollapsed(!collapsed, true);
         });
@@ -501,6 +501,11 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
             adapter.notifyItemChanged(msg_position);
             listView.setItemAnimator(ia);
 
+//            final ItemOptions o = ItemOptions.makeOptions(container, new DarkThemeResourceProvider(), v);
+//            o.addDialog(currentAccount, sender.dialogId, () -> {
+//                storyViewer.presentFragment(ProfileActivity.of(sender.dialogId));
+//            });
+//            o.show();
         });
 
         itemAnimator = new DefaultItemAnimator() {
@@ -565,7 +570,7 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
         final long minStars = lastMinStars = livePlayer == null ? 0 : livePlayer.getSendPaidMessagesStars();
         for (int i = 0; i < messages.size(); ++i) {
             final Message msg = messages.get(i);
-            
+            // do not show reaction messages lower than required minimum for a message
             if (!(!msg.fromAdmin && msg.isReaction && msg.stars < minStars)) {
                 items.add(LiveCommentView.Factory.of(msg));
             }
@@ -934,9 +939,13 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
     }
 
     private String getStarsToastTitle() {
-
+//        if (isAnonymous()) {
+//            return getString(R.string.StarsSentAnonymouslyTitle);
+//        } else if (getPeerId() != 0 && getPeerId() != UserConfig.getInstance(currentAccount).getClientUserId()) {
+//            return formatString(R.string.StarsSentTitleChannel, DialogObject.getShortName(getPeerId()));
+//        } else {
             return getString(R.string.StarsSentTitle);
-
+//        }
     }
 
     private CharSequence getStarsToastSubtitle() {
@@ -1056,7 +1065,7 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
     private int lastNow;
     private int sortTopMessages(TopSender a, TopSender b) {
         return b.lastSentDate - a.lastSentDate;
-        
+        // return b.getStars(lastNow) - a.getStars(lastNow);
     }
 
     public void deleteAllFrom(long peer) {
@@ -1151,7 +1160,7 @@ public class LiveCommentsView extends FrameLayout implements NotificationCenter.
                 AndroidUtilities.runOnUIThread(() -> {
                     delete(id);
                     if ("BALANCE_TOO_LOW".equalsIgnoreCase(err.text)) {
-                        new StarsIntroActivity.StarsNeededSheet(getContext(), currentAccount, new DarkThemeResourceProvider(), stars, StarsIntroActivity.StarsNeededSheet.TYPE_LIVE_COMMENTS, "", () -> send(send_as, text, stars), dialogId).show();
+                        new StarsIntroActivity.StarsNeededSheet(getContext(), new DarkThemeResourceProvider(), stars, StarsIntroActivity.StarsNeededSheet.TYPE_LIVE_COMMENTS, "", () -> send(send_as, text, stars), dialogId).show();
                     } else if ("GROUPCALL_INVALID".equalsIgnoreCase(err.text)) {
                         if (livePlayer != null) {
                             livePlayer.storyDeleted();
