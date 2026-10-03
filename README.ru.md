@@ -127,6 +127,7 @@ TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk
 
 ## Благодарности
 
+- [NimarkoGram](https://github.com/Ettacent/NimarkoGram/) — проект, из которого взята примерно половина функций LinkiGram: настройки, ghost mode, инструменты приватности, медиа, плагинная платформа. Работа велась поверх его кода (GPL-2.0).
 - [Telegram для Android](https://github.com/DrKLO/Telegram) — исходный клиент.
 - [Cherrygram](https://github.com/arsLan4k1390/Cherrygram) — отдельные открытые компоненты интерфейса, сохранённые с указанием происхождения в коде.
 - [Pine](https://github.com/canyie/pine) — движок, используемый средой перехватов.
