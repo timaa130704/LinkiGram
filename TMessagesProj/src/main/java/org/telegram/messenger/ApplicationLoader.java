@@ -84,6 +84,7 @@ public class ApplicationLoader extends Application {
                         } finally {
                             nmWrappingResources.set(Boolean.FALSE);
                         }
+                        nmInstallIntoLoadedApk(nmAppResources);
                         nmAppAssets = base.getAssets();
                     }
                 }
@@ -94,12 +95,52 @@ public class ApplicationLoader extends Application {
         }
     }
 
+    /**
+     * Overriding {@code Application.getResources()} is not enough on its own: every
+     * ContextImpl copies its Resources out of LoadedApk when the component is created, so
+     * Activities, Services and BroadcastReceivers keep the stock instance and the pack is
+     * never seen by the UI. LoadedApk.mResources is the single field all of them read, so
+     * it is replaced once here instead of patching each context.
+     *
+     * The Application's own ContextImpl already captured the stock Resources before this
+     * runs; that is what {@link #getResources()} keeps unwrapping and handing to the
+     * wrapper, so there is no recursion.
+     *
+     * A locale change rewrites LoadedApk.mResources through ResourcesManager, so this has
+     * to be callable again afterwards; {@link #reloadAppIconResources()} does that.
+     */
+    private static void nmInstallIntoLoadedApk(android.content.res.Resources wrapper) {
+        if (wrapper == null || applicationLoaderInstance == null) return;
+        try {
+            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+            Object activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null);
+            if (activityThread == null) return;
+            java.lang.reflect.Field packagesField = activityThreadClass.getDeclaredField("mPackages");
+            packagesField.setAccessible(true);
+            Object packages = packagesField.get(activityThread);
+            if (!(packages instanceof java.util.Map)) return;
+            Object ref = ((java.util.Map<?, ?>) packages).get(applicationLoaderInstance.getPackageName());
+            Object loadedApk = ref instanceof java.lang.ref.WeakReference ? ((java.lang.ref.WeakReference<?>) ref).get() : ref;
+            if (loadedApk == null) return;
+            java.lang.reflect.Field resourcesField = loadedApk.getClass().getDeclaredField("mResources");
+            resourcesField.setAccessible(true);
+            if (resourcesField.get(loadedApk) == wrapper) return;
+            resourcesField.set(loadedApk, wrapper);
+            FileLog.d("nimarko-icons: replacement resources installed into LoadedApk");
+        } catch (Throwable t) {
+            FileLog.e("nimarko-icons: LoadedApk install failed", t);
+        }
+    }
+
     /** Applies a new icon pack selection to the installed resources, if any. */
     public static void reloadAppIconResources() {
         try {
             ApplicationLoader inst = applicationLoaderInstance;
             if (inst != null && inst.nmAppResources != null) {
                 inst.nmAppResources.reloadReplacements(null);
+                // A language switch makes the framework rebuild LoadedApk.mResources, which
+                // drops the wrapper and silently reverts the pack to stock.
+                nmInstallIntoLoadedApk(inst.nmAppResources);
             }
         } catch (Throwable ignore) {}
     }
@@ -435,6 +476,16 @@ public class ApplicationLoader extends Application {
             app.nimarkogram.messenger.textanim.NimarkoTextAnim.initIfEnabled();
         } catch (Throwable t) {
             FileLog.e("nimarko-textanim: init failed", t);
+        }
+
+        // Install the icon pack before any component exists, otherwise the framework builds
+        // the first Activity on the stock Resources and it never sees the replacement.
+        try {
+            if (app.nimarkogram.messenger.NimarkoConfig.iconReplacement != app.nimarkogram.messenger.NimarkoConfig.ICON_REPLACE_NONE) {
+                getResources();
+            }
+        } catch (Throwable t) {
+            FileLog.e("nimarko-icons: eager install failed", t);
         }
 
         // AndroidUtilities must be initialized before FileLog

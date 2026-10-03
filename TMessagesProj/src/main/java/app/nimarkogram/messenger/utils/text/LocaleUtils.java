@@ -123,11 +123,21 @@ public abstract class LocaleUtils {
     }
 
     public static String getAppName() {
+        // LinkiGram: applicationContext.getResources() returns the icon-pack wrapper when a
+        // pack is active, and reading a string through it bypasses the in-app language.
+        // LocaleController resolves against the language the user picked in the app.
         try {
-            return ApplicationLoader.applicationContext.getString(R.string.AppName);
-        } catch (Exception unused) {
-            return "LinkiGram";
+            return org.telegram.messenger.LocaleController.getString(R.string.AppName);
+        } catch (Throwable unused) {
         }
+        try {
+            android.content.res.Resources raw = ApplicationLoader.rawResources();
+            if (raw != null) {
+                return raw.getString(R.string.AppName);
+            }
+        } catch (Throwable unused) {
+        }
+        return "LinkiGram";
     }
 
     public static void parseMarkdownLinks(CharSequence[] seqRef, Runnable runnable) {
