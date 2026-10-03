@@ -84,6 +84,7 @@ public class NimarkoTextAnimPreferencesActivity extends BasePreferencesActivity 
                 applyCheck(uItem, view, NimarkoConfig.nimarkoTextAnimSpoiler);
                 break;
         }
+        app.nimarkogram.messenger.textanim.NimarkoTextAnim.applySettings();
     }
 
     private void applyCheck(UItem item, View view, boolean value) {

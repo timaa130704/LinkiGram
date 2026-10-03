@@ -77,7 +77,9 @@ public class NativeInstance {
         instance.cancelRequestBroadcastPartCallback = cancelRequestBroadcastPartCallback;
         instance.requestCurrentTimeCallback = requestCurrentTimeCallback;
         instance.isGroup = true;
+        try { android.util.Log.w("NMVOIP", "TEMP-DIAG makeGroupNativeInstance enter capturer=" + videoCapturer); } catch (Throwable ignored) {}
         instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference);
+        try { android.util.Log.w("NMVOIP", "TEMP-DIAG makeGroupNativeInstance ok ptr=" + instance.nativePtr); } catch (Throwable ignored) {}
         return instance;
     }
 
@@ -151,6 +153,7 @@ public class NativeInstance {
     }
 
     private void onEmitJoinPayload(String json, int ssrc) {
+        try { android.util.Log.w("NMVOIP", "TEMP-DIAG onEmitJoinPayload ssrc=" + ssrc); } catch (Throwable ignored) {}
         try {
             AndroidUtilities.runOnUIThread(() -> payloadCallback.run(ssrc, json));
         } catch (Exception e) {

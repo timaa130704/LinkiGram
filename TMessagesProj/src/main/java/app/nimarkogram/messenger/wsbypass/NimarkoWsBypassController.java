@@ -97,7 +97,16 @@ public final class NimarkoWsBypassController {
                 .isDataBypassEnabled()) return STATE_OFF;
         if (blockedByVpn()) return STATE_VPN;
         if (running) {
-            
+            if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS) {
+                // The embedded core reports liveness through its own stats string.
+                try {
+                    String stats = TgWsBridge.stats();
+                    if (stats == null || stats.isEmpty()) return STATE_STARTING;
+                } catch (Throwable t) {
+                    return STATE_FAILED;
+                }
+                return STATE_RUNNING;
+            }
             try {
                 WsBypassCore core = WsBypassCore.getInstance();
                 if (!core.isRunning() || !core.isAcceptThreadAlive()) return STATE_FAILED;
@@ -168,7 +177,13 @@ public final class NimarkoWsBypassController {
             invalidateStartLocked();
             cancelRelayAuthConnections();
             cancelWatchdogLocked();
-            try { WsBypassCore.getInstance().stop(); } catch (Throwable ignored) {}
+            try {
+                if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS) {
+                    TgWsBridge.stop();
+                } else {
+                    WsBypassCore.getInstance().stop();
+                }
+            } catch (Throwable ignored) {}
             
             try { ProxyApplier.suspendForVpn(WsBypassCore.LOCAL_PROXY_HOST); } catch (Throwable ignored) {}
             try { ProxyApplier.removeLocalFromList(WsBypassCore.LOCAL_PROXY_HOST); } catch (Throwable ignored) {}
@@ -200,7 +215,11 @@ public final class NimarkoWsBypassController {
             cancelRelayAuthConnections();
             cancelWatchdogLocked();
             try {
-                WsBypassCore.getInstance().stop();
+                if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS) {
+                    TgWsBridge.stop();
+                } else {
+                    WsBypassCore.getInstance().stop();
+                }
             } catch (Throwable t) {
                 FileLog.e("NimarkoWsBypassController.stop core error", t);
             }
@@ -313,11 +332,109 @@ public final class NimarkoWsBypassController {
         }
     }
 
+    /**
+     * Runs the embedded tg-ws-linki core on the local port instead of {@link WsBypassCore}.
+     *
+     * @return true when the embedded core is now the active backend.
+     */
+    private boolean startEmbedded(long token, int desiredPort, String secret) {
+        if (!TgWsBridge.isAvailable()) {
+            lastError = "tg-ws-linki core unavailable";
+            lastStartFailed = true;
+            running = false;
+            ensureWatchdogLocked();
+            return true;
+        }
+        // The Rust core binds the port itself and aborts when it is taken, so make sure
+        // our own listener is gone and pick a free port if the stored one is still busy
+        // (a previous process can hold it for a while after a restart).
+        try { WsBypassCore.getInstance().stop(); } catch (Throwable ignored) {}
+        int port = pickFreePort(desiredPort);
+        if (port == 0) {
+            lastError = "no free local port";
+            lastStartFailed = true;
+            running = false;
+            ensureWatchdogLocked();
+            return true;
+        }
+        int rc = TgWsBridge.start(WsBypassCore.LOCAL_PROXY_HOST, port, "", secret, false);
+        if (rc != 0) {
+            lastError = "tg-ws-linki start failed rc=" + rc;
+            lastStartFailed = true;
+            running = false;
+            try { TgWsBridge.stop(); } catch (Throwable ignored) {}
+            ensureWatchdogLocked();
+            return true;
+        }
+        desiredPort = port;
+        boolean applied;
+        try {
+            applied = ProxyApplier.apply(desiredPort, true, secret, WsBypassCore.LOCAL_PROXY_HOST);
+        } catch (Throwable t) {
+            FileLog.e("NimarkoWsBypassController.startEmbedded proxy apply error", t);
+            applied = false;
+        }
+        if (!applied) {
+            lastError = "proxy apply failed";
+            lastStartFailed = true;
+            running = false;
+            try { TgWsBridge.stop(); } catch (Throwable ignored) {}
+            ensureWatchdogLocked();
+            return true;
+        }
+        currentPort = desiredPort;
+        currentSecret = secret;
+        NimarkoWsBypassConfig.setLocalPort(desiredPort);
+        running = true;
+        lastStartFailed = false;
+        lastError = "";
+        ensureWatchdogLocked();
+        FileLog.d("NimarkoWsBypassController: tg-ws-linki started on 127.0.0.1:" + desiredPort);
+        return true;
+    }
+
+    /**
+     * Returns a port the embedded core can bind: the requested one when free, otherwise
+     * the first free port in the ephemeral range. The Rust core aborts on a taken port, so
+     * probing has to happen here.
+     */
+    private static int pickFreePort(int preferred) {
+        if (preferred > 0 && preferred < 65535 && isPortFree(preferred)) return preferred;
+        for (int p = 38170; p < 38270; p++) {
+            if (isPortFree(p)) return p;
+        }
+        try {
+            java.net.ServerSocket probe = new java.net.ServerSocket(0);
+            int p = probe.getLocalPort();
+            probe.close();
+            return p;
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    private static boolean isPortFree(int port) {
+        java.net.ServerSocket probe = null;
+        try {
+            probe = new java.net.ServerSocket();
+            probe.setReuseAddress(false);
+            probe.bind(new java.net.InetSocketAddress(
+                    WsBypassCore.LOCAL_PROXY_HOST, port), 1);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        } finally {
+            if (probe != null) {
+                try { probe.close(); } catch (Throwable ignored) {}
+            }
+        }
+    }
+
     private void startSync(long token) {
         synchronized (lifecycleLock) {
             if (activeStartToken != token) return;
             try {
-                
+
                 if (!app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig
                         .isDataBypassEnabled()) {
                     return; 
@@ -331,6 +448,10 @@ public final class NimarkoWsBypassController {
                 if (secret == null || secret.isEmpty()) {
                     secret = MtprotoHandshake.generateSecretHex();
                     NimarkoWsBypassConfig.setMtprotoSecret(secret);
+                }
+
+                if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS) {
+                    if (startEmbedded(token, desiredPort, secret)) return;
                 }
 
                 WsBypassCore core = WsBypassCore.getInstance();
@@ -477,11 +598,23 @@ public final class NimarkoWsBypassController {
             }
 
             boolean coreAlive;
-            try {
-                WsBypassCore core = WsBypassCore.getInstance();
-                coreAlive = core.isRunning() && core.isAcceptThreadAlive();
-            } catch (Throwable t) {
-                coreAlive = false;
+            if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS) {
+                // The embedded core owns the listener here, so WsBypassCore is idle by
+                // design. Checking it would restart the proxy every tick and drop the
+                // connection, so probe the bridge the same way the status row does.
+                try {
+                    String stats = TgWsBridge.stats();
+                    coreAlive = stats != null && !stats.isEmpty();
+                } catch (Throwable t) {
+                    coreAlive = false;
+                }
+            } else {
+                try {
+                    WsBypassCore core = WsBypassCore.getInstance();
+                    coreAlive = core.isRunning() && core.isAcceptThreadAlive();
+                } catch (Throwable t) {
+                    coreAlive = false;
+                }
             }
             if (!coreAlive) {
                 FileLog.d("NimarkoWsBypassController watchdog: core dead while running, restarting");
@@ -513,6 +646,7 @@ public final class NimarkoWsBypassController {
         }
         try {
             running = false;
+            try { TgWsBridge.stop(); } catch (Throwable ignored) {}
             try { WsBypassCore.getInstance().stop(); } catch (Throwable ignored) {}
             long token = claimStartLocked();
             if (token != 0L) startSync(token);

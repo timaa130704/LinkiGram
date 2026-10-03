@@ -201,6 +201,7 @@ add_library(${NATIVE_LIB} SHARED
         genann.c
         secureid_ocr.cpp
         tde2e/bridge.cpp
+        tgwsbridge.cpp
         tests.cpp
 )
 
@@ -279,6 +280,21 @@ target_link_libraries(${NATIVE_LIB}
         OpenSLES
         cpufeatures
         breakpad)
+
+# Embedded tg-ws-linki core (Rust, from tg-ws-proxy-android, GPL-3.0).
+#
+# libtlottie.a and libtgwsproxy.a are separate Rust builds, so each ships its own copy of
+# the Rust compiler runtime and the linker reports duplicate symbols such as
+# rust_eh_personality. Both copies come from the same rustc, so
+# --allow-multiple-definition lets the linker keep the first one and discard the rest.
+# Only the Android release ABIs are shipped; x86 builds keep the in-house relay route.
+if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
+    add_library(tgwsproxy STATIC IMPORTED)
+    set_target_properties(tgwsproxy PROPERTIES
+            IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/prebuild/lib/${ANDROID_ABI}/libtgwsproxy.a)
+    target_link_options(${NATIVE_LIB} PRIVATE "-Wl,--allow-multiple-definition")
+    target_link_libraries(${NATIVE_LIB} tgwsproxy)
+endif()
 
 #if (${ANDROID_ABI} STREQUAL "x86" OR ${ANDROID_ABI} STREQUAL "x86_64")
 #    target_link_libraries(${NATIVE_LIB}

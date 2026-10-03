@@ -522,7 +522,6 @@ public final class WsBypassCore {
             }
 
             if (ws == null) {
-                
                 dbg("route: relay unavailable; suppressing direct route (dc=" + dc + ")");
                 return;
             }
@@ -693,13 +692,17 @@ public final class WsBypassCore {
                 try {
                     long attemptDeadline = Math.min(deadlineNanos,
                             System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(900L));
+                    long t0 = System.nanoTime();
                     RawWebSocket ws = RawWebSocket.connectUntil(host, domain, "/apiws", null,
                             attemptDeadline);
+                    long dtMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                    try { android.util.Log.w("NMWSROUTE", "TEMP-DIAG direct attempt OK host=" + host + " domain=" + domain + " ms=" + dtMs); } catch (Throwable ignored) {}
                     synchronized (cfgLock) {
                         wsDomainPref.put(dcKey, domain);
                     }
                     return ws;
                 } catch (IOException ex) {
+                    try { android.util.Log.w("NMWSROUTE", "TEMP-DIAG direct attempt FAIL host=" + host + " domain=" + domain + " err=" + ex.getMessage()); } catch (Throwable ignored) {}
                     last = ex;
                     if (ex instanceof RawWebSocket.HandshakeException
                             && ((RawWebSocket.HandshakeException) ex).isRedirect()) {

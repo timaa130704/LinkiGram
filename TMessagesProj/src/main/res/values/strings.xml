@@ -11572,11 +11572,6 @@
 <string name="NM_ForumAvatarsLikeChats">Unified rounding</string>
 <string name="NM_ForumAvatarsLikeChats_Desc">Forum avatars are rounded the same way as regular chats.</string>
 <string name="NM_SwitchStyle">Switch style</string>
-<string name="NM_SettingsIconStyle">Settings icon colors</string>
-<string name="NM_IconStyle_Colorful">Colorful</string>
-<string name="NM_IconStyle_Gray">Grayscale</string>
-<string name="NM_IconStyle_Black">Black</string>
-<string name="NM_IconStyle_Light">Light</string>
 <string name="NM_Chat_Section">Chats</string>
 <string name="NM_Stickers_Header">Stickers</string>
 <string name="NM_StickerSize">Sticker size</string>
@@ -11921,6 +11916,10 @@
 <string name="NM_WSB_OpenProxySettings">Open Telegram proxy settings</string>
 <string name="NM_WSB_Status_VpnSuspended">Suspended — VPN is active</string>
 <string name="NM_WSB_About">Keeps Telegram working when it\'s blocked. Creates a local proxy and routes traffic through it. Default ON.</string>
+<string name="NM_WSB_RouteHeader">Route mode</string>
+<string name="NM_WSB_RouteRelay">Via relay</string>
+<string name="NM_WSB_RouteTgws">tg-ws-linki</string>
+<string name="NM_WSB_RouteDesc">Relay routes traffic through the author\'s server. tg-ws-linki is a built-in engine that connects straight to Telegram and holds a WebSocket pool — it works on networks that throttle the relay.</string>
 <string name="NM_WSB_AuthorHeader">Author</string>
 <string name="NM_WSB_AuthorChannel">Author\'s channel</string>
 <string name="NM_WSB_VoIP_Header">Voice/Video Calls</string>

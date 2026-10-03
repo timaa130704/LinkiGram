@@ -366,7 +366,8 @@ public final class ProxyApplier {
                 return false;
             }
 
-            if (enable && !anyAccountActivated()) {
+            if (enable && !anyAccountActivated()
+                    && NimarkoWsBypassConfig.routeMode != NimarkoWsBypassConfig.ROUTE_TGWS) {
                 // Pre-auth: auth.sendCode/auth.signUp must not be routed through the bypass
                 // relay. Dropping the request with no callback is exactly the silent hang we
                 // are fixing, so refuse to arm the proxy and clear any stale one left over
@@ -377,6 +378,10 @@ public final class ProxyApplier {
                 // retries via watchdog/resume once the account is loaded. Returning true
                 // here used to wedge the status on "starting" forever -- running=true with
                 // no proxy armed, so no client ever connected and no bridge ever formed.
+                //
+                // The guard is relay-only. tg-ws-linki talks straight to the Telegram
+                // datacenters, so arming it before login is safe and often necessary: on
+                // a blocked network it is the only way to receive the login code at all.
                 FileLog.d("ProxyApplier.apply: skipping bypass proxy before authorization");
                 android.util.Log.i("NimarkoProxy", "apply(): skipping bypass proxy before authorization");
                 clearIfLocalProxyPersisted(host);

@@ -673,6 +673,9 @@ public class EditTextBoldCursor extends EditTextEffects {
             FileLog.e(e);
         }
         checkHeaderVisibility(true);
+        if (!(this instanceof EditTextCaption)) {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorFocusChanged(this, focused);
+        }
     }
 
     private void checkHeaderVisibility(boolean animated) {
@@ -746,7 +749,13 @@ public class EditTextBoldCursor extends EditTextEffects {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             lastTouchX = (int) event.getX();
         }
-        return super.onTouchEvent(event);
+        try {
+            return super.onTouchEvent(event);
+        } finally {
+            if (!(this instanceof EditTextCaption)) {
+                app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorTouch(this);
+            }
+        }
     }
 
     public void invalidateForce() {
@@ -865,6 +874,9 @@ public class EditTextBoldCursor extends EditTextEffects {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (!(this instanceof EditTextCaption)) {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.beforeEditorDraw(this);
+        }
         drawHint(canvas);
 
         if (ellipsizeByGradient) {
@@ -1063,6 +1075,9 @@ public class EditTextBoldCursor extends EditTextEffects {
             errorLayout.draw(canvas);
             canvas.restore();
         }*/
+        if (!(this instanceof EditTextCaption)) {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.afterEditorDraw(this, canvas);
+        }
     }
 
     public void setWindowView(View view) {
@@ -1147,6 +1162,9 @@ public class EditTextBoldCursor extends EditTextEffects {
 
     @Override
     protected void onDetachedFromWindow() {
+        if (!(this instanceof EditTextCaption)) {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorFocusChanged(this, false);
+        }
         super.onDetachedFromWindow();
         attachedToWindow = null;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {

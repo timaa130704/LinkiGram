@@ -69,8 +69,26 @@ public final class NimarkoWsBypassConfig {
         editor().putBoolean("suspend_on_vpn", v).apply();
     }
 
-    public static String mtprotoSecret = loadOrGenerateSecret();
+    public static final int ROUTE_RELAY = 0;
+    public static final int ROUTE_TGWS = 1;
 
+    public static int routeMode = loadRouteMode();
+
+    private static int loadRouteMode() {
+        // tg-ws-linki is the default: the embedded engine is noticeably faster than the
+        // relay and keeps working when the relay is unreachable. An explicit "relay"
+        // choice is remembered, so only the untouched state falls back to the default.
+        int stored = prefs().getInt("route_mode", ROUTE_TGWS);
+        return stored == ROUTE_RELAY ? ROUTE_RELAY : ROUTE_TGWS;
+    }
+
+    public static void setRouteMode(int v) {
+        if (v != ROUTE_RELAY) v = ROUTE_TGWS;
+        routeMode = v;
+        editor().putInt("route_mode", v).apply();
+    }
+
+    public static String mtprotoSecret = loadOrGenerateSecret();
     private static String loadOrGenerateSecret() {
         SharedPreferences p = prefs();
         String s = p.getString("mtproto_secret", "");

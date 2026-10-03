@@ -35,6 +35,7 @@ import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -900,31 +901,69 @@ public class EditTextCaption extends EditTextBoldCursor implements FloatingToolb
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.save();
-        canvas.translate(0, offsetY);
-        super.onDraw(canvas);
+        app.nimarkogram.messenger.textanim.NimarkoTextAnim.beforeEditorDraw(this);
         try {
-            if (captionLayout != null && userNameLength == length()) {
-                Paint paint = getPaint();
-                int oldColor = getPaint().getColor();
-                paint.setColor(hintColor);
-                canvas.save();
-                canvas.translate(xOffset, yOffset);
-                captionLayout.draw(canvas);
-                canvas.restore();
-                paint.setColor(oldColor);
+            final int saveCount = canvas.save();
+            try {
+                canvas.translate(0, offsetY);
+                super.onDraw(canvas);
+                try {
+                    if (captionLayout != null && userNameLength == length()) {
+                        Paint paint = getPaint();
+                        int oldColor = getPaint().getColor();
+                        paint.setColor(hintColor);
+                        canvas.save();
+                        canvas.translate(xOffset, yOffset);
+                        captionLayout.draw(canvas);
+                        canvas.restore();
+                        paint.setColor(oldColor);
+                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+                if (rightText != null && length() != 0) {
+                    final Layout layout = getLayout();
+                    if (layout != null && layout.getLineCount() > 0) {
+                        final float right = layout.getLineRight(0);
+                        rightText.draw(canvas, right, getHeight() / 2f + dp(1), hintColor, 1.0f);
+                    }
+                }
+            } finally {
+                canvas.restoreToCount(saveCount);
             }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        if (rightText != null && length() != 0) {
-            final Layout layout = getLayout();
-            if (layout != null && layout.getLineCount() > 0) {
-                final float right = layout.getLineRight(0);
-                rightText.draw(canvas, right, getHeight() / 2f + dp(1), hintColor, 1.0f);
+        } finally {
+            final int animationSaveCount = canvas.save();
+            try {
+                canvas.translate(0, offsetY);
+                app.nimarkogram.messenger.textanim.NimarkoTextAnim.afterEditorDraw(this, canvas);
+            } finally {
+                canvas.restoreToCount(animationSaveCount);
             }
         }
-        canvas.restore();
+    }
+
+    @Override
+    protected void onFocusChanged(boolean focused, int direction, Rect previouslyFocusedRect) {
+        super.onFocusChanged(focused, direction, previouslyFocusedRect);
+        app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorFocusChanged(this, focused);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        try {
+            return super.onTouchEvent(event);
+        } finally {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorTouch(this);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        try {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.onEditorFocusChanged(this, false);
+        } finally {
+            super.onDetachedFromWindow();
+        }
     }
 
     public void setRightText(CharSequence text) {

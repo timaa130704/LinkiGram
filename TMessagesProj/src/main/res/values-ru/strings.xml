@@ -764,11 +764,7 @@
     <string name="NM_ForumAvatarsLikeChats">Единое закругление</string>
     <string name="NM_ForumAvatarsLikeChats_Desc">Аватарки форумов скругляются так же, как у обычных чатов.</string>
     
-<string name="NM_SwitchStyle">Стиль переключателей</string><string name="NM_SettingsIconStyle">Цвета иконок настроек</string>
-<string name="NM_IconStyle_Colorful">Цветные</string>
-<string name="NM_IconStyle_Gray">Серые</string>
-<string name="NM_IconStyle_Black">Чёрные</string>
-<string name="NM_IconStyle_Light">Светлые</string>
+<string name="NM_SwitchStyle">Стиль переключателей</string>
     <string name="NM_Chat_Section">Чаты</string>
     <string name="NM_Stickers_Header">Стикеры</string>
     <string name="NM_StickerSize">Размер стикеров</string>
@@ -1366,6 +1362,10 @@
     <string name="NM_WSB_OpenProxySettings">Настройки прокси Telegram</string>
     <string name="NM_WSB_Status_VpnSuspended">Приостановлено — VPN активен</string>
     <string name="NM_WSB_About">Помогает Telegram работать при блокировке. Создаёт локальный прокси и направляет трафик через него. По умолчанию включено.</string>
+<string name="NM_WSB_RouteHeader">Режим маршрута</string>
+<string name="NM_WSB_RouteRelay">Через релей</string>
+<string name="NM_WSB_RouteTgws">tg-ws-linki</string>
+<string name="NM_WSB_RouteDesc">Релей ведёт трафик через сервер автора. tg-ws-linki — встроенный движок: прямое соединение с Telegram и пул WebSocket, работает там, где релей душат.</string>
     <string name="NM_WSB_AuthorHeader">Автор</string>
     <string name="NM_WSB_AuthorChannel">Канал автора</string>
     <string name="NM_WSB_VoIP_Header">Звонки</string>

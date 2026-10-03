@@ -7065,7 +7065,33 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     public static Runnable whenResumed;
 
+    /**
+     * Applies a pending icon pack change and refreshes the visible UI.
+     *
+     * <p>Icon packs are applied by wrapping the application Resources (see
+     * ApplicationLoader.getResources()). That swap alone does not repaint views that
+     * already hold their drawables, so the visible screens are rebuilt here as well.
+     */
     public void reloadResources() {
+        try {
+            org.telegram.messenger.ApplicationLoader.reloadAppIconResources();
+        } catch (Throwable ignored) {
+        }
+        try {
+            if (actionBarLayout != null) {
+                actionBarLayout.rebuildFragments(
+                        org.telegram.ui.ActionBar.INavigationLayout.REBUILD_FLAG_REBUILD_LAST);
+            }
+            if (rightActionBarLayout != null) {
+                rightActionBarLayout.rebuildFragments(
+                        org.telegram.ui.ActionBar.INavigationLayout.REBUILD_FLAG_REBUILD_LAST);
+            }
+            if (layersActionBarLayout != null) {
+                layersActionBarLayout.rebuildFragments(
+                        org.telegram.ui.ActionBar.INavigationLayout.REBUILD_FLAG_REBUILD_LAST);
+            }
+        } catch (Throwable ignored) {
+        }
     }
     public void invalidateTabletMode() {
         Boolean wasTablet = AndroidUtilities.getWasTablet();

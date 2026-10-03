@@ -1629,7 +1629,9 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 				if (newModeStreaming) {
 					tgVoip[CAPTURE_DEVICE_CAMERA].prepareForStream(groupCall.call != null && groupCall.call.rtmp_stream);
 				} else {
+					try { android.util.Log.w("NMVOIP", "TEMP-DIAG setJoinResponsePayload enter"); } catch (Throwable ignored) {}
 					tgVoip[CAPTURE_DEVICE_CAMERA].setJoinResponsePayload(myParams.data);
+					try { android.util.Log.w("NMVOIP", "TEMP-DIAG setJoinResponsePayload ok"); } catch (Throwable ignored) {}
 				}
 				dispatchStateChanged(STATE_WAIT_INIT_ACK);
 			} catch (Exception e) {

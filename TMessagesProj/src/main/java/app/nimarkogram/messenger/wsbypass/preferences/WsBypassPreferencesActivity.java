@@ -26,6 +26,8 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
     private static final int ID_OPEN_PROXY      = 202;
     private static final int ID_VOIP_BYPASS     = 204;
     private static final int ID_SUSPEND_VPN     = 205;
+    private static final int ID_ROUTE_RELAY     = 206;
+    private static final int ID_ROUTE_TGWS      = 207;
 
     private final NimarkoWsBypassController ctrl = NimarkoWsBypassController.getInstance();
 
@@ -131,6 +133,13 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
                 LocaleController.getString(R.string.NM_WSB_OpenProxySettings)));
         items.add(UItem.asShadow(LocaleController.getString(R.string.NM_WSB_About)));
 
+        items.add(UItem.asHeader(LocaleController.getString(R.string.NM_WSB_RouteHeader)));
+        items.add(UItem.asRadio(ID_ROUTE_RELAY, LocaleController.getString(R.string.NM_WSB_RouteRelay))
+                .setChecked(NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_RELAY));
+        items.add(UItem.asRadio(ID_ROUTE_TGWS, LocaleController.getString(R.string.NM_WSB_RouteTgws))
+                .setChecked(NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS));
+        items.add(UItem.asShadow(LocaleController.getString(R.string.NM_WSB_RouteDesc)));
+
         items.add(UItem.asHeader(LocaleController.getString(R.string.NM_WSB_MiscHeader)));
         items.add(UItem.asCheck(ID_VOIP_BYPASS, LocaleController.getString(R.string.NM_WSB_VoIP_Enable))
                 .setChecked(VoipBypassConfig.isVoipBypassEnabled()));
@@ -179,7 +188,23 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
                             org.telegram.messenger.UserConfig.selectedAccount);
                 }
                 break;
+            case ID_ROUTE_RELAY:
+                NimarkoWsBypassConfig.setRouteMode(NimarkoWsBypassConfig.ROUTE_RELAY);
+                restartBridgeForRouteChange();
+                break;
+            case ID_ROUTE_TGWS:
+                NimarkoWsBypassConfig.setRouteMode(NimarkoWsBypassConfig.ROUTE_TGWS);
+                restartBridgeForRouteChange();
+                break;
         }
+    }
+
+    private void restartBridgeForRouteChange() {
+        if (NimarkoWsBypassConfig.enabled) {
+            ctrl.stop();
+            ctrl.ensureStarted();
+        }
+        reload();
     }
 
     private void reload() {

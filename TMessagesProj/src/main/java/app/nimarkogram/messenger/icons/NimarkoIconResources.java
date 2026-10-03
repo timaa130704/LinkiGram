@@ -108,6 +108,8 @@ public class NimarkoIconResources extends Resources {
         return self == null ? null : self.preparedBackArrowBitmap();
     }
 
+
+
     public static Drawable getStockDrawable(android.content.Context context, int id) {
         final Resources resources = context.getResources();
         final Theme theme = context.getTheme();

@@ -53,6 +53,56 @@ public class ApplicationLoader extends Application {
 
     public static ApplicationLoader applicationLoaderInstance;
     private static volatile boolean pineInitializationAttempted;
+
+    // Icon pack plumbing. Telegram resolves icons straight from the application
+    // resources, so the only place a replacement pack can take effect is the
+    // Application's getResources(): wrap the base Resources there and swap the
+    // selection on top of it. Without this the pack selection is stored but never shown.
+    private volatile app.nimarkogram.messenger.icons.NimarkoIconResources nmAppResources;
+    private volatile android.content.res.AssetManager nmAppAssets;
+    private static final ThreadLocal<Boolean> nmWrappingResources = new ThreadLocal<>();
+    private final Object nmAppResourcesLock = new Object();
+
+    @Override
+    public android.content.res.Resources getResources() {
+        android.content.res.Resources base = super.getResources();
+        try {
+            if (base == null || applicationContext == null
+                    || app.nimarkogram.messenger.NimarkoConfig.iconReplacement == app.nimarkogram.messenger.NimarkoConfig.ICON_REPLACE_NONE) {
+                return base;
+            }
+            // The wrapper asks the base Resources for drawables, which lands back here.
+            if (Boolean.TRUE.equals(nmWrappingResources.get())) {
+                return base;
+            }
+            if (nmAppAssets != base.getAssets()) {
+                synchronized (nmAppResourcesLock) {
+                    if (nmAppAssets != base.getAssets()) {
+                        nmWrappingResources.set(Boolean.TRUE);
+                        try {
+                            nmAppResources = new app.nimarkogram.messenger.icons.NimarkoIconResources(base);
+                        } finally {
+                            nmWrappingResources.set(Boolean.FALSE);
+                        }
+                        nmAppAssets = base.getAssets();
+                    }
+                }
+            }
+            return nmAppResources != null ? nmAppResources : base;
+        } catch (Throwable t) {
+            return base;
+        }
+    }
+
+    /** Applies a new icon pack selection to the installed resources, if any. */
+    public static void reloadAppIconResources() {
+        try {
+            ApplicationLoader inst = applicationLoaderInstance;
+            if (inst != null && inst.nmAppResources != null) {
+                inst.nmAppResources.reloadReplacements(null);
+            }
+        } catch (Throwable ignore) {}
+    }
     private static volatile boolean pineAvailable;
     private static String pineUnavailableReason = "Pine runtime is not bundled in this build";
     private static volatile boolean pineReady;
@@ -83,7 +133,23 @@ public class ApplicationLoader extends Application {
         return isPineAvailable();
     }
 
+    android.content.res.Resources nmRawResources() {
+        return super.getResources();
+    }
+
+    /**
+     * The unwrapped, stock resources. Icon pack code needs the originals: going through
+     * {@code applicationContext.getResources()} would hand back the replacement wrapper and
+     * the mapping would be applied twice.
+     */
     public static android.content.res.Resources rawResources() {
+        try {
+            ApplicationLoader inst = applicationLoaderInstance;
+            if (inst != null) {
+                return inst.nmRawResources();
+            }
+        } catch (Throwable ignore) {
+        }
         return applicationContext == null ? null : applicationContext.getResources();
     }
     public static String getPineUnavailableReason() {
@@ -364,6 +430,12 @@ public class ApplicationLoader extends Application {
         }
 
         super.onCreate();
+
+        try {
+            app.nimarkogram.messenger.textanim.NimarkoTextAnim.initIfEnabled();
+        } catch (Throwable t) {
+            FileLog.e("nimarko-textanim: init failed", t);
+        }
 
         // AndroidUtilities must be initialized before FileLog
         final String helloWorld = AndroidUtilities.getHelloWorld();

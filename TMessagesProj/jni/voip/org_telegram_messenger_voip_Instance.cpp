@@ -1,6 +1,7 @@
 #include "org_telegram_messenger_voip_Instance.h"
 
 #include <jni.h>
+#include <android/log.h>
 #include <sdk/android/native_api/video/wrapper.h>
 #include <VideoCapturerInterface.h>
 #include <platform/android/AndroidInterface.h>
@@ -548,6 +549,7 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeGrou
                 });
             },
             .audioLevelsUpdated = [platformContext](GroupLevelsUpdate const &update) {
+                __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG jni audioLevelsUpdated n=%d", (int) update.updates.size());
                 tgvoip::jni::DoWithJNI([platformContext, update](JNIEnv *env) {
                     unsigned int size = update.updates.size();
                     jintArray intArray = env->NewIntArray(size);

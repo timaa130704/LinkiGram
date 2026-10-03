@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <iomanip>
+#include <android/log.h>
 
 #include "Instance.h"
 #include "VideoCaptureInterfaceImpl.h"
@@ -1425,6 +1426,7 @@ public:
     }
 
     void start() {
+        __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG internal start enter");
         _startTimestamp = rtc::TimeMillis();
 
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
@@ -1535,6 +1537,7 @@ public:
                 }
             }
         });
+        __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG internal start audio-device done");
 
         webrtc::PeerConnectionFactoryDependencies peerConnectionFactoryDeps;
         peerConnectionFactoryDeps.signaling_thread = _threads->getMediaThread();
@@ -1548,6 +1551,7 @@ public:
 
         peerConnectionFactoryDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory(false, _videoContentType == VideoContentType::Screencast);
         peerConnectionFactoryDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
+        __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG internal start video-factories done");
 
 #if USE_RNNOISE
         if (_audioLevelsUpdated && audioProcessor) {
@@ -1635,11 +1639,13 @@ public:
         adjustBitratePreferences(true);
 
         beginRemoteConstraintsUpdateTimer(5000);
+        __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG internal start done");
     }
 
     void beginLogTimer(int delayMs) {
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
         _threads->getMediaThread()->PostDelayedTask([weak]() {
+            __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG log timer fire");
             auto strong = weak.lock();
             if (!strong) {
                 return;
@@ -2144,6 +2150,7 @@ public:
     void beginLevelsTimer(int timeoutMs) {
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
         _threads->getMediaThread()->PostDelayedTask([weak]() {
+            __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG levels timer fire");
             auto strong = weak.lock();
             if (!strong) {
                 return;
@@ -2221,6 +2228,7 @@ public:
             });
 
             strong->beginLevelsTimer(100);
+            __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG levels timer done");
         }, webrtc::TimeDelta::Millis(timeoutMs));
     }
 
@@ -3814,12 +3822,14 @@ void GroupInstanceCustomImpl::setConnectionMode(GroupConnectionMode connectionMo
 }
 
 void GroupInstanceCustomImpl::emitJoinPayload(std::function<void(GroupJoinPayload const &)> completion) {
+    __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG public emitJoinPayload");
     _internal->perform([completion](GroupInstanceCustomInternal *internal) {
         internal->emitJoinPayload(completion);
     });
 }
 
 void GroupInstanceCustomImpl::setJoinResponsePayload(std::string const &payload) {
+    __android_log_print(ANDROID_LOG_WARN, "NMVOIPN", "TEMP-DIAG public setJoinResponsePayload len=%d", (int) payload.size());
     _internal->perform([payload](GroupInstanceCustomInternal *internal) {
         internal->setJoinResponsePayload(payload);
     });

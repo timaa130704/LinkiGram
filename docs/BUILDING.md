@@ -77,6 +77,48 @@ To inspect the patch against a clean Pine checkout:
 git -C third_party/pine apply --check ../../patches/pine-nimarkogram.patch
 ```
 
+## tg-ws-linki bypass engine
+
+The in-process bypass engine is the `tgwsproxy` Rust crate, linked into
+`libtmessages` through `TMessagesProj/jni/tgwsbridge.cpp`. The Android build does **not**
+compile it with Gradle: the archives are checked in as build inputs and imported as a
+static library from `TMessagesProj/jni/prebuild/lib/<abi>/`.
+
+| ABI | Archive |
+| --- | --- |
+| `arm64-v8a` | `TMessagesProj/jni/prebuild/lib/arm64-v8a/libtgwsproxy.a` |
+| `armeabi-v7a` | `TMessagesProj/jni/prebuild/lib/armeabi-v7a/libtgwsproxy.a` |
+
+`x86` and `x86_64` are intentionally absent. Those ABIs fall back to the in-house relay
+route at runtime, so an emulator build still links.
+
+### Regenerating the archives
+
+The crate must be built as a `staticlib` with `panic = "abort"` in `[profile.release]`.
+With a Rust toolchain that has the Android targets installed:
+
+```bash
+rustup target add aarch64-linux-android armv7-linux-androideabi
+cargo install cargo-ndk
+
+cargo ndk -t arm64-v8a -t armeabi-v7a -o ./prebuild/lib build --release
+```
+
+Replace the two files above with the output, and set the NDK API level used by the build
+(see `ANDROID_PLATFORM` / `ndkVersion` in the Gradle configuration).
+
+Both ARM archives are untracked build inputs. If they are missing, CMake configuration
+fails with an unresolved `tgwsproxy` target rather than silently producing an APK without
+the bypass engine.
+
+### Why the linker flag is required
+
+`libtlottie.a` and `libtgwsproxy.a` are separate Rust builds, so each one ships its own
+copy of the compiler runtime (`core`, `alloc`, panic handlers, memcopy). NDK CMake links
+with `-Wl,--allow-multiple-definition`, which keeps the first definition and discards the
+rest. Merging the two archives into a single object archive does not deduplicate them,
+because the duplicate symbols live in different object files.
+
 ## Troubleshooting
 
 - Confirm that all submodules are initialized before diagnosing native-linker failures.

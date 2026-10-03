@@ -50,6 +50,7 @@ import android.view.WindowInsets;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
@@ -614,6 +615,52 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
     private DecelerateInterpolator decelerateInterpolator = new DecelerateInterpolator(1.5f);
     private OvershootInterpolator overshootInterpolator = new OvershootInterpolator(1.02f);
     private AccelerateDecelerateInterpolator accelerateDecelerateInterpolator = new AccelerateDecelerateInterpolator();
+
+    /**
+     * Spring curve for the navigation animations, enabled by
+     * {@link app.nimarkogram.messenger.NimarkoConfig#isSpringAnimationEnabled()}.
+     *
+     * <p>The setting used to be persisted but never read, so picking "spring" had no
+     * effect at all. This maps it onto the two interpolators the fragment open/close
+     * animations actually use. The curve is expressed as an Interpolator rather than a
+     * true spring so it can be swapped into the existing AnimatorSets unchanged.
+     */
+    private final Interpolator springInterpolator = new Interpolator() {
+        @Override
+        public float getInterpolation(float input) {
+            if (input <= 0f) return 0f;
+            if (input >= 1f) return 1f;
+            // Damped spring, tension 380 / friction 20.17 (see AboutLinkCell.SpringInterpolator)
+            return (float) (1.0 - Math.exp(-6.0 * input) * Math.cos(9.0 * input));
+        }
+    };
+
+    /** The interpolator used for fragment open/close, honouring the spring setting. */
+    private Interpolator navigationInterpolator() {
+        try {
+            if (app.nimarkogram.messenger.NimarkoConfig.isSpringAnimationEnabled()) {
+                return springInterpolator;
+            }
+        } catch (Throwable ignored) {
+        }
+        return accelerateDecelerateInterpolator;
+    }
+
+    /**
+     * Interpolator for the fragment slide transitions: the spring curve when the user
+     * enabled it, otherwise the stock quintic curve.
+     */
+    private Interpolator springOrCubic() {
+        return isSpringAnimationEnabled() ? springInterpolator : CubicBezierInterpolator.EASE_OUT_QUINT;
+    }
+
+    private static boolean isSpringAnimationEnabled() {
+        try {
+            return app.nimarkogram.messenger.NimarkoConfig.isSpringAnimationEnabled();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
 
     public float innerTranslationX;
 
@@ -1612,7 +1659,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     ObjectAnimator.ofFloat(this, "innerTranslationX", (float) containerView.getMeasuredWidth()).setDuration(duration)
                 );
                 if (newBackTransitions()) {
-                    animatorSet.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                    animatorSet.setInterpolator(springOrCubic());
                 }
             }
         } else {
@@ -1624,7 +1671,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
                     ObjectAnimator.ofFloat(this, "innerTranslationX", 0.0f).setDuration(duration)
                 );
                 if (newBackTransitions()) {
-                    animatorSet.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                    animatorSet.setInterpolator(springOrCubic());
                 }
             }
         }
@@ -2714,7 +2761,7 @@ public class ActionBarLayout extends FrameLayout implements INavigationLayout, F
 
                 currentAnimation = new AnimatorSet();
                 currentAnimation.playTogether(animators);
-                currentAnimation.setInterpolator(accelerateDecelerateInterpolator);
+                currentAnimation.setInterpolator(navigationInterpolator());
                 currentAnimation.setDuration(200);
                 currentAnimation.addListener(new AnimatorListenerAdapter() {
                     @Override
