@@ -90,10 +90,46 @@ function initTypeCmd() {
   });
 }
 
+/* ---------- Переключение темы ---------- */
+function initThemeToggle() {
+  const btn = document.querySelector("[data-theme-toggle]");
+  if (!btn) return;
+  const label = document.querySelector("[data-theme-label]");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const ORDER = ["green", "purple", "red", "yellow"];
+
+  const apply = (theme) => {
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    if (label) label.textContent = theme;
+    btn.setAttribute("aria-label", `Сменить тему (сейчас ${theme})`);
+    if (meta) {
+      const bg = getComputedStyle(root).getPropertyValue("--bg").trim();
+      if (bg) meta.setAttribute("content", bg);
+    }
+    try {
+      localStorage.setItem("lg-theme", theme);
+    } catch (e) {
+      /* приватный режим — просто не сохраняем */
+    }
+  };
+
+  const current = () => document.documentElement.getAttribute("data-theme") || "green";
+
+  // Синхронизируем подпись с темой, могшей прийти из localStorage до отрисовки
+  apply(current());
+
+  btn.addEventListener("click", () => {
+    const i = ORDER.indexOf(current());
+    apply(ORDER[(i + 1) % ORDER.length]);
+  });
+}
+
 /* ---------- Старт ---------- */
 initHeader();
 initNav();
 initTilt();
 initReveal();
 initTypeCmd();
+initThemeToggle();
 
