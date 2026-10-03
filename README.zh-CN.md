@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/nimarkogram-icon.png" width="128" height="128" alt="LinkiGram 图标">
+  <img src="docs/assets/linkigram-icon.png" width="128" height="128" alt="LinkiGram 图标">
 </p>
 
 <h1 align="center">LinkiGram</h1>
