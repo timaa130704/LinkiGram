@@ -50,7 +50,7 @@
 
 ## Благодарности
 
-- [NimarkoGram](https://github.com/Ettacent/NimarkoGram/) — проект, из которого взята примерно половина функций LinkiGram: настройки, ghost mode, инструменты приватности, медиа, плагинная платформа. Работа велась поверх его кода (GPL-2.0).
+- [NimarkoGram](https://github.com/Ettacent/NimarkoGram/) — проект, из которого взята примерно половина функций LinkiGram: настройки, инструменты приватности, медиа. Работа велась поверх его кода (GPL-2.0).
 - [Telegram для Android](https://github.com/DrKLO/Telegram) — исходный клиент, на котором построен проект.
 - [Cherrygram](https://github.com/arsLan4k1390/Cherrygram) — отдельные открытые компоненты интерфейса с сохранением происхождения в коде.
 - [Pine](https://github.com/canyie/pine) — движок перехватов, используемый средой плагинов.
