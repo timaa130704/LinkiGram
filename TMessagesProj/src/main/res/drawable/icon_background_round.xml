@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- LinkiGram: adaptive-icon plate for the round mask. Diagonal gradient from
-     --accent-deep to --accent in landing/css/theme.css. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient
-        android:angle="315"
-        android:startColor="#00C853"
-        android:centerColor="#1FD26C"
-        android:endColor="#3DDC84"
-        android:type="linear" />
+    <solid android:color="#FEB3BD" />
 </shape>
