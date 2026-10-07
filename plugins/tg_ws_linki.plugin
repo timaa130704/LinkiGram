@@ -32,7 +32,7 @@ from ui.settings import Header, Switch, Selector, Input, Text, Divider
 
 __id__ = "tg_ws_linki"
 __name__ = "Обход блокировок"
-__version__ = "1.1"
+__version__ = "1.2"
 __min_version__ = ""
 __author__ = "LinkiGram"
 __description__ = "Обход: tg-ws-linki, релей или SOCKS5"
@@ -66,28 +66,73 @@ WSBYPASS_CFG = _try_class("app.nimarkogram.messenger.wsbypass.NimarkoWsBypassCon
 WSBYPASS_CTRL = _try_class("app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController")
 VOIP_CFG = _try_class("app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig")
 
-PROXY_SETTINGS = _try_class("org.telegram.utils.proxy.ProxySettings")
 CONNECTIONS = _try_class("org.telegram.tgnet.ConnectionsManager")
-MESSAGES_CTRL = _try_class("org.telegram.messenger.MessagesController")
-USER_CONFIG = _try_class("org.telegram.messenger.UserConfig")
+
+# ProxySettings has moved package between Telegram versions, and forks keep
+# their own idea of where it lives. Try every known home rather than assuming.
+PROXY_SETTINGS = _try_class(
+    "org.telegram.utils.proxy.ProxySettings",
+    "org.telegram.messenger.ProxySettings",
+    "org.telegram.tgnet.ProxySettings",
+)
+PROXY_TYPE = _try_class(
+    "org.telegram.utils.proxy.ProxySettings$Type",
+    "org.telegram.messenger.ProxySettings$Type",
+    "org.telegram.tgnet.ProxySettings$Type",
+)
+ANDROID_UTILITIES = _try_class("org.telegram.messenger.AndroidUtilities")
+APPLICATION_LOADER = _try_class("org.telegram.messenger.ApplicationLoader")
 
 HAS_WSBYPASS = WSBYPASS_CFG is not None and WSBYPASS_CTRL is not None
-HAS_PROXY = PROXY_SETTINGS is not None and MESSAGES_CTRL is not None
+HAS_PROXY = PROXY_SETTINGS is not None and CONNECTIONS is not None
+
+TYPE_SOCKS5 = _try_static(PROXY_TYPE, "SOCKS5")
+TYPE_MTPROTO = _try_static(PROXY_TYPE, "MTPROTO")
 
 ROUTE_RELAY = _try_static(WSBYPASS_CFG, "ROUTE_RELAY", 0)
 ROUTE_TGWS = _try_static(WSBYPASS_CFG, "ROUTE_TGWS", 1)
 
 
-def _account():
+def _toast(message):
+    if ANDROID_UTILITIES is not None:
+        try:
+            ANDROID_UTILITIES.showToast(str(message))
+            return
+        except Exception:
+            pass
+    self_log_fallback = "plugin: " + str(message)
     try:
-        return int(USER_CONFIG.selectedAccount)
+        print(self_log_fallback)
+    except Exception:
+        pass
+
+
+def _account():
+    user_config = _try_class("org.telegram.messenger.UserConfig")
+    if user_config is not None:
+        try:
+            return int(user_config.selectedAccount)
+        except Exception:
+            pass
+    try:
+        return int(CONNECTIONS.getInstance().getCurrentAccount())
     except Exception:
         return 0
 
 
 def _prefs():
+    """mainconfig prefs, straight from the context.
+
+    ConnectionsManager reads proxy settings from exactly this file when it
+    calls init(), so writing anywhere else changes nothing.
+    """
+    if APPLICATION_LOADER is None:
+        return None
     try:
-        return MESSAGES_CTRL.getMainSettings(_account())
+        context = APPLICATION_LOADER.applicationContext
+        account = _account()
+        name = "mainconfig" if account == 0 else "mainconfig" + str(account)
+        return context.getSharedPreferences(name, 0)
     except Exception:
         return None
 
@@ -145,54 +190,127 @@ def _proxy_read():
         return None
 
 
-def _proxy_write(address, port, enable):
+def _proxy_read():
     prefs = _prefs()
     if prefs is None:
-        return False
+        return None
+    info = {
+        "enabled": False,
+        "address": "",
+        "port": 0,
+        "type": TYPE_SOCKS5,
+        "secret": "",
+        "user": "",
+        "password": "",
+    }
     try:
-        current = PROXY_SETTINGS.fromSharedPreferences(prefs)
-        builder = PROXY_SETTINGS.builder()
-        builder.setAddress(address)
-        builder.setPort(int(port))
-        if current.isValid():
-            builder.setType(current.getType())
-            builder.setUser(current.getUser() or "")
-            builder.setPassword(current.getPassword() or "")
-            builder.setSecret(current.getSecret() or "")
-        settings = builder.build()
-        if not settings.isValid():
-            return False
-        editor = prefs.edit()
-        settings.toSharedPreferences(editor)
-        editor.putBoolean("proxy_enabled", bool(enable))
-        editor.apply()
-        return True
-    except Exception:
-        return False
-
-
-def _proxy_apply():
-    info = _proxy_read()
-    if info is None:
-        return
-    try:
-        prefs = _prefs()
-        settings = PROXY_SETTINGS.fromSharedPreferences(prefs)
-        if not settings.isValid():
-            return
-        if not prefs.getBoolean("proxy_enabled", False):
-            CONNECTIONS.native_setProxySettings(_account(), "", 1080, "", "", "")
-            return
-        CONNECTIONS.native_setProxySettings(
-            _account(),
-            settings.getAddress(),
-            settings.getPort(),
-            settings.getUser() or "",
-            settings.getPassword() or "",
-            settings.getSecret() or "",
-        )
+        info["enabled"] = bool(prefs.getBoolean("proxy_enabled", False))
     except Exception:
         pass
+    try:
+        settings = PROXY_SETTINGS.fromSharedPreferences(prefs)
+        if settings.isValid():
+            info["address"] = settings.getAddress() or ""
+            info["port"] = int(settings.getPort())
+            info["type"] = settings.getType()
+            for getter, key in (
+                ("getSecret", "secret"),
+                ("getUser", "user"),
+                ("getPassword", "password"),
+            ):
+                try:
+                    info[key] = getattr(settings, getter)() or ""
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return info
+
+
+def _proxy_apply(enable, address=None, port=None, proxy_type=None, secret=None):
+    """Persist to mainconfig and hand the settings to ConnectionsManager.
+
+    Both halves matter. The prefs write is what survives a restart, because
+    init() re-reads proxy settings from mainconfig on every start. The
+    setProxySettings call is what takes effect right now, by pushing the
+    values into the native layer for every account. Writing only the prefs
+    leaves the running connection on the old route, which is why the switch
+    appeared to do nothing until the app was restarted.
+    """
+    current = _proxy_read() or {"address": "", "port": 0, "type": TYPE_SOCKS5}
+    if address is None:
+        address = current["address"]
+    if port is None:
+        port = current["port"]
+    if proxy_type is None:
+        proxy_type = current["type"]
+    if secret is None:
+        secret = current.get("secret", "")
+    secret = str(secret or "").strip()
+
+    address = str(address or "").strip()
+    try:
+        port = int(str(port).strip())
+    except Exception:
+        return False, "порт не число: %s" % port
+
+    if not enable:
+        prefs = _prefs()
+        if prefs is not None:
+            try:
+                editor = prefs.edit()
+                editor.putBoolean("proxy_enabled", False)
+                editor.apply()
+            except Exception:
+                pass
+        try:
+            CONNECTIONS.setProxySettings(False, None)
+            return True, "прокси выключен"
+        except Exception as exc:
+            return False, "не отключилось: %s" % exc
+
+    if not address:
+        return False, "не указан адрес"
+    if port <= 0 or port > 65535:
+        return False, "неверный порт: %s" % port
+
+    try:
+        builder = PROXY_SETTINGS.builder()
+        if proxy_type is not None:
+            builder.setType(proxy_type)
+        builder.setAddress(address)
+        builder.setPort(port)
+        if secret:
+            builder.setSecret(secret)
+        # Keep existing credentials: only the address/port are editable here,
+        # and dropping the login would silently break an authenticated proxy.
+        if current.get("user"):
+            builder.setUser(current["user"])
+        if current.get("password"):
+            builder.setPassword(current["password"])
+        settings = builder.build()
+        if not settings.isValid():
+            return False, "Telegram отклонил настройки как невалидные"
+    except Exception as exc:
+        return False, "не собрать настройки: %s" % exc
+
+    prefs = _prefs()
+    if prefs is None:
+        return False, "нет доступа к mainconfig"
+    try:
+        editor = prefs.edit()
+        settings.toSharedPreferences(editor)
+        editor.putBoolean("proxy_enabled", True)
+        editor.apply()
+    except Exception as exc:
+        return False, "не записать в настройки: %s" % exc
+
+    try:
+        CONNECTIONS.setProxySettings(True, settings)
+    except Exception as exc:
+        return False, "записал, но не применил: %s" % exc
+
+    return True, "%s:%d применён" % (address, port)
 
 
 class TgWsLinkiPlugin(BasePlugin):
@@ -269,10 +387,17 @@ class TgWsLinkiPlugin(BasePlugin):
             return rows
 
         # No engine in this build: drive Telegram's own proxy instead.
-        info = _proxy_read() or {"enabled": False, "address": "", "port": 0}
+        info = _proxy_read()
+
+        state = "выключен"
+        if info["enabled"]:
+            if info["address"]:
+                state = "%s:%d" % (info["address"], info["port"])
+            else:
+                state = "включён, адрес не задан"
 
         rows.append(Header(text="Состояние"))
-        rows.append(Text(text="Прокси включён" if info["enabled"] else "Прокси выключен"))
+        rows.append(Text(text="Прокси: " + state))
         rows.append(Divider())
 
         rows.append(Header(text="Прокси"))
@@ -281,6 +406,13 @@ class TgWsLinkiPlugin(BasePlugin):
             text="Использовать прокси",
             default=bool(info["enabled"]),
             on_change=self._on_proxy_enabled,
+        ))
+        rows.append(Selector(
+            key="proxy_type",
+            text="Тип",
+            default=1 if info["type"] == TYPE_MTPROTO else 0,
+            items=["SOCKS5", "MTProto"],
+            on_change=self._on_proxy_type,
         ))
         rows.append(Input(
             key="proxy_address",
@@ -295,7 +427,17 @@ class TgWsLinkiPlugin(BasePlugin):
             default=str(info["port"]),
             on_change=self._on_proxy_field,
         ))
+        if TYPE_MTPROTO is not None:
+            rows.append(Input(
+                key="proxy_secret",
+                text="Секрет",
+                default="",
+                default=info["secret"],
+                subtext="только для MTProto, вида ee... или base64",
+                on_change=self._on_proxy_field,
+            ))
         rows.append(Text(text="Применить", on_click=self._on_proxy_apply))
+        rows.append(Text(text="Отключить прокси", on_click=self._on_proxy_off))
         return rows
 
     # ---------------------------------------------------------- callbacks --
@@ -337,25 +479,39 @@ class TgWsLinkiPlugin(BasePlugin):
         _wsbypass_restart()
         self.log("restarted, state=%s" % _wsbypass_state())
 
+    def _apply_from_settings(self):
+        """Apply whatever the settings screen currently holds. Returns a message."""
+        try:
+            proxy_type = TYPE_MTPROTO if self.get_setting("proxy_type", 0) == 1 else TYPE_SOCKS5
+            address = (self.get_setting("proxy_address", "") or "").strip()
+            port = self.get_setting("proxy_port", "0") or "0"
+            enabled = bool(self.get_setting("proxy_enabled", False))
+            secret = (self.get_setting("proxy_secret", "") or "").strip()
+            ok, message = _proxy_apply(enabled, address, port, proxy_type, secret)
+            return ok, message
+        except Exception as exc:
+            return False, str(exc)
+
     def _on_proxy_enabled(self, value):
         self.set_setting("proxy_enabled", bool(value))
-        self._save_proxy()
+        ok, message = self._apply_from_settings()
+        _toast(message)
+        self.log("proxy switch=%s -> %s (%s)" % (value, "ok" if ok else "fail", message))
+
+    def _on_proxy_type(self, index):
+        self.set_setting("proxy_type", int(index))
+        self.log("proxy type=%d" % index)
 
     def _on_proxy_field(self, _value):
-        self._save_proxy()
-
-    def _save_proxy(self):
-        address = (self.get_setting("proxy_address", "") or "").strip()
-        try:
-            port = int((self.get_setting("proxy_port", "0") or "0").strip())
-        except Exception:
-            port = 0
-        if not address or port <= 0:
-            return
-        if _proxy_write(address, port, bool(self.get_setting("proxy_enabled", False))):
-            self.log("proxy saved %s:%d" % (address, port))
+        # Text fields only persist their own key, so read the rest back.
+        self.log("field changed")
 
     def _on_proxy_apply(self, _view):
-        self._save_proxy()
-        _proxy_apply()
-        self.log("proxy applied")
+        ok, message = self._apply_from_settings()
+        _toast(message)
+        self.log("proxy apply -> %s (%s)" % ("ok" if ok else "fail", message))
+
+    def _on_proxy_off(self, _view):
+        ok, message = _proxy_apply(False)
+        _toast(message)
+        self.log("proxy off -> %s (%s)" % ("ok" if ok else "fail", message))
