@@ -32,7 +32,7 @@ from ui.settings import Header, Switch, Selector, Input, Text, Divider
 
 __id__ = "tg_ws_linki"
 __name__ = "Обход блокировок"
-__version__ = "1.2"
+__version__ = "1.4"
 __min_version__ = ""
 __author__ = "LinkiGram"
 __description__ = "Обход: tg-ws-linki, релей или SOCKS5"
@@ -40,12 +40,24 @@ __icon__ = None
 __requirements__ = []
 
 
+RESOLVED = {}
+MISSING = {}
+
+
 def _try_class(*candidates):
-    """First Java class that resolves, or None."""
+    """First Java class that resolves, or None.
+
+    The fork that runs this plugin is unknown at import time, and a wrong guess
+    is indistinguishable from a missing API unless the resolution is recorded
+    and shown. RESOLVED and MISSING feed the diagnostics block.
+    """
     for name in candidates:
         try:
-            return jclass(name)
+            cls = jclass(name)
+            RESOLVED[name] = cls
+            return cls
         except Exception:
+            MISSING[name] = True
             continue
     return None
 
@@ -91,6 +103,67 @@ TYPE_MTPROTO = _try_static(PROXY_TYPE, "MTPROTO")
 
 ROUTE_RELAY = _try_static(WSBYPASS_CFG, "ROUTE_RELAY", 0)
 ROUTE_TGWS = _try_static(WSBYPASS_CFG, "ROUTE_TGWS", 1)
+
+
+def _diag():
+    """What actually resolved in the build this plugin was installed into.
+
+    Every call site here can fail in a way the user cannot see: the plugin
+    file is the same for every fork, so the only way to tell a wrong package
+    guess from a broken proxy is to print the outcome on the settings screen.
+    """
+    lines = []
+
+    if HAS_WSBYPASS:
+        lines.append("backend: wsbypass (движок есть)")
+    else:
+        lines.append("backend: proxy (движка нет)")
+
+    for name in (
+        "org.telegram.utils.proxy.ProxySettings",
+        "org.telegram.messenger.ProxySettings",
+        "org.telegram.tgnet.ProxySettings",
+    ):
+        cls = RESOLVED.get(name)
+        lines.append(("найден " if cls else "НЕ найден ") + name)
+
+    if CONNECTIONS is not None:
+        proxy_methods = []
+        try:
+            # jclass hands back a Python wrapper; the java.lang.Class lives on
+            # class_, and only that one answers getMethods().
+            for method in CONNECTIONS.class_.getMethods():
+                n = method.getName()
+                if "roxy" in n and n not in proxy_methods:
+                    proxy_methods.append(n)
+        except Exception as exc:
+            proxy_methods = ["? " + str(exc)]
+        lines.append("ConnectionsManager: " + (", ".join(sorted(proxy_methods)) or "нет методов прокси"))
+    else:
+        lines.append("ConnectionsManager: НЕ НАЙДЕН")
+
+    prefs = _prefs()
+    if prefs is None:
+        lines.append("mainconfig: НЕ ДОСТУПЕН")
+    else:
+        lines.append("mainconfig: доступен")
+        for key in ("proxy_enabled", "proxy_ip", "proxy_port", "proxy_type",
+                    "proxy_secret", "proxy_user", "proxy_pass"):
+            try:
+                lines.append("  %s = %r" % (key, prefs.getAll().get(key)))
+            except Exception as exc:
+                lines.append("  %s -> %s" % (key, exc))
+
+    try:
+        editor = prefs.edit()
+        editor.putString("tg_ws_linki_probe", "1")
+        editor.remove("tg_ws_linki_probe")
+        editor.apply()
+        lines.append("запись в prefs: ок")
+    except Exception as exc:
+        lines.append("запись в prefs: " + str(exc))
+
+    return lines
 
 
 def _toast(message):
@@ -227,6 +300,52 @@ def _proxy_read():
     return info
 
 
+def _push_native(enable, settings=None, address="", port=0, user="", password="", secret=""):
+    """Apply to the live connection, trying every shape the fork might expose.
+
+    Forks differ on which entry point survives: ConnectionsManager was given
+    setProxySettings() in newer bases, only the raw native call in older ones,
+    and a fork may have renamed either. Rather than commit to one and report
+    a bare exception, each attempt is recorded so the settings screen can say
+    which call this build actually accepted.
+
+    Returns (applied, notes).
+    """
+    if CONNECTIONS is None:
+        return False, ["ConnectionsManager отсутствует"]
+
+    notes = []
+    account = _account()
+
+    if not enable:
+        attempts = [
+            ("setProxySettings(bool,null)", lambda: CONNECTIONS.setProxySettings(False, None)),
+            ("setProxySettings(bool,str,int,str,str,str)",
+             lambda: CONNECTIONS.setProxySettings(False, "", 0, "", "", "")),
+            ("native_setProxySettings",
+             lambda: CONNECTIONS.native_setProxySettings(account, "", 1080, "", "", "")),
+        ]
+    else:
+        attempts = [
+            ("setProxySettings(bool,ProxySettings)",
+             lambda: CONNECTIONS.setProxySettings(True, settings)),
+            ("setProxySettings(bool,str,int,str,str,str)",
+             lambda: CONNECTIONS.setProxySettings(True, address, port, user, password, secret)),
+            ("native_setProxySettings",
+             lambda: CONNECTIONS.native_setProxySettings(
+                 account, address, port, user, password, secret)),
+        ]
+
+    for label, call in attempts:
+        try:
+            call()
+            return True, notes + [label + " -> ок"]
+        except Exception as exc:
+            notes.append(label + " -> " + str(exc)[:70])
+
+    return False, notes
+
+
 def _proxy_apply(enable, address=None, port=None, proxy_type=None, secret=None):
     """Persist to mainconfig and hand the settings to ConnectionsManager.
 
@@ -264,8 +383,10 @@ def _proxy_apply(enable, address=None, port=None, proxy_type=None, secret=None):
             except Exception:
                 pass
         try:
-            CONNECTIONS.setProxySettings(False, None)
-            return True, "прокси выключен"
+            applied, notes = _push_native(False)
+            if applied:
+                return True, "прокси выключен"
+            return False, "не отключилось: " + " | ".join(notes)
         except Exception as exc:
             return False, "не отключилось: %s" % exc
 
@@ -305,12 +426,19 @@ def _proxy_apply(enable, address=None, port=None, proxy_type=None, secret=None):
     except Exception as exc:
         return False, "не записать в настройки: %s" % exc
 
-    try:
-        CONNECTIONS.setProxySettings(True, settings)
-    except Exception as exc:
-        return False, "записал, но не применил: %s" % exc
+    applied, notes = _push_native(
+        True,
+        settings=settings,
+        address=address,
+        port=port,
+        user=current.get("user", "") or "",
+        password=current.get("password", "") or "",
+        secret=secret,
+    )
+    if not applied:
+        return False, "записал, но не применил: " + " | ".join(notes)
 
-    return True, "%s:%d применён" % (address, port)
+    return True, "%s:%d применён (%s)" % (address, port, notes[-1])
 
 
 class TgWsLinkiPlugin(BasePlugin):
@@ -400,6 +528,10 @@ class TgWsLinkiPlugin(BasePlugin):
         rows.append(Text(text="Прокси: " + state))
         rows.append(Divider())
 
+        for line in _diag():
+            rows.append(Text(text=line))
+        rows.append(Divider())
+
         rows.append(Header(text="Прокси"))
         rows.append(Switch(
             key="proxy_enabled",
@@ -437,6 +569,11 @@ class TgWsLinkiPlugin(BasePlugin):
             ))
         rows.append(Text(text="Применить", on_click=self._on_proxy_apply))
         rows.append(Text(text="Отключить прокси", on_click=self._on_proxy_off))
+        rows.append(Text(
+            text="Если не помогло — перезапусти приложение",
+            subtext="часть сборок читает прокси только при старте, "
+                    "из настроек его взять негде",
+        ))
         return rows
 
     # ---------------------------------------------------------- callbacks --
