@@ -470,6 +470,58 @@ public class NimarkoIconResources extends Resources {
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Non-drawable lookups are delegated to the wrapped instance.
+    //
+    // A Resources subclass built through the (AssetManager, DisplayMetrics,
+    // Configuration) constructor does not share the original ResourcesImpl, so
+    // anything it resolves on its own can come from the wrong table. The wrapper
+    // exists only to remap drawables, so everything else is proxied.
+    // ---------------------------------------------------------------------
+
+    @Override
+    public CharSequence getText(int id) throws NotFoundException {
+        return wrapped.getText(id);
+    }
+
+    // Resources.getText(int, Object[]) is hidden in the public SDK, so it cannot be
+    // overridden. Formatted strings go through getString(int, Object...) below.
+
+    @Override
+    public String getString(int id) throws NotFoundException {
+        return wrapped.getString(id);
+    }
+
+    @Override
+    public String getString(int id, Object... formatArgs) throws NotFoundException {
+        return wrapped.getString(id, formatArgs);
+    }
+
+    @Override
+    public CharSequence[] getTextArray(int id) throws NotFoundException {
+        return wrapped.getTextArray(id);
+    }
+
+    @Override
+    public String[] getStringArray(int id) throws NotFoundException {
+        return wrapped.getStringArray(id);
+    }
+
+    @Override
+    public int getInteger(int id) throws NotFoundException {
+        return wrapped.getInteger(id);
+    }
+
+    @Override
+    public String getQuantityString(int id, int quantity, Object... formatArgs) throws NotFoundException {
+        return wrapped.getQuantityString(id, quantity, formatArgs);
+    }
+
+    @Override
+    public CharSequence getQuantityText(int id, int quantity) throws NotFoundException {
+        return wrapped.getQuantityText(id, quantity);
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public Drawable getDrawable(int id) throws NotFoundException {

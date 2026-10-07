@@ -1,0 +1,361 @@
+"""
+Обход блокировок — control panel for LinkiGram, ExteraGram and plain Telegram.
+
+Why this looks defensive
+------------------------
+The bypass engine is not part of every fork. LinkiGram ships tg-ws-linki as a
+built-in bridge; ExteraGram does not, but every fork inherits Telegram's own
+SOCKS5/MTProto proxy support. So the plugin resolves its backend at runtime
+and shows only the rows it can actually drive.
+
+The earlier revision did `from app.nimarkogram.messenger.wsbypass import ...`
+at module level. ExteraGram has no `app.nimarkogram` package at all, so the
+module failed to import with "No module named 'app'" before any code ran.
+Java classes are now looked up through jclass() inside try/except, and a
+missing class degrades one feature instead of killing the plugin.
+
+Backends, in order of preference:
+  1. wsbypass  — LinkiGram: tg-ws-linki or relay, plus the VoIP toggle
+  2. proxy     — any fork: Telegram's own SOCKS5/MTProto proxy settings
+
+The proxy backend writes to the same mainconfig preferences Telegram itself
+reads, and applies through ConnectionsManager.native_setProxySettings, so the
+change takes effect without a restart.
+"""
+
+from typing import List, Any
+
+from java import jclass
+
+from base_plugin import BasePlugin, AppEvent
+from ui.settings import Header, Switch, Selector, Input, Text, Divider
+
+__id__ = "tg_ws_linki"
+__name__ = "Обход блокировок"
+__version__ = "1.1"
+__min_version__ = ""
+__author__ = "LinkiGram"
+__description__ = "Обход: tg-ws-linki, релей или SOCKS5"
+__icon__ = None
+__requirements__ = []
+
+
+def _try_class(*candidates):
+    """First Java class that resolves, or None."""
+    for name in candidates:
+        try:
+            return jclass(name)
+        except Exception:
+            continue
+    return None
+
+
+def _try_static(cls, name, default=None):
+    if cls is None:
+        return default
+    try:
+        field = cls.getField(name)
+        return field.get(None)
+    except Exception:
+        return default
+
+
+# --------------------------------------------------------------- backends ---
+
+WSBYPASS_CFG = _try_class("app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig")
+WSBYPASS_CTRL = _try_class("app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController")
+VOIP_CFG = _try_class("app.nimarkogram.messenger.wsbypass.voip.VoipBypassConfig")
+
+PROXY_SETTINGS = _try_class("org.telegram.utils.proxy.ProxySettings")
+CONNECTIONS = _try_class("org.telegram.tgnet.ConnectionsManager")
+MESSAGES_CTRL = _try_class("org.telegram.messenger.MessagesController")
+USER_CONFIG = _try_class("org.telegram.messenger.UserConfig")
+
+HAS_WSBYPASS = WSBYPASS_CFG is not None and WSBYPASS_CTRL is not None
+HAS_PROXY = PROXY_SETTINGS is not None and MESSAGES_CTRL is not None
+
+ROUTE_RELAY = _try_static(WSBYPASS_CFG, "ROUTE_RELAY", 0)
+ROUTE_TGWS = _try_static(WSBYPASS_CFG, "ROUTE_TGWS", 1)
+
+
+def _account():
+    try:
+        return int(USER_CONFIG.selectedAccount)
+    except Exception:
+        return 0
+
+
+def _prefs():
+    try:
+        return MESSAGES_CTRL.getMainSettings(_account())
+    except Exception:
+        return None
+
+
+def _wsbypass_state():
+    if not HAS_WSBYPASS:
+        return ""
+    try:
+        if not WSBYPASS_CFG.enabled:
+            return "выключен"
+        state = WSBYPASS_CTRL.getInstance().getConnectionState()
+        labels = {
+            WSBYPASS_CTRL.STATE_OFF: "выключен",
+            WSBYPASS_CTRL.STATE_STARTING: "запускается",
+            WSBYPASS_CTRL.STATE_RUNNING: "работает",
+            WSBYPASS_CTRL.STATE_FAILED: "ошибка",
+            WSBYPASS_CTRL.STATE_VPN: "VPN активен",
+        }
+        label = labels.get(state, state)
+        if state == WSBYPASS_CTRL.STATE_FAILED:
+            error = WSBYPASS_CTRL.getInstance().getLastError()
+            if error:
+                label = "ошибка: " + str(error)
+        return label
+    except Exception:
+        return "неизвестно"
+
+
+def _wsbypass_restart():
+    if not HAS_WSBYPASS:
+        return
+    try:
+        ctrl = WSBYPASS_CTRL.getInstance()
+        ctrl.stop()
+        ctrl.ensureStarted()
+    except Exception:
+        pass
+
+
+def _proxy_read():
+    prefs = _prefs()
+    if prefs is None:
+        return None
+    try:
+        settings = PROXY_SETTINGS.fromSharedPreferences(prefs)
+        if not settings.isValid():
+            return None
+        return {
+            "enabled": bool(prefs.getBoolean("proxy_enabled", False)),
+            "address": settings.getAddress() or "",
+            "port": int(settings.getPort()),
+            "type": str(settings.getType()),
+        }
+    except Exception:
+        return None
+
+
+def _proxy_write(address, port, enable):
+    prefs = _prefs()
+    if prefs is None:
+        return False
+    try:
+        current = PROXY_SETTINGS.fromSharedPreferences(prefs)
+        builder = PROXY_SETTINGS.builder()
+        builder.setAddress(address)
+        builder.setPort(int(port))
+        if current.isValid():
+            builder.setType(current.getType())
+            builder.setUser(current.getUser() or "")
+            builder.setPassword(current.getPassword() or "")
+            builder.setSecret(current.getSecret() or "")
+        settings = builder.build()
+        if not settings.isValid():
+            return False
+        editor = prefs.edit()
+        settings.toSharedPreferences(editor)
+        editor.putBoolean("proxy_enabled", bool(enable))
+        editor.apply()
+        return True
+    except Exception:
+        return False
+
+
+def _proxy_apply():
+    info = _proxy_read()
+    if info is None:
+        return
+    try:
+        prefs = _prefs()
+        settings = PROXY_SETTINGS.fromSharedPreferences(prefs)
+        if not settings.isValid():
+            return
+        if not prefs.getBoolean("proxy_enabled", False):
+            CONNECTIONS.native_setProxySettings(_account(), "", 1080, "", "", "")
+            return
+        CONNECTIONS.native_setProxySettings(
+            _account(),
+            settings.getAddress(),
+            settings.getPort(),
+            settings.getUser() or "",
+            settings.getPassword() or "",
+            settings.getSecret() or "",
+        )
+    except Exception:
+        pass
+
+
+class TgWsLinkiPlugin(BasePlugin):
+
+    def on_plugin_load(self):
+        if HAS_WSBYPASS:
+            self.log("backend: wsbypass (tg-ws-linki / relay)")
+        elif HAS_PROXY:
+            self.log("backend: proxy (SOCKS5/MTProto)")
+        else:
+            self.log("backend: none, no proxy API found")
+
+    def on_app_event(self, event_type: AppEvent):
+        if event_type != AppEvent.RESUME:
+            return
+        if HAS_WSBYPASS:
+            try:
+                if WSBYPASS_CFG.enabled:
+                    WSBYPASS_CTRL.getInstance().ensureStarted()
+            except Exception:
+                pass
+
+    # ------------------------------------------------------------ settings --
+
+    def create_settings(self) -> List[Any]:
+        rows: List[Any] = []
+
+        if not HAS_WSBYPASS and not HAS_PROXY:
+            rows.append(Header(text="Обход"))
+            rows.append(Text(text="Не поддерживается в этой сборке"))
+            return rows
+
+        if HAS_WSBYPASS:
+            rows.append(Header(text="Состояние"))
+            rows.append(Text(
+                text="Статус: " + _wsbypass_state(),
+                subtext="Маршрут: " + (
+                    "релей" if WSBYPASS_CFG.routeMode == ROUTE_RELAY else "tg-ws-linki"),
+            ))
+            rows.append(Text(text="Запустить сейчас", on_click=self._on_start))
+            rows.append(Text(text="Перезапустить обход", on_click=self._on_restart))
+            rows.append(Divider())
+
+            rows.append(Header(text="Обход"))
+            rows.append(Switch(
+                key="ws_enabled",
+                text="Обход включён",
+                default=bool(WSBYPASS_CFG.enabled),
+                on_change=self._on_enabled,
+            ))
+            rows.append(Selector(
+                key="ws_route",
+                text="Маршрут",
+                default=0 if WSBYPASS_CFG.routeMode == ROUTE_RELAY else 1,
+                items=["Релей", "tg-ws-linki"],
+                on_change=self._on_route,
+            ))
+            rows.append(Switch(
+                key="ws_suspend_vpn",
+                text="Останавливать при VPN",
+                default=bool(WSBYPASS_CFG.suspendOnVpn),
+                on_change=self._on_suspend_vpn,
+            ))
+
+            if VOIP_CFG is not None:
+                rows.append(Divider())
+                rows.append(Header(text="Звонки"))
+                rows.append(Switch(
+                    key="ws_voip",
+                    text="Обход для звонков",
+                    default=bool(VOIP_CFG.isVoipBypassEnabled()),
+                    on_change=self._on_voip,
+                ))
+            return rows
+
+        # No engine in this build: drive Telegram's own proxy instead.
+        info = _proxy_read() or {"enabled": False, "address": "", "port": 0}
+
+        rows.append(Header(text="Состояние"))
+        rows.append(Text(text="Прокси включён" if info["enabled"] else "Прокси выключен"))
+        rows.append(Divider())
+
+        rows.append(Header(text="Прокси"))
+        rows.append(Switch(
+            key="proxy_enabled",
+            text="Использовать прокси",
+            default=bool(info["enabled"]),
+            on_change=self._on_proxy_enabled,
+        ))
+        rows.append(Input(
+            key="proxy_address",
+            text="Адрес",
+            default=info["address"],
+            subtext="host или ip, например 127.0.0.1",
+            on_change=self._on_proxy_field,
+        ))
+        rows.append(Input(
+            key="proxy_port",
+            text="Порт",
+            default=str(info["port"]),
+            on_change=self._on_proxy_field,
+        ))
+        rows.append(Text(text="Применить", on_click=self._on_proxy_apply))
+        return rows
+
+    # ---------------------------------------------------------- callbacks --
+
+    def _on_enabled(self, value):
+        WSBYPASS_CFG.setEnabled(bool(value))
+        try:
+            if value:
+                WSBYPASS_CTRL.getInstance().ensureStarted()
+            else:
+                WSBYPASS_CTRL.getInstance().stop()
+        except Exception:
+            pass
+        self.log("wsbypass enabled=%s" % value)
+
+    def _on_route(self, index):
+        WSBYPASS_CFG.setRouteMode(ROUTE_RELAY if index == 0 else ROUTE_TGWS)
+        _wsbypass_restart()
+        self.log("route=%s" % ("relay" if index == 0 else "tg-ws-linki"))
+
+    def _on_suspend_vpn(self, value):
+        WSBYPASS_CFG.setSuspendOnVpn(bool(value))
+        try:
+            WSBYPASS_CTRL.getInstance().reevaluateForVpnToggle()
+        except Exception:
+            pass
+
+    def _on_voip(self, value):
+        VOIP_CFG.setVoipBypassEnabled(bool(value))
+
+    def _on_start(self, _view):
+        try:
+            WSBYPASS_CTRL.getInstance().ensureStarted()
+        except Exception:
+            pass
+        self.log("start requested, state=%s" % _wsbypass_state())
+
+    def _on_restart(self, _view):
+        _wsbypass_restart()
+        self.log("restarted, state=%s" % _wsbypass_state())
+
+    def _on_proxy_enabled(self, value):
+        self.set_setting("proxy_enabled", bool(value))
+        self._save_proxy()
+
+    def _on_proxy_field(self, _value):
+        self._save_proxy()
+
+    def _save_proxy(self):
+        address = (self.get_setting("proxy_address", "") or "").strip()
+        try:
+            port = int((self.get_setting("proxy_port", "0") or "0").strip())
+        except Exception:
+            port = 0
+        if not address or port <= 0:
+            return
+        if _proxy_write(address, port, bool(self.get_setting("proxy_enabled", False))):
+            self.log("proxy saved %s:%d" % (address, port))
+
+    def _on_proxy_apply(self, _view):
+        self._save_proxy()
+        _proxy_apply()
+        self.log("proxy applied")

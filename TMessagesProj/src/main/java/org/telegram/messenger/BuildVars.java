@@ -21,7 +21,14 @@ public class BuildVars {
     public static boolean DEBUG_VERSION = BuildConfig.DEBUG_VERSION;
     public static boolean LOGS_ENABLED = BuildConfig.DEBUG_VERSION;
     public static boolean DEBUG_PRIVATE_VERSION = BuildConfig.DEBUG_PRIVATE_VERSION;
-    public static boolean USE_CLOUD_STRINGS = true;
+    // LinkiGram: off. With cloud strings on, LocaleController.getStringV2() asks
+    // localizationExternal first, and that table is built from the translation file
+    // downloaded from Telegram's servers. It still carries the upstream branding, so
+    // AppName came back as "Telegram" even though our own localization assets and
+    // resources.arsc both say LinkiGram. Every string the fork rebrands was being
+    // overridden the same way. Local assets are generated from our own
+    // values-*/strings.xml, so they are the source of truth.
+    public static boolean USE_CLOUD_STRINGS = false;
     public static boolean CHECK_UPDATES = true;
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
