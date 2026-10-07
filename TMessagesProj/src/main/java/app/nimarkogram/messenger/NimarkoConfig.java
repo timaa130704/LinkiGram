@@ -659,6 +659,22 @@ public final class NimarkoConfig {
     public static boolean disableDividers = getPreferences().getBoolean("disableDividers", true);
     public static void toggleDisableDividers() { disableDividers = !disableDividers; getEditor().putBoolean("disableDividers", disableDividers).apply(); }
 
+    /** Material 3: секции настроек в виде карточек с elevation-тенью.
+     *  Перенесено из exteraless (SectionCardRecyclerView): там тень рисуется
+     *  принудительно, минуя выключенный по умолчанию SharedConfig.shadowsInSections. */
+    public static boolean materialCards = getPreferences().getBoolean("materialCards", true);
+    public static void toggleMaterialCards() { materialCards = !materialCards; getEditor().putBoolean("materialCards", materialCards).apply(); }
+
+    /** Радиус карточек секций, dp. 0 — секции плоские, без скругления. */
+    public static final int SECTION_RADIUS_MAX = 28;
+    public static int sectionRadius = getPreferences().getInt("sectionRadius", 20);
+    public static void setSectionRadius(int v) {
+        if (v < 0) v = 0;
+        if (v > SECTION_RADIUS_MAX) v = SECTION_RADIUS_MAX;
+        sectionRadius = v;
+        getEditor().putInt("sectionRadius", v).apply();
+    }
+
     public static final int ICON_REPLACE_NONE = 0;
     public static final int ICON_REPLACE_SOLAR = 1;
     

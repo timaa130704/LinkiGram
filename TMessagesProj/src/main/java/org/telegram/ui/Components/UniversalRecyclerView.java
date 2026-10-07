@@ -23,6 +23,8 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import app.nimarkogram.messenger.NimarkoConfig;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -433,6 +435,14 @@ public class UniversalRecyclerView extends RecyclerListView {
     public void setSections(boolean topPadding) {
         setSections(dp(12), dp(16), topPadding);
     }
+    /** Материал-3: радиус карточки секции. Если карточки выключены — оставляем значение вызывающего. */
+    private static float resolveSectionRadius(float requested) {
+        if (NimarkoConfig.materialCards && NimarkoConfig.sectionRadius > 0) {
+            return dp(NimarkoConfig.sectionRadius);
+        }
+        return requested;
+    }
+
     public void setSections(int padding, float roundRadius, boolean topPadding) {
         super.setSections(
             view -> {
@@ -441,9 +451,42 @@ public class UniversalRecyclerView extends RecyclerListView {
                 return !UniversalAdapter.isShadow(viewHolder.getItemViewType());
             },
             UniversalAdapter::isShadow,
-            padding, roundRadius,
-            super::drawBackgroundRect,
+            padding, resolveSectionRadius(roundRadius),
+            this::drawBackgroundRect,
             topPadding
         );
+    }
+
+    private final static Paint cardFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final static Paint cardStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final static Path cardPath = new Path();
+    private final static float[] cardRadii = new float[8];
+
+    /**
+     * Material 3: карточка секции с elevation-тенью. Отличие от {@link RecyclerListView} в том,
+     * что тень рисуется принудительно и не зависит от выключенного по умолчанию
+     * {@code SharedConfig.shadowsInSections} — это и есть поведение SectionCardRecyclerView из exteraless.
+     */
+    @Override
+    public void drawBackgroundRect(Canvas canvas, RectF rect, float topRadius, float bottomRadius, float alpha) {
+        if (!NimarkoConfig.materialCards || NimarkoConfig.sectionRadius <= 0) {
+            super.drawBackgroundRect(canvas, rect, topRadius, bottomRadius, alpha);
+            return;
+        }
+        cardStrokePaint.setShadowLayer(dpf2(0.33f), 0, 0, multAlpha(0x0c000000, alpha));
+        cardStrokePaint.setColor(0);
+        cardFillPaint.setShadowLayer(dpf2(2), 0, dpf2(0.33f), multAlpha(0x0a000000, alpha));
+        cardFillPaint.setColor(multAlpha(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider), alpha));
+        if (topRadius == bottomRadius) {
+            canvas.drawRoundRect(rect, topRadius, topRadius, cardStrokePaint);
+            canvas.drawRoundRect(rect, topRadius, topRadius, cardFillPaint);
+        } else {
+            cardPath.rewind();
+            cardRadii[0] = cardRadii[1] = cardRadii[2] = cardRadii[3] = topRadius;
+            cardRadii[4] = cardRadii[5] = cardRadii[6] = cardRadii[7] = bottomRadius;
+            cardPath.addRoundRect(rect, cardRadii, Path.Direction.CW);
+            canvas.drawPath(cardPath, cardStrokePaint);
+            canvas.drawPath(cardPath, cardFillPaint);
+        }
     }
 }

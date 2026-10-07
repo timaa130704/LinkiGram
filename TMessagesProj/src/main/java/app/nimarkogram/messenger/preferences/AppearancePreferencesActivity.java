@@ -43,6 +43,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int iconPackRow = 4;
     private final int oneUISwitchesRow = 5;
     private final int disableDividersRow = 6;
+    private final int materialCardsRow = 24;
+    private final int sectionRadiusRow = 25;
     private final int glareOnElementsRow = 10;
     private final int forumAvatarsRow = 12;
     private final int forceBlurRow = 13;
@@ -85,6 +87,11 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(SettingsHelper.asSwitchCG(disableDividersRow, getString(R.string.AP_DisableDividers))
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.disableDividers)
         );
+        items.add(SettingsHelper.asSwitchCG(materialCardsRow,
+                        getString(R.string.AP_MaterialCards),
+                        getString(R.string.AP_MaterialCards_Desc))
+                .setChecked(NimarkoConfig.materialCards));
+        items.add(UItem.asButton(sectionRadiusRow, getString(R.string.AP_SectionRadius), getSectionRadiusValueText()));
         items.add(SettingsHelper.asSwitchCG(forceBlurRow, getString(R.string.NM_ForceBlur))
                 .setChecked(NimarkoConfig.forceBlur));
         items.add(UItem.asShadow(null));
@@ -229,6 +236,30 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             listView.adapter.update(true);
             
             if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+        } else if (item.id == materialCardsRow) {
+            NimarkoConfig.toggleMaterialCards();
+            updateCheckState(view, NimarkoConfig.materialCards);
+
+            SettingsHelper.updateButtonValue(view, getSectionRadiusValueText());
+            refreshSectionCards();
+        } else if (item.id == sectionRadiusRow) {
+            final int[] values = {8, 12, 16, 20, 24, 28};
+            final java.util.ArrayList<CharSequence> opts = new java.util.ArrayList<>();
+            for (int v : values) {
+                opts.add(v + " dp");
+            }
+            int current = -1;
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] == NimarkoConfig.sectionRadius) {
+                    current = i;
+                }
+            }
+            app.nimarkogram.messenger.preferences.helpers.PopupHelper.show(opts, getString(R.string.AP_SectionRadius),
+                    current, getContext(), i -> {
+                        NimarkoConfig.setSectionRadius(values[i]);
+                        SettingsHelper.updateButtonValue(view, getSectionRadiusValueText());
+                        refreshSectionCards();
+                    });
         } else if (item.id == glareOnElementsRow) {
             NimarkoConfig.toggleGlareOnElements();
             updateCheckState(view, NimarkoConfig.glareOnElements);
@@ -322,6 +353,33 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             case NimarkoConfig.SWITCH_STYLE_MD3 -> "MD3";
             default -> getString(R.string.Default);
         };
+    }
+
+    private String getSectionRadiusValueText() {
+        return NimarkoConfig.sectionRadius + " dp";
+    }
+
+    /**
+     * Радиус карточек хранится в RecyclerListView на момент вызова setSections,
+     * поэтому после его смены секции надо пересобрать, а не просто перерисовать.
+     */
+    private void refreshSectionCards() {
+        if (listView == null) {
+            return;
+        }
+        if (NimarkoConfig.materialCards) {
+            listView.setSections(true);
+        } else {
+            listView.disableSections();
+        }
+        for (int k = 0; k < listView.getChildCount(); k++) {
+            View child = listView.getChildAt(k);
+            if (child != null) {
+                child.invalidate();
+            }
+        }
+        listView.invalidateItemDecorations();
+        listView.invalidate();
     }
 
     private String getCustomTitleValueText() {

@@ -12435,4 +12435,7 @@
 <string name="LoginQrSubtitle">Open Telegram on your phone, go to Settings &gt; Devices &gt; Link Desktop Device and scan this code.</string>
 <string name="ChooseSubtitles">Choose subtitles</string>
 <string name="DisableSubtitles">Disable subtitles</string>
+    <string name="AP_MaterialCards">Material 3 cards</string>
+    <string name="AP_MaterialCards_Desc">Show settings sections as rounded cards with elevation.</string>
+    <string name="AP_SectionRadius">Card corner radius</string>
 </resources>

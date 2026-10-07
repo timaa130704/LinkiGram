@@ -9,6 +9,8 @@ import android.widget.FrameLayout;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import app.nimarkogram.messenger.NimarkoConfig;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -68,6 +70,12 @@ public abstract class UniversalFragment extends BaseFragment {
             }
         };
         contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        // Material 3: секции-карточки. Радиус и сам факт карточек берутся из NimarkoConfig,
+        // отрисовку тени см. UniversalRecyclerView#drawBackgroundRect.
+        if (NimarkoConfig.materialCards) {
+            listView.setSections(true);
+        }
 
         return fragmentView = contentView;
     }
