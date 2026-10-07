@@ -431,7 +431,6 @@ class TgWsLinkiPlugin(BasePlugin):
             rows.append(Input(
                 key="proxy_secret",
                 text="Секрет",
-                default="",
                 default=info["secret"],
                 subtext="только для MTProto, вида ee... или base64",
                 on_change=self._on_proxy_field,
