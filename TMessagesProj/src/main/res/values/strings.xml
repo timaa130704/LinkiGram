@@ -12360,6 +12360,8 @@
 <string name="CG_Sleep_Disabled">Sleep timer is disabled</string>
 <string name="CG_Sleep_Permission">Please allow LinkiGram to schedule exact alarms so that the sleep timer can work properly.</string>
 <string name="CG_Sleep_Timer">Sleep timer is set to **%s**</string>
+    <string name="NM_SleepTimer_Off">Off</string>
+    <string name="NM_SleepTimer_At">Stops at %s</string>
 <string name="CG_SortByDate">Sort by message date</string>
 <string name="CG_SortByUnread">Sort by unread first</string>
 <string name="CG_StickerSavedHint">Sticker saved to downloads</string>

@@ -54,6 +54,7 @@ import java.util.List;
 
 import app.nimarkogram.messenger.NimarkoConfig;
 import app.nimarkogram.messenger.utils.NimarkoConfigBackup;
+import app.nimarkogram.messenger.utils.NimarkoSleepTimer;
 import app.nimarkogram.messenger.preferences.helpers.PopupHelper;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 
@@ -85,6 +86,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient2Row = 29;
     private final int inBubbleGradient3Row = 30;
     private final int sendOriginalPhotoRow = 31;
+    private final int sleepTimerRow = 34;
 
     private final int hideStoriesRow = 7;
     private final int archiveStoriesRow = 8;
@@ -219,6 +221,8 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         );
         items.add(UItem.asShadow(null));
 
+        items.add(UItem.asButton(sleepTimerRow, getString(R.string.CG_Sleep), getSleepTimerValue()));
+
         items.add(UItem.asHeader(getString(R.string.NM_GhostMode)));
         items.add(SettingsHelper.asSwitchCG(ghostTypingRow, getString(R.string.NM_GhostTyping), getString(R.string.NM_GhostTyping_Desc))
                 .setChecked(NimarkoConfig.ghostTyping)
@@ -260,9 +264,61 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         items.add(UItem.asShadow(getString(R.string.NM_Config_Info)));
     }
 
+    private static final int[] SLEEP_TIMER_MINUTES = {0, 5, 10, 15, 30, 45, 60, 90, 120};
+
+    private String formatClockTime(long at) {
+        try {
+            return java.text.DateFormat
+                    .getTimeInstance(java.text.DateFormat.SHORT)
+                    .format(new java.util.Date(at));
+        } catch (Throwable ignored) {
+            return String.valueOf(at);
+        }
+    }
+
+    private String getSleepTimerValue() {
+        final long at = NimarkoConfig.sleepTimerAt;
+        final int minutes = NimarkoConfig.sleepTimerMinutes;
+        if (minutes <= 0 || at <= 0L) {
+            return getString(R.string.NM_SleepTimer_Off);
+        }
+        return org.telegram.messenger.LocaleController.formatString(
+                R.string.NM_SleepTimer_At, formatClockTime(at));
+    }
+
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
-        if (item.id == springAnimationRow) {
+        if (item.id == sleepTimerRow) {
+            ArrayList<String> labels = new ArrayList<>();
+            int selected = 0;
+            // Labelled by the clock time playback will stop rather than by a
+            // duration: the fork has no <plurals>, and "5 мин / 2 минуты" would
+            // need a grammar the picker cannot express.
+            for (int i = 0; i < SLEEP_TIMER_MINUTES.length; i++) {
+                int minutes = SLEEP_TIMER_MINUTES[i];
+                if (minutes == 0) {
+                    labels.add(getString(R.string.NM_SleepTimer_Off));
+                } else {
+                    labels.add(formatClockTime(System.currentTimeMillis() + minutes * 60_000L));
+                }
+                if (minutes == NimarkoConfig.sleepTimerMinutes) {
+                    selected = i;
+                }
+            }
+            final int picked = selected;
+            PopupHelper.show(labels, getString(R.string.CG_Sleep), picked, getContext(), i -> {
+                NimarkoSleepTimer.schedule(getContext(), SLEEP_TIMER_MINUTES[i]);
+                SettingsHelper.updateButtonValue(view, getSleepTimerValue());
+                listView.adapter.update(true);
+                if (SLEEP_TIMER_MINUTES[i] == 0) {
+                    org.telegram.ui.Components.BulletinFactory.of(this).createSimpleBulletin(
+                            R.raw.info, getString(R.string.CG_Sleep_Disabled)).show();
+                } else {
+                    org.telegram.ui.Components.BulletinFactory.of(this)
+                            .createSimpleBulletin(R.raw.info, getSleepTimerValue()).show();
+                }
+            });
+        } else if (item.id == springAnimationRow) {
             ArrayList<String> configStringKeys = new ArrayList<>();
             ArrayList<Integer> configValues = new ArrayList<>();
 

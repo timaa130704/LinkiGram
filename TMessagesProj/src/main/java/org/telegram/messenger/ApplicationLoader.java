@@ -402,6 +402,11 @@ public class ApplicationLoader extends Application {
         try { app.nimarkogram.messenger.wsbypass.NimarkoVpnDetector.start(); } catch (Throwable ignored) {}
         try { app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().ensureStartedSync(); } catch (Throwable ignored) {}
 
+        // Re-arm the sleep timer. AlarmManager does not survive a reboot, so a
+        // timer set before one would otherwise never fire and the row would keep
+        // claiming it is scheduled. apply() is a no-op when no timer is set.
+        try { app.nimarkogram.messenger.utils.NimarkoSleepTimer.apply(applicationContext); } catch (Throwable ignored) {}
+
         // Warm the relay auth tokens ahead of first use, but only when the matching
         // transport is actually enabled.
         try {

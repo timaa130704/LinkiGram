@@ -1589,6 +1589,25 @@ public final class NimarkoConfig {
     public static void toggleSleepTimer() { sleepTimer = !sleepTimer; getEditor().putBoolean("sleepTimer", sleepTimer).apply(); }
     public static void setSleepTimer(boolean v) { sleepTimer = v; getEditor().putBoolean("sleepTimer", v).apply(); }
 
+    // Sleep timer duration and the wall clock time it fires at. The receiver
+    // existed in the manifest but nothing armed it, so sleepTimer was a flag
+    // with no reader and the feature did nothing. Duration is what the user
+    // actually picks; sleepTimer stays as the on/off view of it.
+    public static int sleepTimerMinutes = getPreferences().getInt("sleepTimerMinutes", 0);
+    public static long sleepTimerAt = getPreferences().getLong("sleepTimerAt", 0L);
+
+    public static void setSleepTimerMinutes(int minutes) {
+        sleepTimerMinutes = Math.max(0, minutes);
+        sleepTimer = sleepTimerMinutes > 0;
+        getEditor().putInt("sleepTimerMinutes", sleepTimerMinutes)
+                .putBoolean("sleepTimer", sleepTimer).apply();
+    }
+
+    public static void setSleepTimerAt(long at) {
+        sleepTimerAt = Math.max(0L, at);
+        getEditor().putLong("sleepTimerAt", sleepTimerAt).apply();
+    }
+
     public static boolean nimarkoTextAnim = getPreferences().getBoolean("nimarkoTextAnim", false);
     public static void toggleNimarkoTextAnim() {
         nimarkoTextAnim = !nimarkoTextAnim;

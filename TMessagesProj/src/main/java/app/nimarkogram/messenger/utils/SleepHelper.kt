@@ -17,7 +17,8 @@ class SleepHelper : BroadcastReceiver() {
         if (!MediaController.getInstance().isMessagePaused) {
             MediaController.getInstance().pauseMessage(MediaController.getInstance().playingMessageObject)
         }
-        NimarkoConfig.setSleepTimer(false)
+        NimarkoConfig.setSleepTimerMinutes(0)
+        NimarkoConfig.setSleepTimerAt(0)
     }
 
 }
