@@ -352,7 +352,7 @@ public class LinkiUpdateSheet extends BottomSheet implements NimarkoUpdater.Down
                 subtitle = checkedText();
                 break;
             case STATE_LATEST:
-                statusImage.setImageResource(R.drawable.msg_check);
+                statusImage.setImageResource(R.drawable.msg_check_s);
                 statusTitle.setText(getString(R.string.LUS_Latest));
                 subtitle = checkedText();
                 break;
