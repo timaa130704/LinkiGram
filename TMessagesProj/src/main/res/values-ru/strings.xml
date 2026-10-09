@@ -1064,6 +1064,14 @@
     <string name="CP_SilenceNonContacts">Заглушить не-контакты</string>
     <string name="CP_SilenceNonContacts_Desc">Если включено, то уведомления со звуком будут приходить только от контактов. Вы можете добавить человека в контакты без наличия его номера телефона (в профиле человека)</string>
     <string name="NM_GhostMode">Призрачный режим</string>
+    <string name="NM_GhostMaster">Включить призрачный режим</string>
+    <string name="NM_GhostMaster_Desc">Включить или выключить все призрачные опции разом</string>
+    <string name="NM_GhostStories">Скрыть просмотры сторис</string>
+    <string name="NM_GhostStories_Desc">Не отмечать сторис как просмотренные</string>
+    <string name="NM_GhostReadAfterSend">Отмечать прочитанным после отправки</string>
+    <string name="NM_GhostReadAfterSend_Desc">Когда подтверждения прочтения скрыты, чат отмечается прочитанным после отправки в нём сообщения</string>
+    <string name="NM_GhostOfflineAfterSend">Уходить в офлайн после отправки</string>
+    <string name="NM_GhostOfflineAfterSend_Desc">Отправлять статус офлайна вскоре после каждого исходящего сообщения</string>
     <string name="NM_GhostTyping">Скрыть статус «печатает»</string>
     <string name="NM_GhostTyping_Desc">Не отправлять уведомления о наборе текста другим пользователям</string>
     <string name="NM_GhostOnline">Скрыть статус «в сети»</string>

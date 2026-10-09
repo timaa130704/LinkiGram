@@ -11835,6 +11835,14 @@
 <string name="NM_Vibrate_Long">Long press</string>
 <string name="NM_PredictiveBackAnimation">Predictive-Back navigation</string>
 <string name="NM_GhostMode">Ghost mode</string>
+<string name="NM_GhostMaster">Enable ghost mode</string>
+<string name="NM_GhostMaster_Desc">Turn all ghost options on or off at once</string>
+<string name="NM_GhostStories">Hide story views</string>
+<string name="NM_GhostStories_Desc">Don\'t mark stories as viewed</string>
+<string name="NM_GhostReadAfterSend">Mark as read after sending</string>
+<string name="NM_GhostReadAfterSend_Desc">When read receipts are hidden, mark the chat as read after you send a message in it</string>
+<string name="NM_GhostOfflineAfterSend">Go offline after sending</string>
+<string name="NM_GhostOfflineAfterSend_Desc">Send an offline status shortly after each outgoing message</string>
 <string name="NM_GhostTyping">Hide typing status</string>
 <string name="NM_GhostTyping_Desc">Don\'t send typing notifications to other users</string>
 <string name="NM_GhostOnline">Hide online status</string>

@@ -236,6 +236,54 @@ public final class NimarkoConfig {
         getEditor().putBoolean("ghostReadReceipts", ghostReadReceipts).apply();
     }
 
+    // Ghost mode extras (port of AyuGram/exteraless ghost options)
+    public static volatile boolean ghostStories = getPreferences().getBoolean("ghostStories", false);
+    public static void toggleGhostStories() {
+        ghostStories = !ghostStories;
+        getEditor().putBoolean("ghostStories", ghostStories).apply();
+    }
+
+    public static volatile boolean ghostReadAfterSend = getPreferences().getBoolean("ghostReadAfterSend", true);
+    public static void toggleGhostReadAfterSend() {
+        ghostReadAfterSend = !ghostReadAfterSend;
+        getEditor().putBoolean("ghostReadAfterSend", ghostReadAfterSend).apply();
+    }
+
+    public static volatile boolean ghostOfflineAfterSend = getPreferences().getBoolean("ghostOfflineAfterSend", false);
+    public static void toggleGhostOfflineAfterSend() {
+        ghostOfflineAfterSend = !ghostOfflineAfterSend;
+        getEditor().putBoolean("ghostOfflineAfterSend", ghostOfflineAfterSend).apply();
+    }
+
+    // Ghost mode master switch (port of NekoConfig.setGhostMode/isGhostModeActive):
+    // flips all hiding toggles at once. Behavior options (read-after-send,
+    // offline-after-send) are never touched by the master toggle.
+    public static boolean isGhostModeActive() {
+        return ghostTyping && ghostOnline && ghostReadReceipts && ghostStories;
+    }
+
+    public static void setGhostMode(boolean enabled) {
+        ghostTyping = enabled;
+        ghostOnline = enabled;
+        ghostReadReceipts = enabled;
+        ghostStories = enabled;
+        SharedPreferences.Editor editor = getEditor();
+        editor.putBoolean("ghostTyping", enabled);
+        editor.putBoolean("ghostOnline", enabled);
+        editor.putBoolean("ghostReadReceipts", enabled);
+        editor.putBoolean("ghostStories", enabled);
+        editor.apply();
+        if (enabled) {
+            // Port of NekoConfig.toggleGhostMode: announce the new status to
+            // the server right away so the offline state takes effect.
+            try {
+                app.nimarkogram.messenger.ghost.NimarkoGhostUtils.performStatusRequest(true);
+            } catch (Throwable t) {
+                org.telegram.messenger.FileLog.e("nimarko: ghost status request failed", t);
+            }
+        }
+    }
+
     public static volatile boolean lastSeenCacheEnabled = getPreferences().getBoolean("lastSeenCacheEnabled", true);
     public static void toggleLastSeenCacheEnabled() {
         lastSeenCacheEnabled = !lastSeenCacheEnabled;
