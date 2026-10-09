@@ -1884,6 +1884,19 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
                     Uri data = intent.getData();
 
+                    if (data != null) {
+                        String dlUrl = data.toString();
+                        if (dlUrl.startsWith("tg:nimarko_updates") || dlUrl.startsWith("tg://nimarko_updates")) {
+                            AndroidUtilities.runOnUIThread(() -> {
+                                if (!actionBarLayout.getFragmentStack().isEmpty()) {
+                                    BaseFragment fragment = actionBarLayout.getFragmentStack().get(actionBarLayout.getFragmentStack().size() - 1);
+                                    app.nimarkogram.messenger.updater.LinkiUpdateSheet.show(fragment);
+                                }
+                            });
+                            return true;
+                        }
+                    }
+
                     final LinkManager linkManager = new LinkManager(this, intentAccount[0], progress, openedTelegram);
                     if (linkManager.handle(data)) {
                         if (intent.hasExtra(EXTRA_ACTION_TOKEN)) {
@@ -2275,15 +2288,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 }
                                 case "tg": {
                                     String url = data.toString();
-                                    if (url.startsWith("tg:nimarko_updates") || url.startsWith("tg://nimarko_updates")) {
-                                        AndroidUtilities.runOnUIThread(() -> {
-                                            if (!actionBarLayout.getFragmentStack().isEmpty()) {
-                                                BaseFragment fragment = actionBarLayout.getFragmentStack().get(actionBarLayout.getFragmentStack().size() - 1);
-                                                app.nimarkogram.messenger.updater.LinkiUpdateSheet.show(fragment);
-                                            }
-                                        });
-                                        return true;
-                                    }
                                     if (url.startsWith("tg:premium_offer") || url.startsWith("tg://premium_offer")) {
                                         String finalUrl = url;
                                         AndroidUtilities.runOnUIThread(() -> {
