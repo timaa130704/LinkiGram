@@ -12203,6 +12203,8 @@
 <string name="CP_Header_DialogList">Dialog list</string>
 <string name="CP_SortByUnread">Sort by unread</string>
 <string name="CP_UnarchiveOnSwipe">Unarchive on swipe</string>
+<string name="CP_OpenSettingsBySwipe">Open settings on swipe down</string>
+<string name="CP_OpenSettingsBySwipe_Desc">Swipe down on the chat list to open Settings.</string>
 <string name="AP_Header_Appearance">Appearance</string>
 <string name="AP_Header">Header</string>
 <string name="AP_HideSearchBar">Hide search bar in chats</string>

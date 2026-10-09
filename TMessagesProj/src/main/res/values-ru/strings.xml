@@ -1041,6 +1041,8 @@
     <string name="CP_Header_DialogList">Список чатов</string>
     <string name="CP_SortByUnread">Сортировка по непрочитанным</string>
     <string name="CP_UnarchiveOnSwipe">Разархивировать свайпом</string>
+    <string name="CP_OpenSettingsBySwipe">Открывать настройки свайпом вниз</string>
+    <string name="CP_OpenSettingsBySwipe_Desc">Проведите вниз по списку чатов, чтобы открыть настройки.</string>
     <string name="NM_MSG_Header_Sending">Отправка</string>
     <string name="NM_MSG_GifSpoilers">Отправлять GIF со спойлером</string>
     <string name="EP_CustomChat_Selected_Title">вместо</string>
