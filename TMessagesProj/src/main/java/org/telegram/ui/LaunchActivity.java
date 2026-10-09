@@ -2275,6 +2275,15 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 }
                                 case "tg": {
                                     String url = data.toString();
+                                    if (url.startsWith("tg:nimarko_updates") || url.startsWith("tg://nimarko_updates")) {
+                                        AndroidUtilities.runOnUIThread(() -> {
+                                            if (!actionBarLayout.getFragmentStack().isEmpty()) {
+                                                BaseFragment fragment = actionBarLayout.getFragmentStack().get(actionBarLayout.getFragmentStack().size() - 1);
+                                                app.nimarkogram.messenger.updater.LinkiUpdateSheet.show(fragment);
+                                            }
+                                        });
+                                        return true;
+                                    }
                                     if (url.startsWith("tg:premium_offer") || url.startsWith("tg://premium_offer")) {
                                         String finalUrl = url;
                                         AndroidUtilities.runOnUIThread(() -> {
