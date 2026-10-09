@@ -142,11 +142,6 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
                 }
                 items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_TintColor_Desc)));
             }
-            items.add(UItem.asCheck(ID_LINKI_ASS,
-                            LocaleController.getString(R.string.NM_GLASS_Liquid))
-                    .setChecked(NimarkoConfig.linkiAss));
-            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_GLASS_Liquid_Desc)));
-
             items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_ActionsHeader)));
             items.add(SettingsHelper.asSwitchCG(ID_FORCE_OPEN_CHATS,
                             LocaleController.getString(R.string.NM_BT_ForceOpenChats),
@@ -193,11 +188,6 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
         } else if (id == ID_SEMI_TRANSPARENT) {
             NimarkoConfig.toggleMainTabsSemiTransparent();
             applyCheck(item, view, NimarkoConfig.mainTabsSemiTransparent);
-            postCgTabsUpdated();
-            rebuildMainTabsFragments();
-        } else if (id == ID_LINKI_ASS) {
-            NimarkoConfig.toggleLinkiAss();
-            applyCheck(item, view, NimarkoConfig.linkiAss);
             postCgTabsUpdated();
             rebuildMainTabsFragments();
         } else if (id == ID_TINT_COLOR) {

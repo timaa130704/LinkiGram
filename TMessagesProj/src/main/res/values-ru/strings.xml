@@ -740,6 +740,23 @@
     <string name="UP_CheckFailed">Не удалось проверить наличие обновлений. Повторите попытку позже.</string>
     <string name="UP_Install">Установить</string>
     <string name="UP_DownloadFailed">Ошибка загрузки, нажмите ещё раз</string>
+<string name="LUS_Checking">Проверка обновлений…</string>
+<string name="LUS_Latest">У вас последняя версия LinkiGram</string>
+<string name="LUS_Available">Доступна версия %1$s</string>
+<string name="LUS_CheckFailed">Не удалось проверить обновления</string>
+<string name="LUS_FailedInfo">Проверьте соединение и попробуйте снова</string>
+<string name="LUS_CheckedJustNow">Проверено только что</string>
+<string name="LUS_CheckedAt">Проверено: %1$s</string>
+<string name="LUS_Download">Скачать</string>
+<string name="LUS_DownloadSize">Скачать %1$s</string>
+<string name="LUS_Resume">Продолжить загрузку</string>
+<string name="LUS_CheckAgain">Проверить снова</string>
+<string name="LUS_AutoHeader">Автообновление</string>
+<string name="LUS_Off">Выкл</string>
+<string name="LUS_On">Вкл</string>
+<string name="LUS_AutoInfoOff">Не проверять обновления при запуске</string>
+<string name="LUS_AutoInfoOn">Проверять обновления при запуске</string>
+<string name="LUS_AllReleases">Все релизы</string>
     <string name="NM_UpdateDownloading">Загрузка обновления…</string>
     <string name="NM_UpdatePause">Пауза</string>
     <string name="NM_UpdateResume">Продолжить</string>
@@ -1378,6 +1395,6 @@
     <string name="NM_CP_LatexRendering">Отображать формулы LaTeX</string>
     <string name="NM_CP_LatexRendering_Desc">Распознаёт формулы внутри $…$ и $$…$$ в сообщениях.</string>
     <string name="AP_MaterialCards">Карточки Material 3</string>
-    <string name="AP_MaterialCards_Desc">Показывать секции настроек скруглёнными карточками с тенью.</string>
+    <string name="AP_MaterialCards_Desc">Скруглённые секции настроек с тенью.</string>
     <string name="AP_SectionRadius">Радиус карточек</string>
 </resources>

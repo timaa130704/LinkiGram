@@ -12179,6 +12179,23 @@
 <string name="UP_CheckFailed">Couldn\'t check for updates. Please try again later.</string>
 <string name="UP_Install">Install</string>
 <string name="UP_DownloadFailed">Download failed, tap to retry</string>
+<string name="LUS_Checking">Checking for updates…</string>
+<string name="LUS_Latest">LinkiGram is up to date</string>
+<string name="LUS_Available">Version %1$s available</string>
+<string name="LUS_CheckFailed">Couldn\'t check for updates</string>
+<string name="LUS_FailedInfo">Check your connection and try again</string>
+<string name="LUS_CheckedJustNow">Checked just now</string>
+<string name="LUS_CheckedAt">Checked at %1$s</string>
+<string name="LUS_Download">Download</string>
+<string name="LUS_DownloadSize">Download %1$s</string>
+<string name="LUS_Resume">Resume download</string>
+<string name="LUS_CheckAgain">Check again</string>
+<string name="LUS_AutoHeader">Automatic updates</string>
+<string name="LUS_Off">Off</string>
+<string name="LUS_On">On</string>
+<string name="LUS_AutoInfoOff">Don\'t check for updates on launch</string>
+<string name="LUS_AutoInfoOn">Check for updates on launch</string>
+<string name="LUS_AllReleases">All releases</string>
 <string name="EP_CustomChat_Selected_Title">instead of</string>
 <string name="ConvertGroupAlert">This action is irreversible. It is not possible to downgrade a supergroup to a regular group.</string>
 <string name="CP_AdminActions">Admin shortcuts</string>
@@ -12436,6 +12453,6 @@
 <string name="ChooseSubtitles">Choose subtitles</string>
 <string name="DisableSubtitles">Disable subtitles</string>
     <string name="AP_MaterialCards">Material 3 cards</string>
-    <string name="AP_MaterialCards_Desc">Show settings sections as rounded cards with elevation.</string>
+    <string name="AP_MaterialCards_Desc">Rounded settings sections with a shadow.</string>
     <string name="AP_SectionRadius">Card corner radius</string>
 </resources>

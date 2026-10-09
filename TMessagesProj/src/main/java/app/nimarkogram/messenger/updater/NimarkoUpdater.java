@@ -420,8 +420,11 @@ public class NimarkoUpdater {
                 if (update.isNew() && fragment != null && fragment.getContext() != null) {
                     checkDirs();
                     AndroidUtilities.runOnUIThread(() -> {
-                        NimarkoUpdaterSheet.showAlert(fragment, true, update);
-                        if (onUpdateFound != null) onUpdateFound.run();
+                        if (onUpdateFound != null) {
+                            onUpdateFound.run();
+                        } else {
+                            LinkiUpdateSheet.show(fragment, update);
+                        }
                     });
                     NimarkoUpdateConfig.setUpdateIsDownloading(false);
                     NimarkoUpdateConfig.setUpdateAvailable(true);

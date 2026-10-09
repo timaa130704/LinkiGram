@@ -151,7 +151,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 presentFragment(new NimarkoTextAnimPreferencesActivity());
                 break;
             case ID_UPDATES:
-                app.nimarkogram.messenger.updater.NimarkoUpdaterSheet.showAlert(this, false, null);
+                app.nimarkogram.messenger.updater.LinkiUpdateSheet.show(this);
                 break;
             case ID_DEBUG:
                 presentFragment(new DebugPreferencesActivity());
