@@ -1241,16 +1241,19 @@ public class NimarkoUpdater {
                         // comparison below would say otherwise.
                         isNew = false;
                     } else {
-                        // Version names in this project do not order
-                        // numerically (2.2 shipped after 2.11, 2.3 after 2.21),
-                        // and every release shares one versionCode, so names
-                        // alone cannot tell newer from older. The release date
-                        // can: a release published after this APK was installed
-                        // is newer, anything older is not.
-                        int byDate = compareDates(uploadDate, getInstalledTime());
-                        isNew = byDate != 0
-                                ? byDate > 0
-                                : compareVersions(version, current) > 0;
+                        // Tag names in this fork order numerically
+                        // (2.5 < 2.6 < 2.10), so a greater release name
+                        // means an update even when it was published
+                        // before this APK was installed (test releases
+                        // published between build and install). The date
+                        // only breaks ties between equal names.
+                        int byName = compareVersions(version, current);
+                        if (byName != 0) {
+                            isNew = byName > 0;
+                        } else {
+                            int byDate = compareDates(uploadDate, getInstalledTime());
+                            isNew = byDate > 0;
+                        }
                     }
                 }
             }
