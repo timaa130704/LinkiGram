@@ -31,6 +31,4 @@ public class AyuConstants {
 
     public static final String AYU_DATABASE = "ayu-data";
     public static final String AYU_DATABASE_EXPORT = AYU_DATABASE + ".db";
-
-    public static String APP_NAME = NekoConfig.customSavePath.String();
 }
