@@ -20516,7 +20516,7 @@ public class ChatActivity extends BaseFragment implements
     }
 
     // --- AyuGram: shared entry point for the deleted-history hook (exteraless port) ---
-    private void ayuHookDeletedHistory(long startId, long endId) {
+    private void ayuHookDeletedHistory(long startId, long endId, int loadType) {
         final long minVal = 0L;
         if (startId > endId) {
             long t = startId;
@@ -20529,7 +20529,7 @@ public class ChatActivity extends BaseFragment implements
             return;
         }
         try {
-            com.radolyn.ayugram.proprietary.AyuHistoryHook.doHookAsync(currentAccount, startId, endId, dialog_id, 200, getTopicId(), load_type, false, threadMessageId, isTopic);
+            com.radolyn.ayugram.proprietary.AyuHistoryHook.doHookAsync(currentAccount, startId, endId, dialog_id, 200, getTopicId(), loadType, false, threadMessageId, isTopic);
         } catch (Throwable t) {
             android.util.Log.e("AyuDebug", "ayuHookDeletedHistory failed d=" + dialog_id, t);
         }
@@ -21434,7 +21434,7 @@ public class ChatActivity extends BaseFragment implements
                     fallbackStartId = fbStart;
                     fallbackEndId = fbEnd;
 
-                    org.telegram.messenger.DialogObject dialog = getMessagesController().getDialog(dialog_id);
+                    TLRPC.Dialog dialog = getMessagesController().getDialog(dialog_id);
                     if (dialog != null && DialogObject.isUserDialog(dialog_id)
                             && msg1 == msg2 && msg2 == dialog.top_message && messArr.size() <= 1) {
                         // empty user dialog: restore as much as we can
@@ -21454,9 +21454,9 @@ public class ChatActivity extends BaseFragment implements
                         getMessagesStorage().getStorageQueue().postRunnable(() -> {
                             android.util.Pair<Integer, Integer> minMaxRes = getMessagesStorage().getMinAndMaxForDialog(dialog_id);
                             if (minMaxRes.second == (int) batchEndId && topMessage <= minMaxRes.second) {
-                                ayuHookDeletedHistory(batchStartId, maxVal);
+                                ayuHookDeletedHistory(batchStartId, maxVal, load_type);
                             } else {
-                                ayuHookDeletedHistory(otherStartId, otherEndId);
+                                ayuHookDeletedHistory(otherStartId, otherEndId, load_type);
                             }
                         });
                     } else {
@@ -21480,7 +21480,7 @@ public class ChatActivity extends BaseFragment implements
                         + "] topic=" + getTopicId() + " type=" + load_type + " arr=" + messArr.size() + " deferred=" + deferred + " isCache=" + isCache);
 
                 if (!deferred) {
-                    ayuHookDeletedHistory(startId, endId);
+                    ayuHookDeletedHistory(startId, endId, load_type);
                 }
             }
         } catch (Throwable t) {
