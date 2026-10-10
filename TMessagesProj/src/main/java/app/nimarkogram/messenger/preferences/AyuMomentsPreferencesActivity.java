@@ -264,7 +264,7 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
             startActivityForResult(intent, DATABASE_IMPORT_REQUEST_CODE);
         } catch (Exception e) {
             FileLog.e(e);
-            BulletinFactory.of(this).createSimpleBulletin(R.raw.error, getString(R.string.ErrorOccurred)).show();
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.error, LocaleController.getString(R.string.ErrorOccurred)).show();
         }
     }
 
@@ -297,7 +297,7 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
                 FileLog.e(e);
                 AndroidUtilities.runOnUIThread(() -> {
                     if (getParentActivity() != null) {
-                        BulletinFactory.of(this).createSimpleBulletin(R.raw.error, getString(R.string.ErrorOccurred)).show();
+                        BulletinFactory.of(this).createSimpleBulletin(R.raw.error, LocaleController.getString(R.string.ErrorOccurred)).show();
                     }
                 });
             }
