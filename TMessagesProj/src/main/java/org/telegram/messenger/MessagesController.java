@@ -21074,6 +21074,7 @@ public class MessagesController extends BaseController implements NotificationCe
             final com.radolyn.ayugram.messages.AyuMessagesController ayuMessagesController = com.radolyn.ayugram.messages.AyuMessagesController.getInstance();
             final LongSparseArray<ArrayList<Integer>> deletedMessagesForAyu = deletedMessages.clone();
             final int accountForAyu = currentAccount;
+            android.util.Log.i("AyuDebug", "save hook: enter, dialogs=" + deletedMessagesForAyu.size());
             getMessagesStorage().getStorageQueue().postRunnable(() -> {
                 LongSparseArray<ArrayList<Integer>> notificationsToSend = new LongSparseArray<>();
                 for (int a = 0, size = deletedMessagesForAyu.size(); a < size; a++) {
@@ -21090,8 +21091,10 @@ public class MessagesController extends BaseController implements NotificationCe
                     if (dialogIds.isEmpty()) {
                         dialogIds.add(possibleDialogId);
                     }
+                    android.util.Log.i("AyuDebug", "save hook: key=" + possibleDialogId + " -> resolved=" + dialogIds + " ids=" + messageIds);
                     for (long dialogId : dialogIds) {
                         ArrayList<TLRPC.Message> messagesToSave = getMessagesStorage().getMessagesStorageMessages(dialogId, messageIds);
+                        android.util.Log.i("AyuDebug", "save hook: dialog=" + dialogId + " storageMsgs=" + (messagesToSave == null ? "null" : messagesToSave.size()));
                         if (messagesToSave != null && !messagesToSave.isEmpty()) {
                             for (TLRPC.Message msg : messagesToSave) {
                                 long topicId = MessageObject.getTopicId(accountForAyu, msg, isForum(dialogId));

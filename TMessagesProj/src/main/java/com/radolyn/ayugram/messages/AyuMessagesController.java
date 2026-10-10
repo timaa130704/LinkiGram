@@ -58,6 +58,7 @@ public class AyuMessagesController {
         try {
             return callable.call();
         } catch (Exception e) {
+            android.util.Log.e("AyuDebug", "dao failed (1st try): " + tag, e);
             FileLog.e(tag, e);
         }
 
@@ -65,6 +66,7 @@ public class AyuMessagesController {
             refreshDaos();
             return callable.call();
         } catch (Exception e) {
+            android.util.Log.e("AyuDebug", "dao failed (retry): " + tag, e);
             FileLog.e(tag, e);
         }
 
@@ -194,7 +196,13 @@ public class AyuMessagesController {
         }
         try {
             if (useQueue) {
-                Utilities.globalQueue.postRunnable(() -> onMessageDeletedInner(prefs));
+                Utilities.globalQueue.postRunnable(() -> {
+                    try {
+                        onMessageDeletedInner(prefs);
+                    } catch (Throwable t) {
+                        android.util.Log.e("AyuDebug", "onMessageDeletedInner failed", t);
+                    }
+                });
             } else {
                 onMessageDeletedInner(prefs);
             }
@@ -205,6 +213,7 @@ public class AyuMessagesController {
 
     private void onMessageDeletedInner(AyuSavePreferences prefs) {
         if (!AyuSavePreferences.saveDeletedMessageFor(prefs.getAccountId(), prefs.getDialogId(), prefs.getFromUserId())) {
+            android.util.Log.i("AyuDebug", "onMessageDeletedInner: skipped by prefs, d=" + prefs.getDialogId() + " id=" + prefs.getMessageId());
             return;
         }
 
@@ -214,6 +223,7 @@ public class AyuMessagesController {
         );
 
         if (exists == null || exists) {
+            android.util.Log.i("AyuDebug", "onMessageDeletedInner: exists=" + exists + " u=" + prefs.getUserId() + " d=" + prefs.getDialogId() + " topic=" + prefs.getTopicId() + " id=" + prefs.getMessageId());
             return;
         }
 
@@ -236,8 +246,11 @@ public class AyuMessagesController {
         );
 
         if (fakeMsgId == null) {
+            android.util.Log.i("AyuDebug", "onMessageDeletedInner: INSERT FAILED d=" + prefs.getDialogId() + " id=" + prefs.getMessageId());
             return;
         }
+
+        android.util.Log.i("AyuDebug", "onMessageDeletedInner: INSERTED d=" + prefs.getDialogId() + " id=" + prefs.getMessageId() + " fakeId=" + fakeMsgId);
 
         if (msg != null && msg.reactions != null) {
             processDeletedReactions(fakeMsgId, msg.reactions);

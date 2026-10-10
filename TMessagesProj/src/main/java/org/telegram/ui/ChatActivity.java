@@ -21388,6 +21388,7 @@ public class ChatActivity extends BaseFragment implements
                         hMax = Math.max(hMax, mo.getId());
                     }
                 }
+                android.util.Log.i("AyuDebug", "restore hook: d=" + dialog_id + " range=[" + hMin + "," + hMax + "] topic=" + getTopicId() + " type=" + load_type + " arr=" + messArr.size());
                 if (hMax >= hMin) {
                     com.radolyn.ayugram.proprietary.AyuHistoryHook.doHookAsync(currentAccount, hMin, hMax, dialog_id, 200, getTopicId(), load_type, false, threadMessageId, isTopic);
                 }
@@ -25341,6 +25342,9 @@ public class ChatActivity extends BaseFragment implements
     }
     private void processNewMessages(ArrayList<MessageObject> arr, final boolean animatedFromBottom) {
         FileLog.d("processNewMessages " + arr.size() + " messages");
+        if (arr.size() > 0 && arr.get(0) != null && arr.get(0).messageOwner != null && arr.get(0).messageOwner.ayuDeleted) {
+            android.util.Log.i("AyuDebug", "processNewMessages: got ayu-restored batch of " + arr.size() + " first id=" + arr.get(0).getId());
+        }
 
         final boolean isBot = UserObject.isBot(currentUser);
         final boolean isStreamingTopic = isBot && BotForumHelper.getInstance(currentAccount).isStreamingTopic(getDialogId(), getTopicId());

@@ -33,6 +33,16 @@ public abstract class AyuHistoryHook {
         MessagesStorage storage = MessagesStorage.getInstance(currentAccount);
         MessagesController messagesController = MessagesController.getInstance(currentAccount);
         storage.getStorageQueue().postRunnable(() -> {
+            try {
+                doHookInternal(currentAccount, messagesController, storage, startId, endId, dialogId, limit, topicId, loadType, isChannelComment, threadMessageId, isTopic);
+            } catch (Throwable t) {
+                android.util.Log.e("AyuDebug", "doHook failed d=" + dialogId, t);
+            }
+        });
+    }
+
+    private static void doHookInternal(int currentAccount, MessagesController messagesController, MessagesStorage storage, long startId, long endId, long dialogId, int limit, long topicId, int loadType, boolean isChannelComment, long threadMessageId, boolean isTopic) {
+        {
             long clientUserId = UserConfig.getInstance(currentAccount).clientUserId;
             AyuMessagesController ayuController = AyuMessagesController.getInstance();
             LongSparseArray<TLRPC.TL_message> messagesById = new LongSparseArray<>();
@@ -47,6 +57,8 @@ public abstract class AyuHistoryHook {
             } else {
                 deletedMessages = ayuController.getMessages(clientUserId, dialogId, startId, endId, limit);
             }
+
+            android.util.Log.i("AyuDebug", "doHook: d=" + dialogId + " range=[" + startId + "," + endId + "] topic=" + topicId + " found=" + deletedMessages.size());
 
             if (deletedMessages.isEmpty()) {
                 return;
@@ -173,12 +185,14 @@ public abstract class AyuHistoryHook {
 
             messageObjects.sort(messageComparator);
 
+            android.util.Log.i("AyuDebug", "doHook: mapped=" + messageObjects.size() + " d=" + dialogId + ", posting didReceiveNewMessages");
+
             AndroidUtilities.runOnUIThread(() -> {
                 // MessagesController.getInstance(currentAccount).updateInterfaceWithMessages(dialogId, messageObjects, 0);
                 NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messageObjects, false, 0);
                 NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.replyMessagesDidLoad, dialogId, messageObjects, null);
             });
-        });
+        }
     }
 
     public static Pair<Integer, Integer> getMinAndMaxIds(ArrayList<MessageObject> messages) {
