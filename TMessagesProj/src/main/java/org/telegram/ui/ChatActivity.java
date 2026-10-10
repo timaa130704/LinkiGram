@@ -21377,6 +21377,25 @@ public class ChatActivity extends BaseFragment implements
                 newRowsCount++;
             }
         }
+        // --- AyuGram hook: load saved deleted messages into chat (exteraless port) ---
+        try {
+            if (app.nimarkogram.messenger.NimarkoConfig.saveDeletedMessages && currentEncryptedChat == null && !messArr.isEmpty()) {
+                int hMin = Integer.MAX_VALUE, hMax = Integer.MIN_VALUE;
+                for (int hi = 0; hi < messArr.size(); hi++) {
+                    MessageObject mo = messArr.get(hi);
+                    if (mo != null && !mo.isSending() && mo.getId() > 0) {
+                        hMin = Math.min(hMin, mo.getId());
+                        hMax = Math.max(hMax, mo.getId());
+                    }
+                }
+                if (hMax >= hMin) {
+                    com.radolyn.ayugram.proprietary.AyuHistoryHook.doHookAsync(currentAccount, hMin, hMax, dialog_id, 200, getTopicId(), load_type, false, threadMessageId, isTopic);
+                }
+            }
+        } catch (Throwable t) {
+            org.telegram.messenger.FileLog.e("nimarko: deleted-history hook failed", t);
+        }
+        // --- AyuGram hook ---
         checkGroupMessagesOrder();
         if (createUnreadLoading) {
             createUnreadMessageAfterId = 0;

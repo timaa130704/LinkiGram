@@ -6983,6 +6983,17 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         // after the process was killed while backgrounded.
         try { app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().onAppResume(); } catch (Throwable ignore) {}
         try { app.nimarkogram.messenger.utils.LinkiReleasesAutoJoin.ensureAsync(); } catch (Throwable ignore) {}
+        // Auto update check on launch (only once per process; guarded inside checkOnLaunch).
+        try {
+            AndroidUtilities.runOnUIThread(() -> {
+                try {
+                    if (actionBarLayout != null && !actionBarLayout.getFragmentStack().isEmpty()) {
+                        app.nimarkogram.messenger.updater.NimarkoUpdater.checkOnLaunch(
+                                actionBarLayout.getFragmentStack().get(actionBarLayout.getFragmentStack().size() - 1));
+                    }
+                } catch (Throwable ignore) {}
+            }, 2500);
+        } catch (Throwable ignore) {}
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();
             onResumeStaticCallback = null;

@@ -4267,6 +4267,10 @@ public class MessageObject {
         return sponsoredId != null;
     }
 
+    public boolean isAyuDeleted() {
+        return messageOwner != null && messageOwner.ayuDeleted;
+    }
+
     public long getPollId() {
         if (type != TYPE_POLL) {
             return 0;

@@ -1,13 +1,8 @@
-/*
- * Ghost mode core, ported from AyuGram for Android (Copyright @Radolyn, 2023,
- * https://github.com/AyuGram/AyuGram4A) via exteraless
- * (https://github.com/exteraless/exteraless). GPL code port; no upstream
- * artwork or string resources are copied.
- */
-package app.nimarkogram.messenger.ghost;
+package com.radolyn.ayugram.utils;
 
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.UserConfig;
@@ -25,7 +20,7 @@ import java.util.WeakHashMap;
 
 import app.nimarkogram.messenger.NimarkoConfig;
 
-public class NimarkoGhostUtils {
+public class AyuGhostUtils {
 
     private static final int OFFLINE_DELAY_MS = 1000;
 
@@ -47,6 +42,7 @@ public class NimarkoGhostUtils {
         } else {
             dialogId = peer.user_id;
         }
+
         return dialogId;
     }
 
@@ -87,18 +83,67 @@ public class NimarkoGhostUtils {
             req = request;
         }
 
-        setAllowReadPacket(true, 1);
+        AyuState.setAllowReadPacket(true, 1);
         getConnectionsManager().sendRequest(req, (response, error) -> {
             if (error == null) {
-                if (response instanceof TLRPC.TL_messages_affectedMessages) {
-                    TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
+                if (response instanceof TLRPC.TL_messages_affectedMessages res) {
                     getMessagesController().processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
                 }
-                if (internal) {
-                    FileLog.d("GhostMode: Read-after-send request completed.");
-                }
+                if (internal) FileLog.d("GhostMode: Read-after-send request completed.");
                 // Go offline after sending
-                if (NimarkoConfig.ghostOfflineAfterSend && !internal) {
+                if (app.nimarkogram.messenger.NimarkoConfig.ghostOfflineAfterSend && !internal) {
+                    Utilities.globalQueue.postRunnable(() -> performStatusRequest(true), OFFLINE_DELAY_MS);
+                }
+            }
+        });
+    }
+
+    public static void markReadOnServer(MessageObject message, boolean internal) {
+        int messageId = message.getId();
+        long dialogId = message.getDialogId();
+        TLRPC.EncryptedChat encryptedChat = getMessagesController().getEncryptedChat(DialogObject.getEncryptedChatId(dialogId));
+        TLRPC.InputPeer inputPeer = getMessagesController().getInputPeer(message.messageOwner.peer_id);
+        boolean readMessageContents = message.isVoice() || message.isRoundVideo();
+        TLObject req;
+        if (inputPeer instanceof TLRPC.TL_inputPeerChannel) {
+            if (readMessageContents) {
+                TLRPC.TL_channels_readMessageContents request = new TLRPC.TL_channels_readMessageContents();
+                request.channel = MessagesController.getInputChannel(inputPeer);
+                request.id.add(messageId);
+                req = request;
+            } else {
+                TLRPC.TL_channels_readHistory request = new TLRPC.TL_channels_readHistory();
+                request.channel = MessagesController.getInputChannel(inputPeer);
+                request.max_id = messageId;
+                req = request;
+            }
+        } else if (encryptedChat != null) {
+            TLRPC.TL_messages_readEncryptedHistory request = new TLRPC.TL_messages_readEncryptedHistory();
+            request.peer = new TLRPC.TL_inputEncryptedChat();
+            request.peer.chat_id = encryptedChat.id;
+            request.peer.access_hash = encryptedChat.access_hash;
+            request.max_date = message.messageOwner.date != 0 ? message.messageOwner.date : getConnectionsManager().getCurrentTime();
+            req = request;
+        } else if (readMessageContents) {
+            TLRPC.TL_messages_readMessageContents request = new TLRPC.TL_messages_readMessageContents();
+            request.id.add(messageId);
+            req = request;
+        } else {
+            TLRPC.TL_messages_readHistory request = new TLRPC.TL_messages_readHistory();
+            request.peer = inputPeer;
+            request.max_id = messageId;
+            req = request;
+        }
+
+        AyuState.setAllowReadPacket(true, 1);
+        getConnectionsManager().sendRequest(req, (response, error) -> {
+            if (error == null) {
+                if (response instanceof TLRPC.TL_messages_affectedMessages res) {
+                    getMessagesController().processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
+                }
+                if (internal) FileLog.d("GhostMode: Read-after-send request completed.");
+                // Go offline after sending
+                if (app.nimarkogram.messenger.NimarkoConfig.ghostOfflineAfterSend && !internal) {
                     Utilities.globalQueue.postRunnable(() -> performStatusRequest(true), OFFLINE_DELAY_MS);
                 }
             }
@@ -114,82 +159,76 @@ public class NimarkoGhostUtils {
 
     public static InterceptResult interceptRequest(TLObject object, RequestDelegate onCompleteOrig) {
         if (bypassed.remove(object)) {
-            return InterceptResult.proceed(onCompleteOrig);
+            return InterceptResult.Proceed(onCompleteOrig);
         }
         Long dialogId = extractDialogId(object);
-        boolean readExcluded = dialogId != null && NimarkoGhostExclusions.getReadExclusion(dialogId);
-        boolean typingExcluded = dialogId != null && NimarkoGhostExclusions.getTypingExclusion(dialogId);
+        boolean readExcluded = dialogId != null && AyuGhostPreferences.getGhostModeReadExclusion(dialogId);
+        boolean typingExcluded = dialogId != null && AyuGhostPreferences.getGhostModeTypingExclusion(dialogId);
 
-        // Block typing if disabled (upstream keys this off "sendUploadProgress")
-        if (NimarkoConfig.ghostTyping && (object instanceof TLRPC.TL_messages_setTyping || object instanceof TLRPC.TL_messages_setEncryptedTyping)) {
+        // Block typing if disabled
+        if (app.nimarkogram.messenger.NimarkoConfig.ghostTyping && (object instanceof TLRPC.TL_messages_setTyping || object instanceof TLRPC.TL_messages_setEncryptedTyping)) {
             if (!typingExcluded) {
                 FileLog.d("GhostMode: Blocking typing status request.");
-                return InterceptResult.blocked();
+                return InterceptResult.Blocked(onCompleteOrig);
             }
         }
 
         // Block read receipts if disabled
-        if (NimarkoConfig.ghostReadReceipts && object instanceof TLRPC.TL_messages_getMessagesViews) {
-            TLRPC.TL_messages_getMessagesViews views = (TLRPC.TL_messages_getMessagesViews) object;
-            if (views.increment) {
-                if (!getAllowReadPacket() && !readExcluded) {
-                    views.increment = false;
-                }
+        if (app.nimarkogram.messenger.NimarkoConfig.ghostReadReceipts && object instanceof TLRPC.TL_messages_getMessagesViews views && views.increment) {
+            if (!AyuState.getAllowReadPacket() && !readExcluded) {
+                views.increment = false;
             }
-        } else if (NimarkoConfig.ghostReadReceipts && isReadMessageRequest(object)) {
-            if (!getAllowReadPacket() && !readExcluded) {
+        } else if (app.nimarkogram.messenger.NimarkoConfig.ghostReadReceipts && (isReadMessageRequest(object))) {
+            if (!AyuState.getAllowReadPacket() && !readExcluded) {
                 FileLog.d("GhostMode: Blocking read status request and sending fake response.");
                 sendFakeReadResponse(onCompleteOrig);
-                return InterceptResult.blocked();
+                return InterceptResult.Blocked(onCompleteOrig);
             }
         }
-        if ((NimarkoConfig.ghostStories || storyGhostSession) && isReadStoriesRequest(object)) {
+        if ((app.nimarkogram.messenger.NimarkoConfig.ghostStories || storyGhostSession) && isReadStoriesRequest(object)) {
             if (storyGhostSession || !readExcluded) {
                 FileLog.d("GhostMode: Blocking story read request.");
-                return InterceptResult.blocked();
+                return InterceptResult.Blocked(onCompleteOrig);
             }
         }
 
         // Force offline if online status sending disabled
-        if (NimarkoConfig.ghostOnline && object instanceof TL_account.updateStatus) {
+        if (app.nimarkogram.messenger.NimarkoConfig.ghostOnline && object instanceof TL_account.updateStatus updateStatus) {
             FileLog.d("GhostMode: Forcing offline status in updateStatus request.");
-            ((TL_account.updateStatus) object).offline = true;
+            updateStatus.offline = true;
         }
 
-        // Handle mark read after sending
+        // Handle Mark read after sending
         handleReadAfterSend(object);
 
         // Go offline after sending
         RequestDelegate effectiveOnComplete = handleOfflineAfterSend(object, onCompleteOrig);
 
-        return InterceptResult.proceed(effectiveOnComplete);
+        return InterceptResult.Proceed(effectiveOnComplete);
     }
 
     private static void handleReadAfterSend(TLObject object) {
-        if (NimarkoConfig.ghostReadAfterSend && NimarkoConfig.ghostReadReceipts) {
+        if (app.nimarkogram.messenger.NimarkoConfig.ghostReadAfterSend && app.nimarkogram.messenger.NimarkoConfig.ghostReadReceipts) {
             TLRPC.InputPeer peer = extractPeerFromSendObject(object);
 
             if (peer != null) {
-                Long dialogId = getDialogId(peer);
-                if (dialogId != null && NimarkoGhostExclusions.getReadExclusion(dialogId)) {
-                    return;
-                }
-                if (dialogId == null) {
+                var dialogId = AyuGhostUtils.getDialogId(peer);
+                if (AyuGhostPreferences.getGhostModeReadExclusion(dialogId)) {
                     return;
                 }
                 getMessagesStorage().getStorageQueue().postRunnable(() ->
-                        getMessagesStorage().getDialogMaxMessageId(dialogId, maxId ->
-                                markReadOnServer(maxId, peer, true)
-                        )
+                    getMessagesStorage().getDialogMaxMessageId(dialogId, maxId ->
+                        markReadOnServer(maxId, peer, true)
+                    )
                 );
             }
         }
     }
 
     private static RequestDelegate handleOfflineAfterSend(TLObject object, RequestDelegate onCompleteOrig) {
-        if (NimarkoConfig.ghostOfflineAfterSend && isMessageSendRequest(object)) {
+        if (app.nimarkogram.messenger.NimarkoConfig.ghostOfflineAfterSend && isMessageSendRequest(object)) {
             TLRPC.InputPeer peer = extractPeerFromSendObject(object);
-            if (peer != null && NimarkoGhostExclusions.getTypingExclusion(getDialogId(peer))) {
+            if (peer != null && AyuGhostPreferences.getGhostModeTypingExclusion(getDialogId(peer))) {
                 return onCompleteOrig;
             }
             FileLog.d("GhostMode: Wrapping callback for offline-after-send.");
@@ -207,38 +246,38 @@ public class NimarkoGhostUtils {
     }
 
     private static Long extractDialogId(TLObject object) {
-        if (object instanceof TLRPC.TL_messages_setTyping) {
-            return getDialogId(((TLRPC.TL_messages_setTyping) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_setEncryptedTyping) {
-            return getDialogId(((TLRPC.TL_messages_setEncryptedTyping) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_readHistory) {
-            return getDialogId(((TLRPC.TL_messages_readHistory) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_readEncryptedHistory) {
-            return getDialogId(((TLRPC.TL_messages_readEncryptedHistory) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_readDiscussion) {
-            return getDialogId(((TLRPC.TL_messages_readDiscussion) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_sendMessage) {
-            return getDialogId(((TLRPC.TL_messages_sendMessage) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_sendMedia) {
-            return getDialogId(((TLRPC.TL_messages_sendMedia) object).peer);
-        } else if (object instanceof TLRPC.TL_messages_sendMultiMedia) {
-            return getDialogId(((TLRPC.TL_messages_sendMultiMedia) object).peer);
-        } else if (object instanceof TL_stories.TL_stories_readStories) {
-            return getDialogId(((TL_stories.TL_stories_readStories) object).peer);
-        } else if (object instanceof TL_stories.TL_stories_incrementStoryViews) {
-            return getDialogId(((TL_stories.TL_stories_incrementStoryViews) object).peer);
-        } else if (object instanceof TLRPC.TL_channels_readHistory) {
-            return getDialogId(((TLRPC.TL_channels_readHistory) object).channel);
-        } else if (object instanceof TLRPC.TL_channels_readMessageContents) {
-            return getDialogId(((TLRPC.TL_channels_readMessageContents) object).channel);
-        } else if (object instanceof TLRPC.TL_messages_getMessagesViews) {
-            return getDialogId(((TLRPC.TL_messages_getMessagesViews) object).peer);
+        if (object instanceof TLRPC.TL_messages_setTyping obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_setEncryptedTyping obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_readHistory obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_readEncryptedHistory obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_readDiscussion obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_sendMessage obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_sendMedia obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_messages_sendMultiMedia obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TL_stories.TL_stories_readStories obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TL_stories.TL_stories_incrementStoryViews obj) {
+            return getDialogId(obj.peer);
+        } else if (object instanceof TLRPC.TL_channels_readHistory obj) {
+            return getDialogId(obj.channel);
+        } else if (object instanceof TLRPC.TL_channels_readMessageContents obj) {
+            return getDialogId(obj.channel);
+        } else if (object instanceof TLRPC.TL_messages_getMessagesViews obj) {
+            return getDialogId(obj.peer);
         }
         return null;
     }
 
     private static void sendFakeReadResponse(RequestDelegate onCompleteOrig) {
-        TLRPC.TL_messages_affectedMessages fakeRes = new TLRPC.TL_messages_affectedMessages();
+        var fakeRes = new TLRPC.TL_messages_affectedMessages();
         fakeRes.pts = -1;
         fakeRes.pts_count = 0;
         Utilities.stageQueue.postRunnable(() -> {
@@ -270,7 +309,7 @@ public class NimarkoGhostUtils {
                 object instanceof TLRPC.TL_messages_readMessageContents ||
                 object instanceof TLRPC.TL_channels_readMessageContents ||
                 object instanceof TLRPC.TL_channels_readHistory ||
-                object instanceof TLRPC.TL_messages_getMessagesViews && ((TLRPC.TL_messages_getMessagesViews) object).increment;
+                object instanceof TLRPC.TL_messages_getMessagesViews obj && obj.increment;
     }
 
     private static boolean isReadStoriesRequest(TLObject object) {
@@ -284,47 +323,14 @@ public class NimarkoGhostUtils {
                 object instanceof TLRPC.TL_messages_sendMultiMedia;
     }
 
-    // --- allowReadPacket state (port of AyuStateVariable) ---
+    public record InterceptResult(boolean blockRequest, RequestDelegate effectiveOnComplete) {
 
-    private static volatile boolean allowReadPacketVal;
-    private static volatile int allowReadPacketResetAfter;
+        public static InterceptResult Blocked(RequestDelegate originalOnComplete) {
+                return new InterceptResult(true, originalOnComplete);
+            }
 
-    private static void setAllowReadPacket(boolean val, int resetAfter) {
-        allowReadPacketVal = val;
-        allowReadPacketResetAfter = resetAfter;
-    }
-
-    private static boolean getAllowReadPacket() {
-        if (!NimarkoConfig.ghostReadReceipts) {
-            return true;
-        }
-        boolean val = allowReadPacketVal;
-        if (val && allowReadPacketResetAfter > 0) {
-            allowReadPacketResetAfter--;
-            if (allowReadPacketResetAfter == 0) {
-                allowReadPacketVal = false;
+            public static InterceptResult Proceed(RequestDelegate effectiveOnComplete) {
+                return new InterceptResult(false, effectiveOnComplete);
             }
         }
-        return val;
-    }
-
-    // --- result holder (record replacement, R8-safe) ---
-
-    public static final class InterceptResult {
-        public final boolean blockRequest;
-        public final RequestDelegate effectiveOnComplete;
-
-        private InterceptResult(boolean blockRequest, RequestDelegate effectiveOnComplete) {
-            this.blockRequest = blockRequest;
-            this.effectiveOnComplete = effectiveOnComplete;
-        }
-
-        public static InterceptResult blocked() {
-            return new InterceptResult(true, null);
-        }
-
-        public static InterceptResult proceed(RequestDelegate effectiveOnComplete) {
-            return new InterceptResult(false, effectiveOnComplete);
-        }
-    }
 }

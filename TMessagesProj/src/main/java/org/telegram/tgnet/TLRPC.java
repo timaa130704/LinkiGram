@@ -57513,6 +57513,7 @@ public class TLRPC {
         public int ephemeralAnchorMsgId; // custom
         public long ephemeralReceiverBotId; //custom
         public boolean welcomeTemplateFirst; // custom
+        public boolean ayuDeleted; // ayuGram (deleted-messages port)
 
         private static Message fromConstructor(int constructor) {
             switch (constructor) {

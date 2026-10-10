@@ -7820,6 +7820,90 @@ public class MessagesStorage extends BaseController {
         return result[0];
     }
 
+    /**
+     * AyuGram port: direct DB read for callers already on the storage queue.
+     * Never call from other threads (no latch, would race the queue).
+     */
+    public TLRPC.Message getMessageStorageThreadUnsafe(long dialogId, long msgId) {
+        return getMessageInternal(dialogId, msgId);
+    }
+
+    // --- AyuGram port: helpers for deleted-messages subsystem ---
+    public Pair<Integer, Integer> getMinAndMaxForDialog(long dialogId) {
+        SQLiteCursor cursor = null;
+        try {
+            cursor = database.queryFinalized(String.format(Locale.US, "SELECT MIN(mid), MAX(mid) FROM messages_v2 WHERE uid = %d", dialogId));
+            if (cursor.next()) {
+                return new Pair<>(cursor.intValue(0), cursor.intValue(1));
+            }
+        } catch (Exception e) {
+            checkSQLException(e);
+        } finally {
+            if (cursor != null) {
+                cursor.dispose();
+            }
+        }
+        return new Pair<>(0, 0);
+    }
+
+    public ArrayList<Long> getDialogIdsToUpdate(long dialogId, ArrayList<Integer> messages) {
+        SQLiteCursor cursor = null;
+        try {
+            String ids = TextUtils.join(",", messages);
+            HashSet<Long> dialogsToUpdate = new HashSet<>();
+            if (dialogId != 0) {
+                cursor = database.queryFinalized(String.format(Locale.US, "SELECT uid, mid FROM messages_v2 WHERE mid IN(%s) AND uid = %d", ids, dialogId));
+            } else {
+                cursor = database.queryFinalized(String.format(Locale.US, "SELECT uid, mid FROM messages_v2 WHERE mid IN(%s) AND is_channel = 0", ids));
+            }
+            while (cursor.next()) {
+                long did = cursor.longValue(0);
+                dialogsToUpdate.add(did);
+            }
+            cursor.dispose();
+            return new ArrayList<>(dialogsToUpdate);
+        } catch (Exception e) {
+            FileLog.e(e);
+        } finally {
+            if (cursor != null) {
+                cursor.dispose();
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<TLRPC.Message> getMessagesStorageMessages(long dialogId, ArrayList<Integer> messageIds) {
+        ArrayList<TLRPC.Message> messages = null;
+        SQLiteCursor cursor = null;
+        try {
+            String ids = TextUtils.join(",", messageIds);
+            cursor = database.queryFinalized(String.format(Locale.US, "SELECT data FROM messages_v2 WHERE uid = %d AND mid IN (%s)", dialogId, ids));
+            while (cursor.next()) {
+                NativeByteBuffer data = cursor.byteBufferValue(0);
+                if (data != null) {
+                    TLRPC.Message message = TLRPC.Message.TLdeserialize(data, data.readInt32(false), false);
+                    if (message != null) {
+                        message.readAttachPath(data, getUserConfig().clientUserId);
+                        if (messages == null) {
+                            messages = new ArrayList<>();
+                        }
+                        messages.add(message);
+                    }
+                    data.reuse();
+                }
+            }
+            cursor.dispose();
+            cursor = null;
+        } catch (Exception e) {
+            FileLog.e(e);
+        } finally {
+            if (cursor != null) {
+                cursor.dispose();
+            }
+        }
+        return messages;
+    }
+
     public TLRPC.Message getMessage(long dialogId, long msgId) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         AtomicReference<TLRPC.Message> ref = new AtomicReference<>();
@@ -7854,6 +7938,10 @@ public class MessagesStorage extends BaseController {
         return ref.get();
     }
 
+    /**
+     * AyuGram port: direct DB read. Safe to call ONLY from the storage
+     * queue thread; use getMessage() everywhere else.
+     */
     private TLRPC.Message getMessageInternal(long dialogId, long msgId) {
         SQLiteCursor cursor = null;
         TLRPC.Message result = null;
@@ -14461,9 +14549,32 @@ public class MessagesStorage extends BaseController {
                 cursor.dispose();
                 cursor = null;
                 if (!dialogs.isEmpty()) {
+                    // --- AyuGram hook (save deleted messages from secret chats; exteraless port) ---
+                    if (app.nimarkogram.messenger.NimarkoConfig.saveDeletedMessages) {
+                        com.radolyn.ayugram.messages.AyuMessagesController ayuMessagesController = com.radolyn.ayugram.messages.AyuMessagesController.getInstance();
+                        for (int a = 0, N = dialogs.size(); a < N; a++) {
+                            long dialogId = dialogs.keyAt(a);
+                            ArrayList<Integer> mids = dialogs.valueAt(a);
+                            for (int msgId : mids) {
+                                TLRPC.Message msg = getMessageInternal(dialogId, msgId);
+                                if (msg != null) {
+                                    msg.dialog_id = dialogId;
+                                    com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(msg, currentAccount);
+                                    prefs.setDialogId(dialogId);
+                                    ayuMessagesController.onMessageDeleted(prefs, true);
+                                }
+                            }
+                        }
+                    }
+                    // --- AyuGram hook ---
                     for (int a = 0, N = dialogs.size(); a < N; a++) {
                         long dialogId = dialogs.keyAt(a);
                         ArrayList<Integer> mids = dialogs.valueAt(a);
+                        if (app.nimarkogram.messenger.NimarkoConfig.saveDeletedMessages) {
+                            final long dialogIdFinal = dialogId;
+                            final ArrayList<Integer> midsFinal = new ArrayList<>(mids);
+                            AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(com.radolyn.ayugram.AyuConstants.MESSAGES_DELETED_NOTIFICATION, dialogIdFinal, midsFinal));
+                        }
                         AndroidUtilities.runOnUIThread(() -> getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, mids, 0L, false));
                         updateDialogsWithReadMessagesInternal(mids, null, null, null, null);
                         markMessagesAsDeletedInternal(dialogId, mids, true, 0, 0);
@@ -16303,6 +16414,17 @@ public class MessagesStorage extends BaseController {
                                     if (oldMessage.out && !message.out) {
                                         message.out = oldMessage.out;
                                     }
+                                    // --- AyuGram hook (edit history saving; exteraless port) ---
+                                    if (message.from_id != null) {
+                                        if (!oldMessage.message.equals(message.message) || !sameMedia) {
+                                            if (app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory) {
+                                                com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(oldMessage, currentAccount);
+                                                prefs.setDialogId(dialogId);
+                                                com.radolyn.ayugram.messages.AyuMessagesController.getInstance().onMessageEdited(prefs, message);
+                                            }
+                                        }
+                                    }
+                                    // --- AyuGram hook ---
                                     if (!sameMedia) {
                                         addFilesToDelete(oldMessage, filesToDelete, idsToDelete, namesToDelete, false);
                                     }
