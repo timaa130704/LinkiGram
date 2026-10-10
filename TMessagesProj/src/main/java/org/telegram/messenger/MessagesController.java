@@ -6862,6 +6862,16 @@ public class MessagesController extends BaseController implements NotificationCe
         }
         fromCache = fromCache && user.id / 1000 != 333 && user.id != 777000;
         TLRPC.User oldUser = users.get(user.id);
+        // --- AyuGram hook: save last seen (exteraless port) ---
+        if (app.nimarkogram.messenger.NimarkoConfig.saveLocalLastSeen
+                && user.id != getUserConfig().getClientUserId()
+                && user.status instanceof TLRPC.TL_userStatusOffline) {
+            int lastSeen = user.status.expires;
+            if (lastSeen > 0) {
+                com.radolyn.ayugram.utils.LastSeenHelper.saveLastSeen(user.id, lastSeen);
+            }
+        }
+        // --- AyuGram hook ---
         if (oldUser == user && !force) {
             return false;
         }
@@ -21283,6 +21293,13 @@ public class MessagesController extends BaseController implements NotificationCe
         if (webPages != null) {
             getMessagesStorage().putWebPages(webPages);
         }
+        // --- AyuGram hook: save outgoing read dates (exteraless port) ---
+        try {
+            com.radolyn.ayugram.messages.AyuSpyController.onUpdatesRead(currentAccount, markAsReadMessagesOutbox, markAsReadEncrypted, markContentAsReadMessages, markContentAsReadMessagesDate, date);
+        } catch (Throwable t) {
+            FileLog.e("nimarko: ayu spy hook failed", t);
+        }
+        // --- AyuGram hook ---
         if (markAsReadMessagesInbox != null || markAsReadMessagesOutbox != null || markAsReadEncrypted != null || markContentAsReadMessages != null || stillUnreadMessagesCount != null) {
             if (markAsReadMessagesInbox != null || markAsReadMessagesOutbox != null || markContentAsReadMessages != null || stillUnreadMessagesCount != null) {
                 getMessagesStorage().updateDialogsWithReadMessages(markAsReadMessagesInbox, markAsReadMessagesOutbox, markContentAsReadMessages, stillUnreadMessagesCount, true);

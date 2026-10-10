@@ -26341,6 +26341,20 @@ public class ChatActivity extends BaseFragment implements
         for (int a = 0; a < size; a++) {
             Integer mid = markAsDeletedMessages.get(a);
             MessageObject obj = chatAdapter != null && chatAdapter.isFiltered ? filteredMessagesDict.get(mid) :  messagesDict[loadIndex].get(mid);
+            // --- AyuGram hook: keep deleted message in open chat (exteraless port) ---
+            if (!com.radolyn.ayugram.messages.AyuSavePreferences.saveDeletedMessageFor(currentAccount, getDialogId(), obj)
+                    || com.radolyn.ayugram.utils.AyuState.isDeletePermitted(getDialogId(), mid)) {
+                com.radolyn.ayugram.utils.AyuState.messageDeleted(getDialogId(), mid);
+            } else {
+                if (obj != null) {
+                    obj.messageOwner.ayuDeleted = true;
+                    if (chatAdapter != null) {
+                        chatAdapter.updateRowWithMessageObject(obj, false, false);
+                    }
+                }
+                continue;
+            }
+            // --- AyuGram hook ---
             if (selectedObject != null && obj == selectedObject || obj != null && selectedObjectGroup != null && selectedObjectGroup == groupedMessagesMap.get(obj.getGroupId())) {
                 closeMenu();
             }

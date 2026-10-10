@@ -20131,6 +20131,15 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @SuppressLint("WrongCall")
     @Override
     protected void onDraw(Canvas canvas) {
+        // --- AyuGram hook: translucent deleted messages (exteraless port) ---
+        if (app.nimarkogram.messenger.NimarkoConfig.translucentDeletedMessages
+                && currentMessageObject != null && currentMessageObject.isAyuDeleted()) {
+            canvas.saveLayerAlpha(0, 0, getMeasuredWidth(), getMeasuredHeight(), (int) (255 * 0.6f), Canvas.ALL_SAVE_FLAG);
+            drawInternal(canvas);
+            canvas.restore();
+            return;
+        }
+        // --- AyuGram hook ---
         drawInternal(canvas);
     }
     public void drawInternal(Canvas canvas) {

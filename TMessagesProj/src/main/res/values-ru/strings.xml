@@ -1407,4 +1407,44 @@
     <string name="AP_MaterialCards">Карточки Material 3</string>
     <string name="AP_MaterialCards_Desc">Скруглённые секции настроек с тенью.</string>
     <string name="AP_SectionRadius">Радиус карточек</string>
+
+    <!-- AyuMoments (exteraless/AyuGram port) -->
+    <string name="NM_AyuMoments">AyuMoments</string>
+    <string name="NM_Ayu_HeaderSaving">Сохранение удалённых</string>
+    <string name="NM_Ayu_SaveDeleted_Private">Сохранять в личных чатах</string>
+    <string name="NM_Ayu_SaveDeleted_Groups">Сохранять в группах</string>
+    <string name="NM_Ayu_SaveDeleted_Channels">Сохранять в каналах</string>
+    <string name="NM_Ayu_SaveDeleted_BotUser">Сохранять сообщения ботов в личных чатах</string>
+    <string name="NM_Ayu_SaveDeleted_BotChat">Сохранять сообщения ботов в группах и каналах</string>
+    <string name="NM_Ayu_SaveInArchived">Сохранять в архивных чатах</string>
+    <string name="NM_Ayu_ShadowSaving">Удалённые сообщения остаются в чате и восстанавливаются из локальной базы после переоткрытия.</string>
+    <string name="NM_Ayu_HeaderEdits">История правок</string>
+    <string name="NM_Ayu_SaveEdits">Сохранять историю правок</string>
+    <string name="NM_Ayu_SaveEdits_Desc">Сохранять предыдущие версии сообщений при редактировании</string>
+    <string name="NM_Ayu_ShadowEdits">Предыдущие версии сообщений сохраняются локально перед каждым изменением.</string>
+    <string name="NM_Ayu_HeaderMedia">Сохранение медиа</string>
+    <string name="NM_Ayu_SaveMedia">Сохранять файлы</string>
+    <string name="NM_Ayu_SaveMedia_Desc">Копировать медиа удалённых и правленых сообщений в локальную папку</string>
+    <string name="NM_Ayu_SaveMedia_Private">Личные чаты</string>
+    <string name="NM_Ayu_SaveMedia_PubChannels">Публичные каналы</string>
+    <string name="NM_Ayu_SaveMedia_PrivChannels">Приватные каналы</string>
+    <string name="NM_Ayu_SaveMedia_PubGroups">Публичные группы</string>
+    <string name="NM_Ayu_SaveMedia_PrivGroups">Приватные группы</string>
+    <string name="NM_Ayu_ShadowMedia">Медиа удалённых и правленых сообщений копируется до их исчезновения.</string>
+    <string name="NM_Ayu_HeaderSpy">Локальный трекинг</string>
+    <string name="NM_Ayu_SaveLastSeen">Сохранять «был в сети»</string>
+    <string name="NM_Ayu_SaveLastSeen_Desc">Сохранять локально время последнего визита контактов</string>
+    <string name="NM_Ayu_SaveReadDate">Сохранять время прочтения</string>
+    <string name="NM_Ayu_SaveReadDate_Desc">Сохранять, когда ваши сообщения были прочитаны</string>
+    <string name="NM_Ayu_ShadowSpy">Данные трекинга хранятся локально и никуда не отправляются.</string>
+    <string name="NM_Ayu_HeaderView">Отображение удалённых</string>
+    <string name="NM_Ayu_Translucent">Полупрозрачные удалённые</string>
+    <string name="NM_Ayu_Translucent_Desc">Показывать сохранённые удалённые сообщения с пониженной прозрачностью</string>
+    <string name="NM_Ayu_ShadowView">Как сохранённые удалённые сообщения выглядят в чате.</string>
+    <string name="NM_Ayu_HeaderDb">База данных Ayu</string>
+    <string name="NM_Ayu_DbExport">Экспортировать базу</string>
+    <string name="NM_Ayu_DbImport">Импортировать базу</string>
+    <string name="NM_Ayu_DbClear">Очистить базу</string>
+    <string name="NM_Ayu_DbCleared">База очищена</string>
+    <string name="NM_Ayu_ShadowDb">Локальное хранилище сохранённых сообщений и данных трекинга.</string>
 </resources>

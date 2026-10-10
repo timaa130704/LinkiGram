@@ -12465,4 +12465,44 @@
     <string name="AP_MaterialCards">Material 3 cards</string>
     <string name="AP_MaterialCards_Desc">Rounded settings sections with a shadow.</string>
     <string name="AP_SectionRadius">Card corner radius</string>
+
+    <!-- AyuMoments (exteraless/AyuGram port) -->
+    <string name="NM_AyuMoments">AyuMoments</string>
+    <string name="NM_Ayu_HeaderSaving">Saving deleted messages</string>
+    <string name="NM_Ayu_SaveDeleted_Private">Save in private chats</string>
+    <string name="NM_Ayu_SaveDeleted_Groups">Save in groups</string>
+    <string name="NM_Ayu_SaveDeleted_Channels">Save in channels</string>
+    <string name="NM_Ayu_SaveDeleted_BotUser">Save messages from bots in private chats</string>
+    <string name="NM_Ayu_SaveDeleted_BotChat">Save messages from bots in groups and channels</string>
+    <string name="NM_Ayu_SaveInArchived">Save in archived chats</string>
+    <string name="NM_Ayu_ShadowSaving">Deleted messages stay in the chat and are restored from a local database after reopening.</string>
+    <string name="NM_Ayu_HeaderEdits">Edit history</string>
+    <string name="NM_Ayu_SaveEdits">Save edit history</string>
+    <string name="NM_Ayu_SaveEdits_Desc">Keep previous versions of edited messages</string>
+    <string name="NM_Ayu_ShadowEdits">Previous message versions are stored locally before each edit.</string>
+    <string name="NM_Ayu_HeaderMedia">Saving media</string>
+    <string name="NM_Ayu_SaveMedia">Save media files</string>
+    <string name="NM_Ayu_SaveMedia_Desc">Copy media of deleted and edited messages to a local folder</string>
+    <string name="NM_Ayu_SaveMedia_Private">Private chats</string>
+    <string name="NM_Ayu_SaveMedia_PubChannels">Public channels</string>
+    <string name="NM_Ayu_SaveMedia_PrivChannels">Private channels</string>
+    <string name="NM_Ayu_SaveMedia_PubGroups">Public groups</string>
+    <string name="NM_Ayu_SaveMedia_PrivGroups">Private groups</string>
+    <string name="NM_Ayu_ShadowMedia">Media files of deleted and edited messages are copied before they disappear.</string>
+    <string name="NM_Ayu_HeaderSpy">Local tracking</string>
+    <string name="NM_Ayu_SaveLastSeen">Save last seen</string>
+    <string name="NM_Ayu_SaveLastSeen_Desc">Keep the last seen time of contacts locally</string>
+    <string name="NM_Ayu_SaveReadDate">Save read date</string>
+    <string name="NM_Ayu_SaveReadDate_Desc">Keep when your outgoing messages were read</string>
+    <string name="NM_Ayu_ShadowSpy">Tracking data is stored locally and never sent anywhere.</string>
+    <string name="NM_Ayu_HeaderView">Deleted messages view</string>
+    <string name="NM_Ayu_Translucent">Translucent deleted messages</string>
+    <string name="NM_Ayu_Translucent_Desc">Show saved deleted messages at reduced opacity</string>
+    <string name="NM_Ayu_ShadowView">How saved deleted messages look inside the chat.</string>
+    <string name="NM_Ayu_HeaderDb">Ayu database</string>
+    <string name="NM_Ayu_DbExport">Export database</string>
+    <string name="NM_Ayu_DbImport">Import database</string>
+    <string name="NM_Ayu_DbClear">Clear database</string>
+    <string name="NM_Ayu_DbCleared">Database cleared</string>
+    <string name="NM_Ayu_ShadowDb">Local storage of saved messages and tracking data.</string>
 </resources>

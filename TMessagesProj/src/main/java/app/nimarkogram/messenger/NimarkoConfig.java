@@ -357,10 +357,41 @@ public final class NimarkoConfig {
         getEditor().putBoolean("lastSeenCacheEnabled", lastSeenCacheEnabled).apply();
     }
 
-    public static volatile boolean saveDeletedMessages = getPreferences().getBoolean("saveDeletedMessages", false);
+    public static volatile boolean saveDeletedMessages = getPreferences().getBoolean("saveDeletedMessages", true);
     public static void toggleSaveDeletedMessages() {
         saveDeletedMessages = !saveDeletedMessages;
         getEditor().putBoolean("saveDeletedMessages", saveDeletedMessages).apply();
+    }
+
+    public static volatile boolean translucentDeletedMessages = getPreferences().getBoolean("translucentDeletedMessages", true);
+    public static void toggleTranslucentDeletedMessages() {
+        translucentDeletedMessages = !translucentDeletedMessages;
+        getEditor().putBoolean("translucentDeletedMessages", translucentDeletedMessages).apply();
+    }
+
+    public static void toggleSaveMediaInPrivateChats() {
+        saveMediaInPrivateChats = !saveMediaInPrivateChats;
+        getEditor().putBoolean("saveMediaInPrivateChats", saveMediaInPrivateChats).apply();
+    }
+
+    public static void toggleSaveMediaInPublicChannels() {
+        saveMediaInPublicChannels = !saveMediaInPublicChannels;
+        getEditor().putBoolean("saveMediaInPublicChannels", saveMediaInPublicChannels).apply();
+    }
+
+    public static void toggleSaveMediaInPrivateChannels() {
+        saveMediaInPrivateChannels = !saveMediaInPrivateChannels;
+        getEditor().putBoolean("saveMediaInPrivateChannels", saveMediaInPrivateChannels).apply();
+    }
+
+    public static void toggleSaveMediaInPublicGroups() {
+        saveMediaInPublicGroups = !saveMediaInPublicGroups;
+        getEditor().putBoolean("saveMediaInPublicGroups", saveMediaInPublicGroups).apply();
+    }
+
+    public static void toggleSaveMediaInPrivateGroups() {
+        saveMediaInPrivateGroups = !saveMediaInPrivateGroups;
+        getEditor().putBoolean("saveMediaInPrivateGroups", saveMediaInPrivateGroups).apply();
     }
 
     public static void markMessageDeletedByOther(long dialogId, int messageId) {

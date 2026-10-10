@@ -42,6 +42,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public static final int ID_PILLSTACK      = 29;
     public static final int ID_SOURCE_CODE    = 30;
     public static final int ID_EASTER         = 31;
+    public static final int ID_AYUMOMENTS     = 32;
 
     private int easterEggClicks = 0;
     private long easterEggLastClickTime = 0;
@@ -71,6 +72,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         
         arrayList.add(category(ID_PRIVACY, IconBackgroundColors.GREEN,
                 R.drawable.msg_secret_solar, R.string.NM_Cat_Privacy, "nimarko_privacy"));
+        arrayList.add(category(ID_AYUMOMENTS, IconBackgroundColors.RED,
+                R.drawable.msg_delete_solar, R.string.NM_AyuMoments, "nimarko_ayumoments"));
         arrayList.add(UItem.asShadow(null));
 
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_HUB_Header_Misc)));
@@ -131,6 +134,9 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 break;
             case ID_PRIVACY:
                 presentFragment(new PrivacyPreferencesActivity());
+                break;
+            case ID_AYUMOMENTS:
+                presentFragment(new AyuMomentsPreferencesActivity());
                 break;
             case ID_PLUGINS:
                 presentFragment(new PluginsActivity());
