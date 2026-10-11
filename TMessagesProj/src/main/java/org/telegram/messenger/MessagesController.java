@@ -9754,7 +9754,7 @@ public class MessagesController extends BaseController implements NotificationCe
      * database reports itself open fills the list from disk straight away.
      */
     public void reloadDialogsFromCache(int folderId) {
-        loadingDialogs.remove(folderId);
+        loadingDialogs.delete(folderId);
         loadDialogs(folderId, 0, 100, true);
     }
 
