@@ -12,6 +12,8 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.os.Build;
+import android.os.SystemClock;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -221,6 +223,28 @@ public class NativeLoader {
 
     public static boolean loaded() {
         return nativeLoaded;
+    }
+
+    public static void awaitLoaded() {
+        long start = SystemClock.elapsedRealtime();
+        if (nativeLoaded) {
+            return;
+        }
+        while (!nativeLoaded) {
+            if (SystemClock.elapsedRealtime() - start > 5000) {
+                break;
+            }
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        long elapsed = SystemClock.elapsedRealtime() - start;
+        if (elapsed > 200) {
+            Log.i("LinkiNative", "awaitLoaded: waited " + elapsed + "ms (loaded=" + nativeLoaded + ")");
+        }
     }
     //public static native void crash();
 }

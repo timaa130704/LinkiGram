@@ -3023,6 +3023,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (!dialogsLoaded[currentAccount]) {
             MessagesController messagesController = accountInstance.getMessagesController();
             messagesController.loadGlobalNotificationsSettings();
+            android.util.Log.i("LinkiDialogs", "DialogsActivity.loadDialogs account=" + currentAccount
+                    + " at " + android.os.SystemClock.elapsedRealtime() + "ms");
             messagesController.loadDialogs(0, 0, 100, true);
             messagesController.loadHintDialogs();
             messagesController.loadUserInfo(accountInstance.getUserConfig().getCurrentUser(), false, 0);

@@ -294,18 +294,7 @@ public class MessagesStorage extends BaseController {
 
     public void openDatabase(int openTries) {
         if (!NativeLoader.loaded()) {
-            int tryCount = 0;
-            while (!NativeLoader.loaded()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                tryCount++;
-                if (tryCount > 5) {
-                    break;
-                }
-            }
+            NativeLoader.awaitLoaded();
         }
         File filesDir = ApplicationLoader.getFilesDirFixed();
         if (currentAccount != 0) {
@@ -17367,6 +17356,10 @@ public class MessagesStorage extends BaseController {
                         fullUsers = loadUserInfos(fullUsersToLoad);
                     }
                 }
+                android.util.Log.i("LinkiDialogs", "getDialogs FROM CACHE folder=" + folderId
+                        + " offset=" + offset + " count=" + count
+                        + " -> read " + dialogs.dialogs.size() + " dialogs"
+                        + " at " + android.os.SystemClock.elapsedRealtime() + "ms");
                 getMessagesController().processLoadedDialogs(dialogs, encryptedChats, fullUsers, folderId, offset, count, 1, false, false, true);
             } catch (Exception e) {
                 dialogs.dialogs.clear();
