@@ -9744,6 +9744,20 @@ public class MessagesController extends BaseController implements NotificationCe
         return loadingDialogs.get(folderId);
     }
 
+    /**
+     * LinkiGram: re-read the dialogs from the local cache.
+     * <p>
+     * DialogsActivity asks for the cached list while creating its views, and that read
+     * can be issued before the database file is actually open, in which case it comes
+     * back empty and the chat list stays blank until the network round-trip lands
+     * several seconds later. Clearing the in-flight guard and asking again once the
+     * database reports itself open fills the list from disk straight away.
+     */
+    public void reloadDialogsFromCache(int folderId) {
+        loadingDialogs.remove(folderId);
+        loadDialogs(folderId, 0, 100, true);
+    }
+
     public boolean isServerDialogsEndReached(int folderId) {
         return serverDialogsEndReached.get(folderId);
     }

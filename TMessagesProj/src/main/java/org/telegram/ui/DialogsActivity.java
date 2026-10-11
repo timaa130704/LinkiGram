@@ -10847,6 +10847,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         } else if (id == NotificationCenter.onDatabaseOpened) {
             checkSuggestClearDatabase();
+            // LinkiGram: the cached read issued from createView can beat the database
+            // and come back empty, leaving the chat list blank until the network sync
+            // lands. Now that the database is open, read the cache once more so the
+            // chats show up immediately.
+            if (viewPages != null && !dialogsListFrozen && getMessagesController().getDialogs(folderId).isEmpty()) {
+                getMessagesController().reloadDialogsFromCache(folderId);
+            }
         } else if (id == NotificationCenter.userEmojiStatusUpdated) {
             updateStatus((TLRPC.User) args[0], true);
         } else if (id == NotificationCenter.currentUserPremiumStatusChanged) {
