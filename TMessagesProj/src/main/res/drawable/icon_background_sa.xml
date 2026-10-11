@@ -4,5 +4,5 @@
   (used by TMessagesProj_AppStandalone mipmap-anydpi-v26/ic_launcher_sa.xml)
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#142233" />
+    <solid android:color="#424242" />
 </shape>
