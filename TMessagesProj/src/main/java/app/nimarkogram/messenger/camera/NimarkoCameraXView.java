@@ -33,6 +33,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.camera2.interop.Camera2Interop;
 import androidx.camera.core.AspectRatio;
@@ -76,6 +77,7 @@ import org.telegram.ui.Components.CubicBezierInterpolator;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
@@ -769,6 +771,55 @@ public class NimarkoCameraXView extends BaseCameraView {
             if (NimarkoCameraLog.DEBUG) NimarkoCameraLog.log("CXView switch FAILED toFront=" + frontFacing);
             notifyCameraFailure(new IllegalStateException("CameraX lens switch failed"));
         }
+    }
+
+    // LinkiGram: camera module switching.
+
+    @Override
+    public List<CameraLensSelector.Lens> getAvailableLenses() {
+        Camera boundCamera = camera;
+        if (boundCamera == null) {
+            return Collections.singletonList(new CameraLensSelector.Lens(1f, 1f, 0f));
+        }
+        try {
+            return CameraLensSelector.lensesFromFocals(CameraXUtils.getFocalLengths(boundCamera));
+        } catch (Throwable t) {
+            return Collections.singletonList(new CameraLensSelector.Lens(1f, 1f, 0f));
+        }
+    }
+
+    @Override
+    public boolean setLens(@NonNull CameraLensSelector.Lens lens) {
+        Camera boundCamera = camera;
+        if (boundCamera == null || !cameraControlsReady || lens == null) return false;
+        try {
+            androidx.camera.core.ZoomState state =
+                    boundCamera.getCameraInfo().getZoomState().getValue();
+            float ratio = lens.zoomRatio;
+            if (state != null) {
+                ratio = Math.max(state.getMinZoomRatio(), Math.min(state.getMaxZoomRatio(), ratio));
+            }
+            zoomCoordinator.requestZoomRatio(ratio);
+            return true;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    @Override
+    public CameraLensSelector.Lens getActiveLens() {
+        Camera boundCamera = camera;
+        float ratio = baseZoomRatio;
+        if (boundCamera != null) {
+            try {
+                androidx.camera.core.ZoomState state =
+                        boundCamera.getCameraInfo().getZoomState().getValue();
+                if (state != null) ratio = state.getZoomRatio();
+            } catch (Throwable ignored) {
+            }
+        }
+        return CameraLensSelector.closestTo(getAvailableLenses(), ratio);
     }
 
     @Override

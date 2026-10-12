@@ -7,12 +7,15 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.telegram.messenger.camera.CameraSessionWrapper;
 import org.telegram.messenger.camera.CameraView;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class BaseCameraView extends FrameLayout {
 
@@ -71,6 +74,42 @@ public abstract class BaseCameraView extends FrameLayout {
     public abstract void setZoom(float value);
     public float getZoom() { return 0f; }
     public float resetZoom() { setZoom(0f); return 0f; }
+
+    // LinkiGram: camera module switching (0.6x / 1.0x / 1.9x and whatever else the
+    // phone actually has). Empty by default so every camera implementation keeps
+    // working; the ones that can switch override these.
+
+    /** The modules this camera exposes, widest first. Never null. */
+    public List<CameraLensSelector.Lens> getAvailableLenses() {
+        return Collections.singletonList(new CameraLensSelector.Lens(1f, 1f, 0f));
+    }
+
+    /** True when this camera has more than one module, so the switcher is worth showing. */
+    public boolean hasMultipleLenses() {
+        return CameraLensSelector.hasMultipleLenses(getAvailableLenses());
+    }
+
+    /** Switches to the given module. Returns false when the switch was not applied. */
+    public boolean setLens(@NonNull CameraLensSelector.Lens lens) { return false; }
+
+    /** The module currently in use. */
+    public CameraLensSelector.Lens getActiveLens() {
+        return CameraLensSelector.closestTo(getAvailableLenses(), 1f);
+    }
+
+    /**
+     * Cycles to the next module and returns it, or null when there is nothing to
+     * switch to. This is what a tap on the lens button calls.
+     */
+    @Nullable public CameraLensSelector.Lens switchToNextLens() {
+        List<CameraLensSelector.Lens> lenses = getAvailableLenses();
+        if (!CameraLensSelector.hasMultipleLenses(lenses)) return null;
+        CameraLensSelector.Lens next = CameraLensSelector.next(lenses, getActiveLens());
+        if (next != null && setLens(next)) {
+            return next;
+        }
+        return null;
+    }
     public void setExposureCompensation(float value0to1) {   }
     public boolean isExposureCompensationSupported() { return false; }
     public void focusToPoint(int x, int y) {   }
