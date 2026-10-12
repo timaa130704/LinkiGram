@@ -748,6 +748,31 @@ public final class RoundVideoSession {
         return cameraController.setZoom(zoomProgress);
     }
 
+    // LinkiGram: camera module switching for round videos.
+
+    /** The modules the active camera exposes, widest first. */
+    public java.util.List<app.nimarkogram.messenger.camera.CameraLensSelector.Lens> getAvailableLenses() {
+        return cameraController.getAvailableLenses();
+    }
+
+    /** True when the active camera has more than one module. */
+    public boolean hasMultipleLenses() {
+        return cameraController.hasMultipleLenses();
+    }
+
+    /** Switches to the given module while recording. */
+    @MainThread
+    public boolean setLens(app.nimarkogram.messenger.camera.CameraLensSelector.Lens lens) {
+        requireMainThread();
+        if (state != State.RECORDING || cameraSwitching) return false;
+        return cameraController.setLens(lens);
+    }
+
+    /** The module currently in use. */
+    public app.nimarkogram.messenger.camera.CameraLensSelector.Lens getActiveLens() {
+        return cameraController.getActiveLens();
+    }
+
     /** Enables the rear torch or requests front-camera screen flash. */
     @MainThread
     public boolean setFlashEnabled(boolean enabled) {

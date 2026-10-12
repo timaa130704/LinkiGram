@@ -412,6 +412,20 @@ public final class CameraXUtils {
         }
     }
 
+    /** The focal lengths of every physical module behind the given camera. */
+    @SuppressLint("UnsafeOptInUsageError")
+    public static float[] getFocalLengths(@Nullable Camera camera) {
+        if (camera == null) return new float[0];
+        try {
+            CameraInfo info = camera.getCameraInfo();
+            float[] focals = Camera2CameraInfo.from(info).getCameraCharacteristic(
+                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+            return focals == null ? new float[0] : focals;
+        } catch (Throwable ignored) {
+            return new float[0];
+        }
+    }
+
     @SuppressLint("UnsafeOptInUsageError")
     private static boolean supportsSubOneZoom(@Nullable CameraInfo info) {
         if (info == null) return false;

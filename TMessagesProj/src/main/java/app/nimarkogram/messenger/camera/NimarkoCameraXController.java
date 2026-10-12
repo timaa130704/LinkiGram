@@ -1077,6 +1077,52 @@ public class NimarkoCameraXController implements CameraXProviderCoordinator.Owne
         zoomCoordinator.requestZoomRatio(ratio);
     }
 
+    /**
+     * Camera modules available on the bound camera, widest first.
+     * Returns a single 1x entry when the camera exposes only one lens.
+     */
+    public java.util.List<CameraLensSelector.Lens> getAvailableLenses() {
+        Camera camera = boundCamera;
+        if (camera == null) {
+            return java.util.Collections.singletonList(new CameraLensSelector.Lens(1f, 1f, 0f));
+        }
+        try {
+            return CameraLensSelector.lensesFromFocals(CameraXUtils.getFocalLengths(camera));
+        } catch (Throwable t) {
+            return java.util.Collections.singletonList(new CameraLensSelector.Lens(1f, 1f, 0f));
+        }
+    }
+
+    /** True when this camera exposes more than one module, so the switcher is worth showing. */
+    public boolean hasMultipleLenses() {
+        return CameraLensSelector.hasMultipleLenses(getAvailableLenses());
+    }
+
+    /**
+     * Switches to the given module by requesting its zoom ratio. The HAL swaps the
+     * physical sensor once the ratio lines up with that module's focal length.
+     */
+    public boolean setLens(@NonNull CameraLensSelector.Lens lens) {
+        if (lens == null || boundCamera == null || !boundCameraReady) return false;
+        try {
+            androidx.camera.core.ZoomState state = boundCamera.getCameraInfo().getZoomState().getValue();
+            float ratio = lens.zoomRatio;
+            if (state != null) {
+                ratio = Math.max(state.getMinZoomRatio(), Math.min(state.getMaxZoomRatio(), ratio));
+            }
+            zoomCoordinator.requestZoomRatio(ratio);
+            return true;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    /** The module closest to the currently applied zoom. */
+    public CameraLensSelector.Lens getActiveLens() {
+        return CameraLensSelector.closestTo(getAvailableLenses(), getZoomRatio());
+    }
+
     public float getZoomRatio() {
         if (boundCamera == null) return baseZoomRatio;
         try {

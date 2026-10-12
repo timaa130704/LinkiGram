@@ -129,6 +129,8 @@ final class RoundVideoCameraController {
     private long timelineOffsetUs;
     private volatile float zoomProgress;
     private float maximumZoomRatio = 1f;
+    private volatile boolean lensMode;
+    private volatile float lensZoomBase = 1f;
     private boolean torchEnabled;
     private boolean torchVerificationPending;
     private int torchVerificationFrames;
@@ -249,6 +251,56 @@ final class RoundVideoCameraController {
         if (!active || handler == null) return false;
         handler.post(() -> switchCameraIfNeeded(facing));
         return true;
+    }
+
+    /**
+     * Camera modules available on the active logical camera, widest first.
+     * Returns a single 1x entry when the camera has only one lens.
+     */
+    public java.util.List<app.nimarkogram.messenger.camera.CameraLensSelector.Lens> getAvailableLenses() {
+        return app.nimarkogram.messenger.camera.CameraLensSelector.lensesFrom(characteristics);
+    }
+
+    /** True when this camera exposes more than one module, so the switcher is worth showing. */
+    public boolean hasMultipleLenses() {
+        return app.nimarkogram.messenger.camera.CameraLensSelector.hasMultipleLenses(getAvailableLenses());
+    }
+
+    /**
+     * Switches to the given module by adopting its zoom ratio as the new base.
+     * A logical multi-camera swaps the physical sensor on its own once the zoom ratio
+     * matches the module's focal length.
+     */
+    public boolean setLens(@NonNull app.nimarkogram.messenger.camera.CameraLensSelector.Lens lens) {
+        if (lens == null || characteristics == null) return false;
+        float ratio = lens.zoomRatio;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Range<Float> range = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+            if (range == null) return false;
+            if (ratio < range.getLower() - 0.001f || ratio > range.getUpper() + 0.001f) {
+                // The module sits outside what this HAL exposes; fall back to 1x.
+                ratio = clamp(1f, range.getLower(), range.getUpper());
+            }
+        } else if (ratio < 1f) {
+            // Before API 30 the crop cannot represent an ultra-wide ratio; the HAL
+            // still switches lenses for anything at or above 1x.
+            ratio = 1f;
+        }
+        lensZoomBase = ratio;
+        lensMode = true;
+        zoomProgress = 0f;
+        Handler handler = cameraHandler;
+        if (!active || handler == null) return false;
+        handler.removeCallbacks(applyZoomRunnable);
+        handler.post(applyZoomRunnable);
+        diagnostics.log("lens switched: ratio=" + ratio + " factor=" + lens.factor);
+        return true;
+    }
+
+    /** The module closest to the currently applied zoom. */
+    public app.nimarkogram.messenger.camera.CameraLensSelector.Lens getActiveLens() {
+        return app.nimarkogram.messenger.camera.CameraLensSelector.closestTo(
+                getAvailableLenses(), lensMode ? lensZoomBase : 1f);
     }
 
     boolean setZoom(float progress) {
@@ -975,7 +1027,14 @@ final class RoundVideoCameraController {
     }
 
     private void applyZoom(@NonNull CaptureRequest.Builder builder) {
-        float ratio = 1f + zoomProgress * (maximumZoomRatio - 1f);
+        float ratio;
+        if (lensMode) {
+            // A module is active: the pinch moves the zoom out from that module's own
+            // ratio instead of always starting at 1x, so 0.6x stays 0.6x until pinched.
+            ratio = lensZoomBase + zoomProgress * (maximumZoomRatio - lensZoomBase);
+        } else {
+            ratio = 1f + zoomProgress * (maximumZoomRatio - 1f);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Range<Float> range = characteristics == null
                     ? null
