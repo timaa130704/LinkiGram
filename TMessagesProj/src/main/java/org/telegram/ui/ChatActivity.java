@@ -35175,7 +35175,12 @@ public class ChatActivity extends BaseFragment implements
                     createArticleViewer(false).open(message, finalParsed);
                 } else {
                     try {
-                        AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                        // LinkiGram: a .plugin document opens the install panel instead
+                        // of the document viewer. This call was lost when the upstream
+                        // client was updated, so plugin files did nothing when tapped.
+                        if (!app.nimarkogram.messenger.plugins.PluginsController.maybeShowInstallDialog(message, ChatActivity.this)) {
+                            AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                        }
                     } catch (Exception e) {
                         FileLog.e(e);
                         alertUserOpenError(message);
@@ -41480,7 +41485,10 @@ public class ChatActivity extends BaseFragment implements
                     }
                     if (!handled) {
                         try {
-                            AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                            // LinkiGram: open the install panel for plugin documents.
+                            if (!app.nimarkogram.messenger.plugins.PluginsController.maybeShowInstallDialog(message, ChatActivity.this)) {
+                                AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                            }
                         } catch (Exception e) {
                             FileLog.e(e);
                             alertUserOpenError(message);
@@ -41785,7 +41793,10 @@ public class ChatActivity extends BaseFragment implements
                 }
                 if (!handled) {
                     try {
-                        AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                        // LinkiGram: open the install panel for plugin documents.
+                        if (!app.nimarkogram.messenger.plugins.PluginsController.maybeShowInstallDialog(message, ChatActivity.this)) {
+                            AndroidUtilities.openForView(message, getParentActivity(), themeDelegate, false);
+                        }
                     } catch (Exception e) {
                         FileLog.e(e);
                         alertUserOpenError(message);

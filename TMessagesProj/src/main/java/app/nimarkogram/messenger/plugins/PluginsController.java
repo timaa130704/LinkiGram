@@ -1131,8 +1131,13 @@ public class PluginsController implements PluginsHooks {
     }
 
     public static boolean isPlugin(MessageObject messageObject) {
+        // The null check has to come first: this used to read the message before
+        // testing it, which threw on any caller passing null.
+        if (messageObject == null || messageObject.getDocumentName() == null) {
+            return false;
+        }
         String pathToMessage = ChatUtils.getInstance().getPathToMessage(messageObject);
-        return (messageObject == null || messageObject.getDocumentName() == null || TextUtils.isEmpty(pathToMessage) || !isPlugin(new File(pathToMessage)) || !isPluginEngineSupported()) ? false : true;
+        return !TextUtils.isEmpty(pathToMessage) && isPluginEngineSupported() && isPlugin(new File(pathToMessage));
     }
 
     public static boolean isPlugin(File file) {
