@@ -11,6 +11,7 @@ package app.nimarkogram.messenger.camera;
 
 import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 
 import androidx.annotation.Nullable;
 
@@ -36,11 +37,18 @@ public final class CameraLensSelector {
         public final float factor;
         public final float zoomRatio;
         public final float focalLength;
+        /** Camera id backing this module, or null when the logical camera handles it. */
+        public final String cameraId;
 
         Lens(float factor, float zoomRatio, float focalLength) {
+            this(factor, zoomRatio, focalLength, null);
+        }
+
+        Lens(float factor, float zoomRatio, float focalLength, @Nullable String cameraId) {
             this.factor = factor;
             this.zoomRatio = zoomRatio;
             this.focalLength = focalLength;
+            this.cameraId = cameraId;
         }
     }
 
@@ -118,6 +126,105 @@ public final class CameraLensSelector {
         float[] sorted = focals.clone();
         Arrays.sort(sorted);
         return buildLenses(sorted);
+    }
+
+    /**
+     * Builds the module list by walking every camera the device exposes.
+     * <p>
+     * Plenty of phones publish each physical lens as its own camera id and report a
+     * single focal length for each one, rather than folding them into one logical
+     * multi-camera. Reading focal lengths from a single camera therefore finds just
+     * one lens and the switcher would never appear, so the ids are enumerated
+     * directly and each lens is labelled relative to the widest one in that facing.
+     *
+     * @param manager       the camera manager to query
+     * @param requiredFacing {@link CameraCharacteristics#LENS_FACING_BACK} or FRONT
+     * @return modules sorted widest first, or a single 1x entry when the device has
+     * only one camera in that direction.
+     */
+    @SuppressLint("UnsafeOptInUsageError")
+    public static List<Lens> lensesFromCameraManager(@Nullable CameraManager manager, int requiredFacing) {
+        if (manager == null) {
+            return Collections.singletonList(new Lens(1f, 1f, 0f, null));
+        }
+        ArrayList<Lens> found = new ArrayList<>();
+        try {
+            for (String id : manager.getCameraIdList()) {
+                CameraCharacteristics characteristics;
+                try {
+                    characteristics = manager.getCameraCharacteristics(id);
+                } catch (Throwable ignored) {
+                    continue;
+                }
+                if (characteristics == null) continue;
+                Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+                if (facing == null || facing != requiredFacing) continue;
+                float focal = shortestFocal(characteristics);
+                if (focal <= 0f) continue;
+                found.add(new Lens(0f, 1f, focal, id));
+            }
+        } catch (Throwable ignored) {
+        }
+
+        if (found.size() <= 1) {
+            // A single camera in this direction, or a logical camera that reports
+            // several focal lengths: fall back to reading them off that one camera.
+            String onlyId = found.isEmpty() ? null : found.get(0).cameraId;
+            if (onlyId != null) {
+                try {
+                    return withCameraIds(lensesFrom(manager.getCameraCharacteristics(onlyId)), onlyId);
+                } catch (Throwable ignored) {
+                }
+            }
+            return Collections.singletonList(new Lens(1f, 1f, 0f, onlyId));
+        }
+
+        // 1x is the middle lens: the shortest focal length is the ultra-wide, which
+        // phones label below 1x, and the longest one is the telephoto above it.
+        found.sort((a, b) -> Float.compare(a.focalLength, b.focalLength));
+        float[] allFocals = new float[found.size()];
+        for (int i = 0; i < found.size(); i++) {
+            allFocals[i] = found.get(i).focalLength;
+        }
+        float mainFocal = pickMainFocal(allFocals);
+        if (mainFocal <= 0f) mainFocal = found.get(found.size() - 1).focalLength;
+
+        ArrayList<Lens> lenses = new ArrayList<>(found.size());
+        for (Lens lens : found) {
+            float factor = mainFocal / lens.focalLength;
+            if (factor < MIN_FACTOR || factor > MAX_FACTOR) continue;
+            lenses.add(new Lens(factor, 1f / factor, lens.focalLength, lens.cameraId));
+        }
+        if (lenses.isEmpty()) {
+            return Collections.singletonList(new Lens(1f, 1f, 0f, found.get(0).cameraId));
+        }
+        Collections.sort(lenses, (a, b) -> Float.compare(b.factor, a.factor));
+        return lenses;
+    }
+
+    private static List<Lens> withCameraIds(List<Lens> lenses, @Nullable String cameraId) {
+        if (lenses.isEmpty()) return lenses;
+        ArrayList<Lens> tagged = new ArrayList<>(lenses.size());
+        for (Lens lens : lenses) {
+            tagged.add(new Lens(lens.factor, lens.zoomRatio, lens.focalLength, cameraId));
+        }
+        return tagged;
+    }
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private static float shortestFocal(@Nullable CameraCharacteristics characteristics) {
+        if (characteristics == null) return 0f;
+        try {
+            float[] focals = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+            if (focals == null || focals.length == 0) return 0f;
+            float shortest = Float.MAX_VALUE;
+            for (float focal : focals) {
+                if (focal > 0f && focal < shortest) shortest = focal;
+            }
+            return shortest == Float.MAX_VALUE ? 0f : shortest;
+        } catch (Throwable ignored) {
+            return 0f;
+        }
     }
 
     private static List<Lens> buildLenses(float[] sorted) {

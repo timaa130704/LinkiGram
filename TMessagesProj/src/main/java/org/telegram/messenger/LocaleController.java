@@ -4458,6 +4458,16 @@ public class LocaleController {
                     if (local == null) {
                         local = localizationInternal.getByResName(fallback);
                     }
+                    if (local == null && stringRes != 0 && context != null) {
+                        // The key may be missing from the bundled pack even though the
+                        // key is present as a compiled string resource. Without this the
+                        // upstream branding from the cloud pack wins and the header
+                        // reads "Telegram" again.
+                        try {
+                            local = context.getString(stringRes);
+                        } catch (Throwable ignored) {
+                        }
+                    }
                     if (local != null && local.contains("LinkiGram") && !isUpstreamBranded(local)) {
                         return local;
                     }
