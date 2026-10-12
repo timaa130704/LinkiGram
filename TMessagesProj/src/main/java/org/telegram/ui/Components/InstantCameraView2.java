@@ -14,10 +14,13 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.ColorFilter;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
+import android.text.TextPaint;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.TextureView;
@@ -30,6 +33,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
@@ -55,6 +59,7 @@ import org.telegram.utils.camera.roundvideo.RoundVideoSession;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.List;
 
 /** Telegram UI adapter for the standalone Camera2 round-video session. */
 public final class InstantCameraView2 extends InstantCameraViewBase {
@@ -77,6 +82,9 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
     private final BackupImageView textureOverlayView;
     private final LinearLayout buttonsLayout;
     private final FlashViews.ImageViewInvertable switchCameraButton;
+    private FlashViews.ImageViewInvertable lensButton;
+    private TextPaint lensTextPaint;
+    private CameraLensSelector.Lens activeLens;
     private final FlashViews.ImageViewInvertable flashButton;
     private final ImageView muteImageView;
     private final FlashViews flashViews;
@@ -245,6 +253,19 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
         flashButton.setScaleType(ImageView.ScaleType.CENTER);
         buttonsLayout.addView(flashButton, LayoutHelper.createLinear(44, 44));
         flashButton.setOnClickListener(view -> toggleFlash());
+
+        // LinkiGram: camera module switcher (0.6x / 1.0x / 1.9x). Stays hidden until
+        // the active camera reports more than one physical module.
+        lensButton = new FlashViews.ImageViewInvertable(context);
+        lensButton.setScaleType(ImageView.ScaleType.CENTER);
+        lensButton.setVisibility(View.GONE);
+        lensButton.setContentDescription("Camera lens");
+        buttonsLayout.addView(lensButton, LayoutHelper.createLinear(44, 44));
+        lensButton.setOnClickListener(view -> cycleLens());
+        lensTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        lensTextPaint.setTextAlign(Paint.Align.CENTER);
+        lensTextPaint.setTypeface(AndroidUtilities.getMediumTypeface());
+        lensTextPaint.setTextSize(dp(13));
 
         buttonIconSize = dp(isNewDesign ? 24 : 28);
         switchCameraDrawable = new RLottieDrawable(
@@ -890,6 +911,82 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
         return info;
     }
 
+    // LinkiGram: cycle through the physical camera modules and repaint the label.
+    private void cycleLens() {
+        if (session == null || !session.hasMultipleLenses()) return;
+        List<CameraLensSelector.Lens> lenses = session.getAvailableLenses();
+        CameraLensSelector.Lens next = CameraLensSelector.next(lenses, session.getActiveLens());
+        if (next != null && session.setLens(next)) {
+            activeLens = next;
+            updateLensButton();
+        }
+    }
+
+    private void updateLensButton() {
+        if (lensButton == null || session == null) return;
+        List<CameraLensSelector.Lens> lenses = session.getAvailableLenses();
+        if (!CameraLensSelector.hasMultipleLenses(lenses)) {
+            if (lensButton.getVisibility() != View.GONE) {
+                lensButton.setVisibility(View.GONE);
+            }
+            return;
+        }
+        CameraLensSelector.Lens lens = session.getActiveLens();
+        if (lens == null) lens = activeLens;
+        if (lens == null) return;
+        activeLens = lens;
+        lensButton.setImageDrawable(new LensLabelDrawable(
+                CameraLensSelector.labelFor(lens.factor), lensTextPaint, dp(22)));
+        if (lensButton.getVisibility() != View.VISIBLE) {
+            lensButton.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** Draws the lens label, e.g. 0.6x / 1x / 1.9x, centred in the button. */
+    private final class LensLabelDrawable extends Drawable {
+        private final String label;
+        private final TextPaint paint;
+        private final int size;
+
+        LensLabelDrawable(String label, TextPaint paint, int size) {
+            this.label = label;
+            this.paint = paint;
+            this.size = size;
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            paint.setColor(Theme.getColor(Theme.key_white_text) & 0xFFFFFFFF);
+            Paint.FontMetrics fm = paint.getFontMetrics();
+            canvas.drawText(label, size / 2f, size / 2f - (fm.ascent + fm.descent) / 2f, paint);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter colorFilter) {
+            paint.setColorFilter(colorFilter);
+        }
+
+        @Override
+        public int getOpacity() {
+            return android.graphics.PixelFormat.TRANSLUCENT;
+        }
+
+        @Override
+        public int getIntrinsicWidth() {
+            return size;
+        }
+
+        @Override
+        public int getIntrinsicHeight() {
+            return size;
+        }
+    }
+
     private void switchCamera() {
         if (session == null || stateInfo == null || capabilities == null
                 || !stateInfo.canControlCamera()) {
@@ -944,6 +1041,11 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
                 && capabilities != null
                 && capabilities.getFlashType() != RoundVideoSession.FlashType.NONE);
         updateFlashIcon();
+        // LinkiGram: the lens button only exists on cameras with several modules.
+        if (lensButton != null) {
+            lensButton.setEnabled(cameraControls);
+            updateLensButton();
+        }
     }
 
     private void togglePreviewMuted() {
