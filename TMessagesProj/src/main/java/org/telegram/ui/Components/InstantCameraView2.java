@@ -265,7 +265,7 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
         lensButton.setOnClickListener(view -> cycleLens());
         lensTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         lensTextPaint.setTextAlign(Paint.Align.CENTER);
-        lensTextPaint.setTypeface(AndroidUtilities.getMediumTypeface());
+        lensTextPaint.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM));
         lensTextPaint.setTextSize(dp(13));
 
         buttonIconSize = dp(isNewDesign ? 24 : 28);
@@ -957,7 +957,7 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
 
         @Override
         public void draw(@NonNull Canvas canvas) {
-            paint.setColor(Theme.getColor(Theme.key_white_text) & 0xFFFFFFFF);
+            paint.setColor(Color.WHITE);
             Paint.FontMetrics fm = paint.getFontMetrics();
             canvas.drawText(label, size / 2f, size / 2f - (fm.ascent + fm.descent) / 2f, paint);
         }
