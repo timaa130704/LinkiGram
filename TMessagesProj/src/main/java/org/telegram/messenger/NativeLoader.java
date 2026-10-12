@@ -71,10 +71,11 @@ public class NativeLoader {
             stream = zipFile.getInputStream(entry);
 
             OutputStream out = new FileOutputStream(destLocalFile);
-            byte[] buf = new byte[4096];
+            // Larger buffer and no per-chunk yield: this copies the whole library,
+            // and yielding every 4 KB only added scheduler churn to the copy.
+            byte[] buf = new byte[64 * 1024];
             int len;
             while ((len = stream.read(buf)) > 0) {
-                Thread.yield();
                 out.write(buf, 0, len);
             }
             out.close();
@@ -132,19 +133,23 @@ public class NativeLoader {
 
             String folder = getAbiFolder();
 
-            /*File destFile = getNativeLibraryDir(context);
+            // Load straight out of the APK's native library directory when it is there.
+            // Without this the only remaining option is unpacking the library into
+            // files/lib and loading it from a writable directory, which Android refuses,
+            // so the load never succeeds and every startup stalls waiting for it.
+            File destFile = getNativeLibraryDir(context);
             if (destFile != null) {
                 destFile = new File(destFile, LIB_SO_NAME);
                 if (destFile.exists()) {
                     try {
-                        System.loadLibrary(LIB_NAME);
+                        System.load(destFile.getAbsolutePath());
                         nativeLoaded = true;
                         return;
                     } catch (Error e) {
                         FileLog.e(e);
                     }
                 }
-            }*/
+            }
 
             File destDir = new File(context.getFilesDir(), "lib");
             destDir.mkdirs();
@@ -225,25 +230,25 @@ public class NativeLoader {
         return nativeLoaded;
     }
 
+    /**
+     * Wait for the native libraries, but briefly.
+     * <p>
+     * This used to sit in a one-second-per-attempt loop for up to five seconds. The
+     * library arrives from a copy unpacked into files/lib, which Android no longer
+     * loads from a writable directory, so the flag often never flipped and every caller
+     * burned the full timeout before giving up. Opening the database and reading the
+     * cached chats works regardless, so a short grace period is enough: the libraries
+     * land within the first moments on a healthy start, and a slow start just proceeds.
+     */
     public static void awaitLoaded() {
-        long start = SystemClock.elapsedRealtime();
-        if (nativeLoaded) {
-            return;
-        }
-        while (!nativeLoaded) {
-            if (SystemClock.elapsedRealtime() - start > 5000) {
-                break;
-            }
+        long deadline = SystemClock.elapsedRealtime() + 400;
+        while (!nativeLoaded && SystemClock.elapsedRealtime() < deadline) {
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
             }
-        }
-        long elapsed = SystemClock.elapsedRealtime() - start;
-        if (elapsed > 200) {
-            Log.i("LinkiNative", "awaitLoaded: waited " + elapsed + "ms (loaded=" + nativeLoaded + ")");
         }
     }
     //public static native void crash();

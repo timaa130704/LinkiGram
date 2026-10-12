@@ -311,16 +311,12 @@ public class MessagesStorage extends BaseController {
         if (!cacheFile.exists()) {
             createTable = true;
         }
-        long tDb = android.os.SystemClock.elapsedRealtime();
         try {
-            android.util.Log.i("LinkiDialogs", "openDatabase ENTER t=" + tDb);
             database = new SQLiteDatabase(cacheFile.getPath());
-            android.util.Log.i("LinkiDialogs", "openDatabase file opened t=" + (android.os.SystemClock.elapsedRealtime() - tDb));
             database.executeFast("PRAGMA secure_delete = ON").stepThis().dispose();
             database.executeFast("PRAGMA temp_store = MEMORY").stepThis().dispose();
             database.executeFast("PRAGMA journal_mode = WAL").stepThis().dispose();
             database.executeFast("PRAGMA journal_size_limit = 10485760").stepThis().dispose();
-            android.util.Log.i("LinkiDialogs", "openDatabase pragmas done t=" + (android.os.SystemClock.elapsedRealtime() - tDb));
 
             if (createTable) {
                 if (BuildVars.LOGS_ENABLED) {
@@ -368,8 +364,6 @@ public class MessagesStorage extends BaseController {
                 }
                 if (version < LAST_DB_VERSION) {
                     try {
-                        android.util.Log.i("LinkiDialogs", "openDatabase migrating " + version + " -> " + LAST_DB_VERSION
-                                + " t=" + (android.os.SystemClock.elapsedRealtime() - tDb));
                         updateDbToLastVersion(version);
                     } catch (Exception e) {
                         if (BuildVars.DEBUG_PRIVATE_VERSION) {
@@ -381,7 +375,6 @@ public class MessagesStorage extends BaseController {
                 }
             }
             databaseCreated = true;
-            android.util.Log.i("LinkiDialogs", "openDatabase DONE t=" + (android.os.SystemClock.elapsedRealtime() - tDb));
         } catch (Exception e) {
             FileLog.e(e);
             if (openTries < 3 && e.getMessage() != null && e.getMessage().contains("malformed")) {
@@ -17363,10 +17356,6 @@ public class MessagesStorage extends BaseController {
                         fullUsers = loadUserInfos(fullUsersToLoad);
                     }
                 }
-                android.util.Log.i("LinkiDialogs", "getDialogs FROM CACHE folder=" + folderId
-                        + " offset=" + offset + " count=" + count
-                        + " -> read " + dialogs.dialogs.size() + " dialogs"
-                        + " at " + android.os.SystemClock.elapsedRealtime() + "ms");
                 getMessagesController().processLoadedDialogs(dialogs, encryptedChats, fullUsers, folderId, offset, count, 1, false, false, true);
             } catch (Exception e) {
                 dialogs.dialogs.clear();
