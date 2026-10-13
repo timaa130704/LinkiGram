@@ -106,10 +106,6 @@ final class RoundVideoCameraController {
     private HandlerThread cameraThread;
     private Handler cameraHandler;
     private String cameraId;
-    // LinkiGram: set when the user picks a module; null means "let the usual
-    // preference decide". Many phones expose each physical lens as its own camera
-    // id, so switching modules means reopening the camera on that id.
-    private String preferredCameraId;
     private CameraCharacteristics characteristics;
     private Size previewSize;
     private volatile Size recordingSize;
@@ -262,17 +258,7 @@ final class RoundVideoCameraController {
      * Returns a single 1x entry when the camera has only one lens.
      */
     public java.util.List<app.nimarkogram.messenger.camera.CameraLensSelector.Lens> getAvailableLenses() {
-        int facing = activeFacing == RoundVideoSession.CameraFacing.FRONT
-                ? CameraCharacteristics.LENS_FACING_FRONT
-                : CameraCharacteristics.LENS_FACING_BACK;
-        java.util.List<app.nimarkogram.messenger.camera.CameraLensSelector.Lens> lenses;
-        try {
-            lenses = app.nimarkogram.messenger.camera.CameraLensSelector
-                    .lensesFromCameraManager(cameraManager, facing);
-        } catch (Throwable t) {
-            lenses = app.nimarkogram.messenger.camera.CameraLensSelector.lensesFrom(characteristics);
-        }
-        return lenses;
+        return app.nimarkogram.messenger.camera.CameraLensSelector.lensesFrom(characteristics);
     }
 
     /** True when this camera exposes more than one module, so the switcher is worth showing. */
@@ -281,30 +267,23 @@ final class RoundVideoCameraController {
     }
 
     /**
-     * Switches to the given module.
-     * <p>
-     * When the module names a camera id the device exposes that lens separately, so the
-     * switch means reopening the camera on that id. Otherwise the module's zoom ratio
-     * is adopted and the HAL picks the sensor.
+     * Switches to the given module by adopting its zoom ratio as the new base.
+     * A logical multi-camera swaps the physical sensor on its own once the zoom ratio
+     * matches the module's focal length.
      */
     public boolean setLens(@NonNull app.nimarkogram.messenger.camera.CameraLensSelector.Lens lens) {
-        if (lens == null) return false;
-        if (lens.cameraId != null && !lens.cameraId.equals(cameraId)) {
-            preferredCameraId = lens.cameraId;
-            if (active) {
-                openCameraIfReady();
-            }
-            return true;
-        }
-        if (characteristics == null) return false;
+        if (lens == null || characteristics == null) return false;
         float ratio = lens.zoomRatio;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Range<Float> range = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
             if (range == null) return false;
             if (ratio < range.getLower() - 0.001f || ratio > range.getUpper() + 0.001f) {
+                // The module sits outside what this HAL exposes; fall back to 1x.
                 ratio = clamp(1f, range.getLower(), range.getUpper());
             }
         } else if (ratio < 1f) {
+            // Before API 30 the crop cannot represent an ultra-wide ratio; the HAL
+            // still switches lenses for anything at or above 1x.
             ratio = 1f;
         }
         lensZoomBase = ratio;
@@ -318,21 +297,10 @@ final class RoundVideoCameraController {
         return true;
     }
 
-    /** The module currently in use, matched on the open camera id. */
+    /** The module closest to the currently applied zoom. */
     public app.nimarkogram.messenger.camera.CameraLensSelector.Lens getActiveLens() {
-        java.util.List<app.nimarkogram.messenger.camera.CameraLensSelector.Lens> lenses = getAvailableLenses();
-        if (cameraId != null) {
-            for (app.nimarkogram.messenger.camera.CameraLensSelector.Lens lens : lenses) {
-                if (cameraId.equals(lens.cameraId)) return lens;
-            }
-        }
-        if (preferredCameraId != null) {
-            for (app.nimarkogram.messenger.camera.CameraLensSelector.Lens lens : lenses) {
-                if (preferredCameraId.equals(lens.cameraId)) return lens;
-            }
-        }
         return app.nimarkogram.messenger.camera.CameraLensSelector.closestTo(
-                lenses, lensMode ? lensZoomBase : 1f);
+                getAvailableLenses(), lensMode ? lensZoomBase : 1f);
     }
 
     boolean setZoom(float progress) {
@@ -1170,11 +1138,6 @@ final class RoundVideoCameraController {
                         )) {
                     fallbackCandidate = cameraCandidate;
                 }
-                // LinkiGram: when the user picked a module, that camera id wins over
-                // the usual preference order.
-                if (preferredCameraId != null && preferredCameraId.equals(id)) {
-                    fallbackCandidate = cameraCandidate;
-                }
                 if (requestedFrameRate == RoundVideoSession.FrameRate.FPS_30
                         || frameRatePlan.frameRate == requestedFrameRate) {
                     if (selectedCandidate == null
@@ -1194,28 +1157,6 @@ final class RoundVideoCameraController {
         if (selectedCandidate == null) selectedCandidate = fallbackCandidate;
         if (selectedCandidate == null) {
             throw new IllegalStateException("Requested camera is not available");
-        }
-        // LinkiGram: an explicit module choice outranks the frame-rate preference,
-        // otherwise switching to 0.6x would be undone by the 60 fps candidate.
-        if (preferredCameraId != null && !preferredCameraId.equals(selectedCandidate.id)) {
-            for (String id : cameraManager.getCameraIdList()) {
-                if (!preferredCameraId.equals(id)) continue;
-                try {
-                    CameraCharacteristics c = cameraManager.getCameraCharacteristics(id);
-                    Integer f = c.get(CameraCharacteristics.LENS_FACING);
-                    if (f == null || f != requiredFacing) continue;
-                    StreamConfigurationMap map = c.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                    if (map == null) continue;
-                    Size[] s = map.getOutputSizes(SurfaceTexture.class);
-                    if (s == null || s.length == 0) continue;
-                    OutputPair pair = chooseOutputPair(s, outputResolution, requestedCameraResolution);
-                    selectedCandidate = new CameraCandidate(id, c, s, pair,
-                            resolveFrameRate(id, c, map, s, pair));
-                    diagnostics.log("camera candidate forced by module choice: id=" + id);
-                    break;
-                } catch (Throwable ignored) {
-                }
-            }
         }
         String selectedId = selectedCandidate.id;
         CameraCharacteristics selectedCharacteristics = selectedCandidate.characteristics;
