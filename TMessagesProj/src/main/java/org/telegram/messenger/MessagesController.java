@@ -17941,6 +17941,19 @@ public class MessagesController extends BaseController implements NotificationCe
 
     // must be run from Utilities.stageQueue
     public void processUpdates(final TLRPC.Updates updates, boolean fromQueue) {
+        // LinkiGram: plugins: on_updates_hook for the whole update container.
+        // This was never wired into the update loop, so plugins saw no incoming update
+        // at all: a plugin waiting for a fresh message from a bot had no way to receive
+        // one and fell back to re-reading chat history.
+        app.nimarkogram.messenger.plugins.PluginsController pluginsController =
+                app.nimarkogram.messenger.plugins.PluginsController.getInstance();
+        if (pluginsController != null) {
+            TLRPC.Updates afterUpdatesHook = pluginsController.executeUpdatesHook(
+                    updates.getClass().getSimpleName(), currentAccount, updates);
+            if (afterUpdatesHook == null) {
+                return; // a plugin cancelled the container
+            }
+        }
         ArrayList<Long> needGetChannelsDiff = null;
         boolean needGetDiff = false;
         boolean needReceivedQueue = false;
@@ -18479,6 +18492,32 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean processUpdateArray(ArrayList<TLRPC.Update> updates, ArrayList<TLRPC.User> usersArr, ArrayList<TLRPC.Chat> chatsArr, boolean fromGetDifference, int date) {
+        // LinkiGram: plugins: on_update_hook per incoming update. Also never wired into
+        // the update loop, so a plugin could not observe new messages as they arrived.
+        app.nimarkogram.messenger.plugins.PluginsController pluginsController =
+                app.nimarkogram.messenger.plugins.PluginsController.getInstance();
+        if (pluginsController != null && !updates.isEmpty()) {
+            ArrayList<TLRPC.Update> allowedUpdates = null;
+            for (int updateIndex = 0; updateIndex < updates.size(); updateIndex++) {
+                TLRPC.Update current = updates.get(updateIndex);
+                TLRPC.Update afterUpdateHook = pluginsController.executeUpdateHook(
+                        current.getClass().getSimpleName(), currentAccount, current);
+                if (afterUpdateHook == null) {
+                    if (allowedUpdates == null) {
+                        allowedUpdates = new ArrayList<>(updates.size());
+                        allowedUpdates.addAll(updates.subList(0, updateIndex));
+                    }
+                    continue;
+                }
+                if (allowedUpdates != null) {
+                    allowedUpdates.add(afterUpdateHook);
+                }
+            }
+            if (allowedUpdates != null) {
+                allowedUpdates.trimToSize();
+                updates = allowedUpdates;
+            }
+        }
         if (updates.isEmpty()) {
             if (usersArr != null || chatsArr != null) {
                 AndroidUtilities.runOnUIThread(() -> {
