@@ -11409,8 +11409,10 @@ public class MessageObject {
                 if (attribute.voice) {
                     return null;
                 } else {
-                    String performer = attribute.performer;
-                    String title = attribute.title;
+                    // LinkiGram: strip zero-width profile-music marks ported from exteraless,
+                    // so the hidden Last.fm payload never surfaces in the UI.
+                    String performer = app.exteraless.nowplaying.ZeroWidthCodec.stripToString(attribute.performer);
+                    String title = app.exteraless.nowplaying.ZeroWidthCodec.stripToString(attribute.title);
                     if (!TextUtils.isEmpty(performer)) {
                         for (int a = 0; a < excludeWords.length; a++) {
                             performer = performer.replace(excludeWords[a], " ");

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ported from exteraless/exteraless (GPL): profile music card and Last.fm now-playing. -->
+<resources>
+    <string name="OEProfileMusicDesign">Profile Music</string>
+    <string name="OEProfileMusicUseOfficial">Telegram Style</string>
+    <string name="OEProfileMusicUseOfficialInfo">Show the track under the avatar, like in the official app?</string>
+    <string name="OEProfileMusicUseCard">Card</string>
+    <string name="OEProfileMusicUseCardInfo">Show the track as a card below the profile header?</string>
+    <string name="OENowPlayingScrobbling">Scrobbling now</string>
+    <string name="OEGeneralLastFm">Last.fm</string>
+    <string name="OEGeneralLastFmHint">username</string>
+    <string name="OEGeneralLastFmNotSet">Not set</string>
+    <string name="OEGeneralLastFmApplied">Profile music updated</string>
+    <string name="OEGeneralLastFmNoMusic">Set profile music first</string>
+    <string name="OEGeneralLastFmFailed">Could not update profile music</string>
+    <string name="OEGeneralLastFmNoFile">Could not download the track</string>
+    <string name="OEGeneralLastFmNoUpload">Upload timed out</string>
+    <string name="OEGeneralLastFmAbout">This feature is built on top of profile music: it writes hidden bytes with your Last.fm username into your latest profile track. Once you set a username, that track is re-uploaded with the change.</string>
+    <string name="OEGeneralLastFmStageDownload">Downloading track:</string>
+    <string name="OEGeneralLastFmStagePrepare">Adding attribution:</string>
+    <string name="OEGeneralLastFmStageUpload">Uploading track:</string>
+    <string name="OEGeneralLastFmStageSave">Saving to profile:</string>
+</resources>

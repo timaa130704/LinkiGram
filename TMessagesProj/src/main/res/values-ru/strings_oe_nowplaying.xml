@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ported from exteraless/exteraless (GPL): profile music card and Last.fm now-playing. -->
+<resources>
+    <string name="OEProfileMusicDesign">Музыка профиля</string>
+    <string name="OEProfileMusicUseOfficial">Как в Telegram</string>
+    <string name="OEProfileMusicUseOfficialInfo">Показывать трек под аватаром, как в официальном приложении?</string>
+    <string name="OEProfileMusicUseCard">Карточкой</string>
+    <string name="OEProfileMusicUseCardInfo">Показывать трек карточкой под шапкой профиля?</string>
+    <string name="OENowPlayingScrobbling">Сейчас играет</string>
+    <string name="OEGeneralLastFm">Last.fm</string>
+    <string name="OEGeneralLastFmHint">имя пользователя</string>
+    <string name="OEGeneralLastFmNotSet">Не задано</string>
+    <string name="OEGeneralLastFmApplied">Музыка профиля обновлена</string>
+    <string name="OEGeneralLastFmNoMusic">Сначала выберите музыку профиля</string>
+    <string name="OEGeneralLastFmFailed">Не удалось обновить музыку профиля</string>
+    <string name="OEGeneralLastFmNoFile">Не удалось скачать трек</string>
+    <string name="OEGeneralLastFmNoUpload">Истекло время загрузки</string>
+    <string name="OEGeneralLastFmAbout">Эта функция работает поверх музыки профиля: она записывает скрытые байты с вашим именем Last.fm в последний трек профиля. После установки имени этот трек будет перезагружен с изменением.</string>
+    <string name="OEGeneralLastFmStageDownload">Скачиваю трек:</string>
+    <string name="OEGeneralLastFmStagePrepare">Добавляю данные:</string>
+    <string name="OEGeneralLastFmStageUpload">Загружаю трек:</string>
+    <string name="OEGeneralLastFmStageSave">Сохраняю в профиль:</string>
+</resources>

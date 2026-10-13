@@ -263,6 +263,7 @@ import org.telegram.ui.Components.Premium.boosts.UserSelectorBottomSheet;
 import org.telegram.ui.Components.ProfileGalleryView;
 import org.telegram.ui.Components.ProfileGooeyView;
 import org.telegram.ui.Components.ProfileMusicView;
+import app.exteraless.components.ProfileMusicCard;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RadialProgressView;
@@ -717,6 +718,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int blockedUsersRow;
     private int membersSectionRow;
     private boolean hasMusic;
+    // LinkiGram: ported from exteraless — the profile music card row and its shadow.
+    private boolean hasMusicCard;
+    private int musicCardRow;
+    private int musicCardSectionRow;
 
     private int sharedMediaRow;
 
@@ -3845,36 +3850,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (userInfo != null && userInfo.saved_music != null) {
                 musicView.setMusicDocument(userInfo.saved_music);
             }
-            musicView.setOnClickListener(v -> {
-                if (savedMusicList == null) {
-                    if (
-                        MediaController.getInstance().currentSavedMusicList != null &&
-                        MediaController.getInstance().currentSavedMusicList.currentAccount == currentAccount &&
-                        MediaController.getInstance().currentSavedMusicList.dialogId == getDialogId()) {
-                        savedMusicList = MediaController.getInstance().currentSavedMusicList;
-                    } else {
-                        savedMusicList = new MessagesController.SavedMusicList(currentAccount, getDialogId());
-                        if (userInfo != null && userInfo.saved_music != null) {
-                            savedMusicList.setup(userInfo.saved_music);
-                        }
-                    }
-                }
-                if (!savedMusicList.list.isEmpty()) {
-                    boolean sameList = false;
-                    if (
-                        MediaController.getInstance().currentSavedMusicList != savedMusicList ||
-                        !MediaController.getInstance().isPlayingMessage(savedMusicList.list.get(0))
-                    ) {
-                        MediaController.getInstance().cleanup();
-                    } else {
-                        sameList = true;
-                    }
-                    MediaController.getInstance().currentSavedMusicList = savedMusicList;
-                    MediaController.getInstance().getPlaylist().clear();
-                    MediaController.getInstance().getPlaylist().addAll(savedMusicList.list);
-                    if (!sameList) MediaController.getInstance().playMessage(savedMusicList.list.get(0));
-                    showDialog(new AudioPlayerAlert(getContext(), getResourceProvider()));
-                }
+            // LinkiGram: click extracted to openSavedMusic() so the exteraless music card
+            // can reuse it; long-press switches between the official look and the card.
+            musicView.setOnClickListener(v -> openSavedMusic());
+            musicView.setOnLongClickListener(v -> {
+                showProfileMusicDesignDialog();
+                return true;
             });
 
             actionsView = new ProfileActionsView(context, dp(74));
@@ -10442,6 +10423,59 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         return chatId != 0;
     }
 
+    // LinkiGram: ported from exteraless — opens the saved-music playlist; used by both
+    // the under-avatar track and the profile music card.
+    private void openSavedMusic() {
+        if (savedMusicList == null) {
+            if (
+                MediaController.getInstance().currentSavedMusicList != null &&
+                MediaController.getInstance().currentSavedMusicList.currentAccount == currentAccount &&
+                MediaController.getInstance().currentSavedMusicList.dialogId == getDialogId()) {
+                savedMusicList = MediaController.getInstance().currentSavedMusicList;
+            } else {
+                savedMusicList = new MessagesController.SavedMusicList(currentAccount, getDialogId());
+                if (userInfo != null && userInfo.saved_music != null) {
+                    savedMusicList.setup(userInfo.saved_music);
+                }
+            }
+        }
+        if (!savedMusicList.list.isEmpty()) {
+            boolean sameList = false;
+            if (
+                MediaController.getInstance().currentSavedMusicList != savedMusicList ||
+                !MediaController.getInstance().isPlayingMessage(savedMusicList.list.get(0))
+            ) {
+                MediaController.getInstance().cleanup();
+            } else {
+                sameList = true;
+            }
+            MediaController.getInstance().currentSavedMusicList = savedMusicList;
+            MediaController.getInstance().getPlaylist().clear();
+            MediaController.getInstance().getPlaylist().addAll(savedMusicList.list);
+            if (!sameList) MediaController.getInstance().playMessage(savedMusicList.list.get(0));
+            showDialog(new AudioPlayerAlert(getContext(), getResourceProvider()));
+        }
+    }
+
+    // LinkiGram: ported from exteraless — long-press dialog that flips profile music
+    // between the official under-avatar look and the card with Last.fm now-playing.
+    private void showProfileMusicDesignDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        final boolean card = app.nimarkogram.messenger.NimarkoConfig.profileMusicCard();
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+        builder.setTitle(getString(R.string.OEProfileMusicDesign));
+        builder.setMessage(getString(card ? R.string.OEProfileMusicUseOfficialInfo : R.string.OEProfileMusicUseCardInfo));
+        builder.setPositiveButton(getString(card ? R.string.OEProfileMusicUseOfficial : R.string.OEProfileMusicUseCard), (dialog, which) -> {
+            app.nimarkogram.messenger.NimarkoConfig.setProfileMusicCard(!card);
+            updateListAnimated(false);
+            needLayout(true);
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
     private void updateRowsIds() {
         updateNotifications(false);
 
@@ -10555,7 +10589,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         botTonBalanceRow = -1;
         channelBalanceRow = -1;
         balanceDividerRow = -1;
+        musicCardRow = -1;
+        musicCardSectionRow = -1;
         hasMusic = false;
+        hasMusicCard = false;
 
         unblockRow = -1;
         joinRow = -1;
@@ -10602,7 +10639,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         if (userId != 0) {
             TLRPC.User user = getMessagesController().getUser(userId);
             if (userInfo != null && userInfo.saved_music != null && (imageUpdater == null || myProfile)) {
-                hasMusic = true;
+                // LinkiGram: with the exteraless card on, the track lives in the list
+                // instead of under the avatar, and the Last.fm nick is prefetched.
+                if (app.nimarkogram.messenger.NimarkoConfig.profileMusicCard()
+                        && app.exteraless.nowplaying.NowPlayingController.shouldShowCard(userInfo.saved_music)) {
+                    hasMusicCard = true;
+                    app.exteraless.nowplaying.LastFmNowPlaying.prefetch(
+                            app.exteraless.nowplaying.ProfileMusicMark.nickFrom(
+                                    FileLoader.getDocumentFileName(userInfo.saved_music), userId));
+                } else {
+                    hasMusic = true;
+                }
             }
 
             if (emptyRow < 0 && emptyRow2 < 0) {
@@ -10611,6 +10658,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else {
                     emptyRow = rowCount++;
                 }
+            }
+
+            // LinkiGram: the profile music card row, with its shadow below.
+            if (hasMusicCard) {
+                musicCardRow = rowCount++;
+                musicCardSectionRow = rowCount++;
             }
 
             if (UserObject.isUserSelf(user) && !myProfile) {
@@ -13357,6 +13410,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                     };
                     break;
+                // LinkiGram: ported from exteraless — the profile music card.
+                case VIEW_TYPE_MUSIC: {
+                    ProfileMusicCard card = new ProfileMusicCard(mContext, resourcesProvider);
+                    card.setOnCardClickListener(ProfileActivity.this::openSavedMusic);
+                    card.setOnCardLongClickListener(ProfileActivity.this::showProfileMusicDesignDialog);
+                    view = card;
+                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
+                    break;
+                }
                 case VIEW_TYPE_BOT_APP:
                     FrameLayout frameLayout = new FrameLayout(mContext);
                     ButtonWithCounterView button = new ButtonWithCounterView(mContext, resourcesProvider);
@@ -14169,7 +14231,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     break;
                 case VIEW_TYPE_BOT_APP:
                     break;
+                // LinkiGram: ported from exteraless — the profile music card.
                 case VIEW_TYPE_MUSIC:
+                    if (userInfo != null && userInfo.saved_music != null) {
+                        TLRPC.User musicUser = getMessagesController().getUser(userId);
+                        long emojiId = musicUser != null && musicUser.profile_color != null ? musicUser.profile_color.background_emoji_id : 0;
+                        ((ProfileMusicCard) holder.itemView).set(userInfo.saved_music, emojiId, userId);
+                    }
                     break;
             }
         }
@@ -14346,11 +14414,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     position == helpSectionCell || position == setAvatarSectionRow || position == passwordSuggestionSectionRow ||
                     position == phoneSuggestionSectionRow || position == premiumSectionsRow || position == reportDividerRow ||
                     position == channelDividerRow || position == graceSuggestionSectionRow || position == balanceDividerRow ||
-                    position == botPermissionsDivider || position == channelBalanceSectionRow || position == unofficialSecurityRiskDividerRow
+                    position == botPermissionsDivider || position == channelBalanceSectionRow || position == unofficialSecurityRiskDividerRow || position == musicCardSectionRow
             ) {
                 return VIEW_TYPE_SHADOW;
             } else if (position >= membersStartRow && position < membersEndRow) {
                 return VIEW_TYPE_USER;
+            } else if (position == musicCardRow) {
+                return VIEW_TYPE_MUSIC;
             } else if (position == emptyRow) {
                 return VIEW_TYPE_EMPTY;
             } else if (position == emptyRow2) {
@@ -15709,6 +15779,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             put(++pointer, emptyRow, sparseIntArray);
             put(++pointer, emptyRow2, sparseIntArray);
             put(++pointer, bottomPaddingRow, sparseIntArray);
+            put(++pointer, musicCardRow, sparseIntArray);
+            put(++pointer, musicCardSectionRow, sparseIntArray);
             put(++pointer, infoHeaderRow, sparseIntArray);
             put(++pointer, infoHeaderRowEmpty, sparseIntArray);
             put(++pointer, infoEndRowEmpty, sparseIntArray);

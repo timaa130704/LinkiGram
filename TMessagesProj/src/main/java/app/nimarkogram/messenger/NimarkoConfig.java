@@ -154,6 +154,25 @@ public final class NimarkoConfig {
         return APP_NAME + " v" + VERSION_NAME + " (1.3)";
     }
 
+    // Ported from exteraless/exteraless: whether profile music shows as a card
+    // (Last.fm now-playing) instead of the official track under the avatar.
+    public static boolean profileMusicCard() {
+        return getPreferences().getBoolean("OEAppearanceProfileMusicCard", true);
+    }
+
+    public static void setProfileMusicCard(boolean value) {
+        getEditor().putBoolean("OEAppearanceProfileMusicCard", value).commit();
+    }
+
+    // The Last.fm nickname written into the user's own profile music track.
+    public static String lastfmNick() {
+        return getPreferences().getString("OEGeneralLastFmNick", "");
+    }
+
+    public static void setLastfmNick(String value) {
+        getEditor().putString("OEGeneralLastFmNick", value == null ? "" : value).commit();
+    }
+
     public static boolean pluginsEngine = getPreferences().getBoolean("pluginsEngine", true);
     public static void togglePluginsEngine() {
         pluginsEngine = !pluginsEngine;
