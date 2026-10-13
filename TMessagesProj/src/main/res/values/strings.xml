@@ -12508,4 +12508,13 @@
     <!-- LinkiGram: custom launcher icon colour picker -->
     <string name="AppIconCustomColor">Custom colour</string>
     <string name="AppIconCustomColorHint">Enter a HEX colour (for example #1E88E5). Android does not allow recolouring an icon at runtime, so the closest of the 16 built-in colours is applied.</string>
+
+
+    <string name="NM_PluginReportMissing">No saved report is available for this plugin.</string>
+    <string name="NM_PluginReportTitle">Plugin report</string>
+    <string name="NM_PluginSafetyEngineFailure">The plugin engine could not initialize. Plugins are paused; no individual plugin has been identified as the cause.</string>
+    <string name="NM_PluginSafetyEngineTimeout">The plugin engine took too long to start. Plugins are paused as a precaution; no individual plugin has been identified as the cause.</string>
+    <string name="NM_PluginSafetyManual">You enabled safe mode. Plugins are paused; this does not mean a plugin caused a crash.</string>
+    <string name="NM_PluginSafetyRecoveryFailed">Plugin loading stopped: recovery state could not be saved. No plugin identified as the cause. Restart the app and check storage.</string>
+    <string name="NM_PluginSafetyUnknown">Plugins are paused in safe mode. The reason is unavailable. Safe mode alone does not identify a plugin as the cause.</string>
 </resources>

@@ -1450,4 +1450,13 @@
     <!-- LinkiGram: custom launcher icon colour picker -->
     <string name="AppIconCustomColor">Свой цвет</string>
     <string name="AppIconCustomColorHint">Введите HEX-код цвета (например #1E88E5). Android не умеет перекрашивать иконку на лету, поэтому применится ближайший из 16 встроенных цветов.</string>
+
+
+    <string name="NM_PluginReportMissing">Отчёт по этому плагину не сохранён.</string>
+    <string name="NM_PluginReportTitle">Отчёт о плагине</string>
+    <string name="NM_PluginSafetyEngineFailure">Движок плагинов не смог запуститься. Плагины приостановлены; конкретный плагин как причина не определён.</string>
+    <string name="NM_PluginSafetyEngineTimeout">Движок плагинов слишком долго запускался. Плагины приостановлены на всякий случай; конкретный плагин как причина не определён.</string>
+    <string name="NM_PluginSafetyManual">Вы включили безопасный режим. Плагины приостановлены — это не значит, что какой-то плагин упал.</string>
+    <string name="NM_PluginSafetyRecoveryFailed">Загрузка плагинов остановлена: не удалось сохранить состояние восстановления. Конкретный плагин не определён. Перезапустите приложение и проверьте память.</string>
+    <string name="NM_PluginSafetyUnknown">Плагины приостановлены в безопасном режиме. Причина недоступна. Сам по себе безопасный режим не указывает на конкретный плагин.</string>
 </resources>
