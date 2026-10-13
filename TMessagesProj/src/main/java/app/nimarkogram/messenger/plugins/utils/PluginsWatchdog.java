@@ -389,7 +389,6 @@ public final class PluginsWatchdog {
         }
         return false;
     }
-}
 
     /**
      * The plugin currently registered under this id, or null.
@@ -414,3 +413,4 @@ public final class PluginsWatchdog {
             return null;
         }
     }
+}
