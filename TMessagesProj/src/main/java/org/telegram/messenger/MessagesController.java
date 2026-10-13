@@ -18500,8 +18500,11 @@ public class MessagesController extends BaseController implements NotificationCe
             ArrayList<TLRPC.Update> allowedUpdates = null;
             for (int updateIndex = 0; updateIndex < updates.size(); updateIndex++) {
                 TLRPC.Update current = updates.get(updateIndex);
+                String updateHookName = current.getClass().getSimpleName();
+                android.util.Log.i("LinkiPluginHook", "deliver update "
+                        + updateHookName + " hookName=" + updateHookName);
                 TLRPC.Update afterUpdateHook = pluginsController.executeUpdateHook(
-                        current.getClass().getSimpleName(), currentAccount, current);
+                        updateHookName, currentAccount, current);
                 if (afterUpdateHook == null) {
                     if (allowedUpdates == null) {
                         allowedUpdates = new ArrayList<>(updates.size());

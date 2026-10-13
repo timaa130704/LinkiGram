@@ -3343,6 +3343,9 @@ public class PluginsController implements PluginsHooks {
 
     @Override
     public TLRPC.Update executeUpdateHook(String str, int i, TLRPC.Update update) {
+        android.util.Log.i("LinkiPluginHook", "executeUpdateHook name=" + str
+                + " engine=" + isPluginEngineAvailable()
+                + " interested=" + getInterestedPlugins(str).size());
         if (isPluginEngineAvailable()) {
             List<InterestedPlugin> interestedPlugins =
                     getInterestedPlugins(str);
