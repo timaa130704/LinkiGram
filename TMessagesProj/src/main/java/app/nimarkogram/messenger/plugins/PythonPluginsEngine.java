@@ -2407,6 +2407,13 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                          pyObject.callAttr("append", getPluginsController().pluginsDir.getAbsolutePath());
                          pluginsPathAdded = true;
                     }
+                    // Register the host-owned importer so plugin entry modules load by
+                    // file path. It also puts the plugins directory on sys.path itself.
+                    try {
+                        getPython().getModule("plugin_imports").callAttr(
+                                "install", getPluginsController().pluginsDir.getAbsolutePath());
+                    } catch (Throwable ignored) {
+                    }
                     
                     module.callAttr("setswitchinterval", 0.01d);
                     if (NimarkoConfig.pluginsSafeMode) {
@@ -2838,7 +2845,17 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 legacyOverlayProbes.put(runtimeToken, overlayProbe);
             }
             PluginDebugLog.log("loadPlugin importing module id=" + str);
-            PyObject module = getPython().getModule(str);
+            // The plugin file was written moments ago by the installer, but Python caches
+            // the contents of every sys.path directory and only revalidates on coarse
+            // mtime changes. Without this, importing a freshly installed plugin fails with
+            // "ModuleNotFoundError" even though the .py file is sitting right there.
+            invalidatePythonImportCaches();
+            // Load the entry through the host-owned importer instead of a bare
+            // `import <id>`. A plain name import depends on the module being visible
+            // on sys.path, which fails with ModuleNotFoundError for a plugin that was
+            // just installed; the importer loads exactly this file instead.
+            PyObject module = getPython().getModule("plugin_imports").callAttr(
+                    "load_plugin", str, file.getAbsolutePath(), runtimeToken);
             importedModule = module;
             
             module.put("__nimarko_runtime_token__", runtimeToken);
@@ -3558,6 +3575,37 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         getPluginsController().runWhenPluginRuntimeQuiescent(
                 runtimeToken,
                 () -> getPluginsController().releasePluginRuntime(runtimeToken));
+    }
+
+    /**
+ * Drops Python's directory caches so a plugin file written a moment ago can be imported.
+ * <p>
+ * Python caches the file listing of every {@code sys.path} entry and only rebuilds it when
+ * the directory mtime changes, which is far too coarse right after an install. Without
+ * this a freshly installed plugin fails to enable with "ModuleNotFoundError" even though
+ * its {@code .py} file is sitting in the plugins directory.
+     */
+    private void invalidatePythonImportCaches() {
+        try {
+            Python python = getPython();
+            if (python == null) {
+                return;
+            }
+            try {
+                python.getModule("importlib").callAttr("invalidate_caches");
+            } catch (Throwable ignored) {
+            }
+            try {
+                PyObject sys = python.getModule("sys");
+                PyObject path = sys != null ? sys.get("path") : null;
+                java.io.File pluginsDir = getPluginsController().pluginsDir;
+                if (path != null && pluginsDir != null) {
+                    path.callAttr("append", pluginsDir.getAbsolutePath());
+                }
+            } catch (Throwable ignored) {
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private void removePluginModuleIfOwned(
