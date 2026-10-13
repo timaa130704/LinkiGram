@@ -4448,46 +4448,60 @@ public class LocaleController {
         if (BuildVars.USE_CLOUD_STRINGS) {
             value = localizationExternal.getByResNameOrResId(context, key, stringRes);
             if (value != null) {
-                // LinkiGram: the cloud pack still carries upstream branding. If its value
-                // mentions Telegram while our own (bundled) value says LinkiGram, the fork
-                // rebranded this key and must win. Checked only when the cloud string looks
-                // branded, so the extra lookup stays off the hot path for normal strings.
-                if (isUpstreamBranded(value)) {
-                    checkLocalizationInternal();
-                    String local = localizationInternal.getByResNameOrResId(context, key, stringRes);
-                    if (local == null) {
-                        local = localizationInternal.getByResName(fallback);
-                    }
-                    if (local == null && stringRes != 0 && context != null) {
-                        // The key may be missing from the bundled pack even though the
-                        // key is present as a compiled string resource. Without this the
-                        // upstream branding from the cloud pack wins and the header
-                        // reads "Telegram" again.
-                        try {
-                            local = context.getString(stringRes);
-                        } catch (Throwable ignored) {
-                        }
-                    }
-                    if (local != null && local.contains("LinkiGram") && !isUpstreamBranded(local)) {
-                        return local;
-                    }
-                }
-                return value;
+                return keepForkBranding(context, key, stringRes, fallback, value);
             }
 
             value = localizationExternal.getByResName(fallback);
             if (value != null) {
-                return value;
+                return keepForkBranding(context, key, stringRes, fallback, value);
             }
         }
 
         checkLocalizationInternal();
         value = localizationInternal.getByResNameOrResId(context, key, stringRes);
         if (value != null) {
-            return value;
+            return keepForkBranding(context, key, stringRes, fallback, value);
         }
 
-        return localizationInternal.getByResName(fallback);
+        value = localizationInternal.getByResName(fallback);
+        return value != null
+                ? keepForkBranding(context, key, stringRes, fallback, value)
+                : value;
+    }
+
+    /**
+     * LinkiGram: keeps upstream branding out of a string the fork rebranded.
+     * <p>
+     * Both the cloud pack and the bundled pack are built from upstream, so a key we
+     * changed (AppName and friends) comes back as "Telegram" no matter which one
+     * answered. This runs on the way out rather than inside the cloud branch, because
+     * guarding only that branch left the header branded whenever the bundled pack
+     * answered instead.
+     */
+    private String keepForkBranding(Context context, String key,
+                                    @StringRes int stringRes, String fallback, String value) {
+        if (!isUpstreamBranded(value)) {
+            return value;
+        }
+        checkLocalizationInternal();
+        String local = localizationInternal.getByResNameOrResId(context, key, stringRes);
+        if (local == null) {
+            local = localizationInternal.getByResName(fallback);
+        }
+        if (local == null || isUpstreamBranded(local)) {
+            // Not in the bundled pack under that name: the compiled resource is the
+            // last place our own wording survives.
+            if (stringRes != 0 && context != null) {
+                try {
+                    local = context.getString(stringRes);
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        if (local != null && local.contains("LinkiGram") && !isUpstreamBranded(local)) {
+            return local;
+        }
+        return value;
     }
 
     // LinkiGram: recognises strings whose branding still belongs to upstream Telegram.
