@@ -34,3 +34,4 @@ TMessagesProj_AppHuawei/afat/
 TMessagesProj/jni/ffmpeg/build_android
 
 relay/.wrangler/
+.release-bot.env

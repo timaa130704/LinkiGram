@@ -29,6 +29,7 @@ import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ClickableSpan;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -159,6 +160,7 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
     AnimatedTextView titleView;
     ActionBarAnimatedSubtitleOverlayContainer subtitleOverlayContainer;
     ImageView telegramLogoView;
+    TextView brandTitleView;
     ImageView emojiStatusView;
     AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
     boolean drawCircleForce;
@@ -332,14 +334,30 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         titleView.setFocusableInTouchMode(true);
         addView(titleView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
+        // LinkiGram: upstream draws telegram_logo_2 here, a vector wordmark spelling out
+        // "Telegram". It is what the collapsed header showed while the stories header said
+        // "LinkiGram", so the brand swap has to happen on this view, not on the ActionBar
+        // title. The ImageView stays as the layout anchor (its measured width places the
+        // emoji status) but draws nothing; our own text is drawn by brandTitleView below.
         telegramLogoView = new ImageView(context);
         telegramLogoView.setContentDescription(getString(R.string.AppName));
         telegramLogoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        telegramLogoView.setImageResource(R.drawable.telegram_logo_2);
+        telegramLogoView.setImageDrawable(null);
         telegramLogoView.setColorFilter(getTextLogoColor(), PorterDuff.Mode.MULTIPLY);
         telegramLogoView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         telegramLogoView.setFocusableInTouchMode(true);
         addView(telegramLogoView, LayoutHelper.createFrame(90, 22));
+
+        brandTitleView = new TextView(context);
+        brandTitleView.setTextColor(getTextLogoColor());
+        brandTitleView.setTypeface(AndroidUtilities.bold());
+        brandTitleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dp(20));
+        brandTitleView.setIncludeFontPadding(false);
+        brandTitleView.setSingleLine(true);
+        brandTitleView.setText(app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
+                getString(R.string.AppName)));
+        brandTitleView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        addView(brandTitleView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
         statusDrawable.center = true;
@@ -943,8 +961,10 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
 
             telegramLogoView.setTranslationX(titleView.getTranslationX() + dp(1));
             telegramLogoView.setTranslationY(bottomY + dp(14 + FAKE_TOP_PADDING + 4.333f) + translationOffset /*titleView.getTranslationY() + dpf2(37.33f)*/);
+            brandTitleView.setTranslationX(telegramLogoView.getTranslationX());
+            brandTitleView.setTranslationY(telegramLogoView.getTranslationY());
 
-            emojiStatusView.setTranslationX(titleView.getTranslationX() - dpf2(3.33f) + telegramLogoView.getMeasuredWidth());
+            emojiStatusView.setTranslationX(titleView.getTranslationX() - dpf2(3.33f) + brandTitleView.getMeasuredWidth());
             emojiStatusView.setTranslationY(bottomY + dp(14 - 11 + FAKE_TOP_PADDING + 4.333f) + translationOffset);
 
             subtitleOverlayContainer.setTranslationX(titleView.getTranslationX());
@@ -992,6 +1012,7 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         super.onAttachedToWindow();
         updateItems(false, false);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.storiesUpdated);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.customTitleUpdated);
         ellipsizeSpanAnimator.onAttachedToWindow();
         statusDrawable.attach();
     }
@@ -1000,6 +1021,7 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.storiesUpdated);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.customTitleUpdated);
         ellipsizeSpanAnimator.onDetachedFromWindow();
         if (globalCancelable != null) {
             globalCancelable.cancel();
@@ -1022,6 +1044,13 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
             if (allowGlobalUpdates) {
                 updateItems(getVisibility() == View.VISIBLE, false);
                 AndroidUtilities.runOnUIThread(this::checkLoadMore);
+            }
+        } else if (id == NotificationCenter.customTitleUpdated) {
+            // LinkiGram: the collapsed header draws our own title, so a change to the
+            // custom-title setting has to reach this view too, not only the ActionBar.
+            if (brandTitleView != null) {
+                brandTitleView.setText(app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
+                        getString(R.string.AppName)));
             }
         }
     }
@@ -1157,6 +1186,9 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
             subtitleOverlayContainer.updateColors();
         }
         telegramLogoView.setColorFilter(getTextLogoColor(), PorterDuff.Mode.MULTIPLY);
+        if (brandTitleView != null) {
+            brandTitleView.setTextColor(getTextLogoColor());
+        }
         AndroidUtilities.forEachViews(recyclerListView, view -> {
             StoryCell cell = (StoryCell) view;
             cell.invalidate();
@@ -2219,6 +2251,10 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         if (telegramLogoView != null) {
             telegramLogoView.setAlpha(logoAlpha);
             telegramLogoView.setVisibility(logoAlpha > 0 ? VISIBLE : GONE);
+        }
+        if (brandTitleView != null) {
+            brandTitleView.setAlpha(logoAlpha);
+            brandTitleView.setVisibility(logoAlpha > 0 ? VISIBLE : GONE);
         }
         if (emojiStatusView != null) {
             emojiStatusView.setAlpha(logoAlpha);

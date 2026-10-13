@@ -93,6 +93,57 @@ def read_release(repo, token):
     }
 
 
+def send_document(token, channel, path, caption=None):
+    """Uploads a file to the channel. Used to attach the APK to an announcement."""
+    boundary = "----LinkiGramReleaseBoundary"
+    filename = os.path.basename(path)
+    with open(path, "rb") as handle:
+        payload = handle.read()
+
+    parts = []
+    parts.append(("--{0}\r\n".format(boundary)).encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="chat_id"\r\n\r\n')
+    parts.append(("{0}\r\n".format(channel)).encode("utf-8"))
+    parts.append(("--{0}\r\n".format(boundary)).encode("utf-8"))
+    if caption:
+        parts.append(
+            'Content-Disposition: form-data; name="caption"\r\n\r\n'
+            .encode("utf-8"))
+        parts.append(caption.encode("utf-8") + b"\r\n")
+        # Without this the caption arrives as literal "<b>" text: the caption is not
+        # covered by the default parse mode, it has to be asked for explicitly.
+        parts.append(("--{0}\r\n".format(boundary)).encode("utf-8"))
+        parts.append(
+            'Content-Disposition: form-data; name="parse_mode"\r\n\r\n'
+            .encode("utf-8"))
+        parts.append(b"HTML\r\n")
+    parts.append(("--{0}\r\n".format(boundary)).encode("utf-8"))
+    parts.append(
+        'Content-Disposition: form-data; name="document"; filename="{0}"\r\n'
+        .format(filename).encode("utf-8"))
+    parts.append(b"Content-Type: application/octet-stream\r\n\r\n")
+    parts.append(payload + b"\r\n")
+    parts.append(("--{0}--\r\n".format(boundary)).encode("utf-8"))
+
+    body = b"".join(parts)
+    url = TELEGRAM_API.format(token=token, method="sendDocument")
+    request = urllib.request.Request(
+        url, data=body,
+        headers={"Content-Type": "multipart/form-data; boundary={0}".format(boundary),
+                 "User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=180) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", "replace")
+        raise TelegramError("sendDocument failed: HTTP {0} {1}".format(
+            error.code, detail))
+    if not data.get("ok"):
+        raise TelegramError("sendDocument failed: {0}".format(
+            data.get("description")))
+    return data["result"]
+
+
 def send_preview(token, channel, text):
     """Asks the bot to echo the message back to us, so formatting can be checked
     without posting into the channel."""
@@ -111,6 +162,7 @@ def main():
     parser.add_argument("--version")
     parser.add_argument("--notes")
     parser.add_argument("--notes-file")
+    parser.add_argument("--file", help="attach this file to the post")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the message and exit without sending")
     parser.add_argument("--check", action="store_true",
@@ -152,6 +204,12 @@ def main():
         info = send_preview(args.token, args.channel, text)
         print("bot: @{0}".format(info["bot"]))
         print("channel: {0} ({1})".format(info["chat"], info["chat_type"]))
+        return 0
+
+    if args.file:
+        send_document(args.token, args.channel, args.file, caption=text)
+        print("posted {0} to {1} with {2}".format(
+            version, args.channel, os.path.basename(args.file)))
         return 0
 
     call_api(args.token, "sendMessage", {
