@@ -362,7 +362,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                 return hlsMediaSourceFactory.createMediaSource(mediaItem);
             default:
                 if (progressiveMediaSourceFactory == null) {
-                    progressiveMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory);
+                    progressiveMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory, new app.exteraless.player.SeekableFragmentsExtractorsFactory());
                 }
                 return progressiveMediaSourceFactory.createMediaSource(mediaItem);
         }

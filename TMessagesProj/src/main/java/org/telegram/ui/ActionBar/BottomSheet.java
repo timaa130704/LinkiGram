@@ -1634,6 +1634,21 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
         canDismissWithSwipe = value;
     }
 
+    // Predictive-back hooks used by the ported exteraless MD3 player sheet. LinkiGram's
+    // BottomSheet has no OnBackInvoked callback plumbing, so these are inert defaults:
+    // the sheet still closes (and PlayerSheet still runs its morph-close) via dismiss().
+    protected boolean onCustomBackStarted(int swipeDirection) {
+        return false;
+    }
+
+    protected void onCustomBackProgressed(float progress) {
+
+    }
+
+    protected void onCustomBackCancelled() {
+
+    }
+
     protected boolean onContainerTouchEvent(MotionEvent event) {
         return false;
     }

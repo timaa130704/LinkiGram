@@ -118,6 +118,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
+    private app.exteraless.player.PlayerMiniView miniPlayer;
 
     public MainTabsActivity() {
         super();
@@ -271,6 +272,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     @Override
     public void onResume() {
         super.onResume();
+        if (miniPlayer != null) {
+            miniPlayer.update(true);
+        }
         blur3_updateColors();
         checkContactsTabBadge();
         checkUnreadCount(true);
@@ -376,6 +380,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         fadeView.setBackground(fadeDrawable);
 
         contentView.addView(fadeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0, Gravity.BOTTOM));
+
+        // exteraless MD3 mini player: a floating card above the tab bar. It listens
+        // to media notifications itself; checkUi_miniPlayer() only positions it.
+        miniPlayer = new app.exteraless.player.PlayerMiniView(context, this, resourceProvider);
+        contentView.addView(miniPlayer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, app.exteraless.player.PlayerMiniView.HEIGHT_DP + 16, Gravity.BOTTOM));
 
         tabsViewWrapper = new FrameLayout(context);
         tabsViewWrapper.setOnClickListener(v -> {});
@@ -1070,6 +1079,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void checkUi_tabsPosition() {
+        checkUi_miniPlayer();
         final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
         final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
         final int normalY = -(updateLayoutHeight);
@@ -1083,6 +1093,17 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsView.setEnabled(factor > 1);
         tabsView.setAlpha(factor);
         tabsView.setVisibility(factor > 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private void checkUi_miniPlayer() {
+        if (miniPlayer == null || updateLayoutWrapper == null) {
+            return;
+        }
+        final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
+        final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
+        final int tabsHeight = dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+        final float factor = animatorTabsVisible.getFloatValue();
+        miniPlayer.setHostPosition(-(navigationBarHeight + updateLayoutHeight + tabsHeight), factor);
     }
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {

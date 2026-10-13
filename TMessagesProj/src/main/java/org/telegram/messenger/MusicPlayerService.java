@@ -203,6 +203,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
                         if (AudioPlayerAlert.instance != null) {
                             AudioPlayerAlert.instance.updateRepeatButton();
                         }
+                        app.exteraless.player.PlayerSheet.onModesChanged();
                     } else if (NOTIFY_SHUFFLE.equals(action)) {
                         if (SharedConfig.shuffleMusic) {
                             MediaController.getInstance().setPlaybackOrderType(0);
@@ -213,6 +214,7 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
                         if (AudioPlayerAlert.instance != null) {
                             AudioPlayerAlert.instance.updateRepeatButton();
                         }
+                        app.exteraless.player.PlayerSheet.onModesChanged();
                     }
                     MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
                     if (messageObject != null) {

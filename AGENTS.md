@@ -231,19 +231,53 @@ Two things the user should be reminded of: the bot token was pasted into chat
 and should be rotated via @BotFather, and `landing/index.html` +
 `landing/.gitignore` usually hold the user's own uncommitted work.
 
-## Next: the exteraless MD3 player port
+## exteraless MD3 player port
 
-User-approved next feature. Source: `app/exteraless/player/` in the exteraless
-clone — 19 files, ~5700 lines: PlayerSheet (1667), LyricsView (624), OnlineLyrics
-(508), PlayerQueueSheet (444), PlayerActions (359), PlayerMiniView (365),
-WavySeekBar, MorphButton, ControlsRow, CoverImage, PlayerColors, PlayerArt,
-PlayerIcon, PlayerBarView, RingPlayButton, Md3Player, Spring, Lyrics,
-SeekableFragmentsExtractorsFactory. Copy the package keeping `app.exteraless`
-names, then find their entry points (search AudioPlayerAlert and the mini-player
-hook in their tree; our base plays via `AudioPlayerAlert` in
-ProfileActivity/ChatActivity) and rewire. Map their config onto NimarkoConfig as
-done for nowplaying (see commit b82e9aaa). Run the three checks before pushing;
-do not push while a build runs.
+Ported the exteraless 12.10.6 MD3 music player (19 files, ~5.5k lines) into
+LinkiGram 12.10.5. The files live in `app/exteraless/player/` with the original
+`app.exteraless` package and credits kept.
+
+Wiring (all against our base — nothing copied blindly):
+
+- `Md3Player.create(context, provider)` replaces `new AudioPlayerAlert(...)` at the
+  three open points (`ChatActivity`, `ProfileActivity`, `LaunchActivity`) and the
+  context-bar click in `FragmentContextView`. It returns the MD3 `PlayerSheet` for
+  music when enabled, else the stock `AudioPlayerAlert`.
+- `PlayerBarView` replaces the stock context audio bar when the mini player is on
+  (`FragmentContextView`: `getStyleHeight`/`updateStyle`/`checkMd3Bar`/`dispatchDraw`
+  and the `hidesContextPlayer` hide path).
+- `PlayerMiniView` floats above the tab bar in `MainTabsActivity`.
+- `SeekableFragmentsExtractorsFactory` wraps the progressive source in `VideoPlayer`
+  so unseekable fragmented-MP4 audio can seek.
+- `PlayerSheet.onModesChanged()` keeps repeat/shuffle in sync from `MusicPlayerService`.
+- Config on `NimarkoConfig`: `md3Player` / `md3MiniPlayer` (both default **on**) and
+  `lrclibAllowed` (default **off** — online lyrics send the track name off-device),
+  mapped from their `AppearanceConfig` as the nowplaying port did (`b82e9aaa`).
+
+Adaptations for symbols our base lacks:
+
+- Their `app.exteraless.appearance.AppearanceConfig` → `NimarkoConfig`.
+- NagramX `NaConfig.getSilentMessageByDefault()` → `PlayerActions.silent()` is always `true`.
+- `tw.nekomimi...MonetHelper` (no Monet here) → `PlayerColors.noCoverSeed` falls back to
+  the themed accent.
+- `tw.nekomimi...TypefaceHelper.lyricsTypeface()` → `AndroidUtilities.bold()`.
+- Added `NotificationCenter.audioInfoLoaded` and the async `MediaController.loadAudioInfo`
+  port that posts it (12.10.6 had it; 12.10.5 did not).
+- Added inert `BottomSheet.onCustomBackStarted/-Progressed/-Cancelled` hooks so the
+  `PlayerSheet` overrides compile. Our `BottomSheet` has no OnBackInvoked plumbing, so the
+  predictive-back "drag to morph" preview is not live; the morph still runs on dismissal.
+
+Added strings in `values/strings_oe_player.xml` and `values-ru/strings_oe_player.xml`
+(33 keys, EN/RU parity).
+
+Known limitation: the mini player is positioned above the tab bar, but the last list
+item is not inset for it (their `setMiniPlayerInset`/`TabFragmentDelegate` propagation
+was not ported), so it can overlap the bottom of a long list.
+
+Checks run before push: brace balance on every touched `.java` (+0/+0), XML
+well-formedness on both new string files, EN/RU key parity, and a sweep of every
+external symbol the new code references against this tree. Build only in CI; do not
+push while a build runs.
 
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
   header shows "LinkiGram" — a second title path that bypasses `getStringV2`.

@@ -173,6 +173,33 @@ public final class NimarkoConfig {
         getEditor().putString("OEGeneralLastFmNick", value == null ? "" : value).commit();
     }
 
+    // Ported from exteraless: the MD3 music player (PlayerSheet) and the MD3 mini
+    // player / context bar, replacing the stock AudioPlayerAlert. Both default on.
+    public static boolean md3Player() {
+        return getPreferences().getBoolean("OEAppearanceMd3Player", true);
+    }
+
+    public static void setMd3Player(boolean value) {
+        getEditor().putBoolean("OEAppearanceMd3Player", value).apply();
+    }
+
+    public static boolean md3MiniPlayer() {
+        return getPreferences().getBoolean("OEAppearanceMd3MiniPlayer", true);
+    }
+
+    public static void setMd3MiniPlayer(boolean value) {
+        getEditor().putBoolean("OEAppearanceMd3MiniPlayer", value).apply();
+    }
+
+    // Online lyrics providers (LRCLIB/lrcmux) opt-in; the track name leaves the device.
+    public static boolean lrclibAllowed() {
+        return getPreferences().getBoolean("OEPlayerLrclibAllowed", false);
+    }
+
+    public static void setLrclibAllowed(boolean value) {
+        getEditor().putBoolean("OEPlayerLrclibAllowed", value).commit();
+    }
+
     public static boolean pluginsEngine = getPreferences().getBoolean("pluginsEngine", true);
     public static void togglePluginsEngine() {
         pluginsEngine = !pluginsEngine;
