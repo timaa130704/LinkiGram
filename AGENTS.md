@@ -103,21 +103,90 @@ Diagnostic logging still in the tree: `LinkiPluginHook` tag in
   feature directories worth porting: `pills`, `pillstack`, `feed`, `drawer`,
   `nowplaying`, `ghost`, `appicons`, `glyph`, `picker`, `proxy`, `backup`.
 
+## Release
+
+Builds come from CI only, ~25 min per run. Local Gradle is broken; do not try.
+
+```
+gh workflow run build.yml --ref main
+gh run watch <id> --exit-status
+gh run download <id> -n linkigram-apk -D <dir>
+```
+
+The device is SM-G973F (Android 16), `RF8MA188NFZ`, package
+`app.linkigram.messenger`, launch with
+`am start -n app.linkigram.messenger/org.telegram.ui.LaunchActivity`. adb drops
+often; `adb kill-server` + retry usually recovers it. `/data/data` is not
+readable without root, so plugin files on disk cannot be inspected directly.
+
+Publish with `gh release create v<X.Y.Z> <apk> --title ... --notes-file ...`.
+`prerelease=false` matters: the in-app updater reads `/releases/latest` and will
+not see a pre-release.
+
+## Release announcement bot
+
+`tools/release_bot.py` posts to the announcement channel. Token lives in
+`.release-bot.env` (gitignored, never commit it). Verify:
+
+```
+python tools/release_bot.py --dry-run --version 2.5.1 --notes "..."
+python tools/release_bot.py --check          # token + channel access
+python tools/release_bot.py --channel @linkireleases --version 2.5.1 --notes-file notes.md
+```
+
+The bot must be an admin with posting rights in the target channel; it cannot
+promote itself. Two traps already hit:
+
+- The caption of a document needs `parse_mode=HTML` sent explicitly, otherwise
+  the markup arrives as literal `<b>` text. Plain text messages do not have
+  this problem, so it only shows up with `--file`.
+- Bot API refuses uploads over **50 MB** and the APK is ~105 MB, so the
+  announcement goes out as text with a download link. `--file` works for small
+  files only.
+- In PowerShell, `--channel @name` is parsed as splatting. Quote it:
+  `--channel="@name"`.
+
 ## Working rules learned the hard way
 
-- Check API names in the tree before pushing; five of six builds failed on my
-  own invented names.
+Seven builds were started on this work and five failed, every time on my own
+mistake. The three checks below catch nearly all of them, and a build costs
+25 minutes, so run them before every push:
+
+1. Brace balance in any Java file you appended to.
+2. XML well-formedness after editing `strings.xml` (and put new strings **inside**
+   `</resources>`, not after it).
+3. Every external symbol the new code references actually exists in this tree —
+   including strings and methods in neighbouring classes of the same port.
+
+Other rules:
+
+- Porting upstream code means porting its dependencies too. NimarkoGram had
+  seven string keys and `PluginsWatchdog.getKnownPlugin()` that we did not; the
+  compiler found each one, one build at a time.
 - Prefer reading device logs over reasoning about symptoms; every real root
   cause here was found in `logcat`, none were guessed correctly.
 - The user's device is their own: unlock it before screenshots, do not tap
   blindly, cancel anything started by accident.
+- `landing/index.html` and `landing/.gitignore` often hold the user's own
+  uncommitted work. Never sweep them into a commit.
 
 ## Still open
 
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
   header shows "LinkiGram" — a second title path that bypasses `getStringV2`.
+  `resolveMainTitle` is called from exactly one place, so the other title is set
+  somewhere else, most likely on scroll.
 - Camera module switching (0.6x / 1.0x / 1.9x) was implemented and then removed
   at the user's request: the button never became reliably usable on SM-G973F,
   which reports each physical lens as its own camera id rather than one logical
   multi-camera.
-- Release 2.5.1 had not been published as of the last session.
+- Not yet ported from exteraless: `nowplaying` (1365 lines), `feed` (5649),
+  `drawer` (3734), `pillstack` (5081). Those are screen rewrites against a
+  different base, not drop-in ports — decide per module what to take rather than
+  copying wholesale.
+- Not yet ported from NimarkoGram: DEX plugins and hook guards (`PluginDexRegistry`,
+  `PluginDexTracking`, `PluginHookBypassTarget`, `PluginHookGuard`, ~217 lines
+  together, same engine so dependencies are likely to be ours already).
+- Release 2.5.1 was published on GitHub with an announcement to the channel.
+  Whatever ships next needs its own release entry, or users never get it.
+- The bot token was pasted into chat once and should be rotated via @BotFather.
