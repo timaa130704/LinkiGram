@@ -35,3 +35,4 @@ TMessagesProj/jni/ffmpeg/build_android
 
 relay/.wrangler/
 .release-bot.env
+.release-bot.offset

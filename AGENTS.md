@@ -210,10 +210,10 @@ The session was one long debugging day. Roughly what happened, in order:
 10. Release **2.5.1 was published**, with an announcement bot posting to
     `@linkireleases`. Bot tooling is described further down.
 
-**Immediately pending:** build `38449496809` (the exteraless nowplaying port, commit
-`519f57c0`) is running. The collapsed-header branding fix and the bot tooling landed
-earlier the same day in `d3f7897d`. When the build passes, install it and check the
-profile music card on a profile that has saved music.
+**Immediately pending:** build `38450534433` **passed** (nowplaying port + branding fix +
+setFastUpload, commit `b82e9aaa`), the APK is **installed on the phone** and launches
+without crashes. What needs eyes: the profile music card on a profile with saved music,
+and the long-press switch between the official look and the card.
 
 The nowplaying port: 7 files in `app.exteraless.*` (original packages, credits kept),
 hunks in `MessageObject.getArtworkUrl` (zero-width strip), `ProfileMusicView` (long
