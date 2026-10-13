@@ -170,6 +170,54 @@ Other rules:
 - `landing/index.html` and `landing/.gitignore` often hold the user's own
   uncommitted work. Never sweep them into a commit.
 
+## Where we stopped — tell the user this first
+
+**Do this before anything else.** The user comes from a long session in another
+agent and will ask "what were we doing". Briefly reconstruct the story for them
+before touching code. Do not wait to be asked twice.
+
+The session was one long debugging day. Roughly what happened, in order:
+
+1. AyuMoments ghost mode, custom launcher icon colours, the creator plane icon
+   and a 2.5 OTA release had already shipped before this day started.
+2. **The chat list was empty for ~11.6 s on every cold start.** First attempts
+   were wrong guesses — a stale ProGuard hook, then the WS-bypass proxy, then
+   the database. The real cause only appeared once we added timestamped logging
+   inside the app: `awaitLoaded: waited 5015ms (loaded=false)`, while the
+   database itself opened in 16 ms. The fork loaded its native library by
+   unpacking ~20 MB out of the APK into `files/lib/`, which Android refuses to
+   load from. Fixed; startup is now ~1.3 s and was verified on the device.
+3. **Plugins did nothing when tapped.** The three call sites into
+   `maybeShowInstallDialog` were lost during the 12.10.2 upstream update.
+   Restored and verified — the install panel opens.
+4. **Plugins failed to enable** with `ModuleNotFoundError`. They were imported by
+   module name instead of by file path. Ported `plugin_imports.py` from
+   NimarkoGram. Verified: the plugin enables and draws its button.
+5. **The button was missing anyway** — R8 had renamed
+   `org.telegram.ui.MainTabsActivity`, the class plugins hook into. Added the
+   keep rule that NimarkoGram already documents for this exact failure.
+6. **Plugins vanished after every restart.** A dead end: only a successful load
+   cleared `plugin_crashed_<id>`, but a quarantined plugin is skipped *before*
+   loading, so it could never clear its own flag. Now timestamped.
+7. **Plugins received no updates at all** — the update hooks existed in
+   `PluginsController` but `MessagesController` never called them. Wired in.
+8. **X-CFG then looped on expired login codes.** Still open: the bot does reply
+   and the messages do arrive in the app, but the plugin re-reads chat history
+   instead of consuming the fresh code. Last measurement: 190 hook calls, 48
+   with the engine available, **zero** with any plugin interested.
+9. Camera module switching was implemented, never became reliably usable, and
+   was removed at the user's request.
+10. Release **2.5.1 was published**, with an announcement bot posting to
+    `@linkireleases`. Bot tooling is described further down.
+
+**Immediately pending:** build `38401839485` (plugin crash reports) passed but
+the APK was never installed. Install it and check the reports appear in the
+plugin UI; that is the first thing to close out. Then DEX plugins + hook guards.
+
+Two things the user should be reminded of: the bot token was pasted into chat
+and should be rotated via @BotFather, and `landing/index.html` +
+`landing/.gitignore` usually hold the user's own uncommitted work.
+
 ## Still open
 
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
