@@ -1411,6 +1411,10 @@ public class PluginsController implements PluginsHooks {
                                     this.preferences.getBoolean(PREF_PLUGIN_ENABLED_KEY_PREFIX + attributedId, false))
                             .putBoolean(PREF_PLUGIN_ENABLED_KEY_PREFIX + attributedId, false)
                             .putBoolean("plugin_crashed_" + attributedId, true)
+                            // Timestamp of this crash, so a later successful load can be
+                            // recognised and an outdated marker ignored.
+                            .putLong("plugin_crashed_at_" + attributedId,
+                                    System.currentTimeMillis())
                             .putInt("unattributed_native_crashes", 0)
                             .apply();
                     AndroidUtilities.runOnUIThread(() -> {

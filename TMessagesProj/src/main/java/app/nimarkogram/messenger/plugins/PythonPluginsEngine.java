@@ -2489,7 +2489,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                                 continue;
                             }
 
-                            if (getPluginsController().preferences.getBoolean(
+                            if (isQuarantineStale(pluginId)
+                                    && getPluginsController().preferences.getBoolean(
                                     "plugin_crashed_" + pluginId, false)) {
                                 if (parsedPlugin == null) {
                                     parsedPlugin =
@@ -3025,6 +3026,10 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     .remove("plugin_enabled_before_quarantine_" + str)
                     .remove("crashed_plugin_id")
                     .remove("crashed_plugin_started_at")
+                    // Remember that this plugin loaded cleanly, so an old crash marker
+                    // left over from before the fix cannot disable it again forever.
+                    .putLong("plugin_ok_at_" + str,
+                            System.currentTimeMillis())
                     .commit();
         }
     }
@@ -3605,6 +3610,32 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             } catch (Throwable ignored) {
             }
         } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+ * True when the crash marker no longer reflects reality because the plugin has
+ * been loaded successfully since it was written.
+ * <p>
+ * The marker used to be a dead end: only a successful load cleared it, and a
+ * quarantined plugin is skipped before loading, so once flagged a plugin stayed
+ * disabled across every restart with no way back. Recording the time of the last
+ * successful load lets a stale marker be ignored, so fixing the underlying
+ * problem (or simply re-enabling the plugin once) is enough to get it running again.
+     */
+    private boolean isQuarantineStale(String pluginId) {
+        try {
+            android.content.SharedPreferences prefs =
+                    getPluginsController().preferences;
+            if (prefs == null) return false;
+            long loadedAt = prefs.getLong("plugin_ok_at_" + pluginId, 0L);
+            if (loadedAt <= 0L) return false;
+            long crashedAt = prefs.getLong("plugin_crashed_at_" + pluginId, 0L);
+            // A marker with no timestamp predates this tracking, so treat it as stale
+            // once the plugin has demonstrably loaded at least once.
+            return crashedAt <= 0L || loadedAt > crashedAt;
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
