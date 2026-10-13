@@ -231,7 +231,19 @@ Two things the user should be reminded of: the bot token was pasted into chat
 and should be rotated via @BotFather, and `landing/index.html` +
 `landing/.gitignore` usually hold the user's own uncommitted work.
 
-## Still open
+## Next: the exteraless MD3 player port
+
+User-approved next feature. Source: `app/exteraless/player/` in the exteraless
+clone — 19 files, ~5700 lines: PlayerSheet (1667), LyricsView (624), OnlineLyrics
+(508), PlayerQueueSheet (444), PlayerActions (359), PlayerMiniView (365),
+WavySeekBar, MorphButton, ControlsRow, CoverImage, PlayerColors, PlayerArt,
+PlayerIcon, PlayerBarView, RingPlayButton, Md3Player, Spring, Lyrics,
+SeekableFragmentsExtractorsFactory. Copy the package keeping `app.exteraless`
+names, then find their entry points (search AudioPlayerAlert and the mini-player
+hook in their tree; our base plays via `AudioPlayerAlert` in
+ProfileActivity/ChatActivity) and rewire. Map their config onto NimarkoConfig as
+done for nowplaying (see commit b82e9aaa). Run the three checks before pushing;
+do not push while a build runs.
 
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
   header shows "LinkiGram" — a second title path that bypasses `getStringV2`.
