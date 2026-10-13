@@ -941,6 +941,11 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
         if (lensButton.getVisibility() != View.VISIBLE) {
             lensButton.setVisibility(View.VISIBLE);
         }
+        // Deliberately not gated on the camera-controls flag: that flag can still be
+        // false while the session is still coming up, which left the button visible
+        // but dead, so a tap did nothing.
+        lensButton.setEnabled(true);
+        lensButton.setClickable(true);
     }
 
     /** Draws the lens label, e.g. 0.6x / 1x / 1.9x, centred in the button. */
@@ -1044,7 +1049,6 @@ public final class InstantCameraView2 extends InstantCameraViewBase {
         updateFlashIcon();
         // LinkiGram: the lens button only exists on cameras with several modules.
         if (lensButton != null) {
-            lensButton.setEnabled(cameraControls);
             updateLensButton();
         }
     }
