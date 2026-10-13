@@ -210,10 +210,20 @@ The session was one long debugging day. Roughly what happened, in order:
 10. Release **2.5.1 was published**, with an announcement bot posting to
     `@linkireleases`. Bot tooling is described further down.
 
-**Immediately pending:** build `38450534433` **passed** (nowplaying port + branding fix +
-setFastUpload, commit `b82e9aaa`), the APK is **installed on the phone** and launches
-without crashes. What needs eyes: the profile music card on a profile with saved music,
-and the long-press switch between the official look and the card.
+**Immediately pending:** the MD3 player port build `38466359729` **passed** (commits
+`b37849b6` + `288e2a36`, 33 files: 19 player sources, 2 string files, 12 integration
+edits across MediaController/MusicPlayerService/NotificationCenter/VideoPlayer/
+FragmentContextView/ChatActivity/LaunchActivity). The APK is downloaded to `.tmp-apk/`
+but **not installed** — the phone was disconnected. Plug it in and install, then verify:
+no crashes on launch, the player sheet/mini-bar opens, the queue and online lyrics work.
+Also still unverified: the nowplaying music card on a profile with saved music.
+
+**Lesson (cost us a near-miss):** a subagent whose session `outcome` is empty is
+**still running**, not dead. Do not relaunch "dead-looking" subagents — that put two
+agents on one working tree; one committed while the other was mid-edit, and the commit
+left `clearMusicPlaylistState()` private while `FragmentContextView` called it (would
+not compile). Keep exactly one feature agent per area and wait for its explicit
+completion notification.
 
 The nowplaying port: 7 files in `app.exteraless.*` (original packages, credits kept),
 hunks in `MessageObject.getArtworkUrl` (zero-width strip), `ProfileMusicView` (long
