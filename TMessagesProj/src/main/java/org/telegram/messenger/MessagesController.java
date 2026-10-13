@@ -17963,14 +17963,6 @@ public class MessagesController extends BaseController implements NotificationCe
             arr.add(updates.update);
             processUpdateArray(arr, null, null, false, updates.date);
         } else if (updates instanceof TLRPC.TL_updateShortChatMessage || updates instanceof TLRPC.TL_updateShortMessage) {
-            // LinkiGram: ordinary new messages arrive as a short message and are handled
-            // here, never reaching processUpdateArray, so the plugin update hook only
-            // fired for everything except new messages. A plugin waiting on a new
-            // message never heard one. Deliver the short message to the hook first.
-            if (pluginsController != null) {
-                pluginsController.executeUpdateHook(
-                        updates.getClass().getSimpleName(), currentAccount, updates);
-            }
             long userId = updates instanceof TLRPC.TL_updateShortChatMessage ? updates.from_id : updates.user_id;
             TLRPC.User user = getUser(userId);
             TLRPC.User user2 = null;
