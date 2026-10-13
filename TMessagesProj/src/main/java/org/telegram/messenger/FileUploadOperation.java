@@ -47,6 +47,24 @@ public class FileUploadOperation {
     private int maxRequestsCount;
     private int uploadChunkSize = 64 * 1024;
     private boolean slowNetwork;
+    // LinkiGram: ported from exteraless — paths marked for upload without slow-network
+    // throttling, used by the profile music stamp when re-uploading a track.
+    private static final java.util.Set<String> FAST_PATHS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    public static void setFastUpload(String path, boolean fast) {
+        if (path == null) {
+            return;
+        }
+        if (fast) {
+            FAST_PATHS.add(path);
+        } else {
+            FAST_PATHS.remove(path);
+        }
+    }
+
+    private boolean isFastUpload() {
+        return uploadingFilePath != null && FAST_PATHS.contains(uploadingFilePath);
+    }
     private ArrayList<byte[]> freeRequestIvs;
     private int requestNum;
     private String uploadingFilePath;
@@ -117,7 +135,7 @@ public class FileUploadOperation {
         AutoDeleteMediaTask.lockFile(uploadingFilePath);
         Utilities.stageQueue.postRunnable(() -> {
             preferences = ApplicationLoader.applicationContext.getSharedPreferences("uploadinfo", Activity.MODE_PRIVATE);
-            slowNetwork = ApplicationLoader.isConnectionSlow();
+            slowNetwork = !isFastUpload() && ApplicationLoader.isConnectionSlow();
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("start upload on slow network = " + slowNetwork);
             }
