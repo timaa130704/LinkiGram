@@ -25,6 +25,15 @@
 -keep class org.telegram.tgnet.RequestTimeDelegate { *; }
 -keep class org.telegram.tgnet.RequestDelegate { *; }
 -keep class org.telegram.ui.Stories.recorder.FfmpegAudioWaveformLoader { *; }
+
+# Plugin compatibility: Python plugins (Chaquopy) and Pine hooks look up arbitrary
+# org.telegram classes by their ORIGINAL names. A plugin that draws its button in the
+# bottom panel hooks org.telegram.ui.MainTabsActivity, and R8 had minified that name
+# away, so on_load died with ClassNotFoundException and the plugin loaded with no UI at
+# all. The rules above only covered org.telegram.messenger.*, so the UI classes the fork
+# itself ships (org.telegram.ui.MainTabsActivity and friends) were not kept. Matches
+# what Ettacent/NimarkoGram does, for the same reason.
+-keep class org.telegram.** { *; }
 -keep class androidx.mediarouter.app.MediaRouteButton { *; }
 -keepclassmembers class ** {
     @android.webkit.JavascriptInterface <methods>;
