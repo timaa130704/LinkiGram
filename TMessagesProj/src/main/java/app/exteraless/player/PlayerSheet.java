@@ -36,6 +36,7 @@ import androidx.annotation.NonNull;
 import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.LocaleController;
@@ -161,6 +162,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private String lyricsKey;
     private ArrayList<Lyrics> lyricsSources;
     private Lyrics shownLyrics;
+    private String lyricsQueryKey;
     private boolean seeking;
     private float seekProgress;
     private Boolean lightBars;
@@ -1310,10 +1312,11 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             applySourceViewPicker(false);
             return;
         }
+        lyricsQueryKey = q.key();
         ArrayList<Lyrics> cached = OnlineLyrics.cached(q);
         if (cached != null) {
             lyricsSources = cached;
-            showLyrics(cached.get(0));
+            showLyrics(pickDefaultSource(cached));
             return;
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
@@ -1324,7 +1327,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             }
             if (sources != null) {
                 lyricsSources = sources;
-                showLyrics(sources.get(0));
+                showLyrics(pickDefaultSource(sources));
             } else if (NimarkoConfig.lrclibAllowed()) {
                 fetchLyrics();
             } else {
@@ -1344,6 +1347,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             lyricsView.showState(LyricsView.STATE_NOT_FOUND);
             return;
         }
+        lyricsQueryKey = q.key();
         if (OnlineLyrics.knownMissing(q)) {
             lyricsView.showState(LyricsView.STATE_NOT_FOUND);
             return;
@@ -1356,7 +1360,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             }
             if (sources != null && !sources.isEmpty()) {
                 lyricsSources = sources;
-                showLyrics(sources.get(0));
+                showLyrics(pickDefaultSource(sources));
             } else {
                 lyricsView.showState(status == OnlineLyrics.ERROR ? LyricsView.STATE_ERROR : LyricsView.STATE_NOT_FOUND);
             }
@@ -1419,10 +1423,38 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         builder.setTitle(getString(R.string.OEPlayerSourcesTitle));
         builder.setItems(names, (dialog, which) -> {
             if (which >= 0 && which < sources.size()) {
-                showLyrics(sources.get(which));
+                Lyrics chosen = sources.get(which);
+                rememberSourceChoice(chosen.provider);
+                showLyrics(chosen);
             }
         });
         builder.show();
+    }
+
+    private android.content.SharedPreferences getSourcePreference() {
+        return ApplicationLoader.applicationContext.getSharedPreferences("lyrics_source_choice", Context.MODE_PRIVATE);
+    }
+
+    private Lyrics pickDefaultSource(ArrayList<Lyrics> sources) {
+        if (lyricsQueryKey != null) {
+            String chosen = getSourcePreference().getString(lyricsQueryKey, null);
+            if (chosen != null) {
+                for (int i = 0; i < sources.size(); i++) {
+                    Lyrics l = sources.get(i);
+                    if (l != null && chosen.equals(l.provider)) {
+                        return l;
+                    }
+                }
+            }
+        }
+        return sources.get(0);
+    }
+
+    private void rememberSourceChoice(String provider) {
+        if (lyricsQueryKey == null || provider == null) {
+            return;
+        }
+        getSourcePreference().edit().putString(lyricsQueryKey, provider).apply();
     }
 
     private void openQueue() {
