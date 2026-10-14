@@ -324,11 +324,11 @@ public final class PlayerActions {
         });
     }
 
-    private interface MessageCallback {
+    public interface MessageCallback {
         void onMessage(MessageObject messageObject);
     }
 
-    private static void refetch(MessageObject messageObject, MessageCallback callback) {
+    public static void refetch(MessageObject messageObject, MessageCallback callback) {
         final int account = messageObject.currentAccount;
         final int msgId = messageObject.getId();
         TLObject request;

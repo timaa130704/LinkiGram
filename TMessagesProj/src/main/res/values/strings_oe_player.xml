@@ -35,4 +35,24 @@
     <string name="OEPlayerTracks_few">%1$d tracks</string>
     <string name="OEPlayerTracks_many">%1$d tracks</string>
     <string name="OEPlayerTracks_other">%1$d tracks</string>
+    <string name="OEPlayerPlaylists">Playlists</string>
+    <string name="OEPlayerPlaylistsCount_one">%1$d playlist</string>
+    <string name="OEPlayerPlaylistsCount_two">%1$d playlists</string>
+    <string name="OEPlayerPlaylistsCount_few">%1$d playlists</string>
+    <string name="OEPlayerPlaylistsCount_many">%1$d playlists</string>
+    <string name="OEPlayerPlaylistsCount_other">%1$d playlists</string>
+    <string name="OEPlayerPlaylistAdd">Add to playlist</string>
+    <string name="OEPlayerPlaylistNew">New playlist</string>
+    <string name="OEPlayerPlaylistCreate">Create playlist</string>
+    <string name="OEPlayerPlaylistName">Playlist name</string>
+    <string name="OEPlayerPlaylistRename">Rename playlist</string>
+    <string name="OEPlayerPlaylistDelete">Delete playlist</string>
+    <string name="OEPlayerPlaylistRemove">Remove from playlist</string>
+    <string name="OEPlayerPlaylistAdded">Added to “%1$s”</string>
+    <string name="OEPlayerPlaylistOpenFailed">Couldn\'t open the track</string>
+    <string name="OEPlayerDownload">Download for offline</string>
+    <string name="OEPlayerDownloadStarted">Downloading…</string>
+    <string name="OEPlayerDownloadDone">Saved for offline</string>
+    <string name="OEPlayerDownloadFailed">Couldn\'t download the track</string>
+    <string name="OEPlayerDownloadExists">Already available offline</string>
 </resources>

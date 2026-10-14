@@ -35,4 +35,24 @@
     <string name="OEPlayerTracks_few">%1$d трека</string>
     <string name="OEPlayerTracks_many">%1$d треков</string>
     <string name="OEPlayerTracks_other">%1$d треков</string>
+    <string name="OEPlayerPlaylists">Плейлисты</string>
+    <string name="OEPlayerPlaylistsCount_one">%1$d плейлист</string>
+    <string name="OEPlayerPlaylistsCount_two">%1$d плейлиста</string>
+    <string name="OEPlayerPlaylistsCount_few">%1$d плейлиста</string>
+    <string name="OEPlayerPlaylistsCount_many">%1$d плейлистов</string>
+    <string name="OEPlayerPlaylistsCount_other">%1$d плейлистов</string>
+    <string name="OEPlayerPlaylistAdd">Добавить в плейлист</string>
+    <string name="OEPlayerPlaylistNew">Новый плейлист</string>
+    <string name="OEPlayerPlaylistCreate">Создать плейлист</string>
+    <string name="OEPlayerPlaylistName">Название плейлиста</string>
+    <string name="OEPlayerPlaylistRename">Переименовать</string>
+    <string name="OEPlayerPlaylistDelete">Удалить плейлист</string>
+    <string name="OEPlayerPlaylistRemove">Убрать из плейлиста</string>
+    <string name="OEPlayerPlaylistAdded">Добавлено в «%1$s»</string>
+    <string name="OEPlayerPlaylistOpenFailed">Не удалось открыть трек</string>
+    <string name="OEPlayerDownload">Скачать для офлайна</string>
+    <string name="OEPlayerDownloadStarted">Загрузка…</string>
+    <string name="OEPlayerDownloadDone">Сохранено для офлайна</string>
+    <string name="OEPlayerDownloadFailed">Не удалось скачать трек</string>
+    <string name="OEPlayerDownloadExists">Уже доступно офлайн</string>
 </resources>

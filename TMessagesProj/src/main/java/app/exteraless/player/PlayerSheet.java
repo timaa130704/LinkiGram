@@ -27,6 +27,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.animation.PathInterpolator;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -60,9 +61,11 @@ import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.LaunchActivity;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import app.nimarkogram.messenger.NimarkoConfig;
@@ -111,6 +114,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private final MorphButton speedButton;
     private final MorphButton lyricsButton;
     private final MorphButton queueButton;
+    private final MorphButton playlistButton;
     private final Bulletin.Delegate bulletinDelegate = new Bulletin.Delegate() {
         @Override
         public int getBottomOffset(int tag) {
@@ -457,9 +461,14 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         group.addView(lyricsButton, LayoutHelper.createLinear(0, 52, 1f, 4, 0, 4, 0));
         queueButton = new MorphButton(context, PlayerIcon.stroke(PlayerIcon.QUEUE, 20));
         queueButton.setText(getString(R.string.OEPlayerQueue));
-        queueButton.setRadius(dp(8), dp(26), false);
+        queueButton.setRadius(dp(8), false);
         queueButton.setOnClickListener(v -> openQueue());
-        group.addView(queueButton, LayoutHelper.createLinear(0, 52, 1f));
+        group.addView(queueButton, LayoutHelper.createLinear(0, 52, 1f, 4, 0, 4, 0));
+        playlistButton = new MorphButton(context, PlayerIcon.stroke(PlayerIcon.NOTE, 20));
+        playlistButton.setText(getString(R.string.OEPlayerPlaylists));
+        playlistButton.setRadius(dp(8), dp(26), false);
+        playlistButton.setOnClickListener(v -> openPlaylists());
+        group.addView(playlistButton, LayoutHelper.createLinear(0, 52, 1f));
         layout.addView(group);
 
         bubble = new TextView(context);
@@ -1461,6 +1470,103 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         new PlayerQueueSheet(getContext(), colors, resourcesProvider).show();
     }
 
+    private void openPlaylists() {
+        new PlayerPlaylistsSheet(getContext(), colors, resourcesProvider).show();
+    }
+
+    private void showAddToPlaylist() {
+        final MessageObject mo = current;
+        if (mo == null) {
+            return;
+        }
+        final List<PlayerPlaylists.Playlist> playlists = PlayerPlaylists.list();
+        CharSequence[] names = new CharSequence[playlists.size() + 1];
+        for (int i = 0; i < playlists.size(); i++) {
+            names[i] = playlists.get(i).name;
+        }
+        names[playlists.size()] = getString(R.string.OEPlayerPlaylistNew);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle(getString(R.string.OEPlayerPlaylistAdd));
+        builder.setItems(names, (dialog, which) -> {
+            if (which == playlists.size()) {
+                createPlaylistDialog(mo);
+                return;
+            }
+            PlayerPlaylists.Playlist playlist = playlists.get(which);
+            PlayerPlaylists.addTrack(playlist.id, mo);
+            BulletinFactory.of(root, colors.provider(resourcesProvider))
+                    .createSimpleBulletin(R.raw.saved_messages, LocaleController.formatString(R.string.OEPlayerPlaylistAdded, playlist.name)).show();
+        });
+        builder.show();
+    }
+
+    private void createPlaylistDialog(MessageObject messageObject) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle(getString(R.string.OEPlayerPlaylistCreate));
+        final EditText input = new EditText(getContext());
+        input.setHint(getString(R.string.OEPlayerPlaylistName));
+        input.setSingleLine(true);
+        input.setTextColor(colors.onSurface);
+        input.setHintTextColor(ColorUtils.setAlphaComponent(colors.onSurfaceVariant, 0xc0));
+        builder.setView(input);
+        builder.setPositiveButton(getString(R.string.Create), (dialog, which) -> {
+            String name = input.getText().toString().trim();
+            if (TextUtils.isEmpty(name)) {
+                name = getString(R.string.OEPlayerPlaylistNew);
+            }
+            PlayerPlaylists.Playlist playlist = PlayerPlaylists.create(name);
+            if (messageObject != null) {
+                PlayerPlaylists.addTrack(playlist.id, messageObject);
+                BulletinFactory.of(root, colors.provider(resourcesProvider))
+                        .createSimpleBulletin(R.raw.saved_messages, LocaleController.formatString(R.string.OEPlayerPlaylistAdded, playlist.name)).show();
+            }
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        builder.show();
+    }
+
+    private void downloadForOffline() {
+        final MessageObject mo = current;
+        if (mo == null || mo.getDocument() == null) {
+            return;
+        }
+        final int acct = mo.currentAccount;
+        final Theme.ResourcesProvider rp = colors.provider(resourcesProvider);
+        File file = null;
+        if (mo.messageOwner != null && !TextUtils.isEmpty(mo.messageOwner.attachPath)) {
+            File attach = new File(mo.messageOwner.attachPath);
+            if (attach.exists()) {
+                file = attach;
+            }
+        }
+        if (file == null) {
+            file = FileLoader.getInstance(acct).getPathToMessage(mo.messageOwner);
+        }
+        if (file != null && file.exists()) {
+            BulletinFactory.of(root, rp).createSimpleBulletin(R.raw.ic_download, getString(R.string.OEPlayerDownloadExists)).show();
+            return;
+        }
+        final String fileName = FileLoader.getAttachFileName(mo.getDocument());
+        final NotificationCenter nc = NotificationCenter.getInstance(acct);
+        final BulletinFactory factory = BulletinFactory.of(root, rp);
+        final NotificationCenter.NotificationCenterDelegate[] holder = new NotificationCenter.NotificationCenterDelegate[1];
+        holder[0] = (id, account, args) -> {
+            if (id == NotificationCenter.fileLoaded && args.length > 0 && TextUtils.equals((String) args[0], fileName)) {
+                factory.createSimpleBulletin(R.raw.download_finish, getString(R.string.OEPlayerDownloadDone)).show();
+            } else if (id == NotificationCenter.fileLoadFailed && args.length > 0 && TextUtils.equals((String) args[0], fileName)) {
+                factory.createSimpleBulletin(R.raw.ic_delete, getString(R.string.OEPlayerDownloadFailed)).show();
+            } else {
+                return;
+            }
+            nc.removeObserver(holder[0], NotificationCenter.fileLoaded);
+            nc.removeObserver(holder[0], NotificationCenter.fileLoadFailed);
+        };
+        nc.addObserver(holder[0], NotificationCenter.fileLoaded);
+        nc.addObserver(holder[0], NotificationCenter.fileLoadFailed);
+        factory.createSimpleBulletin(R.raw.ic_download, getString(R.string.OEPlayerDownloadStarted)).show();
+        FileLoader.getInstance(acct).loadFile(mo.getDocument(), mo, FileLoader.PRIORITY_HIGH, 0);
+    }
+
     private void openClassic() {
         dismissImmediately();
         if (activity != null) {
@@ -1509,6 +1615,14 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
                 PlayerActions.saveToMusic(activity, mo, root, rp);
             });
         }
+        o.add(R.drawable.msg_folders, getString(R.string.OEPlayerPlaylistAdd), () -> {
+            o.dismiss();
+            showAddToPlaylist();
+        });
+        o.add(R.drawable.msg_download, getString(R.string.OEPlayerDownload), () -> {
+            o.dismiss();
+            downloadForOffline();
+        });
         o.add(R.drawable.msg_shareout, getString(R.string.ShareFile), () -> {
             o.dismiss();
             PlayerActions.share(activity, mo);
@@ -1673,6 +1787,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         speedButton.setColors(c.surfaceHigh, c.onSurface, c.surfaceHigh, c.onSurface);
         lyricsButton.setColors(c.surfaceHigh, c.onSurface, c.primary, c.onPrimary);
         queueButton.setColors(c.surfaceHigh, c.onSurface, c.surfaceHigh, c.onSurface);
+        playlistButton.setColors(c.surfaceHigh, c.onSurface, c.surfaceHigh, c.onSurface);
         applySystemBars(false);
     }
 
