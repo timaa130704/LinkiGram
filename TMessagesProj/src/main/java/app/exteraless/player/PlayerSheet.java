@@ -997,7 +997,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
                 animateColors(PlayerColors.fromSeed(fallbackSeed, dark), animated);
             }
             lyricsKey = null;
-            if (lyricsMode) {
+            if (lyricsMode || NimarkoConfig.lrclibAllowed()) {
                 loadLyrics();
             }
         }
@@ -1427,6 +1427,15 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             PlayerActions.showInChat(activity, mo);
         });
         o.addGap();
+        o.addChecked(NimarkoConfig.lrclibAllowed(), R.drawable.msg_filled_data_music, getString(R.string.OEPlayerOnlineLyrics), () -> {
+            boolean enabled = !NimarkoConfig.lrclibAllowed();
+            NimarkoConfig.setLrclibAllowed(enabled);
+            o.dismiss();
+            if (enabled) {
+                lyricsKey = null;
+                loadLyrics();
+            }
+        });
         o.add(R.drawable.msg_filled_data_music, getString(R.string.OEPlayerClassic), () -> {
             o.dismiss();
             openClassic();

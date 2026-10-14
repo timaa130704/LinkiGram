@@ -289,6 +289,57 @@ well-formedness on both new string files, EN/RU key parity, and a sweep of every
 external symbol the new code references against this tree. Build only in CI; do not
 push while a build runs.
 
+## MD3 player online lyrics
+
+The auto-search the user asked for was already inside the port; this pass verified
+it end to end and surfaced it in the UI.
+
+`app/exteraless/player/OnlineLyrics.java` is not a stub — it already ships two
+providers and a cache:
+
+- Primary: **LRCLIB** (`https://lrclib.net/api/`, no key). First the exact `get`
+  (artist + track + album + duration), then `search`, scored by the synced flag and
+  by duration closeness.
+- Fallback: **lrcmux** (`https://api.lrcmux.dev/get`). When LRCLIB returns a plain
+  text and lrcmux returns timing, `punctuate()` grafts LRCLIB's casing and
+  punctuation onto the synced lines.
+- Cache: in-memory `LruCache` (24 entries) plus a disk cache under
+  `cacheDir/lrclib/<md5>.json` (versioned); a `missing` set skips known-empty
+  repeats.
+- States: `LyricsView` has LOADING / OFFER / NOT_FOUND / ERROR / INSTRUMENTAL /
+  LYRICS, and embedded tag lyrics (`SOURCE_FILE`) win over the network.
+
+Wiring that was already in the port: `PlayerSheet.loadLyrics()` runs on track
+change (`bind`), when the lyrics panel opens, and again on `audioInfoLoaded` /
+`fileLoaded`. The gate is `NimarkoConfig.lrclibAllowed()` (default **off** — the
+track name leaves the device); it was reachable only through the small "Search
+online" button in the empty state.
+
+Added this pass:
+
+- A checked overflow-menu row in the player (`PlayerSheet.showMenu`),
+  `OEPlayerOnlineLyrics`, backed by `NimarkoConfig.setLrclibAllowed` — the setting
+  can now be turned on **and off** from the player itself.
+- Auto-search now runs on every track change when the setting is on, even with the
+  lyrics panel closed (`bind`: `lyricsMode || NimarkoConfig.lrclibAllowed()`), so
+  opening the panel shows text instead of a spinner.
+- Strings `OEPlayerOnlineLyrics` in `values/strings_oe_player.xml` and `values-ru`
+  (EN/RU parity kept).
+
+Verified with a real request: `lrclib.net/api/get` for Queen / Bohemian Rhapsody
+returns the JSON object whose fields `OnlineLyrics` reads (`syncedLyrics`,
+`plainLyrics`, `instrumental`, `duration`); `search` returns the same shape as an
+array. Network and parsing are fine.
+
+Not done on purpose: no formal `LyricsProvider` interface. The two providers
+already sit behind one fallback path in a working 508-line file; extracting an
+interface would refactor live code for no behaviour change and risk a 25-minute
+build cycle. If the owner wants it, it becomes a real interface.
+
+Remaining: no settings screen hosts the player toggles — `OEAppearanceMd3Player` /
+`OEAppearanceMd3MiniPlayer` exist as strings but no row uses them, and the player's
+`md3Player` / `md3MiniPlayer` switches are still config-only.
+
 ## NimarkoGram DEX plugins and hook guards
 
 Ported the four files that make plugin-generated DEX classes attributable and stop

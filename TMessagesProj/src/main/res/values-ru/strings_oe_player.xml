@@ -13,6 +13,7 @@
     <string name="OEPlayerSeek">Перемотка</string>
     <string name="OEPlayerOpen">Открыть плеер</string>
     <string name="OEPlayerClassic">Классический плеер</string>
+    <string name="OEPlayerOnlineLyrics">Текст из сети</string>
     <string name="OEPlayerNoLyricsTitle">В файле нет текста</string>
     <string name="OEPlayerNoLyricsText">Можно поискать текст на LRCLIB и lrcmux. Название трека уйдёт в интернет.</string>
     <string name="OEPlayerFindLyrics">Найти в сети</string>

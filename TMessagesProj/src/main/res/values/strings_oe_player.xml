@@ -13,6 +13,7 @@
     <string name="OEPlayerSeek">Seek</string>
     <string name="OEPlayerOpen">Open player</string>
     <string name="OEPlayerClassic">Classic player</string>
+    <string name="OEPlayerOnlineLyrics">Online lyrics</string>
     <string name="OEPlayerNoLyricsTitle">No lyrics in the file</string>
     <string name="OEPlayerNoLyricsText">You can search LRCLIB and lrcmux for lyrics. The track name will be sent over the internet.</string>
     <string name="OEPlayerFindLyrics">Search online</string>
