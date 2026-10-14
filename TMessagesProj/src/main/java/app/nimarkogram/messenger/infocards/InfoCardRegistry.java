@@ -6,6 +6,13 @@ import org.telegram.messenger.LocaleController;
 
 import org.telegram.ui.ActionBar.Theme;
 
+import app.exteraless.pillstack.pills.CpuCard;
+import app.exteraless.pillstack.pills.DcPingCard;
+import app.exteraless.pillstack.pills.GhostCard;
+import app.exteraless.pillstack.pills.LastSeenCard;
+import app.exteraless.pillstack.pills.NetSpeedCard;
+import app.exteraless.pillstack.pills.RamCard;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -125,6 +132,43 @@ public final class InfoCardRegistry {
                 org.telegram.messenger.R.drawable.pill_proxy, -11154873, -14175180,
                 (ctx, rp) -> new ProxyCard(ctx, rp,
                         org.telegram.messenger.R.drawable.pill_proxy)));
+
+        // Ported from exteraless pill stack (app.exteraless.pillstack.pills, GPL).
+        register(new CardInfo(InfoCardType.GHOST.id,
+                org.telegram.messenger.R.string.NM_GhostMode,
+                org.telegram.messenger.R.drawable.ghost_solar, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new GhostCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.ghost_solar)));
+
+        register(new CardInfo(InfoCardType.RAM.id,
+                org.telegram.messenger.R.string.OECardsNameRam,
+                org.telegram.messenger.R.drawable.pill_ram, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new RamCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.pill_ram)));
+
+        register(new CardInfo(InfoCardType.CPU.id,
+                org.telegram.messenger.R.string.OECardsNameCpu,
+                org.telegram.messenger.R.drawable.pill_cpu, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new CpuCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.pill_cpu)));
+
+        register(new CardInfo(InfoCardType.NET_SPEED.id,
+                org.telegram.messenger.R.string.OECardsNameNetSpeed,
+                org.telegram.messenger.R.drawable.msg_speed_solar, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new NetSpeedCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.msg_speed_solar)));
+
+        register(new CardInfo(InfoCardType.DC_PING.id,
+                org.telegram.messenger.R.string.OECardsNameDcPing,
+                org.telegram.messenger.R.drawable.pill_ping, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new DcPingCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.pill_ping)));
+
+        register(new CardInfo(InfoCardType.LAST_SEEN.id,
+                org.telegram.messenger.R.string.OECardsNameLastSeen,
+                org.telegram.messenger.R.drawable.msg_online_solar, 0xff2b2b2b, 0xff202020,
+                (ctx, rp) -> new LastSeenCard(ctx, rp,
+                        org.telegram.messenger.R.drawable.msg_online_solar)));
     }
 
     private InfoCardRegistry() {}

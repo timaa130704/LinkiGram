@@ -6,7 +6,14 @@ public enum InfoCardType {
     BTC(3),
     USD(4),
     CACHE(5),
-    PROXY(6);
+    PROXY(6),
+    // Ported from exteraless pill stack (ids match exteraless PillType).
+    GHOST(7),
+    RAM(8),
+    CPU(9),
+    NET_SPEED(10),
+    DC_PING(11),
+    LAST_SEEN(15);
 
     public final int id;
 

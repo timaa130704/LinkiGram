@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OECardsNameRam">RAM</string>
+    <string name="OECardsNameCpu">CPU</string>
+    <string name="OECardsNameNetSpeed">Internet speed</string>
+    <string name="OECardsNameDcPing">DC ping</string>
+    <string name="OECardsNameLastSeen">My status</string>
+    <string name="OECardsDcPingValue">%1$d ms</string>
+    <string name="OECardsGhostOn">Ghost mode on</string>
+    <string name="OECardsGhostOff">Ghost mode off</string>
+</resources>

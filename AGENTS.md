@@ -398,6 +398,62 @@ Adaptations for symbols our base lacks (nothing copied blindly):
 
 No new user-facing strings, so no `strings_*.xml` changes.
 
+## exteraless pill stack → LinkiGram infocards
+
+LinkiGram **already had** the equivalent of the exteraless pill stack: the
+info-cards subsystem (`app.nimarkogram.messenger.infocards`, prefs file
+`nm_pillstack`, `InfoCardStripView`, `InfoCardRegistry`, `InfoCardType`,
+`BaseInfoCard`, and the `NM_CARDS_Title` settings screen). Porting the exteraless
+pill-stack layer wholesale would have duplicated a working system, so only the
+extra pills it ships were added, as `BaseInfoCard` subclasses.
+
+New files live in `app/exteraless/pillstack/pills/` with the original
+`app.exteraless` package and credits kept:
+
+- `TelemetryCard` — base for local telemetry (measure on `Utilities.globalQueue`,
+  apply the text on the UI thread), plus Refresh/Settings long-press.
+- `RamCard` (ActivityManager), `CpuCard` (`/proc/stat` deltas),
+  `NetSpeedCard` (TrafficStats deltas), `DcPingCard`
+  (`ConnectionsManager.native_getCurrentPingTime`) — adapted from `RamPill`,
+  `CpuPill`, `NetSpeedPill`, `DcPingPill`.
+- `GhostCard` (tap toggles, long-press opens ghost settings) and `LastSeenCard`
+  (own status via `users.getUsers`), adapted from `GhostPill` / `LastSeenPill`.
+
+Wiring:
+
+- `InfoCardType` ids match the exteraless `PillType` for the shared ones and add
+  `GHOST(7)`, `RAM(8)`, `CPU(9)`, `NET_SPEED(10)`, `DC_PING(11)`, `LAST_SEEN(15)`.
+- `InfoCardRegistry.ensureRegistered()` registers all six; the existing settings
+  screen picks them up automatically (toggle/reorder/colour modes already worked).
+- Icons: reused `ghost_solar`, `msg_speed_solar`, `msg_online_solar`; drew our own
+  `pill_ram` / `pill_cpu` / `pill_ping` vectors (no upstream artwork copied).
+
+Adaptations for symbols our base lacks (nothing copied blindly):
+
+- Their `app.exteraless.ghost.OwnLastSeen` → `LocaleController.formatUserStatus`
+  with `R.string.Online` for the online state.
+- `NekoConfig.isGhostModeActive`/`toggleGhostMode`/`GhostModeActivity` →
+  `NimarkoConfig.isGhostModeActive`/`setGhostMode` and `GeneralPreferencesActivity`.
+- `PillStackSettingsActivity` → `InfoCardsPreferencesActivity`.
+
+Strings: `values/strings_oe_pillstack.xml` + `values-ru/` (EN/RU parity).
+
+**Not ported: `feed` and `drawer`.** They are deep host rewrites against a
+different base (ChatActivity ~150 call sites, `FeedChatIntegration.Host`,
+`MessagesStorage`/`ConnectionsManager` edits) and depend on infrastructure
+LinkiGram does not have (`tw.nekomimi`, `NekoConfig`/`NaConfig`/`ConfigItem`,
+`BaseNekoSettingsActivity`, `AppearanceConfig`, `FeedController`,
+`MainMenuHelper`/`DrawerContainer`). Drawer additionally depends on feed. Both
+are documented as out of scope rather than half-wired.
+
+**Also not ported: the `GOLD` / `ETH` / `EUR` pills (ids 12-14).** LinkiGram's
+`InfoCardRates` has no gold/ETH source, so they would need new network backends;
+the rest of the port is self-contained.
+
+Checks run before push: brace balance on every touched `.java` (+0/+0), XML
+well-formedness on the new string files and drawables, EN/RU key parity, and a
+sweep of every external symbol the new code references against this tree.
+
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
   header shows "LinkiGram" — a second title path that bypasses `getStringV2`.
   `resolveMainTitle` is called from exactly one place, so the other title is set
@@ -406,10 +462,11 @@ No new user-facing strings, so no `strings_*.xml` changes.
   at the user's request: the button never became reliably usable on SM-G973F,
   which reports each physical lens as its own camera id rather than one logical
   multi-camera.
-- Not yet ported from exteraless: `nowplaying` (1365 lines), `feed` (5649),
-  `drawer` (3734), `pillstack` (5081). Those are screen rewrites against a
-  different base, not drop-in ports — decide per module what to take rather than
-  copying wholesale.
+- Not yet ported from exteraless: `nowplaying` (1365 lines) is done; `pillstack`
+  is now merged into infocards (see the pill-stack section above); `feed` (5649)
+  and `drawer` (3734) are deliberately **not** ported — they need infrastructure
+  and host rewrites this base lacks (documented above). Decide per module what to
+  take rather than copying wholesale.
 - Now ported from NimarkoGram: DEX plugins and hook guards (see the section below).
 - Release 2.5.1 was published on GitHub with an announcement to the channel.
   Whatever ships next needs its own release entry, or users never get it.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="OECardsNameRam">ОЗУ</string>
+    <string name="OECardsNameCpu">Процессор</string>
+    <string name="OECardsNameNetSpeed">Скорость сети</string>
+    <string name="OECardsNameDcPing">Пинг DC</string>
+    <string name="OECardsNameLastSeen">Мой статус</string>
+    <string name="OECardsDcPingValue">%1$d мс</string>
+    <string name="OECardsGhostOn">Режим призрака включён</string>
+    <string name="OECardsGhostOff">Режим призрака выключен</string>
+</resources>
