@@ -214,6 +214,8 @@ import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
 import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
 import org.telegram.ui.ActionBar.AlertDialog;
+
+import app.nimarkogram.messenger.utils.NimarkoAutoClean;
 import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
@@ -1334,6 +1336,31 @@ public class ChatActivity extends BaseFragment implements
         return new ChatActivity(bundle);
     }
 
+    private void showAutoCleanDialog() {
+        final int account = currentAccount;
+        final long dialogId = getDialogId();
+        final int[] intervals = NimarkoAutoClean.INTERVALS;
+        final int[] labelIds = {
+            R.string.NM_AutoClean_Off, R.string.NM_AutoClean_1, R.string.NM_AutoClean_3,
+            R.string.NM_AutoClean_7, R.string.NM_AutoClean_30, R.string.NM_AutoClean_90
+        };
+        final int current = NimarkoAutoClean.getDays(account, dialogId);
+        final String[] labels = new String[intervals.length];
+        final String[] items = new String[intervals.length];
+        for (int i = 0; i < intervals.length; i++) {
+            labels[i] = LocaleController.getString(labelIds[i]);
+            items[i] = intervals[i] == current ? "✓  " + labels[i] : labels[i];
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
+        builder.setTitle(LocaleController.getString(R.string.NM_AutoClean));
+        builder.setItems(items, (dialogInterface, which) -> {
+            NimarkoAutoClean.setDays(account, dialogId, intervals[which]);
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.info, labels[which]).show();
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
     public void deleteHistory(int dateSelectedStart, int dateSelectedEnd, boolean forAll) {
         chatAdapter.frozenMessages.clear();
         for (int i = 0; i < messages.size(); i++) {
@@ -1643,6 +1670,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int change_colors = 27;
     private final static int tag_message = 28;
     private final static int boost_group = 29;
+    private final static int auto_clean_timer = 75;
 
     private final static int bot_help = 30;
     private final static int bot_settings = 31;
@@ -3819,6 +3847,11 @@ public class ChatActivity extends BaseFragment implements
                         return;
                     }
                     showDialog(AlertsCreator.createTTLAlert(getParentActivity(), currentEncryptedChat, themeDelegate).create());
+                } else if (id == auto_clean_timer) {
+                    if (getParentActivity() == null) {
+                        return;
+                    }
+                    showAutoCleanDialog();
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4438,6 +4471,8 @@ public class ChatActivity extends BaseFragment implements
             if (!isTopic && !ChatObject.isMonoForum(currentChat)) {
                 clearHistoryItem = headerItem.lazilyAddSubItem(clear_history, R.drawable.msg_clear,
                     LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
+                headerItem.lazilyAddSubItem(auto_clean_timer, R.drawable.msg_delete,
+                    LocaleController.getString(R.string.NM_AutoClean));
             }
             boolean addedSettings = false;
             if (!isTopic) {

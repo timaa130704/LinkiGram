@@ -11837,6 +11837,11 @@
 <string name="NM_GhostMode">Ghost mode</string>
 <string name="NM_GhostMaster">Enable ghost mode</string>
 <string name="NM_GhostMaster_Desc">Turn all ghost options on or off at once</string>
+<string name="NM_PrivacyPreset">Privacy preset</string>
+<string name="NM_PrivacyPreset_Desc">Set all ghost-mode options at once</string>
+<string name="NM_PresetNormal">Normal</string>
+<string name="NM_PresetGhost">Invisible</string>
+<string name="NM_PresetParanoia">Paranoia</string>
 <string name="NM_GhostStories">Hide story views</string>
 <string name="NM_GhostStories_Desc">Don\'t mark stories as viewed</string>
 <string name="NM_GhostReadAfterSend">Mark as read after sending</string>

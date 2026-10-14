@@ -301,6 +301,45 @@ public final class NimarkoConfig {
         getEditor().putBoolean("ghostOfflineAfterSend", ghostOfflineAfterSend).apply();
     }
 
+    // --- LinkiGram: пресеты приватности (одним тапом) ---
+    public static final int PRESET_NORMAL = 0;
+    public static final int PRESET_GHOST = 1;
+    public static final int PRESET_PARANOIA = 2;
+
+    public static volatile int privacyPreset = getPreferences().getInt("privacyPreset", PRESET_NORMAL);
+
+    /**
+     * Ставит все призрачные тумблеры разом. Обычный — всё выключено,
+     * Невидимка — все скрывающие опции, Паранойя — ещё и мгновенный уход
+     * в офлайн после отправки без отметки прочтения.
+     */
+    public static void applyPrivacyPreset(int preset) {
+        privacyPreset = preset;
+        final boolean hiding = preset != PRESET_NORMAL;
+        ghostTyping = hiding;
+        ghostOnline = hiding;
+        ghostReadReceipts = hiding;
+        ghostStories = hiding;
+        ghostReadAfterSend = !hiding || preset != PRESET_PARANOIA;
+        ghostOfflineAfterSend = preset == PRESET_PARANOIA;
+        getEditor()
+            .putInt("privacyPreset", preset)
+            .putBoolean("ghostTyping", ghostTyping)
+            .putBoolean("ghostOnline", ghostOnline)
+            .putBoolean("ghostReadReceipts", ghostReadReceipts)
+            .putBoolean("ghostStories", ghostStories)
+            .putBoolean("ghostReadAfterSend", ghostReadAfterSend)
+            .putBoolean("ghostOfflineAfterSend", ghostOfflineAfterSend)
+            .apply();
+        if (hiding) {
+            try {
+                com.radolyn.ayugram.utils.AyuGhostUtils.performStatusRequest(true);
+            } catch (Throwable t) {
+                org.telegram.messenger.FileLog.e("nimarko: ghost status request failed", t);
+            }
+        }
+    }
+
     // --- Ayu moments (deleted/edited message saving; AyuGram/exteraless port) ---
     public static volatile boolean saveDeletedInPrivateChats = getPreferences().getBoolean("saveDeletedInPrivateChats", true);
     public static void toggleSaveDeletedInPrivateChats() {

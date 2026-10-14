@@ -91,6 +91,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient3Row = 30;
     private final int sendOriginalPhotoRow = 31;
     private final int sleepTimerRow = 34;
+    private final int privacyPresetRow = 38;
 
     private final int hideStoriesRow = 7;
     private final int archiveStoriesRow = 8;
@@ -228,6 +229,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         items.add(UItem.asButton(sleepTimerRow, getString(R.string.CG_Sleep), getSleepTimerValue()));
 
         items.add(UItem.asHeader(getString(R.string.NM_GhostMode)));
+        items.add(UItem.asButton(privacyPresetRow, getString(R.string.NM_PrivacyPreset), getPrivacyPresetValue()));
         items.add(SettingsHelper.asSwitchCG(ghostMasterRow, getString(R.string.NM_GhostMaster), getString(R.string.NM_GhostMaster_Desc))
                 .setChecked(NimarkoConfig.isGhostModeActive())
         );
@@ -472,6 +474,19 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             if (listView != null) {
                 listView.adapter.update(true);
             }
+        } else if (item.id == privacyPresetRow) {
+            ArrayList<String> presets = new ArrayList<>();
+            presets.add(getString(R.string.NM_PresetNormal));
+            presets.add(getString(R.string.NM_PresetGhost));
+            presets.add(getString(R.string.NM_PresetParanoia));
+            PopupHelper.show(presets, getString(R.string.NM_PrivacyPreset), NimarkoConfig.privacyPreset, getContext(), i -> {
+                NimarkoConfig.applyPrivacyPreset(i);
+                if (listView != null) {
+                    listView.adapter.update(true);
+                }
+                org.telegram.ui.Components.BulletinFactory.of(this)
+                        .createSimpleBulletin(R.raw.info, presets.get(i)).show();
+            });
         } else if (item.id == ghostStoriesRow) {
             NimarkoConfig.toggleGhostStories();
             SettingsHelper.updateCheckState(view, NimarkoConfig.ghostStories);
@@ -564,6 +579,14 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             case NimarkoConfig.DL_BOOST_AVERAGE -> getString(R.string.LiteBatteryEnabled);
             case NimarkoConfig.DL_BOOST_EXTREME -> getString(R.string.EP_DownloadSpeedBoostExtreme);
             default -> getString(R.string.LiteBatteryDisabled);
+        };
+    }
+
+    private String getPrivacyPresetValue() {
+        return switch (NimarkoConfig.privacyPreset) {
+            case NimarkoConfig.PRESET_GHOST -> getString(R.string.NM_PresetGhost);
+            case NimarkoConfig.PRESET_PARANOIA -> getString(R.string.NM_PresetParanoia);
+            default -> getString(R.string.NM_PresetNormal);
         };
     }
 

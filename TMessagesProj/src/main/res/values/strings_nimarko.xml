@@ -303,4 +303,12 @@
     <string name="NM_ProxyVpnPromo_Desc">A VPN and ready-to-use VLESS/Hysteria2 keys to bypass blocks.</string>
     <string name="NM_IOSStyleComposer">iOS-style message input</string>
     <string name="NM_IOSStyleComposer_Desc">Separate attachment, text and send controls. Turn off to restore the classic field with the paperclip inside on the right.</string>
+<string name="NM_AutoClean">Auto-clean history</string>
+    <string name="NM_AutoClean_Desc">Delete messages older than the chosen period from this chat for you only</string>
+    <string name="NM_AutoClean_Off">Off</string>
+    <string name="NM_AutoClean_1">1 day</string>
+    <string name="NM_AutoClean_3">3 days</string>
+    <string name="NM_AutoClean_7">7 days</string>
+    <string name="NM_AutoClean_30">30 days</string>
+    <string name="NM_AutoClean_90">90 days</string>
 </resources>

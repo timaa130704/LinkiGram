@@ -1066,6 +1066,11 @@
     <string name="NM_GhostMode">Призрачный режим</string>
     <string name="NM_GhostMaster">Включить призрачный режим</string>
     <string name="NM_GhostMaster_Desc">Включить или выключить все призрачные опции разом</string>
+    <string name="NM_PrivacyPreset">Пресет приватности</string>
+    <string name="NM_PrivacyPreset_Desc">Разом выставить все опции призрачного режима</string>
+    <string name="NM_PresetNormal">Обычный</string>
+    <string name="NM_PresetGhost">Невидимка</string>
+    <string name="NM_PresetParanoia">Паранойя</string>
     <string name="NM_GhostStories">Скрыть просмотры сторис</string>
     <string name="NM_GhostStories_Desc">Не отмечать сторис как просмотренные</string>
     <string name="NM_GhostReadAfterSend">Отмечать прочитанным после отправки</string>

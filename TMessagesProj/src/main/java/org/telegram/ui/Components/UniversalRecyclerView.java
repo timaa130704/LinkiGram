@@ -435,12 +435,12 @@ public class UniversalRecyclerView extends RecyclerListView {
     public void setSections(boolean topPadding) {
         setSections(dp(12), dp(16), topPadding);
     }
-    /** Материал-3: радиус карточки секции. Если карточки выключены — оставляем значение вызывающего. */
-    private static float resolveSectionRadius(float requested) {
-        if (NimarkoConfig.materialCards && NimarkoConfig.sectionRadius > 0) {
-            return dp(NimarkoConfig.sectionRadius);
-        }
-        return requested;
+    /**
+     * Материал-3: радиус карточки секции. Логика живёт в {@link RecyclerListView#resolveSectionRadius(float)},
+     * здесь только переиспользуется — чтобы не дублировать и не сужать видимость.
+     */
+    public static float resolveSectionRadius(float requested) {
+        return RecyclerListView.resolveSectionRadius(requested);
     }
 
     public void setSections(int padding, float roundRadius, boolean topPadding) {

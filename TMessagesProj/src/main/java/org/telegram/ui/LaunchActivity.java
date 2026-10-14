@@ -7943,6 +7943,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private void checkFreeDiscSpace(final int force) {
         staticInstanceForAlerts = this;
         AutoDeleteMediaTask.run();
+        app.nimarkogram.messenger.utils.NimarkoAutoClean.run();
         SharedConfig.checkLogsToDelete();
         if (Build.VERSION.SDK_INT >= 26 && force == 0 || checkFreeDiscSpaceShown) {
             return;

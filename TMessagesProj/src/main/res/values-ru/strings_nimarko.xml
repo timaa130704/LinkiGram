@@ -297,4 +297,12 @@
     <string name="NM_ProxyVpnPromo_Desc">VPN и готовые ключи VLESS/Hysteria2 для обхода блокировок.</string>
     <string name="NM_IOSStyleComposer">Ввод в стиле iOS</string>
     <string name="NM_IOSStyleComposer_Desc">Раздельные блоки скрепки, текста и отправки. Отключите, чтобы вернуть классическое поле со скрепкой справа внутри.</string>
+<string name="NM_AutoClean">Автоочистка истории</string>
+    <string name="NM_AutoClean_Desc">Удалять из этого чата сообщения старше выбранного срока — только у себя</string>
+    <string name="NM_AutoClean_Off">Выключено</string>
+    <string name="NM_AutoClean_1">1 день</string>
+    <string name="NM_AutoClean_3">3 дня</string>
+    <string name="NM_AutoClean_7">7 дней</string>
+    <string name="NM_AutoClean_30">30 дней</string>
+    <string name="NM_AutoClean_90">90 дней</string>
 </resources>
