@@ -3276,22 +3276,11 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
         }
     }
 
-    /**
-     * LinkiGram / Material 3: если карточки секций включены в настройках оформления,
-     * все списки получают настраиваемый радиус — как в exteraless.
-     */
-    public static float resolveSectionRadius(float requested) {
-        if (app.nimarkogram.messenger.NimarkoConfig.materialCards && app.nimarkogram.messenger.NimarkoConfig.sectionRadius > 0) {
-            return dp(app.nimarkogram.messenger.NimarkoConfig.sectionRadius);
-        }
-        return requested;
-    }
-
     public void setSections() {
-        setSections(dp(12), resolveSectionRadius(dp(16)), false);
+        setSections(dp(12), dp(16), false);
     }
     public void setSections(boolean topPadding) {
-        setSections(dp(12), resolveSectionRadius(dp(16)), topPadding);
+        setSections(dp(12), dp(16), topPadding);
     }
     public void setSections(int padding, float roundRadius, boolean topPadding) {
         setSections(
@@ -3596,10 +3585,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     private final static Path sectionBackgroundPath = new Path();
     private final static float[] radii = new float[8];
     public static void drawBackgroundRect(Canvas canvas, RectF rect, float topRadius, float bottomRadius, float alpha, Theme.ResourcesProvider resourcesProvider) {
-        // LinkiGram / Material 3: карточки секций с тенью, не дожидаясь SharedConfig.shadowsInSections.
-        final boolean withShadow = SharedConfig.shadowsInSections
-            || (app.nimarkogram.messenger.NimarkoConfig.materialCards && app.nimarkogram.messenger.NimarkoConfig.sectionRadius > 0);
-        if (withShadow) {
+        if (SharedConfig.shadowsInSections) {
             sectionBackgroundStrokePaint.setShadowLayer(dpf2(0.33f), 0, 0, multAlpha(0x0c000000, alpha));
             sectionBackgroundStrokePaint.setColor(0);
             sectionBackgroundPaint.setShadowLayer(dpf2(2), 0, dpf2(0.33f), multAlpha(0x0a000000, alpha));
@@ -3608,7 +3594,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
         }
         sectionBackgroundPaint.setColor(multAlpha(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider), alpha));
         if (topRadius == bottomRadius) {
-            if (withShadow) {
+            if (SharedConfig.shadowsInSections) {
                 canvas.drawRoundRect(rect, topRadius, topRadius, sectionBackgroundStrokePaint);
             }
             canvas.drawRoundRect(rect, topRadius, topRadius, sectionBackgroundPaint);
@@ -3617,7 +3603,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
             radii[0] = radii[1] = radii[2] = radii[3] = topRadius;
             radii[4] = radii[5] = radii[6] = radii[7] = bottomRadius;
             sectionBackgroundPath.addRoundRect(rect, radii, Path.Direction.CW);
-            if (withShadow) {
+            if (SharedConfig.shadowsInSections) {
                 canvas.drawPath(sectionBackgroundPath, sectionBackgroundStrokePaint);
             }
             canvas.drawPath(sectionBackgroundPath, sectionBackgroundPaint);
