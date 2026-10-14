@@ -14,12 +14,13 @@ import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
 
 import app.nimarkogram.messenger.NimarkoConfig;
+import app.nimarkogram.messenger.preferences.helpers.PopupHelper;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 import app.nimarkogram.messenger.preferences.tabs.MainTabsPreviewCell;
 import app.nimarkogram.messenger.utils.ui.MainTabsManager;
 
 public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
-    private static final int ID_SHOW_TABS = 1;
+    private static final int ID_BOTTOM_NAV_MODE = 1;
     private static final int ID_SHOW_TITLE = 2;
     private static final int ID_FORCE_OPEN_CHATS = 4;
     private static final int ID_SHOW_SEARCH_IN_TABS = 5;
@@ -86,16 +87,17 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
-        if (NimarkoConfig.classicUi) {
-            // LinkiGram: в классическом интерфейсе нижняя панель скрыта полностью
-            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_ClassicUiHint)));
-        }
-        if (NimarkoConfig.showMainTabs) {
+        items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_LayoutHeader)));
+        items.add(UItem.asButton(ID_BOTTOM_NAV_MODE,
+                LocaleController.getString(R.string.NM_BT_Mode),
+                getBottomNavModeValue()));
+
+        if (NimarkoConfig.isBottomNavigationVisible()) {
             if (editorCell == null && getContext() != null) {
                 editorCell = new MainTabsPreviewCell(getContext());
                 editorCell.setEditMode(true);
                 editorCell.setTabs(getContext(), getResourceProvider(), tabs);
-                
+
                 editorCell.setOnReorderCommitted(() -> {
                     resetToDefaults = false;
                     postCgTabsUpdated();
@@ -106,21 +108,8 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
             if (editorCell != null) {
                 items.add(UItem.asCustom(editorCell,
                         org.telegram.ui.DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
-                items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_EditorFooter)));
             }
-        }
-
-        items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_LayoutHeader)));
-
-        UItem enableTabs = SettingsHelper.asSwitchCG(ID_SHOW_TABS,
-                        LocaleController.getString(R.string.NM_BT_ShowTabs))
-                .setChecked(NimarkoConfig.showMainTabs);
-        enableTabs.hideDivider = true;
-        items.add(enableTabs);
-
-        if (NimarkoConfig.showMainTabs) {
-
-            items.add(UItem.asShadow(null));
+            items.add(UItem.asShadow(LocaleController.getString(R.string.NM_BT_EditorFooter)));
 
             items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BT_AppearanceHeader)));
             items.add(UItem.asCheck(ID_SHOW_TITLE,
@@ -158,17 +147,19 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
         int id = item.id;
-        if (id == ID_SHOW_TABS) {
-            NimarkoConfig.toggleShowMainTabs();
-            applyCheck(item, view, NimarkoConfig.showMainTabs);
-            
-            AndroidUtilities.cancelRunOnUIThread(delayedStructureRefresh);
-            pendingStructureRefreshGeneration = uiGeneration;
-            AndroidUtilities.runOnUIThread(delayedStructureRefresh, 220);
-            
-            postCgTabsUpdated();
-            showRestartBulletin();
-            rebuildMainTabsFragments();
+        if (id == ID_BOTTOM_NAV_MODE) {
+            ArrayList<String> modes = new ArrayList<>();
+            modes.add(LocaleController.getString(R.string.NM_BT_Mode_Show));
+            modes.add(LocaleController.getString(R.string.NM_BT_Mode_Hide));
+            modes.add(LocaleController.getString(R.string.NM_BT_Mode_Floating));
+            PopupHelper.show(modes, LocaleController.getString(R.string.NM_BT_Mode), NimarkoConfig.getBottomNavigationMode(), getContext(), i -> {
+                NimarkoConfig.setBottomNavigationMode(i);
+                AndroidUtilities.cancelRunOnUIThread(delayedStructureRefresh);
+                pendingStructureRefreshGeneration = uiGeneration;
+                AndroidUtilities.runOnUIThread(delayedStructureRefresh, 220);
+                postCgTabsUpdated();
+                rebuildMainTabsFragments();
+            });
         } else if (id == ID_SHOW_TITLE) {
             NimarkoConfig.toggleShowMainTabsTitle();
             applyCheck(item, view, NimarkoConfig.showMainTabsTitle);
@@ -239,6 +230,17 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
                 () -> NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.cgTabsUpdated),
                 80);
+    }
+
+    private String getBottomNavModeValue() {
+        switch (NimarkoConfig.getBottomNavigationMode()) {
+            case NimarkoConfig.BOTTOM_NAVIGATION_MODE_HIDE:
+                return LocaleController.getString(R.string.NM_BT_Mode_Hide);
+            case NimarkoConfig.BOTTOM_NAVIGATION_MODE_FLOATING:
+                return LocaleController.getString(R.string.NM_BT_Mode_Floating);
+            default:
+                return LocaleController.getString(R.string.NM_BT_Mode_Show);
+        }
     }
 
     private String getTintColorTitle() {

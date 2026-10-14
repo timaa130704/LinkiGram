@@ -62,6 +62,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int messagesAndProfilesRow = 9;
     private final int appBackgroundRow = 22;
     private final int classicUiRow = 23;
+    private final int navigationDrawerRow = 24;
+    private final int immersiveDrawerRow = 25;
 
     private app.nimarkogram.messenger.preferences.components.AvatarCornersPreviewCell avatarCornersCell;
     private app.nimarkogram.messenger.preferences.components.StickerSizeCell stickerSizeCell;
@@ -116,6 +118,16 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                         getString(R.string.NM_ClassicUi),
                         getString(R.string.NM_ClassicUi_Desc))
                 .setChecked(NimarkoConfig.classicUi));
+        items.add(SettingsHelper.asSwitchCG(navigationDrawerRow,
+                        getString(R.string.NM_Drawer_NavigationDrawer),
+                        getString(R.string.NM_Drawer_NavigationDrawer_Desc))
+                .setChecked(NimarkoConfig.navigationDrawer));
+        if (NimarkoConfig.navigationDrawer) {
+            items.add(SettingsHelper.asSwitchCG(immersiveDrawerRow,
+                            getString(R.string.NM_Drawer_Immersive),
+                            getString(R.string.NM_Drawer_Immersive_Desc))
+                    .setChecked(NimarkoConfig.immersiveDrawerAnimation));
+        }
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.NM_Chat_Section)));
@@ -297,6 +309,20 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             }
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
             showRestartBulletin();
+        } else if (item.id == navigationDrawerRow) {
+            NimarkoConfig.toggleNavigationDrawer();
+            updateCheckState(view, NimarkoConfig.navigationDrawer);
+            if (listView != null && listView.adapter != null) {
+                listView.adapter.update(true);
+            }
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.mainUserInfoChanged);
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
+            showRestartBulletin();
+        } else if (item.id == immersiveDrawerRow) {
+            NimarkoConfig.toggleImmersiveDrawerAnimation();
+            updateCheckState(view, NimarkoConfig.immersiveDrawerAnimation);
         } else if (item.id == iosStyleComposerRow) {
             NimarkoConfig.toggleIosStyleComposer();
             updateCheckState(view, NimarkoConfig.iosStyleComposer);

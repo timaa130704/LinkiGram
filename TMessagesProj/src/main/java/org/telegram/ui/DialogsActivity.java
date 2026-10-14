@@ -153,6 +153,8 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.INavigationLayout;
 import org.telegram.ui.ActionBar.MenuDrawable;
+
+import app.nimarkogram.messenger.drawer.DrawerContainer;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
@@ -508,6 +510,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean downloadsItemVisible;
     public ActionBarMenuItem searchItem;
     private ActionBarMenuItem optionsItem;
+    /** LinkiGram: бургер вместо «⋮», когда включена боковая шторка. */
+    private MenuDrawable menuDrawable;
     private ActionBarMenuItem speedItem;
     public static boolean switchingTheme;
     private ActionBarMenuItem doneItem;
@@ -3016,7 +3020,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         BirthdayController.getInstance(currentAccount).check();
-        additionNavigationBarHeight = hasMainTabs ? dp(MAIN_TABS_HEIGHT_WITH_MARGINS) : 0;
+        additionNavigationBarHeight = hasMainTabs ? dp(NimarkoConfig.isBottomNavigationFloating() ? MAIN_TABS_HEIGHT_WITH_MARGINS : MAIN_TABS_HEIGHT) : 0;
         additionFloatingButtonOffset = hasMainTabs ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN) : 0;
 
         return true;
@@ -3910,6 +3914,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     return;
                 }
                 if (id == -1) {
+                    // Левая кнопка переключает свою шторку.
+                    if (!actionBar.isActionModeShowed() && NimarkoConfig.navigationDrawer && drawerContainer() != null && canOpenDrawer()) {
+                        drawerContainer().toggleDrawer();
+                        return;
+                    }
                     if (rightSlidingDialogContainer != null && rightSlidingDialogContainer.hasFragment()) {
                         if (actionBar.isActionModeShowed()) {
                             if (searchViewPager != null && searchViewPager.getVisibility() == View.VISIBLE && searchViewPager.actionModeShowing()) {
@@ -5357,7 +5366,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         };
         dialogStoriesCell.setActionBar(actionBar);
-        dialogStoriesCell.setMenuItemsOffset(isArchive() ? dp(68) : dpf2(16.66f));
+        dialogStoriesCell.setMenuItemsOffset(getDialogStoriesMenuItemsOffset());
         dialogStoriesCell.allowGlobalUpdates = false;
         dialogStoriesCell.setVisibility(View.GONE);
         animateToHasStories = false;
@@ -5688,6 +5697,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         checkUi_mainTabsVisible();
         checkUi_forwardCommentFieldVisible();
         checkUi_searchFieldStyle();
+        // Бургер ставится и при создании: иначе до первого mainUserInfoChanged
+        // кнопки слева не будет.
+        updateDrawerButton();
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
         return fragmentView;
@@ -7314,6 +7326,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public boolean onBackPressed(boolean invoked) {
+        // Сначала закрывается шторка.
+        if (drawerContainer() != null && drawerContainer().isDrawerOpen()) {
+            if (invoked) {
+                drawerContainer().closeDrawer(true);
+            }
+            return false;
+        }
         if (hasShownSheet()) {
             if (invoked) closeSheet();
             return false;
@@ -14180,6 +14199,86 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         fragmentSearchField.editText.setHint(hint);
     }
 
+    private DrawerContainer drawerContainer() {
+        if (getParentActivity() instanceof LaunchActivity) {
+            return ((LaunchActivity) getParentActivity()).drawerLayoutContainer.getDrawerContainer();
+        }
+        return null;
+    }
+
+    private boolean shouldUseDrawerActionBarLayout() {
+        // У сообщества свой заголовок со стрелкой «назад», бургер там нельзя.
+        return NimarkoConfig.navigationDrawer && !onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT
+                && folderId == 0 && communityId == 0 && searchString == null;
+    }
+
+    private float getDialogStoriesMenuItemsOffset() {
+        return (isArchive() || shouldUseDrawerActionBarLayout()) ? dp(68) : dpf2(16.66f);
+    }
+
+    /**
+     * Шторку нельзя дёргать во время поиска, выделения, перетаскивания вкладок
+     * и превью справа.
+     */
+    public boolean canOpenDrawer() {
+        if (!NimarkoConfig.navigationDrawer || onlySelect || folderId != 0 || communityId != 0
+                || initialDialogsType != DIALOGS_TYPE_DEFAULT || searching
+                || (actionBar != null && actionBar.isActionModeShowed())
+                || animatorSearchVisible.getValue() || searchAnimator != null
+                || (rightSlidingDialogContainer != null
+                        && (rightSlidingDialogContainer.hasFragment() || rightFragmentTransitionInProgress))
+                || tabsAnimationInProgress || startedTracking || maybeStartTracking) {
+            return false;
+        }
+        return filterTabsView == null || (!filterTabsView.isEditing() && !filterTabsView.isAnimatingIndicator());
+    }
+
+    /**
+     * Свайп не ловится в полосе нижних вкладок и не конфликтует со свайпом папок.
+     */
+    public boolean canOpenDrawerBySwipe(MotionEvent ev) {
+        final boolean bottomBarVisible = hasMainTabs && MainTabsLayout.isBottomNavigationVisible();
+        if (ev != null && bottomBarVisible && fragmentView != null) {
+            final Rect bounds = AndroidUtilities.rectTmp2;
+            if (fragmentView.getGlobalVisibleRect(bounds)) {
+                final int y = ((int) ev.getRawY()) - bounds.top;
+                final int bottom = fragmentView.getMeasuredHeight() - navigationBarHeight;
+                if (y >= bottom - dp(MAIN_TABS_HEIGHT_WITH_MARGINS) && y <= bottom) {
+                    return false;
+                }
+            }
+        }
+        return canOpenDrawer() && (filterTabsView == null || filterTabsView.getVisibility() != View.VISIBLE
+                || SharedConfig.getChatSwipeAction(currentAccount) != SwipeGestureSettingsView.SWIPE_GESTURE_FOLDERS
+                || filterTabsView.getCurrentTabId() == filterTabsView.getFirstTabId());
+    }
+
+    /** Бургер вместо «⋮». */
+    private void updateDrawerButton() {
+        if (dialogStoriesCell != null) {
+            dialogStoriesCell.setMenuItemsOffset(getDialogStoriesMenuItemsOffset());
+        }
+        if (actionBar == null || onlySelect || initialDialogsType != DIALOGS_TYPE_DEFAULT
+                || folderId != 0 || communityId != 0 || searchString != null) {
+            return;
+        }
+        if (NimarkoConfig.navigationDrawer) {
+            if (menuDrawable == null) {
+                menuDrawable = new MenuDrawable();
+                menuDrawable.setRotateToBack(false);
+            }
+            actionBar.setBackButtonDrawable(menuDrawable);
+            actionBar.setBackButtonContentDescription(getString(R.string.AccDescrOpenMenu));
+        } else {
+            if (actionBar.getBackButton() != null && actionBar.getBackButton().getDrawable() instanceof MenuDrawable) {
+                actionBar.setBackButtonDrawable(null);
+            }
+            menuDrawable = null;
+        }
+        checkUi_itemOptionsVisibility();
+        checkUi_itemBackButtonVisibility();
+    }
+
     private void checkUi_menuItems() {
         checkUi_itemBackButtonVisibility();
         checkUi_itemOptionsVisibility();
@@ -14205,7 +14304,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         final float factor1 = 1f - animatorSearchVisible.getFloatValue();
         final float factor2 = 1f - getRightSlidingProgress();
         final float factor3 = 1f - animatorDoneButtonVisible.getFloatValue();
-        final float factor = factor1 * factor2 * factor3;
+        // Со своей шторкой пункты уезжают в неё, «⋮» не нужен.
+        final float factor4 = NimarkoConfig.navigationDrawer ? 0f : 1f;
+        final float factor = factor1 * factor2 * factor3 * factor4;
         FragmentFloatingButton.setAnimatedVisibility(optionsItem, factor);
     }
 

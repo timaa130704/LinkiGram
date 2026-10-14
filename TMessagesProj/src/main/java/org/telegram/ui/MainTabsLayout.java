@@ -46,6 +46,31 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     private static final float[] PASS_TEXT_SIZES_DP = {12f, 12f, 10f};
     private static final int[] PASS_PADDINGS_DP = {16, 8, 4};
 
+    // --- LinkiGram: режим нижней панели (порт из exteraless) ---
+    public static final int BOTTOM_NAVIGATION_MODE_SHOW = app.nimarkogram.messenger.NimarkoConfig.BOTTOM_NAVIGATION_MODE_SHOW;
+    public static final int BOTTOM_NAVIGATION_MODE_HIDE = app.nimarkogram.messenger.NimarkoConfig.BOTTOM_NAVIGATION_MODE_HIDE;
+    public static final int BOTTOM_NAVIGATION_MODE_FLOATING = app.nimarkogram.messenger.NimarkoConfig.BOTTOM_NAVIGATION_MODE_FLOATING;
+
+    public static int getBottomNavigationMode() {
+        return app.nimarkogram.messenger.NimarkoConfig.getBottomNavigationMode();
+    }
+
+    public static void setBottomNavigationMode(int mode) {
+        app.nimarkogram.messenger.NimarkoConfig.setBottomNavigationMode(mode);
+    }
+
+    public static boolean isBottomNavigationHidden() {
+        return app.nimarkogram.messenger.NimarkoConfig.isBottomNavigationHidden();
+    }
+
+    public static boolean isBottomNavigationVisible() {
+        return app.nimarkogram.messenger.NimarkoConfig.isBottomNavigationVisible();
+    }
+
+    public static boolean isBottomNavigationFloating() {
+        return app.nimarkogram.messenger.NimarkoConfig.isBottomNavigationFloating();
+    }
+
     private int maxWidthPx;
 
     public void setMaxWidth(int maxWidthPx) {

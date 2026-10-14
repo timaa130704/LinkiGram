@@ -1022,13 +1022,46 @@ public final class NimarkoConfig {
     public static boolean showMainTabs = getPreferences().getBoolean("showMainTabs", true);
     public static void toggleShowMainTabs() { showMainTabs = !showMainTabs; getEditor().putBoolean("showMainTabs", showMainTabs).apply(); }
 
+    // --- LinkiGram: режим нижней панели + боковое меню (порт из exteraless) ---
+    public static final int BOTTOM_NAVIGATION_MODE_SHOW = 0;
+    public static final int BOTTOM_NAVIGATION_MODE_HIDE = 1;
+    public static final int BOTTOM_NAVIGATION_MODE_FLOATING = 2;
+
+    public static boolean bottomNavigationFloating = getPreferences().getBoolean("bottomNavigationFloating", true);
+
+    public static int getBottomNavigationMode() {
+        if (!showMainTabs) return BOTTOM_NAVIGATION_MODE_HIDE;
+        return bottomNavigationFloating ? BOTTOM_NAVIGATION_MODE_FLOATING : BOTTOM_NAVIGATION_MODE_SHOW;
+    }
+
+    public static void setBottomNavigationMode(int mode) {
+        showMainTabs = mode != BOTTOM_NAVIGATION_MODE_HIDE;
+        bottomNavigationFloating = mode == BOTTOM_NAVIGATION_MODE_FLOATING;
+        getEditor().putBoolean("showMainTabs", showMainTabs).putBoolean("bottomNavigationFloating", bottomNavigationFloating).apply();
+    }
+
+    public static boolean isBottomNavigationHidden() { return !showMainTabs; }
+    public static boolean isBottomNavigationVisible() { return showMainTabs; }
+    public static boolean isBottomNavigationFloating() { return showMainTabs && bottomNavigationFloating; }
+
+    /** Боковое меню (шторка) вместо пунктов в шапке списка чатов. */
+    public static boolean navigationDrawer = getPreferences().getBoolean("navigationDrawer", false);
+    public static void setNavigationDrawer(boolean v) { navigationDrawer = v; getEditor().putBoolean("navigationDrawer", v).apply(); }
+    public static void toggleNavigationDrawer() { setNavigationDrawer(!navigationDrawer); }
+
+    public static boolean immersiveDrawerAnimation = getPreferences().getBoolean("immersiveDrawerAnimation", false);
+    public static void setImmersiveDrawerAnimation(boolean v) { immersiveDrawerAnimation = v; getEditor().putBoolean("immersiveDrawerAnimation", immersiveDrawerAnimation).apply(); }
+    public static void toggleImmersiveDrawerAnimation() { setImmersiveDrawerAnimation(!immersiveDrawerAnimation); }
+
+    public static String mainMenuLayout = getPreferences().getString("mainMenuLayout", "");
+    public static void setMainMenuLayout(String v) { mainMenuLayout = v == null ? "" : v; getEditor().putString("mainMenuLayout", mainMenuLayout).apply(); }
+
     /**
      * LinkiGram: показывать ли нижнюю панель вкладок на самом деле.
-     * В классическом интерфейсе панель скрывается полностью, как в старом Telegram:
-     * навигация идёт через меню «три полоски» в шапке списка чатов.
+     * Управляется режимом панели (отключить / плавающая / показывать).
      */
     public static boolean mainTabsVisible() {
-        return showMainTabs && !classicUi;
+        return showMainTabs;
     }
 
     public static boolean showMainTabsTitle = getPreferences().getBoolean("showMainTabsTitle", true);
@@ -2007,15 +2040,17 @@ public final class NimarkoConfig {
     public static int chatGlassPercent() { return Math.round((1f - chatGlassAlphaMult()) * 100f); }
 
     /**
-     * Классический интерфейс: выключает острова нового Telegram —
-     * нижнюю панель вкладок, стеклянную шапку и разделённое поле ввода,
-     * возвращая старую раскладку со меню «три полоски» в шапке списка чатов.
+     * Классический интерфейс: старый Telegram — навигация через боковое меню
+     * («три полоски» очень похоже на шторку) и разделённое поле ввода off.
+     * Нижняя панель этим флагом больше не управляется: у неё свой режим
+     * (отключить / плавающая / показывать).
      */
     public static boolean classicUi = getPreferences().getBoolean("classicUi", false);
     public static void setClassicUi(boolean value) {
         classicUi = value;
         getEditor().putBoolean("classicUi", classicUi).apply();
-        // нижняя панель вкладок скрывается полностью (mainTabsVisible); навигация — через меню «три полоски»
+        // старый дизайн = навигация через боковое меню (шторку)
+        setNavigationDrawer(value);
         iosStyleComposer = !value;
         getEditor().putBoolean("iosStyleComposer", iosStyleComposer).apply();
     }

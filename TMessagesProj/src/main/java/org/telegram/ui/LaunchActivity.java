@@ -542,6 +542,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         setupActionBarLayout();
         drawerLayoutContainer.setParentActionBarLayout(actionBarLayout);
         actionBarLayout.setDrawerLayoutContainer(drawerLayoutContainer);
+        syncDrawerContainerEnabled();
         actionBarLayout.setFragmentStack(mainFragmentsStack);
         actionBarLayout.setFragmentStackChangedListener(() -> {
             checkSystemBarColors(true, false);
@@ -1234,7 +1235,28 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         }
         updateCurrentConnectionState(currentAccount);
 
+        // Шторка перечитывает шапку, аккаунты и пункты меню.
+        if (drawerLayoutContainer != null && drawerLayoutContainer.getDrawerContainer() != null) {
+            drawerLayoutContainer.getDrawerContainer().onAccountChanged();
+        }
+
         switchingAccount = false;
+    }
+
+    /**
+     * Пока настройка выключена, шторка вообще не создаётся — UI остаётся стоковым.
+     */
+    public void syncDrawerContainerEnabled() {
+        if (drawerLayoutContainer == null) {
+            return;
+        }
+        if (app.nimarkogram.messenger.NimarkoConfig.navigationDrawer) {
+            if (drawerLayoutContainer.getDrawerContainer() == null) {
+                drawerLayoutContainer.setDrawerContainer(new app.nimarkogram.messenger.drawer.DrawerContainer(this));
+            }
+        } else if (drawerLayoutContainer.getDrawerContainer() != null) {
+            drawerLayoutContainer.setDrawerContainer(null);
+        }
     }
 
     private void switchToAvailableAccountOrLogout() {
@@ -7238,7 +7260,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 updateCurrentConnectionState(account);
             }
         } else if (id == NotificationCenter.mainUserInfoChanged) {
-
+            // LinkiGram: настройку боковой шторки можно менять без перезапуска.
+            syncDrawerContainerEnabled();
         } else if (id == NotificationCenter.attachMenuBotsDidLoad) {
 
         } else if (id == NotificationCenter.needShowAlert) {
