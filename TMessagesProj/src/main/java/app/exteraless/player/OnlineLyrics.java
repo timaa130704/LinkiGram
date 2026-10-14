@@ -457,7 +457,7 @@ public final class OnlineLyrics {
             return null;
         }
         Lyrics lyrics = Lyrics.parse(text, Lyrics.SOURCE_ONLINE, NETEASE_NAME);
-        return lyrics != null && lyrics.synced ? new Found(lyrics) : null;
+        return lyrics != null ? new Found(lyrics) : null;
     }
 
     private static Found requestQq(Query q) throws Exception {
@@ -512,7 +512,7 @@ public final class OnlineLyrics {
             return null;
         }
         Lyrics lyrics = Lyrics.parse(text, Lyrics.SOURCE_ONLINE, QQ_NAME);
-        return lyrics != null && lyrics.synced ? new Found(lyrics) : null;
+        return lyrics != null ? new Found(lyrics) : null;
     }
 
     private static Found requestKugou(Query q) throws Exception {
@@ -577,7 +577,7 @@ public final class OnlineLyrics {
             return null;
         }
         Lyrics lyrics = Lyrics.parse(text, Lyrics.SOURCE_ONLINE, KUGOU_NAME);
-        return lyrics != null && lyrics.synced ? new Found(lyrics) : null;
+        return lyrics != null ? new Found(lyrics) : null;
     }
 
     private static String wordKey(String word) {
@@ -730,24 +730,13 @@ public final class OnlineLyrics {
                 o = new JSONObject(readAll(in));
             }
             int version = o.optInt("v", 1);
-            if (version < 2) {
-                Found legacy = fromLrclib(o);
-                return legacy != null && (legacy.lyrics.synced || legacy.lyrics.instrumental) ? single(legacy.lyrics) : null;
+            if (version < CACHE_VERSION) {
+                // pre-multi-source caches hold a single result and would hide other providers
+                return null;
             }
             JSONArray arr = o.optJSONArray("sources");
             if (arr == null || arr.length() == 0) {
-                String provider = optString(o, "provider");
-                if (provider == null) {
-                    provider = LRCLIB_NAME;
-                }
-                if (version < CACHE_VERSION && !LRCLIB_NAME.equals(provider)) {
-                    return null;
-                }
-                if (o.optBoolean("instrumental", false)) {
-                    return single(Lyrics.instrumental(Lyrics.SOURCE_ONLINE, provider));
-                }
-                Lyrics lyrics = Lyrics.parse(optString(o, "text"), Lyrics.SOURCE_ONLINE, provider);
-                return lyrics != null ? single(lyrics) : null;
+                return null;
             }
             ArrayList<Lyrics> out = new ArrayList<>(arr.length());
             for (int i = 0; i < arr.length(); i++) {
@@ -773,12 +762,6 @@ public final class OnlineLyrics {
             FileLog.e(e);
             return null;
         }
-    }
-
-    private static ArrayList<Lyrics> single(Lyrics lyrics) {
-        ArrayList<Lyrics> list = new ArrayList<>(1);
-        list.add(lyrics);
-        return list;
     }
 
     private static void writeDisk(String key, ArrayList<Lyrics> sources) {
