@@ -984,11 +984,9 @@ final class RoundVideoOverlayRenderer {
         int atlasWidth = Math.max(logoAtlasWidth, textSize);
         int atlasHeight = logoAtlasHeight + textSize;
 
-        Bitmap logo = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_logo);
-        if (logo == null) {
-            // fully transparent fallback: keeps the pipeline alive if decoding fails
-            logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-        }
+        // LinkiGram: recorded round videos are exported without any brand watermark,
+        // so the logo layer is intentionally transparent.
+        Bitmap logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         Bitmap frameBitmap = Bitmap.createBitmap(logoSize, logoSize, Bitmap.Config.ARGB_8888);
         Canvas frameCanvas = new Canvas(frameBitmap);
         Paint framePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -1006,7 +1004,8 @@ final class RoundVideoOverlayRenderer {
         }
         logo.recycle();
 
-        Bitmap text = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_text);
+        // LinkiGram: no wordmark on the exported round video.
+        Bitmap text = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
         if (text != null) {
             Bitmap scaled = Bitmap.createScaledBitmap(text, textSize, textSize, true);
             Bitmap alpha = scaled.extractAlpha();

@@ -73,11 +73,9 @@ public class InstantCameraVideoEncoderOverlayHelper {
                 final int logoOffset = Math.round(width * 28 / 1536f);
                 final int trueSize = logoSize - logoOffset - logoOffset;
 
-                Bitmap logo = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_logo);
-                if (logo == null) {
-                    // fully transparent fallback: keeps the pipeline alive if decoding fails
-                    logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-                }
+                // LinkiGram: recorded round videos are exported without any brand watermark,
+                // so the logo layer is intentionally transparent.
+                Bitmap logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
                 final Bitmap logoBitmap = Bitmap.createBitmap(logoSize, logoSize, Bitmap.Config.ARGB_8888);
                 final Canvas logoCanvas = new Canvas(logoBitmap);
                 final Paint logoPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -120,7 +118,8 @@ public class InstantCameraVideoEncoderOverlayHelper {
                 float scale = (float) logoSize / videoWidth;
                 setVertexCords(verData, VERTEX_BUFFER_WATERMARK_TEXT_POSITION, 1f - scale * 2f, -1f + scale * 2f, 1, -1);
 
-                Bitmap bitmap = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_text);
+                // LinkiGram: no wordmark on the exported round video.
+                Bitmap bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
                 if (bitmap != null) {
                     Bitmap sBitmap = Bitmap.createScaledBitmap(bitmap, logoSize, logoSize, true);
                     Bitmap aBitmap = sBitmap.extractAlpha();
