@@ -18993,6 +18993,21 @@ public class MessagesController extends BaseController implements NotificationCe
                     arrayList2.addAll(update.sent_messages);
                 }
             } else if (baseUpdate instanceof TL_update.TL_updateUserTyping || baseUpdate instanceof TL_update.TL_updateChatUserTyping || baseUpdate instanceof TL_update.TL_updateChannelUserTyping) {
+                if (app.nimarkogram.messenger.NimarkoConfig.hideIncomingTyping) {
+                    // "Hide incoming typing": drop typing notifications from other
+                    // users before they reach the dialogs, but keep emoji interactions.
+                    TLRPC.SendMessageAction typingAction = null;
+                    if (baseUpdate instanceof TL_update.TL_updateUserTyping) {
+                        typingAction = ((TL_update.TL_updateUserTyping) baseUpdate).action;
+                    } else if (baseUpdate instanceof TL_update.TL_updateChatUserTyping) {
+                        typingAction = ((TL_update.TL_updateChatUserTyping) baseUpdate).action;
+                    } else if (baseUpdate instanceof TL_update.TL_updateChannelUserTyping) {
+                        typingAction = ((TL_update.TL_updateChannelUserTyping) baseUpdate).action;
+                    }
+                    if (!(typingAction instanceof TLRPC.TL_sendMessageEmojiInteraction)) {
+                        continue;
+                    }
+                }
                 long userId;
                 long chatId;
                 int threadId;

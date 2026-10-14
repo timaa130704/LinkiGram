@@ -329,16 +329,23 @@ public final class PlayerActions {
     }
 
     public static void refetch(MessageObject messageObject, MessageCallback callback) {
-        final int account = messageObject.currentAccount;
-        final int msgId = messageObject.getId();
+        refetchById(messageObject.currentAccount, messageObject.getDialogId(), messageObject.getId(), callback);
+    }
+
+    /**
+     * Same as {@link #refetch(MessageObject, MessageCallback)} but works from a
+     * stored (dialogId, messageId) pair, so a track taken from a local playlist
+     * can still be recovered when it is not present in the on-device database.
+     */
+    public static void refetchById(int account, long dialogId, int msgId, MessageCallback callback) {
         TLObject request;
-        if (messageObject.getDialogId() >= 0) {
+        if (dialogId >= 0) {
             TLRPC.TL_messages_getMessages req = new TLRPC.TL_messages_getMessages();
             req.id.add(msgId);
             request = req;
         } else {
             TLRPC.TL_channels_getMessages req = new TLRPC.TL_channels_getMessages();
-            req.channel = MessagesController.getInstance(account).getInputChannel(-messageObject.getDialogId());
+            req.channel = MessagesController.getInstance(account).getInputChannel(-dialogId);
             req.id.add(msgId);
             request = req;
         }

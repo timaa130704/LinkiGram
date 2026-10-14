@@ -35,6 +35,7 @@ import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
 
 import app.nimarkogram.messenger.NimarkoConfig;
+import app.nimarkogram.messenger.preferences.helpers.PopupHelper;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 
 public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
@@ -65,6 +66,17 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
     private static final int ROW_DB_IMPORT               = 151;
     private static final int ROW_DB_CLEAR                = 152;
 
+    // Ghost mode (moved here from "General")
+    private static final int ROW_GHOST_PRESET        = 160;
+    private static final int ROW_GHOST_MASTER        = 161;
+    private static final int ROW_GHOST_TYPING        = 162;
+    private static final int ROW_GHOST_ONLINE        = 163;
+    private static final int ROW_GHOST_READ          = 164;
+    private static final int ROW_GHOST_STORIES       = 165;
+    private static final int ROW_GHOST_READ_AFTER    = 166;
+    private static final int ROW_GHOST_OFFLINE_AFTER = 167;
+    private static final int ROW_LAST_SEEN_CACHE     = 168;
+
     private static final int DATABASE_IMPORT_REQUEST_CODE = 6110;
 
     @Override
@@ -74,6 +86,41 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
+        // ===== Ghost mode =====
+        items.add(UItem.asHeader(LocaleController.getString(R.string.NM_GhostMode)));
+        items.add(UItem.asButton(ROW_GHOST_PRESET,
+                LocaleController.getString(R.string.NM_PrivacyPreset),
+                getPrivacyPresetValue()));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_MASTER,
+                        LocaleController.getString(R.string.NM_GhostMaster),
+                        LocaleController.getString(R.string.NM_GhostMaster_Desc))
+                .setChecked(NimarkoConfig.isGhostModeActive()));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_TYPING,
+                        LocaleController.getString(R.string.NM_GhostTyping),
+                        LocaleController.getString(R.string.NM_GhostTyping_Desc))
+                .setChecked(NimarkoConfig.ghostTyping));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_ONLINE,
+                        LocaleController.getString(R.string.NM_GhostOnline),
+                        LocaleController.getString(R.string.NM_GhostOnline_Desc))
+                .setChecked(NimarkoConfig.ghostOnline));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_READ,
+                        LocaleController.getString(R.string.NM_GhostReadReceipts),
+                        LocaleController.getString(R.string.NM_GhostReadReceipts_Desc))
+                .setChecked(NimarkoConfig.ghostReadReceipts));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_STORIES,
+                        LocaleController.getString(R.string.NM_GhostStories),
+                        LocaleController.getString(R.string.NM_GhostStories_Desc))
+                .setChecked(NimarkoConfig.ghostStories));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_READ_AFTER,
+                        LocaleController.getString(R.string.NM_GhostReadAfterSend),
+                        LocaleController.getString(R.string.NM_GhostReadAfterSend_Desc))
+                .setChecked(NimarkoConfig.ghostReadAfterSend));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_OFFLINE_AFTER,
+                        LocaleController.getString(R.string.NM_GhostOfflineAfterSend),
+                        LocaleController.getString(R.string.NM_GhostOfflineAfterSend_Desc))
+                .setChecked(NimarkoConfig.ghostOfflineAfterSend));
+        items.add(UItem.asShadow(null));
+
         // ===== Saving of deleted messages =====
         items.add(UItem.asHeader(LocaleController.getString(R.string.NM_Ayu_HeaderSaving)));
         items.add(SettingsHelper.asSwitchCG(ROW_SAVE_DELETED_MASTER,
@@ -146,6 +193,10 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
                         LocaleController.getString(R.string.NM_Ayu_SaveReadDate),
                         LocaleController.getString(R.string.NM_Ayu_SaveReadDate_Desc))
                 .setChecked(NimarkoConfig.saveReadDate));
+        items.add(SettingsHelper.asSwitchCG(ROW_LAST_SEEN_CACHE,
+                        LocaleController.getString(R.string.NM_LastSeenCache),
+                        LocaleController.getString(R.string.NM_LastSeenCache_Desc))
+                .setChecked(NimarkoConfig.lastSeenCacheEnabled));
         items.add(UItem.asShadow(LocaleController.getString(R.string.NM_Ayu_ShadowSpy)));
 
         // ===== Deleted messages view =====
@@ -174,6 +225,52 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
     public void onClick(UItem uItem, View view, int position, float x, float y) {
         if (uItem == null) return;
         switch (uItem.id) {
+            case ROW_GHOST_PRESET: {
+                ArrayList<String> presets = new ArrayList<>();
+                presets.add(LocaleController.getString(R.string.NM_PresetNormal));
+                presets.add(LocaleController.getString(R.string.NM_PresetGhost));
+                presets.add(LocaleController.getString(R.string.NM_PresetParanoia));
+                PopupHelper.show(presets, LocaleController.getString(R.string.NM_PrivacyPreset), NimarkoConfig.privacyPreset, getContext(), i -> {
+                    NimarkoConfig.applyPrivacyPreset(i);
+                    if (listView != null && listView.adapter != null) {
+                        listView.adapter.update(true);
+                    }
+                    BulletinFactory.of(this).createSimpleBulletin(R.raw.info, presets.get(i)).show();
+                });
+                break;
+            }
+            case ROW_GHOST_MASTER:
+                NimarkoConfig.setGhostMode(!NimarkoConfig.isGhostModeActive());
+                reloadMainInfo();
+                break;
+            case ROW_GHOST_TYPING:
+                NimarkoConfig.toggleGhostTyping();
+                updateCheckState(view, NimarkoConfig.ghostTyping);
+                break;
+            case ROW_GHOST_ONLINE:
+                NimarkoConfig.toggleGhostOnline();
+                updateCheckState(view, NimarkoConfig.ghostOnline);
+                break;
+            case ROW_GHOST_READ:
+                NimarkoConfig.toggleGhostReadReceipts();
+                updateCheckState(view, NimarkoConfig.ghostReadReceipts);
+                break;
+            case ROW_GHOST_STORIES:
+                NimarkoConfig.toggleGhostStories();
+                updateCheckState(view, NimarkoConfig.ghostStories);
+                break;
+            case ROW_GHOST_READ_AFTER:
+                NimarkoConfig.toggleGhostReadAfterSend();
+                updateCheckState(view, NimarkoConfig.ghostReadAfterSend);
+                break;
+            case ROW_GHOST_OFFLINE_AFTER:
+                NimarkoConfig.toggleGhostOfflineAfterSend();
+                updateCheckState(view, NimarkoConfig.ghostOfflineAfterSend);
+                break;
+            case ROW_LAST_SEEN_CACHE:
+                NimarkoConfig.toggleLastSeenCacheEnabled();
+                updateCheckState(view, NimarkoConfig.lastSeenCacheEnabled);
+                break;
             case ROW_SAVE_DELETED_MASTER:
                 NimarkoConfig.toggleSaveDeletedMessages();
                 updateCheckState(view, NimarkoConfig.saveDeletedMessages);
@@ -329,6 +426,17 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
                 })
                 .setNegativeButton(LocaleController.getString(R.string.Cancel), (d, w) -> d.dismiss())
                 .show();
+    }
+
+    private String getPrivacyPresetValue() {
+        switch (NimarkoConfig.privacyPreset) {
+            case NimarkoConfig.PRESET_GHOST:
+                return LocaleController.getString(R.string.NM_PresetGhost);
+            case NimarkoConfig.PRESET_PARANOIA:
+                return LocaleController.getString(R.string.NM_PresetParanoia);
+            default:
+                return LocaleController.getString(R.string.NM_PresetNormal);
+        }
     }
 
     private void reloadMainInfo() {

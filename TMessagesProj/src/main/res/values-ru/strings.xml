@@ -579,6 +579,7 @@
     <string name="NM_EXP_DiscussInsteadOfMute">Обсуждение вместо отключения по свайпу</string>
     <string name="NM_EXP_Footer">Эти параметры экспериментальные — возможны ошибки.</string>
     <string name="NM_GEN_MiscHeader">Разное</string>
+    <string name="NM_GEN_OtherHeader">Прочее</string>
     <string name="NM_GEN_DeletedGifts">Удалённые подарки в каталоге</string>
     <string name="NM_GEN_DeletedGifts_Desc">Возвращает скрытые подарки в каталог, чтобы их можно было отправить.</string>
     <string name="NM_GEN_LocalPremiumEmoji">Локальные премиум-эмодзи</string>
@@ -1103,6 +1104,8 @@
     <string name="NM_SendOriginalPhoto_Desc">Отправлять фото в оригинальном качестве по умолчанию</string>
     <string name="NM_GhostChat">Призрачный режим для этого чата</string>
     <string name="NM_GhostChat_Desc">Скрывать «печатает», прочтение и просмотры историй в этом чате</string>
+    <string name="NM_GhostChat_Enabled">Призрачный режим включён для этого чата</string>
+    <string name="NM_GhostChat_Disabled">Призрачный режим выключен для этого чата</string>
     <string name="NM_EditHistory">История изменений</string>
     <string name="NM_EditHistory_Current">Текущая</string>
     <string name="NM_EditHistory_Version">Версия %1$d</string>

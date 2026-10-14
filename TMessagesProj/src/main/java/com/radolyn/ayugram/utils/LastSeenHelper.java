@@ -24,7 +24,8 @@ public class LastSeenHelper {
     private static volatile boolean flushScheduled;
 
     public static void preload() {
-        if (!app.nimarkogram.messenger.NimarkoConfig.saveLocalLastSeen) {
+        if (!app.nimarkogram.messenger.NimarkoConfig.saveLocalLastSeen
+                && !app.nimarkogram.messenger.NimarkoConfig.lastSeenCacheEnabled) {
             return;
         }
         AyuQueues.lastSeenQueue.postRunnable(() -> {
@@ -137,15 +138,21 @@ public class LastSeenHelper {
     }
 
     public static int getLastSeen(long userId) {
-        if (!app.nimarkogram.messenger.NimarkoConfig.saveLocalLastSeen) {
-            return 0;
-        }
         synchronized (cache) {
             return cache.get(userId, 0);
         }
     }
 
+    /**
+     * Returns the exact cached last-seen time for the user when the
+     * "Show exact last seen" option is enabled, otherwise {@code defaultValue}.
+     * Writing the cache is still gated by "Save last seen", so this only affects
+     * the display.
+     */
     public static String getFormattedLastSeenOrDefault(TLRPC.User user, boolean[] madeShorter, String defaultValue, boolean relative) {
+        if (!app.nimarkogram.messenger.NimarkoConfig.lastSeenCacheEnabled) {
+            return defaultValue;
+        }
         int savedLastSeen = getLastSeen(user.id);
         if (savedLastSeen > 0) {
             // AyuGram port: this fork's LocaleController only exposes the 2-arg form.

@@ -1501,14 +1501,23 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     }
 
     private void createPlaylistDialog(MessageObject messageObject) {
+        if (getContext() == null) {
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle(getString(R.string.OEPlayerPlaylistCreate));
         final EditText input = new EditText(getContext());
-        input.setHint(getString(R.string.OEPlayerPlaylistName));
         input.setSingleLine(true);
+        input.setHint(getString(R.string.OEPlayerPlaylistName));
+        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         input.setTextColor(colors.onSurface);
         input.setHintTextColor(ColorUtils.setAlphaComponent(colors.onSurfaceVariant, 0xc0));
-        builder.setView(input);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setBackground(Theme.createEditTextDrawable(getContext(), true));
+        input.setPadding(dp(14), dp(10), dp(14), dp(10));
+        FrameLayout inputContainer = new FrameLayout(getContext());
+        inputContainer.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 22, 6, 22, 0));
+        builder.setView(inputContainer);
         builder.setPositiveButton(getString(R.string.Create), (dialog, which) -> {
             String name = input.getText().toString().trim();
             if (TextUtils.isEmpty(name)) {

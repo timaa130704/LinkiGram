@@ -11681,6 +11681,7 @@
 <string name="NM_EXP_DiscussInsteadOfMute">Discuss instead of mute on swipe</string>
 <string name="NM_EXP_Footer">These options are experimental — expect bugs.</string>
 <string name="NM_GEN_MiscHeader">Miscellaneous</string>
+<string name="NM_GEN_OtherHeader">Other</string>
 <string name="NM_GEN_DeletedGifts">Show deleted Star gifts</string>
 <string name="NM_GEN_DeletedGifts_Desc">Re-injects hidden Star gifts into the catalog so you can still send them.</string>
 <string name="NM_GEN_LocalPremiumEmoji">Local premium emoji</string>
@@ -11874,6 +11875,8 @@
 <string name="NM_SendOriginalPhoto_Desc">Send photos in original quality by default</string>
 <string name="NM_GhostChat">Ghost mode for this chat</string>
 <string name="NM_GhostChat_Desc">Hide your typing, read receipts and story views in this chat</string>
+<string name="NM_GhostChat_Enabled">Ghost mode enabled for this chat</string>
+<string name="NM_GhostChat_Disabled">Ghost mode disabled for this chat</string>
 <string name="NM_EditHistory">Edit history</string>
 <string name="NM_EditHistory_Current">Current</string>
 <string name="NM_EditHistory_Version">Version %1$d</string>

@@ -1361,6 +1361,16 @@ public class ChatActivity extends BaseFragment implements
         showDialog(builder.create());
     }
 
+    private void toggleGhostChat() {
+        final long dialogId = getDialogId();
+        final boolean currentlyExcluded = com.radolyn.ayugram.utils.AyuGhostPreferences.getGhostModeReadExclusion(dialogId);
+        final boolean excludeNow = !currentlyExcluded;
+        com.radolyn.ayugram.utils.AyuGhostPreferences.setGhostModeReadExclusion(dialogId, excludeNow);
+        com.radolyn.ayugram.utils.AyuGhostPreferences.setGhostModeTypingExclusion(dialogId, excludeNow);
+        BulletinFactory.of(this).createSimpleBulletin(R.raw.info,
+                LocaleController.getString(excludeNow ? R.string.NM_GhostChat_Disabled : R.string.NM_GhostChat_Enabled)).show();
+    }
+
     public void deleteHistory(int dateSelectedStart, int dateSelectedEnd, boolean forAll) {
         chatAdapter.frozenMessages.clear();
         for (int i = 0; i < messages.size(); i++) {
@@ -1671,6 +1681,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int tag_message = 28;
     private final static int boost_group = 29;
     private final static int auto_clean_timer = 75;
+    private final static int ghost_chat_toggle = 76;
 
     private final static int bot_help = 30;
     private final static int bot_settings = 31;
@@ -3852,6 +3863,11 @@ public class ChatActivity extends BaseFragment implements
                         return;
                     }
                     showAutoCleanDialog();
+                } else if (id == ghost_chat_toggle) {
+                    if (getParentActivity() == null) {
+                        return;
+                    }
+                    toggleGhostChat();
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4473,6 +4489,10 @@ public class ChatActivity extends BaseFragment implements
                     LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
                 headerItem.lazilyAddSubItem(auto_clean_timer, R.drawable.msg_delete,
                     LocaleController.getString(R.string.NM_AutoClean));
+                if (!(currentUser != null && currentUser.self) && getDialogId() != UserObject.VERIFY) {
+                    headerItem.lazilyAddSubItem(ghost_chat_toggle, R.drawable.msg_secret,
+                        LocaleController.getString(R.string.NM_GhostChat));
+                }
             }
             boolean addedSettings = false;
             if (!isTopic) {

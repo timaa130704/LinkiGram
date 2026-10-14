@@ -185,7 +185,7 @@ public class AyuGhostUtils {
                 return InterceptResult.Blocked(onCompleteOrig);
             }
         }
-        if ((app.nimarkogram.messenger.NimarkoConfig.ghostStories || storyGhostSession) && isReadStoriesRequest(object)) {
+        if ((app.nimarkogram.messenger.NimarkoConfig.ghostStories || app.nimarkogram.messenger.NimarkoConfig.hideStoryViews || storyGhostSession) && isReadStoriesRequest(object)) {
             if (storyGhostSession || !readExcluded) {
                 FileLog.d("GhostMode: Blocking story read request.");
                 return InterceptResult.Blocked(onCompleteOrig);

@@ -74,16 +74,6 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int exportConfigRow = 19;
     private final int importConfigRow = 20;
 
-    private final int ghostTypingRow = 21;
-    private final int ghostOnlineRow = 22;
-    private final int ghostReadReceiptsRow = 23;
-    private final int ghostMasterRow = 33;
-    private final int ghostStoriesRow = 35;
-    private final int ghostReadAfterSendRow = 36;
-    private final int ghostOfflineAfterSendRow = 37;
-    private final int lastSeenCacheRow = 32;
-    private final int saveDeletedMessagesRow = 24;
-    private final int hideStoryViewsRow = 25;
     private final int hideIncomingTypingRow = 26;
     private final int inBubbleGradientsRow = 27;
     private final int inBubbleGradient1Row = 28;
@@ -91,7 +81,6 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient3Row = 30;
     private final int sendOriginalPhotoRow = 31;
     private final int sleepTimerRow = 34;
-    private final int privacyPresetRow = 38;
 
     private final int hideStoriesRow = 7;
     private final int archiveStoriesRow = 8;
@@ -228,38 +217,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
         items.add(UItem.asButton(sleepTimerRow, getString(R.string.CG_Sleep), getSleepTimerValue()));
 
-        items.add(UItem.asHeader(getString(R.string.NM_GhostMode)));
-        items.add(UItem.asButton(privacyPresetRow, getString(R.string.NM_PrivacyPreset), getPrivacyPresetValue()));
-        items.add(SettingsHelper.asSwitchCG(ghostMasterRow, getString(R.string.NM_GhostMaster), getString(R.string.NM_GhostMaster_Desc))
-                .setChecked(NimarkoConfig.isGhostModeActive())
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostTypingRow, getString(R.string.NM_GhostTyping), getString(R.string.NM_GhostTyping_Desc))
-                .setChecked(NimarkoConfig.ghostTyping)
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostOnlineRow, getString(R.string.NM_GhostOnline), getString(R.string.NM_GhostOnline_Desc))
-                .setChecked(NimarkoConfig.ghostOnline)
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostReadReceiptsRow, getString(R.string.NM_GhostReadReceipts), getString(R.string.NM_GhostReadReceipts_Desc))
-                .setChecked(NimarkoConfig.ghostReadReceipts)
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostStoriesRow, getString(R.string.NM_GhostStories), getString(R.string.NM_GhostStories_Desc))
-                .setChecked(NimarkoConfig.ghostStories)
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostReadAfterSendRow, getString(R.string.NM_GhostReadAfterSend), getString(R.string.NM_GhostReadAfterSend_Desc))
-                .setChecked(NimarkoConfig.ghostReadAfterSend)
-        );
-        items.add(SettingsHelper.asSwitchCG(ghostOfflineAfterSendRow, getString(R.string.NM_GhostOfflineAfterSend), getString(R.string.NM_GhostOfflineAfterSend_Desc))
-                .setChecked(NimarkoConfig.ghostOfflineAfterSend)
-        );
-        items.add(SettingsHelper.asSwitchCG(lastSeenCacheRow, getString(R.string.NM_LastSeenCache), getString(R.string.NM_LastSeenCache_Desc))
-                .setChecked(NimarkoConfig.lastSeenCacheEnabled)
-        );
-        items.add(SettingsHelper.asSwitchCG(saveDeletedMessagesRow, getString(R.string.NM_SaveDeletedMessages), getString(R.string.NM_SaveDeletedMessages_Desc))
-                .setChecked(NimarkoConfig.saveDeletedMessages)
-        );
-        items.add(SettingsHelper.asSwitchCG(hideStoryViewsRow, getString(R.string.NM_HideStoryViews), getString(R.string.NM_HideStoryViews_Desc))
-                .setChecked(NimarkoConfig.hideStoryViews)
-        );
+        items.add(UItem.asHeader(getString(R.string.NM_GEN_OtherHeader)));
         items.add(SettingsHelper.asSwitchCG(hideIncomingTypingRow, getString(R.string.NM_HideIncomingTyping), getString(R.string.NM_HideIncomingTyping_Desc))
                 .setChecked(NimarkoConfig.hideIncomingTyping)
         );
@@ -466,51 +424,6 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         } else if (item.id == blockAdsRow) {
             NimarkoConfig.toggleBlockSponsoredAds();
             SettingsHelper.updateCheckState(view, NimarkoConfig.blockSponsoredAds);
-        } else if (item.id == ghostTypingRow) {
-            NimarkoConfig.toggleGhostTyping();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostTyping);
-        } else if (item.id == ghostMasterRow) {
-            NimarkoConfig.setGhostMode(!NimarkoConfig.isGhostModeActive());
-            if (listView != null) {
-                listView.adapter.update(true);
-            }
-        } else if (item.id == privacyPresetRow) {
-            ArrayList<String> presets = new ArrayList<>();
-            presets.add(getString(R.string.NM_PresetNormal));
-            presets.add(getString(R.string.NM_PresetGhost));
-            presets.add(getString(R.string.NM_PresetParanoia));
-            PopupHelper.show(presets, getString(R.string.NM_PrivacyPreset), NimarkoConfig.privacyPreset, getContext(), i -> {
-                NimarkoConfig.applyPrivacyPreset(i);
-                if (listView != null) {
-                    listView.adapter.update(true);
-                }
-                org.telegram.ui.Components.BulletinFactory.of(this)
-                        .createSimpleBulletin(R.raw.info, presets.get(i)).show();
-            });
-        } else if (item.id == ghostStoriesRow) {
-            NimarkoConfig.toggleGhostStories();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostStories);
-        } else if (item.id == ghostReadAfterSendRow) {
-            NimarkoConfig.toggleGhostReadAfterSend();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostReadAfterSend);
-        } else if (item.id == ghostOfflineAfterSendRow) {
-            NimarkoConfig.toggleGhostOfflineAfterSend();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostOfflineAfterSend);
-        } else if (item.id == ghostOnlineRow) {
-            NimarkoConfig.toggleGhostOnline();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostOnline);
-        } else if (item.id == ghostReadReceiptsRow) {
-            NimarkoConfig.toggleGhostReadReceipts();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.ghostReadReceipts);
-        } else if (item.id == lastSeenCacheRow) {
-            NimarkoConfig.toggleLastSeenCacheEnabled();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.lastSeenCacheEnabled);
-        } else if (item.id == saveDeletedMessagesRow) {
-            NimarkoConfig.toggleSaveDeletedMessages();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.saveDeletedMessages);
-        } else if (item.id == hideStoryViewsRow) {
-            NimarkoConfig.toggleHideStoryViews();
-            SettingsHelper.updateCheckState(view, NimarkoConfig.hideStoryViews);
         } else if (item.id == hideIncomingTypingRow) {
             NimarkoConfig.toggleHideIncomingTyping();
             SettingsHelper.updateCheckState(view, NimarkoConfig.hideIncomingTyping);
@@ -579,14 +492,6 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             case NimarkoConfig.DL_BOOST_AVERAGE -> getString(R.string.LiteBatteryEnabled);
             case NimarkoConfig.DL_BOOST_EXTREME -> getString(R.string.EP_DownloadSpeedBoostExtreme);
             default -> getString(R.string.LiteBatteryDisabled);
-        };
-    }
-
-    private String getPrivacyPresetValue() {
-        return switch (NimarkoConfig.privacyPreset) {
-            case NimarkoConfig.PRESET_GHOST -> getString(R.string.NM_PresetGhost);
-            case NimarkoConfig.PRESET_PARANOIA -> getString(R.string.NM_PresetParanoia);
-            default -> getString(R.string.NM_PresetNormal);
         };
     }
 

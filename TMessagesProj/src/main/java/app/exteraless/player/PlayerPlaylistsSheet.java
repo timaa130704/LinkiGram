@@ -220,17 +220,30 @@ public class PlayerPlaylistsSheet extends BottomSheet {
     }
 
     private void openLevel1() {
-        current = null;
-        layoutManager.scrollToPosition(0);
-        updateHeader();
-        adapter.notifyDataSetChanged();
+        switchLevel(null);
     }
 
     private void openPlaylist(PlayerPlaylists.Playlist playlist) {
+        switchLevel(playlist);
+    }
+
+    private void switchLevel(PlayerPlaylists.Playlist playlist) {
         current = playlist;
-        layoutManager.scrollToPosition(0);
         updateHeader();
         adapter.notifyDataSetChanged();
+        layoutManager.scrollToPosition(0);
+        // Animate the level change: the new list fades in while sliding a bit
+        // inwards, forwards when entering a playlist and backwards on "back".
+        final float direction = playlist == null ? -1f : 1f;
+        list.animate().cancel();
+        list.setAlpha(0f);
+        list.setTranslationX(dp(20) * direction);
+        list.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
     }
 
     private void onItemClick(int position) {
@@ -273,15 +286,33 @@ public class PlayerPlaylistsSheet extends BottomSheet {
         o.show();
     }
 
-    private void createPlaylistDialog(MessageObject messageObject) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
-        builder.setTitle(getString(R.string.OEPlayerPlaylistCreate));
-        final EditText input = new EditText(getContext());
-        input.setHint(getString(R.string.OEPlayerPlaylistName));
+    private EditText makeNameInput(CharSequence hint) {
+        EditText input = new EditText(getContext());
         input.setSingleLine(true);
+        input.setHint(hint);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         input.setTextColor(colors.onSurface);
         input.setHintTextColor(ColorUtils.setAlphaComponent(colors.onSurfaceVariant, 0xc0));
-        builder.setView(input);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setBackground(Theme.createEditTextDrawable(getContext(), true));
+        input.setPadding(dp(14), dp(10), dp(14), dp(10));
+        return input;
+    }
+
+    private FrameLayout wrapInput(View input) {
+        FrameLayout container = new FrameLayout(getContext());
+        container.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 22, 6, 22, 0));
+        return container;
+    }
+
+    private void createPlaylistDialog(MessageObject messageObject) {
+        if (getContext() == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle(getString(R.string.OEPlayerPlaylistCreate));
+        final EditText input = makeNameInput(getString(R.string.OEPlayerPlaylistName));
+        builder.setView(wrapInput(input));
         builder.setPositiveButton(getString(R.string.Create), (dialog, which) -> {
             String name = input.getText().toString().trim();
             if (TextUtils.isEmpty(name)) {
@@ -298,14 +329,15 @@ public class PlayerPlaylistsSheet extends BottomSheet {
     }
 
     private void renamePlaylistDialog(PlayerPlaylists.Playlist playlist) {
+        if (getContext() == null) {
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle(getString(R.string.OEPlayerPlaylistRename));
-        final EditText input = new EditText(getContext());
-        input.setSingleLine(true);
+        final EditText input = makeNameInput(null);
         input.setText(playlist.name);
-        input.setTextColor(colors.onSurface);
         input.setSelection(input.getText().length());
-        builder.setView(input);
+        builder.setView(wrapInput(input));
         builder.setPositiveButton(getString(R.string.Save), (dialog, which) -> {
             PlayerPlaylists.rename(playlist.id, input.getText().toString());
             reload();
@@ -337,12 +369,12 @@ public class PlayerPlaylistsSheet extends BottomSheet {
         final PlayerPlaylists.Entry target = entry;
         Utilities.globalQueue.postRunnable(() -> {
             TLRPC.Message message = MessagesStorage.getInstance(target.account).getMessage(target.dialogId, target.messageId);
-            if (message == null) {
-                AndroidUtilities.runOnUIThread(this::showError);
-                return;
-            }
-            final MessageObject stored = new MessageObject(target.account, message, false, true);
-            PlayerActions.refetch(stored, fresh -> AndroidUtilities.runOnUIThread(() -> play(fresh != null ? fresh : stored)));
+            final MessageObject stored = message != null ? new MessageObject(target.account, message, false, true) : null;
+            // The message may be absent from the local database (deep history,
+            // evicted cache, channel post never opened, deleted message), so fall
+            // back to a channel-aware network request instead of failing right away.
+            PlayerActions.refetchById(target.account, target.dialogId, target.messageId, fresh ->
+                    AndroidUtilities.runOnUIThread(() -> play(fresh != null ? fresh : stored)));
         });
     }
 

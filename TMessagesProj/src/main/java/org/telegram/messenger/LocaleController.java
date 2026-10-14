@@ -2951,11 +2951,11 @@ public class LocaleController {
                 if (user.status.expires == -1) {
                     return getString("Invisible", R.string.Invisible);
                 } else if (user.status.expires == -100 || user.status.expires == -1000) {
-                    return getString("Lately", R.string.Lately);
+                    return com.radolyn.ayugram.utils.LastSeenHelper.getFormattedLastSeenOrDefault(user, madeShorter, getString("Lately", R.string.Lately), true);
                 } else if (user.status.expires == -101 || user.status.expires == -1001) {
-                    return getString("WithinAWeek", R.string.WithinAWeek);
+                    return com.radolyn.ayugram.utils.LastSeenHelper.getFormattedLastSeenOrDefault(user, madeShorter, getString("WithinAWeek", R.string.WithinAWeek), true);
                 } else if (user.status.expires == -102 || user.status.expires == -1002) {
-                    return getString("WithinAMonth", R.string.WithinAMonth);
+                    return com.radolyn.ayugram.utils.LastSeenHelper.getFormattedLastSeenOrDefault(user, madeShorter, getString("WithinAMonth", R.string.WithinAMonth), true);
                 } else {
                     return formatDateOnline(user.status.expires, madeShorter);
                 }
