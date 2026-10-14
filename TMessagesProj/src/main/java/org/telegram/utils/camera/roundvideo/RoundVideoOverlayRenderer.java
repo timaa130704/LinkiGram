@@ -2,6 +2,8 @@ package org.telegram.utils.camera.roundvideo;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLES11Ext;
 import android.util.Size;
@@ -10,7 +12,6 @@ import androidx.annotation.NonNull;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
-import org.telegram.ui.Components.RLottieNative;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -983,21 +984,29 @@ final class RoundVideoOverlayRenderer {
         int atlasWidth = Math.max(logoAtlasWidth, textSize);
         int atlasHeight = logoAtlasHeight + textSize;
 
-        RLottieNative lottie = RLottieNative.createFromRawJson(
-                AndroidUtilities.readRes(R.raw.plane_logo_plain)
-        );
-        if (lottie == null) throw new IllegalStateException("Unable to load watermark animation");
+        Bitmap logo = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_logo);
+        if (logo == null) {
+            // fully transparent fallback: keeps the pipeline alive if decoding fails
+            logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+        }
         Bitmap frameBitmap = Bitmap.createBitmap(logoSize, logoSize, Bitmap.Config.ARGB_8888);
+        Canvas frameCanvas = new Canvas(frameBitmap);
+        Paint framePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
         Bitmap atlasBitmap = Bitmap.createBitmap(atlasWidth, atlasHeight, Bitmap.Config.ALPHA_8);
         Canvas canvas = new Canvas(atlasBitmap);
         for (int frame = 0; frame < LOGO_FRAME_COUNT; frame++) {
             int x = frame % 8;
             int y = frame / 8;
-            lottie.getFrame(frame * 2, frameBitmap, true);
+            frameBitmap.eraseColor(0);
+            float scale = 1f - 0.06f * (0.5f - 0.5f * (float) Math.cos(2d * Math.PI * frame / LOGO_FRAME_COUNT));
+            float drawSize = logoSize * scale;
+            float offset = (logoSize - drawSize) / 2f;
+            frameCanvas.drawBitmap(logo, null, new RectF(offset, offset, offset + drawSize, offset + drawSize), framePaint);
             canvas.drawBitmap(frameBitmap, frameSize * x - logoOffset, frameSize * y - logoOffset, null);
         }
+        logo.recycle();
 
-        Bitmap text = AndroidUtilities.getBitmapFromRaw(R.raw.round_blur_overlay_text);
+        Bitmap text = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_text);
         if (text != null) {
             Bitmap scaled = Bitmap.createScaledBitmap(text, textSize, textSize, true);
             Bitmap alpha = scaled.extractAlpha();
@@ -1010,7 +1019,6 @@ final class RoundVideoOverlayRenderer {
         if (atlasBitmap.getRowBytes() != atlasWidth) {
             atlasBitmap.recycle();
             frameBitmap.recycle();
-            lottie.recycle();
             throw new IllegalStateException("Unexpected watermark atlas stride");
         }
         ByteBuffer pixels = ByteBuffer.allocateDirect(atlasWidth * atlasHeight);
@@ -1026,7 +1034,6 @@ final class RoundVideoOverlayRenderer {
         );
         atlasBitmap.recycle();
         frameBitmap.recycle();
-        lottie.recycle();
         if (outputSize == 360) cachedWatermark360 = result;
         else if (outputSize == 480) cachedWatermark480 = result;
         return result;

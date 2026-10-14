@@ -29,6 +29,7 @@
     <string name="OEPlayerSourcePlain">Текст · %1$s</string>
     <string name="OEPlayerSourceSyncedFile">Синхронный текст из файла</string>
     <string name="OEPlayerSourcePlainFile">Текст из файла</string>
+    <string name="OEPlayerSourcesTitle">Источник текста</string>
     <string name="OEPlayerTracks_one">%1$d трек</string>
     <string name="OEPlayerTracks_two">%1$d трека</string>
     <string name="OEPlayerTracks_few">%1$d трека</string>

@@ -2,6 +2,8 @@ package org.telegram.ui.Components;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
@@ -71,8 +73,14 @@ public class InstantCameraVideoEncoderOverlayHelper {
                 final int logoOffset = Math.round(width * 28 / 1536f);
                 final int trueSize = logoSize - logoOffset - logoOffset;
 
-                final RLottieNative rLottie = RLottieNative.createFromRawJson(AndroidUtilities.readRes(R.raw.plane_logo_plain));
+                Bitmap logo = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_logo);
+                if (logo == null) {
+                    // fully transparent fallback: keeps the pipeline alive if decoding fails
+                    logo = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+                }
                 final Bitmap logoBitmap = Bitmap.createBitmap(logoSize, logoSize, Bitmap.Config.ARGB_8888);
+                final Canvas logoCanvas = new Canvas(logoBitmap);
+                final Paint logoPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
 
                 Bitmap bitmap = Bitmap.createBitmap(trueSize * 8, trueSize * 4, Bitmap.Config.ALPHA_8);
                 Canvas canvas = new Canvas(bitmap);
@@ -90,7 +98,11 @@ public class InstantCameraVideoEncoderOverlayHelper {
                         b = (y + 1) / 4f;
 
                         setTextureCords(texData, TEXTURE_BUFFER_WATERMARK_LOGO_POSITION + index * 8, l, t, r, b);
-                        rLottie.getFrame(index * 2, logoBitmap, true);
+                        logoBitmap.eraseColor(0);
+                        float scale = 1f - 0.06f * (0.5f - 0.5f * (float) Math.cos(2d * Math.PI * index / 27));
+                        float drawSize = logoSize * scale;
+                        float off = (logoSize - drawSize) / 2f;
+                        logoCanvas.drawBitmap(logo, null, new RectF(off, off, off + drawSize, off + drawSize), logoPaint);
                         canvas.drawBitmap(logoBitmap, trueSize * x - logoOffset, trueSize * y - logoOffset, null);
                     }
                 }
@@ -102,13 +114,13 @@ public class InstantCameraVideoEncoderOverlayHelper {
 
                 bitmap.recycle();
                 logoBitmap.recycle();
-                rLottie.recycle();
+                logo.recycle();
             } else if (i == TEXTURE_INDEX_WATERMARK_TEXT) {
                 final int logoSize = Math.round(width * 372f / 1536f);
                 float scale = (float) logoSize / videoWidth;
                 setVertexCords(verData, VERTEX_BUFFER_WATERMARK_TEXT_POSITION, 1f - scale * 2f, -1f + scale * 2f, 1, -1);
 
-                Bitmap bitmap = AndroidUtilities.getBitmapFromRaw(R.raw.round_blur_overlay_text);
+                Bitmap bitmap = AndroidUtilities.getBitmapFromRaw(R.raw.linkigram_round_video_text);
                 if (bitmap != null) {
                     Bitmap sBitmap = Bitmap.createScaledBitmap(bitmap, logoSize, logoSize, true);
                     Bitmap aBitmap = sBitmap.extractAlpha();

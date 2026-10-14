@@ -29,6 +29,7 @@
     <string name="OEPlayerSourcePlain">Lyrics · %1$s</string>
     <string name="OEPlayerSourceSyncedFile">Synced lyrics from the file</string>
     <string name="OEPlayerSourcePlainFile">Lyrics from the file</string>
+    <string name="OEPlayerSourcesTitle">Lyrics source</string>
     <string name="OEPlayerTracks_one">%1$d track</string>
     <string name="OEPlayerTracks_two">%1$d tracks</string>
     <string name="OEPlayerTracks_few">%1$d tracks</string>

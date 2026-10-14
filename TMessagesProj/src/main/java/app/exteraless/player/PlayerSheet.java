@@ -15,6 +15,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.TextUtils;
@@ -47,6 +48,7 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.audioinfo.AudioInfo;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AudioPlayerAlert;
@@ -59,6 +61,7 @@ import org.telegram.ui.LaunchActivity;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
 import java.util.Locale;
 
 import app.nimarkogram.messenger.NimarkoConfig;
@@ -156,6 +159,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private float lyricsFraction;
     private ValueAnimator lyricsAnimator;
     private String lyricsKey;
+    private ArrayList<Lyrics> lyricsSources;
+    private Lyrics shownLyrics;
     private boolean seeking;
     private float seekProgress;
     private Boolean lightBars;
@@ -368,6 +373,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         sourceView = new TextView(context);
         sourceView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         sourceView.setSingleLine(true);
+        sourceView.setOnClickListener(v -> showSourcePicker());
         lyricsPanel.addView(sourceView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 16, 0, 8, 0, 0));
         layout.addView(lyricsPanel);
 
@@ -1287,6 +1293,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         lyricsKey = key;
+        lyricsSources = null;
+        shownLyrics = null;
         if (PlayerArt.isPlaying(mo)) {
             AudioInfo info = MediaController.getInstance().getAudioInfo();
             Lyrics embedded = info != null ? Lyrics.parse(info.getLyrics(), Lyrics.SOURCE_FILE) : null;
@@ -1299,21 +1307,24 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         if (!q.valid()) {
             lyricsView.showState(LyricsView.STATE_NOT_FOUND);
             sourceView.setText(null);
+            applySourceViewPicker(false);
             return;
         }
-        Lyrics cached = OnlineLyrics.cached(q);
+        ArrayList<Lyrics> cached = OnlineLyrics.cached(q);
         if (cached != null) {
-            showLyrics(cached);
+            lyricsSources = cached;
+            showLyrics(cached.get(0));
             return;
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
         sourceView.setText(null);
-        OnlineLyrics.loadCached(q, (lyrics, status) -> {
+        OnlineLyrics.loadCached(q, (sources, status) -> {
             if (!TextUtils.equals(key, currentKey)) {
                 return;
             }
-            if (lyrics != null) {
-                showLyrics(lyrics);
+            if (sources != null) {
+                lyricsSources = sources;
+                showLyrics(sources.get(0));
             } else if (NimarkoConfig.lrclibAllowed()) {
                 fetchLyrics();
             } else {
@@ -1339,12 +1350,13 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
         sourceView.setText(null);
-        OnlineLyrics.fetch(q, (lyrics, status) -> {
+        OnlineLyrics.fetch(q, (sources, status) -> {
             if (!TextUtils.equals(key, currentKey)) {
                 return;
             }
-            if (lyrics != null) {
-                showLyrics(lyrics);
+            if (sources != null && !sources.isEmpty()) {
+                lyricsSources = sources;
+                showLyrics(sources.get(0));
             } else {
                 lyricsView.showState(status == OnlineLyrics.ERROR ? LyricsView.STATE_ERROR : LyricsView.STATE_NOT_FOUND);
             }
@@ -1352,17 +1364,65 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     }
 
     private void showLyrics(Lyrics lyrics) {
+        shownLyrics = lyrics;
         if (lyrics.instrumental) {
             lyricsView.showState(LyricsView.STATE_INSTRUMENTAL);
             sourceView.setText(lyrics.provider);
+            applySourceViewPicker(false);
             return;
         }
         lyricsView.setLyrics(lyrics, positionMs());
         if (lyrics.source == Lyrics.SOURCE_ONLINE) {
             sourceView.setText(LocaleController.formatString(lyrics.synced ? R.string.OEPlayerSourceSynced : R.string.OEPlayerSourcePlain, lyrics.provider));
+            applySourceViewPicker(lyricsSources != null && lyricsSources.size() > 1);
         } else {
             sourceView.setText(getString(lyrics.synced ? R.string.OEPlayerSourceSyncedFile : R.string.OEPlayerSourcePlainFile));
+            applySourceViewPicker(false);
         }
+    }
+
+    private void applySourceViewPicker(boolean pickable) {
+        ViewGroup.LayoutParams lp = sourceView.getLayoutParams();
+        if (lp != null) {
+            lp.width = pickable ? LayoutHelper.WRAP_CONTENT : LayoutHelper.MATCH_PARENT;
+        }
+        Drawable chevron = null;
+        if (pickable) {
+            chevron = getResources().getDrawable(R.drawable.arrow_more_solar).mutate();
+            int size = dp(13);
+            chevron.setBounds(0, 0, size, size);
+            chevron.setTint(sourceView.getCurrentTextColor());
+        }
+        sourceView.setCompoundDrawablePadding(dp(3));
+        sourceView.setCompoundDrawablesRelative(null, null, chevron, null);
+        sourceView.setClickable(pickable);
+        sourceView.requestLayout();
+    }
+
+    private void showSourcePicker() {
+        ArrayList<Lyrics> sources = lyricsSources;
+        if (sources == null || sources.size() < 2) {
+            return;
+        }
+        CharSequence[] names = new CharSequence[sources.size()];
+        for (int i = 0; i < sources.size(); i++) {
+            Lyrics l = sources.get(i);
+            CharSequence label;
+            if (l.instrumental || l.provider == null) {
+                label = l.provider == null ? "" : l.provider;
+            } else {
+                label = LocaleController.formatString(l.synced ? R.string.OEPlayerSourceSynced : R.string.OEPlayerSourcePlain, l.provider);
+            }
+            names[i] = l == shownLyrics ? "✓  " + label : label;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle(getString(R.string.OEPlayerSourcesTitle));
+        builder.setItems(names, (dialog, which) -> {
+            if (which >= 0 && which < sources.size()) {
+                showLyrics(sources.get(which));
+            }
+        });
+        builder.show();
     }
 
     private void openQueue() {
@@ -1563,6 +1623,10 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         likeButton.setColors(0, c.onSurfaceVariant, c.primaryContainer, c.onPrimaryContainer);
         lyricsView.setColors(c);
         sourceView.setTextColor(c.onSurfaceVariant);
+        Drawable sourceChevron = sourceView.getCompoundDrawablesRelative()[2];
+        if (sourceChevron != null) {
+            sourceChevron.setTint(c.onSurfaceVariant);
+        }
         seekBar.setColors(c.primary, c.secondaryContainer);
         timeNow.setTextColor(c.onSurfaceVariant);
         timeLeft.setTextColor(c.onSurfaceVariant);

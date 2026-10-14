@@ -490,6 +490,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private FragmentSearchField fragmentSearchField;
+    private app.nimarkogram.messenger.infocards.InfoCardStripView homeInfoCards;
+    private boolean homeInfoCardsShown = false;
+    private ValueAnimator homeInfoCardsAnimator;
     private SearchTextWatcher fragmentSearchFieldWatcher;
 
     private SearchTabsAndFiltersLayout searchTabsAndFiltersLayout;
@@ -2930,6 +2933,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (!onlySelect) {
                 observersGroup.addGlobal(NotificationCenter.closeSearchByActiveAction);
                 observersGroup.addGlobal(NotificationCenter.proxySettingsChanged);
+                observersGroup.addGlobal(NotificationCenter.infoCardsLayoutChanged);
                 observersGroup.add(NotificationCenter.filterSettingsUpdated);
                 observersGroup.add(NotificationCenter.dialogsUnreadCounterChanged);
             }
@@ -5374,6 +5378,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         if (fragmentSearchField != null) {
             contentView.addView(fragmentSearchField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 7, -2, 7, 0));
+        }
+
+        if (!onlySelect && initialDialogsType == DIALOGS_TYPE_DEFAULT && folderId == 0 && communityId == 0) {
+            homeInfoCards = new app.nimarkogram.messenger.infocards.InfoCardStripView(context, resourceProvider);
+            homeInfoCards.setOpaqueCards(true);
+            homeInfoCards.setVisibilityFactor(0f);
+            contentView.addView(homeInfoCards, LayoutHelper.createFrame(
+                    LayoutHelper.WRAP_CONTENT, 40,
+                    Gravity.TOP | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT),
+                    0, 0, 10, 0));
         }
 
 
@@ -10546,6 +10560,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @SuppressWarnings("unchecked")
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.infoCardsLayoutChanged) {
+            checkUi_searchFieldVisibility();
+            return;
+        }
         if (id == NotificationCenter.dialogsNeedReload) {
             if (viewPages == null || dialogsListFrozen) {
                 return;
@@ -14091,6 +14109,63 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         fragmentSearchField.setAlpha(alpha);
         fragmentSearchField.setVisibility(alpha > 0 ? View.VISIBLE : View.GONE);
         animatorSearchButtonVisible.setValue(alpha <= 0.01f, true);
+
+        if (homeInfoCards != null) {
+            final boolean show = app.nimarkogram.messenger.infocards.InfoCardsConfig.isEnabled()
+                    && alpha <= 0.01f
+                    && actionModeVisible <= 0.01f
+                    && getRightSlidingProgress() <= 0.01f;
+
+            final boolean actuallyVisible = homeInfoCards.getVisibility() == View.VISIBLE
+                    && homeInfoCards.getVisibilityFactor() > 0.99f;
+            final boolean idle = homeInfoCardsAnimator == null || !homeInfoCardsAnimator.isRunning();
+            final boolean desynced = idle && (show != actuallyVisible);
+            if (show != homeInfoCardsShown || desynced) {
+                homeInfoCardsShown = show;
+                if (homeInfoCardsAnimator != null) {
+                    homeInfoCardsAnimator.cancel();
+                    homeInfoCardsAnimator = null;
+                }
+                if (show) {
+                    homeInfoCards.setVisibility(View.VISIBLE);
+                    homeInfoCards.syncToActiveCard();
+                }
+                homeInfoCardsAnimator = ValueAnimator.ofFloat(homeInfoCards.getVisibilityFactor(), show ? 1f : 0f);
+                homeInfoCardsAnimator.addUpdateListener(a -> homeInfoCards.setVisibilityFactor((float) a.getAnimatedValue()));
+                homeInfoCardsAnimator.setDuration(220);
+                homeInfoCardsAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                homeInfoCardsAnimator.start();
+            }
+            positionHomeInfoCards();
+        }
+    }
+
+    private void positionHomeInfoCards() {
+        if (homeInfoCards == null || homeInfoCards.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        float y;
+        if (actionBar != null && actionBar.getMeasuredHeight() > 0) {
+            y = actionBar.getY() + actionBar.getMeasuredHeight();
+        } else {
+            y = ActionBar.getCurrentActionBarHeight()
+                    + (actionBar != null && actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
+        }
+        if (dialogStoriesCell != null && dialogStoriesCell.getVisibility() == View.VISIBLE
+                && dialogStoriesCell.getMeasuredHeight() > 0) {
+            y = Math.max(y, dialogStoriesCell.getY() + dialogStoriesCell.getMeasuredHeight());
+        }
+        if (filterTabsView != null
+                && filterTabsView.getVisibility() == View.VISIBLE && filterTabsView.getMeasuredHeight() > 0) {
+            y = Math.max(y, filterTabsView.getY() + filterTabsView.getMeasuredHeight());
+        }
+        if (topPanelLayout != null && topPanelLayout.getMetadata() != null
+                && topPanelLayout.getMetadata().getTotalVisibility() > 0.01f) {
+            float panelBottom = topPanelLayout.getY()
+                    + topPanelLayout.getAnimatedHeightWithPadding(AndroidUtilities.dp(21));
+            y = Math.max(y, panelBottom);
+        }
+        homeInfoCards.setTranslationY(y + AndroidUtilities.dp(2));
     }
 
     private void checkUi_searchFieldStyle() {
