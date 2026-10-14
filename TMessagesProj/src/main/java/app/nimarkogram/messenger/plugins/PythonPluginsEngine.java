@@ -27,6 +27,7 @@ import app.nimarkogram.messenger.plugins.ui.PluginSettingsActivity;
 import app.nimarkogram.messenger.plugins.ui.PluginUiRegistry;
 import app.nimarkogram.messenger.plugins.ui.components.InstallPluginBottomSheet;
 import app.nimarkogram.messenger.plugins.ui.components.PluginCell;
+import app.nimarkogram.messenger.plugins.utils.PluginDexTracking;
 import app.nimarkogram.messenger.plugins.utils.PyObjectUtils;
 import app.nimarkogram.messenger.utils.text.LocaleUtils;
 
@@ -1970,6 +1971,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 try {
                     if (!ensurePineReady()) {
                         FileLog.w("nimarko: Pine unavailable; Python starts with method hooks disabled");
+                    } else {
+                        PluginDexTracking.install();
                     }
                 } catch (Throwable pineError) {
                     

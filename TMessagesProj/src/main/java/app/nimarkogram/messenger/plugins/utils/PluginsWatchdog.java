@@ -34,6 +34,7 @@ public final class PluginsWatchdog {
     public static final PluginsWatchdog INSTANCE_HOLDER = null; 
 
     private final PluginsController controller;
+    private static volatile PluginsWatchdog activeWatchdog;
     private final ConcurrentHashMap<Thread, ExecutionInfo> executingPlugins = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Thread, CrashSnapshot> callbackFailures = new ConcurrentHashMap<>();
     private volatile String lastReportedFrozenPluginId;
@@ -51,6 +52,32 @@ public final class PluginsWatchdog {
     public PluginsWatchdog(PluginsController controller) {
         this.controller = controller;
         this.watchdogRunnable = this::tick;
+        activeWatchdog = this;
+    }
+
+    /**
+     * Attribute a crash to the plugin currently executing on this thread, or to
+     * the plugin whose generated DEX class appears in the stack. Static so the
+     * crash handler can call it before the controller (and watchdog) exist.
+     * Ported from Ettacent/NimarkoGram.
+     */
+    public static String findCrashingPlugin(Thread thread, Throwable error) {
+        PluginsWatchdog active = activeWatchdog;
+        return active != null ? active.getCrashingPluginId(thread, error) : null;
+    }
+
+    /**
+     * The plugin whose code is running on the current thread, either from the
+     * runtime scope or from the per-thread execution stack. Used by
+     * {@link PluginDexTracking} to attribute a freshly created class loader.
+     */
+    public static String currentExecutingPluginId() {
+        PluginsWatchdog active = activeWatchdog;
+        if (active == null) return null;
+        PluginsController.PluginRuntimeToken runtime = active.controller != null
+                ? active.controller.captureCurrentPluginRuntime() : null;
+        return runtime != null ? runtime.getPluginId()
+                : active.getExecutingPluginId(Thread.currentThread());
     }
 
     private void tick() {
@@ -235,15 +262,17 @@ public final class PluginsWatchdog {
 
     public String getCrashingPluginId(Thread thread, Throwable uncaught) {
         if (thread == null || uncaught == null) return null;
-        ExecutionInfo active = executingPlugins.get(thread);
-        if (active != null) return active.getPluginId();
         CrashSnapshot snapshot = callbackFailures.get(thread);
-        if (snapshot == null) return null;
-        Throwable current = uncaught;
-        for (int depth = 0; current != null && depth < 16; depth++, current = current.getCause()) {
-            if (current == snapshot.throwable) return snapshot.pluginId;
+        if (snapshot != null) {
+            Throwable current = uncaught;
+            for (int depth = 0; current != null && depth < 16; depth++, current = current.getCause()) {
+                if (current == snapshot.throwable) return snapshot.pluginId;
+            }
         }
-        return null;
+        String dexOwner = PluginDexTracking.findOwner(uncaught);
+        if (dexOwner != null) return dexOwner;
+        ExecutionInfo active = executingPlugins.get(thread);
+        return active != null ? active.getPluginId() : null;
     }
 
     private void dismissStaleAlert(String pluginId) {

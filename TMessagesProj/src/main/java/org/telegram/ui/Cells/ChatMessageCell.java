@@ -99,6 +99,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
+import app.nimarkogram.messenger.plugins.xposed.PluginHookBypassTarget;
+
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
@@ -262,7 +264,19 @@ import me.vkryl.core.BitwiseUtils;
 
 public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate,
         DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView,
-        NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target, IMessageCell {
+        NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target, IMessageCell,
+        PluginHookBypassTarget {
+
+    /**
+     * Plugin hooks are skipped for cells that render a static snapshot of a
+     * message. Ordinary chat cells want the hooks to run, so the default is
+     * false. Ported with the hook-guard port from Ettacent/NimarkoGram.
+     */
+    @Override
+    public boolean shouldBypassPluginHooks() {
+        return false;
+    }
+
     private final static int TIME_APPEAR_MS = 200;
     private final static int UPLOADING_ALLOWABLE_ERROR = 1024 * 1024;
     private final static int STICKER_STATUS_OFFSET = 6;

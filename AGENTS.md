@@ -289,6 +289,63 @@ well-formedness on both new string files, EN/RU key parity, and a sweep of every
 external symbol the new code references against this tree. Build only in CI; do not
 push while a build runs.
 
+## NimarkoGram DEX plugins and hook guards
+
+Ported the four files that make plugin-generated DEX classes attributable and stop
+plugin hooks from recursing into the plugin engine itself (Ettacent's
+`PluginDexRegistry`, `PluginDexTracking`, `PluginHookBypassTarget`,
+`PluginHookGuard`, ~217 lines; credits kept).
+
+What they do and how they were wired onto our base:
+
+- `PluginDexTracking.install()` hooks every `BaseDexClassLoader` constructor and
+  `findClass` through Pine and records which plugin's runtime created each
+  generated class loader / class (`PluginDexRegistry`). Our engine already compiles
+  bridge classes with dexmaker (`ClassProxy` + `InMemoryDexClassLoader`), so this
+  is the missing attribution half, not a new loader. Installed from
+  `PythonPluginsEngine.initPython()` right after `ensurePineReady()`, before
+  `Python.start` — same point and order as NimarkoGram, and after the
+  `HiddenApiBypass.addHiddenApiExemptions("L")` call.
+- `PluginsWatchdog` gained `activeWatchdog`, `currentExecutingPluginId()` (reads
+  the runtime scope, then the per-thread execution stack) and
+  `findCrashingPlugin(...)`. `getCrashingPluginId` now tries the recorded callback
+  failure first, then DEX ownership, and only then falls back to the plugin
+  currently executing on the thread — otherwise that generic fallback masked every
+  DEX attribution.
+- `PluginHookGuard` is a per-thread re-entrancy guard. `PineAdapter` marks hooks
+  whose target class is `PluginsController`, `PluginsWatchdog` or `FileLog` as
+  "support" hooks and skips them while the guard scope is active, so the bridge's
+  own calls into the controller/watchdog/FileLog can never re-enter a plugin's
+  hook. Its constructor also refuses to hook the bridge implementations
+  (`PluginHookGuard`, `PineAdapter`, `PythonBoundarySanitizer`,
+  `PythonInterfaceProxy`).
+- `PyMethodHook` / `PyMethodReplacement` now route `PluginsController.getInstance`,
+  runtime enter/exit/decision and the watchdog started/finished/failed callbacks
+  through the guard, and wrap their error logging in it. `started` is recorded
+  before the hook filters run so a filter that aborts still gets a matching
+  `finished`.
+- `PluginHookBypassTarget` lets a receiver opt out of plugin hooks
+  (`shouldBypassPluginHooks()`); `PineAdapter` honours it in `beforeCall`.
+  `ChatMessageCell` implements it and returns `false`. The one place NimarkoGram
+  returns `true` is inside the 12.10.6 static-presentation subclass in
+  `MessageEntityView`, which our 12.10.5 base does not have, so that override is
+  intentionally not ported — the extension point is live, the opt-out is inert.
+
+Adaptations for symbols our base lacks (nothing copied blindly):
+
+- NimarkoGram's `PineAdapter` carries a large crash-diagnostics subsystem built on
+  `NimarkoCrashContext` and a `PythonBoundarySanitizer.ScanResult` API. Our base
+  has neither (our sanitizer is the `containsRawPythonProxy` generation), so the
+  diagnostic phases, `unverifiedBaseline`, the `scan`/`ScanResult` refactor and the
+  `diagnosticPluginId`/`diagnosticRuntimeOwner` accessors were dropped. The
+  guard/bypass/support-method protections, the point of the port, are all kept.
+- Added `PluginsController.captureInitializedPluginRuntime()` (plus the
+  `diagnosticInstance` field set in `SingletonHolder`) that `PluginHookGuard`'s
+  `captureRuntime()` needs; it reads the already-created controller without forcing
+  `getInstance()`.
+
+No new user-facing strings, so no `strings_*.xml` changes.
+
 - DialogsActivity shows "Telegram" in the collapsed state while the stories
   header shows "LinkiGram" — a second title path that bypasses `getStringV2`.
   `resolveMainTitle` is called from exactly one place, so the other title is set
@@ -301,9 +358,7 @@ push while a build runs.
   `drawer` (3734), `pillstack` (5081). Those are screen rewrites against a
   different base, not drop-in ports — decide per module what to take rather than
   copying wholesale.
-- Not yet ported from NimarkoGram: DEX plugins and hook guards (`PluginDexRegistry`,
-  `PluginDexTracking`, `PluginHookBypassTarget`, `PluginHookGuard`, ~217 lines
-  together, same engine so dependencies are likely to be ours already).
+- Now ported from NimarkoGram: DEX plugins and hook guards (see the section below).
 - Release 2.5.1 was published on GitHub with an announcement to the channel.
   Whatever ships next needs its own release entry, or users never get it.
 - The bot token was pasted into chat once and should be rotated via @BotFather.

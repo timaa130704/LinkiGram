@@ -14,6 +14,7 @@ import java.util.Arrays;
 import org.telegram.messenger.FileLog;
 
 import app.nimarkogram.messenger.plugins.bridge.PythonBoundarySanitizer;
+import app.nimarkogram.messenger.plugins.bridge.PythonInterfaceProxy;
 
 public final class PineAdapter extends MethodHook {
 
@@ -31,7 +32,7 @@ public final class PineAdapter extends MethodHook {
                     "afterHookedMethod", XC_MethodHook.MethodHookParam.class);
             after.setAccessible(true);
         } catch (Throwable t) {
-            FileLog.e("nimarko: PineAdapter reflection init failed", t);
+            PluginHookGuard.error("nimarko: PineAdapter reflection init failed", t);
         }
         BEFORE_HOOKED_METHOD = before;
         AFTER_HOOKED_METHOD = after;
@@ -40,6 +41,7 @@ public final class PineAdapter extends MethodHook {
     private final XC_MethodHook xcHook;
     private final Member member;
     
+    private final boolean runtimeSupportMethod;
     private final Class<?>[] paramTypes;
     private static final Object INVALID_RESULT = new Object();
 
@@ -101,7 +103,18 @@ public final class PineAdapter extends MethodHook {
     private final ThreadLocal<AdapterParam> activeParam = new ThreadLocal<>();
 
     public PineAdapter(Member member, XC_MethodHook xcHook) {
+        if (member != null) {
+            for (Class<?> owner = member.getDeclaringClass(); owner != null;
+                    owner = owner.getEnclosingClass()) {
+                if (owner == PluginHookGuard.class || owner == PineAdapter.class
+                        || owner == PythonBoundarySanitizer.class
+                        || owner == PythonInterfaceProxy.class) {
+                    throw new IllegalArgumentException("Plugin bridge implementation cannot be hooked");
+                }
+            }
+        }
         this.member = member;
+        this.runtimeSupportMethod = PluginHookGuard.isSupportMethod(member);
         this.xcHook = xcHook;
         this.paramTypes = parameterTypesOf(member);
     }
@@ -275,8 +288,16 @@ public final class PineAdapter extends MethodHook {
 
     @Override
     public void beforeCall(Pine.CallFrame cf) throws Throwable {
+        if (runtimeSupportMethod && PluginHookGuard.isActive()) return;
         if (cf == null) {
-            FileLog.e("nimarko: Pine supplied a null CallFrame for " + member);
+            PluginHookGuard.error("nimarko: Pine supplied a null CallFrame for " + member);
+            return;
+        }
+        if (cf.thisObject instanceof PluginHookBypassTarget
+                && ((PluginHookBypassTarget) cf.thisObject).shouldBypassPluginHooks()) {
+            AdapterParam skipped = claim(cf);
+            skipped.skipAfterCallback = true;
+            pushActive(skipped);
             return;
         }
         if (receiverMismatched(cf)) {
@@ -299,7 +320,7 @@ public final class PineAdapter extends MethodHook {
                     BEFORE_HOOKED_METHOD.invoke(xcHook, param);
                 }
             } catch (Throwable t) {
-                FileLog.e("nimarko: hook callback threw for " + member, t);
+                PluginHookGuard.error("nimarko: hook callback threw for " + member, t);
                 callbackFailed = true;
                 param.restoreInvocation(cf);
                 param.setResult(null);
@@ -349,6 +370,7 @@ public final class PineAdapter extends MethodHook {
 
     @Override
     public void afterCall(Pine.CallFrame cf) throws Throwable {
+        if (runtimeSupportMethod && PluginHookGuard.isActive()) return;
         AdapterParam param = popActive();
         if (param != null && param.skipAfterCallback) {
             release(param);
@@ -387,7 +409,7 @@ public final class PineAdapter extends MethodHook {
                     AFTER_HOOKED_METHOD.invoke(xcHook, param);
                 }
             } catch (Throwable t) {
-                FileLog.e("nimarko: afterHookedMethod threw", t);
+                PluginHookGuard.error("nimarko: afterHookedMethod threw", t);
                 callbackFailed = true;
                 param.restoreInvocation(cf);
                 if (originalThrowable != null) {

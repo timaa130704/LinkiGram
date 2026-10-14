@@ -1082,6 +1082,19 @@ public class PluginsController implements PluginsHooks {
         T run() throws Exception;
     }
 
+    private static volatile PluginsController diagnosticInstance;
+
+    /**
+     * The runtime of the already-initialised plugin controller, without forcing
+     * the singleton to be created. The hook guard reads this from the Pine bridge
+     * so that attributing a hook must never itself instantiate the controller.
+     * Ported from Ettacent/NimarkoGram.
+     */
+    public static PluginRuntimeToken captureInitializedPluginRuntime() {
+        PluginsController controller = diagnosticInstance;
+        return controller == null ? null : controller.captureCurrentPluginRuntime();
+    }
+
     public static PluginsController getInstance() {
         return SingletonHolder.INSTANCE;
     }
@@ -3444,6 +3457,9 @@ public class PluginsController implements PluginsHooks {
 
     private static class SingletonHolder {
         private static final PluginsController INSTANCE = new PluginsController();
+        static {
+            diagnosticInstance = INSTANCE;
+        }
     }
 
     public static class HookResult<T> {
