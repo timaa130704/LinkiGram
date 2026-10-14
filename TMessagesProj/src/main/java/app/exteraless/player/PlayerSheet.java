@@ -1388,7 +1388,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
         Drawable chevron = null;
         if (pickable) {
-            chevron = getResources().getDrawable(R.drawable.arrow_more_solar).mutate();
+            chevron = getContext().getResources().getDrawable(R.drawable.arrow_more_solar).mutate();
             int size = dp(13);
             chevron.setBounds(0, 0, size, size);
             chevron.setTint(sourceView.getCurrentTextColor());
