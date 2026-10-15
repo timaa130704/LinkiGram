@@ -192,7 +192,9 @@ public final class XcfgApi {
     /** Скачивает файл в out с проверкой SHA-256 (хеш скачиваемого содержимого). */
     public static void downloadChecked(String url, File out, String expectedSha256, ProgressCallback cb) throws Exception {
         HttpURLConnection c = open(url, "GET", null);
-        c.setReadTimeout(60000);
+        // 45 с достаточно чтобы понять, что сервер перестал отдавать данные:
+        // при обрыве стрима дальше сработает Range-fallback в XcfgCore.
+        c.setReadTimeout(45000);
         int code = c.getResponseCode();
         if (code >= 400) {
             c.disconnect();
@@ -225,9 +227,107 @@ public final class XcfgApi {
         }
     }
 
-    /** Читает весь файл и возвращает SHA-256 hex (для сверки распакованного .so). */
-    static String fileSha256(File f) throws Exception {
+    private static byte[] fetchRange(String url, long offset, int len) throws Exception {
+        Exception last = null;
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            HttpURLConnection c = null;
+            try {
+                c = open(url, "GET", null);
+                c.setReadTimeout(20000);
+                c.setRequestProperty("Range", "bytes=" + offset + "-" + (offset + len - 1));
+                int code = c.getResponseCode();
+                if (code != 206 && code != 200) {
+                    throw new IOException("HTTP " + code);
+                }
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(len);
+                try (InputStream in = c.getInputStream()) {
+                    byte[] buf = new byte[16384];
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        bos.write(buf, 0, n);
+                    }
+                }
+                byte[] data = bos.toByteArray();
+                if (data.length != len) {
+                    throw new IOException("кусок " + offset + ": получено " + data.length + " из " + len);
+                }
+                return data;
+            } catch (Exception e) {
+                last = e;
+                if (attempt < 4) {
+                    try {
+                        Thread.sleep(1000L * attempt);
+                    } catch (InterruptedException ie) {
+                        throw new RuntimeException("прервано");
+                    }
+                }
+            } finally {
+                if (c != null) {
+                    c.disconnect();
+                }
+            }
+        }
+        throw new IOException("кусок " + offset + " не скачан: " + last, last);
+    }
+
+    /**
+     * Fallback: сервер X-VPN (за Cloudflare) иногда отдаёт большие файлы
+     * обрывком ~16 КБ и подвисает — прямое скачивание падает по read-timeout.
+     * Range-куски по 16 КБ при этом проходят стабильно; качаем их параллельно.
+     */
+    public static void downloadChunked(String url, File out, String expectedSha256, ProgressCallback cb) throws Exception {
+        long total;
+        {
+            HttpURLConnection c = open(url, "GET", null);
+            c.setReadTimeout(20000);
+            c.setRequestProperty("Range", "bytes=0-0");
+            int code = c.getResponseCode();
+            String contentRange = c.getHeaderField("Content-Range");
+            c.disconnect();
+            if (code != 206 || contentRange == null || !contentRange.contains("/")) {
+                throw new IOException("сервер не поддерживает Range: HTTP " + code);
+            }
+            total = Long.parseLong(contentRange.substring(contentRange.lastIndexOf('/') + 1).trim());
+            if (total <= 0) {
+                throw new IOException("пустой файл");
+            }
+        }
+        final int chunk = 16 * 1024;
+        final int count = (int) ((total + chunk - 1) / chunk);
+        final byte[][] pieces = new byte[count][];
+        // Последовательные запросы со свежим соединением на каждый: сервер
+        // (Cloudflare → origin) душит конкурентные запросы и не держит
+        // keep-alive, а свежие одиночные Range-куски проходят по ~0.4 с.
+        for (int i = 0; i < count; i++) {
+            int len = (int) Math.min(chunk, total - (long) i * chunk);
+            pieces[i] = fetchRange(url, (long) i * chunk, len);
+            if (cb != null && (i + 1) % 25 == 0) {
+                cb.onProgress((i + 1) * 100 / count);
+            }
+        }
         MessageDigest md = MessageDigest.getInstance("SHA-256");
+        try (FileOutputStream fo = new FileOutputStream(out)) {
+            for (byte[] piece : pieces) {
+                if (piece == null) {
+                    throw new IOException("неполный файл");
+                }
+                fo.write(piece);
+                md.update(piece);
+            }
+        }
+        byte[] digest = md.digest();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : digest) {
+            sb.append(String.format("%02x", b));
+        }
+        if (!sb.toString().equals(expectedSha256)) {
+            out.delete();
+            throw new RuntimeException("контрольная сумма не совпала: " + out.getName());
+        }
+    }
+
+    /** Читает весь файл и возвращает SHA-256 hex (для сверки распакованного .so). */
+    static String fileSha256(File f) throws Exception {        MessageDigest md = MessageDigest.getInstance("SHA-256");
         try (InputStream in = new FileInputStream(f)) {
             byte[] buf = new byte[1024 * 1024];
             int n;

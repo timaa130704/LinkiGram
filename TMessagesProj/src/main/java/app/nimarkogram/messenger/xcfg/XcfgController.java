@@ -690,14 +690,23 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
         t.start();
     }
 
+    private final java.util.concurrent.atomic.AtomicBoolean vpnEnabling = new java.util.concurrent.atomic.AtomicBoolean(false);
+
     void vpnEnable(String subUrl) {
-        pool.execute(() -> {
+        if (!vpnEnabling.compareAndSet(false, true)) {
+            toast("X-CFG: VPN уже включается…");
+            return;
+        }
+        // Отдельный поток: скачивание ядра (~12 МБ) не должно блокировать
+        // однопоточный pool, иначе кабинет X-CFG крутит спиннер бесконечно.
+        Thread t = new Thread(() -> {
             try {
                 if (!XcfgCore.isReady()) {
                     toast("X-CFG: скачиваю ядро VPN (~12 МБ, один раз)…");
                     XcfgCore.download(percent -> {
                     });
                 }
+                fileLog("vpn enable: ядро готово, запрашиваю серверы");
                 XcfgApi.Sub sub = XcfgApi.fetchLinks(subUrl, hwid());
                 if (sub.links.isEmpty()) {
                     toast("X-CFG: " + (sub.stub.isEmpty() ? "в подписке нет серверов" : sub.stub));
@@ -710,8 +719,8 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
                 try {
                     app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(false);
                     app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().stop();
-                } catch (Throwable t) {
-                    fileLog("vpn enable: ws-bypass stop: " + t);
+                } catch (Throwable tw) {
+                    fileLog("vpn enable: ws-bypass stop: " + tw);
                 }
                 startCore(sub.links);
                 XcfgPrefs.setBool("tg_vpn", true);
@@ -720,8 +729,11 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             } catch (Exception e) {
                 fileLog("vpn enable: " + e);
                 toast("X-CFG: не удалось включить VPN: " + e.getMessage());
+            } finally {
+                vpnEnabling.set(false);
             }
-        });
+        }, "xcfg-enable");
+        t.start();
     }
 
     void vpnDisable(boolean notify) {

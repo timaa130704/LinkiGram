@@ -50,8 +50,8 @@ public final class XcfgCore {
         File gzTmp = new File(d, "core.gz.part");
         File soTmp = new File(d, "libgojni.so.part");
         try {
-            XcfgApi.downloadChecked(XcfgPrefs.CORE_BASE + XcfgPrefs.CORE_DEX, dexTmp, XcfgPrefs.CORE_DEX_SHA256, null);
-            XcfgApi.downloadChecked(XcfgPrefs.CORE_BASE + XcfgPrefs.CORE_SO_GZ, gzTmp, XcfgPrefs.CORE_SO_GZ_SHA256, progress);
+            downloadWithRetry(XcfgPrefs.CORE_BASE + XcfgPrefs.CORE_DEX, dexTmp, XcfgPrefs.CORE_DEX_SHA256, null, "dex");
+            downloadWithRetry(XcfgPrefs.CORE_BASE + XcfgPrefs.CORE_SO_GZ, gzTmp, XcfgPrefs.CORE_SO_GZ_SHA256, progress, "ядро");
             try (GZIPInputStream src = new GZIPInputStream(new FileInputStream(gzTmp));
                  OutputStream dst = new FileOutputStream(soTmp)) {
                 byte[] buf = new byte[1024 * 1024];
@@ -88,6 +88,21 @@ public final class XcfgCore {
             gzTmp.delete();
             soTmp.delete();
         }
+    }
+
+    /** Скачивание с логом этапов и fallback на Range-куски, если сервер обрывает стрим. */
+    private static void downloadWithRetry(String url, File out, String sha256, XcfgApi.ProgressCallback cb, String name) throws Exception {
+        try {
+            Log.i("xcfg", "vpn: качаю " + name + " (прямое скачивание)");
+            XcfgApi.downloadChecked(url, out, sha256, cb);
+            Log.i("xcfg", "vpn: " + name + " скачан");
+            return;
+        } catch (Exception e) {
+            Log.i("xcfg", "vpn: " + name + ": прямое скачивание не удалось (" + e + "), пробую кусками");
+            out.delete();
+        }
+        XcfgApi.downloadChunked(url, out, sha256, cb);
+        Log.i("xcfg", "vpn: " + name + " скачан (Range-кусками)");
     }
 
     private static void ensureLoader() throws Exception {
