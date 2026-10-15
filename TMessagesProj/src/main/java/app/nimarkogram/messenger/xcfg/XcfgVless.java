@@ -219,14 +219,19 @@ public final class XcfgVless {
                 .put("streamSettings", stream);
     }
 
-    /** Конфиг ядра для Telegram: SOCKS5 127.0.0.1 с паролем → самый быстрый живой сервер подписки. */
-    public static String buildConfig(List<String> links, int port, String user, String password) throws JSONException {
+    /** Конфиг ядра для Telegram: SOCKS5 127.0.0.1 с паролем → серверы подписки.
+     *  selected = -1 — авто (ядро меряет и ведёт через самый быстрый живой);
+     *  selected >= 0 — только выбранный сервер (индекс в списке links). */
+    public static String buildConfig(List<String> links, int port, String user, String password, int selected) throws JSONException {
         List<Parsed> nodes = new ArrayList<>();
         for (String l : links) {
             Parsed p = parse(l);
             if (p != null) {
                 nodes.add(p);
             }
+        }
+        if (selected >= nodes.size()) {
+            selected = -1;
         }
         JSONArray outbounds = new JSONArray();
         for (int i = 0; i < nodes.size(); i++) {
@@ -263,7 +268,13 @@ public final class XcfgVless {
         cfg.put("inbounds", new JSONArray().put(inbound));
         cfg.put("outbounds", outbounds);
         cfg.put("routing", routing);
-        if (nodes.size() > 1) {
+        if (selected >= 0) {
+            // выбранный сервер: без балансера, трафик только в него
+            rules.put(new JSONObject()
+                    .put("type", "field")
+                    .put("network", "tcp,udp")
+                    .put("outboundTag", "p" + selected));
+        } else if (nodes.size() > 1) {
             // несколько серверов — ядро само меряет их раз в минуту и ведёт трафик через самый быстрый живой
             cfg.put("observatory", new JSONObject()
                     .put("subjectSelector", new JSONArray().put("p"))

@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.AlertDialog;
 
+import java.util.List;
 import java.util.Locale;
 
 public final class XcfgCabinet {
@@ -129,6 +130,13 @@ public final class XcfgCabinet {
             } else {
                 String subUrl = me.optString("sub_url", "");
                 ui.button("Включить VPN в Telegram", true, () -> ctl.vpnEnable(subUrl), 16, false);
+            }
+            List<String> servers = ctl.currentServers();
+            if (!servers.isEmpty()) {
+                int idx = ctl.currentServerIndex();
+                String cur = idx < 0 ? "Авто (самый быстрый)" : XcfgController.serverName(idx);
+                ui.button("Сервер подписки: " + cur, false, ctl::showServerPicker, 10, false);
+                ui.button("Обновить список серверов (" + servers.size() + ")", false, ctl::refreshServers, 6, false);
             }
             ui.button("VPN на весь телефон (приложение X-CFG)", false, ctl::launchXcfg, 10, false);
         } else if (me.optBoolean("trial_available")) {

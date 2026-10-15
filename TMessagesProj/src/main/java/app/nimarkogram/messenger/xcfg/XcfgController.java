@@ -639,7 +639,11 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
     }
 
     private void startCore(List<String> links) throws Exception {
-        String cfg = XcfgVless.buildConfig(links, vpnPort(), vpnSecret("tg_user"), vpnSecret("tg_pass"));
+        int selected = XcfgPrefs.getInt("tg_server", -1);
+        String cfg = XcfgVless.buildConfig(links, vpnPort(), vpnSecret("tg_user"), vpnSecret("tg_pass"), selected);
+        if (selected >= 0 && selected < links.size()) {
+            fileLog("vpn: сервер №" + (selected + 1) + " (" + serverName(selected) + ")");
+        }
         XcfgCore.start(cfg);
         watchSystemVpn();
     }
@@ -848,6 +852,122 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
         } catch (Exception ignore) {
         }
         return links;
+    }
+
+    // ─────────────────── серверы подписки: обновление и выбор ───────────────────
+
+    /** Имя сервера (remark из vless-ссылки) или «Сервер N». */
+    static String serverName(int idx) {
+        List<String> links = loadLinks();
+        if (idx < 0 || idx >= links.size()) {
+            return "";
+        }
+        XcfgVless.Parsed p = XcfgVless.parse(links.get(idx));
+        if (p != null && p.remark != null && !p.remark.isEmpty()) {
+            return p.remark;
+        }
+        return "Сервер " + (idx + 1);
+    }
+
+    List<String> currentServers() {
+        return loadLinks();
+    }
+
+    int currentServerIndex() {
+        return XcfgPrefs.getInt("tg_server", -1);
+    }
+
+    /**
+     * Обновляет список серверов подписки: заново забирает ссылки с API X-VPN,
+     * сохраняет и, если VPN работает, перезапускает ядро на свежий список.
+     */
+    void refreshServers() {
+        final String sub = XcfgPrefs.get("tg_sub", "");
+        if (sub.isEmpty() || "null".equals(sub)) {
+            toast("X-CFG: нет ссылки подписки — включите VPN или получите доступ");
+            return;
+        }
+        toast("X-CFG: обновляю список серверов…");
+        Thread t = new Thread(() -> {
+            try {
+                XcfgApi.Sub fresh = XcfgApi.fetchLinks(sub, hwid());
+                if (fresh.links.isEmpty()) {
+                    fileLog("vpn refresh: подписка без серверов: " + fresh.stub);
+                    toast("X-CFG: не удалось обновить — " + (fresh.stub.isEmpty() ? "подписка недоступна" : fresh.stub));
+                    return;
+                }
+                List<String> old = loadLinks();
+                XcfgPrefs.set("tg_links", new JSONArray(fresh.links).toString());
+                fileLog("vpn: серверы обновлены (" + fresh.links.size() + ", было " + old.size() + ")");
+                int idx = XcfgPrefs.getInt("tg_server", -1);
+                if (idx >= fresh.links.size()) {
+                    XcfgPrefs.setInt("tg_server", -1);
+                }
+                if (vpnRunning()) {
+                    startCore(loadLinks());
+                }
+                toast("Серверы подписки обновлены (" + fresh.links.size() + ")");
+            } catch (Exception e) {
+                fileLog("vpn refresh: " + e);
+                toast("X-CFG: не удалось обновить список серверов");
+            }
+        }, "xcfg-refresh");
+        t.start();
+    }
+
+    /** Диалог выбора сервера подписки (авто + все серверы списка). */
+    void showServerPicker() {
+        Activity activity = activity();
+        if (activity == null) {
+            return;
+        }
+        List<String> servers = loadLinks();
+        if (servers.isEmpty()) {
+            toast("X-CFG: список серверов пуст");
+            return;
+        }
+        int cur = XcfgPrefs.getInt("tg_server", -1);
+        String[] items = new String[servers.size() + 1];
+        items[0] = "Авто (самый быстрый живой)";
+        for (int i = 0; i < servers.size(); i++) {
+            items[i + 1] = serverName(i);
+        }
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder =
+                new org.telegram.ui.ActionBar.AlertDialog.Builder(activity);
+        builder.setTitle("Сервер подписки");
+        builder.setItems(items, (dialog, which) -> {
+            int idx = which - 1;
+            if (idx != cur) {
+                pickServer(idx);
+            }
+        });
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.dismiss());
+        builder.create().show();
+    }
+
+    /**
+     * Выбор сервера подписки: idx = -1 — авто (самый быстрый живой).
+     * Если VPN работает — ядро сразу перезапускается на выбранный сервер.
+     */
+    void pickServer(int idx) {
+        List<String> links = loadLinks();
+        if (idx >= links.size()) {
+            idx = -1;
+        }
+        XcfgPrefs.setInt("tg_server", idx);
+        fileLog("vpn: сервер подписки: " + (idx < 0 ? "авто" : serverName(idx)));
+        if (vpnRunning() && !links.isEmpty()) {
+            try {
+                startCore(links);
+                toast(idx < 0 ? "Авто-выбор сервера, VPN перезапущен"
+                        : "Выбран " + serverName(idx) + ", VPN перезапущен");
+            } catch (Exception e) {
+                fileLog("vpn pick: " + e);
+                toast("X-CFG: не удалось переключить сервер: " + e.getMessage());
+            }
+        } else {
+            toast(idx < 0 ? "Авто-выбор сервера" : "Выбран " + serverName(idx));
+        }
     }
 
     // ─────────────────────────── действия кабинета ───────────────────────────
