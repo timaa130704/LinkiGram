@@ -225,7 +225,7 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             return;
         }
         closeBusy();
-        AlertDialog.Builder b = new AlertDialog.Builder(a, AlertDialog.ALERT_TYPE_SPINNER);
+        AlertDialog.Builder b = new AlertDialog.Builder(a, AlertDialog.ALERT_TYPE_SPINNER, null);
         b.setTitle(title);
         busyDialog = b.show();
     }
