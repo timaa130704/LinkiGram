@@ -356,7 +356,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             if (getParentLayout() != null) {
                 getParentLayout().rebuildAllFragmentViews(false, false);
             }
-            getNotificationCenter().postNotificationName(NotificationCenter.storiesUpdated);
+            org.telegram.messenger.NotificationCenter.getGlobalInstance().postNotificationName(org.telegram.messenger.NotificationCenter.storiesUpdated);
         } else if (item.id == archiveStoriesRow) {
             showStoriesArchiveConfigurator();
         } else if (item.id == useSystemEmojiRow) {

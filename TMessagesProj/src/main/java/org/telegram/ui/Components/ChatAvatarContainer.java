@@ -773,7 +773,6 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         glassMode = true;
     }
 
-    @Override
     /** LinkiGram: iOS-шапка чата (порт exteraless, NM_Style_ChatHeader) — заголовок
      *  с подзаголовком центрируются, аватарка скрывается (hideAvatarForIosHeader). */
     public void hideAvatarForIosHeader() {
