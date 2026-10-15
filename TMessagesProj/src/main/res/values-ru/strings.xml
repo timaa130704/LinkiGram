@@ -1419,6 +1419,7 @@
 <string name="NM_WSB_RouteHeader">Режим маршрута</string>
 <string name="NM_WSB_RouteRelay">Через релей</string>
 <string name="NM_WSB_RouteTgws">tg-ws-linki</string>
+<string name="NM_WSB_RouteXcfg">X-CFG (встроенный VPN)</string>
 <string name="NM_WSB_RouteDesc">Релей ведёт трафик через сервер автора. tg-ws-linki — встроенный движок: прямое соединение с Telegram и пул WebSocket, работает там, где релей душат.</string>
     <string name="NM_WSB_AuthorHeader">Автор</string>
     <string name="NM_WSB_AuthorChannel">Канал автора</string>

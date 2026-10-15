@@ -705,6 +705,14 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
                 }
                 XcfgPrefs.set("tg_links", new JSONArray(sub.links).toString());
                 XcfgPrefs.set("tg_sub", subUrl);
+                // X-CFG становится активным способом обхода: гасим WS-bypass,
+                // чтобы два локальных прокси не спорили за подключение Telegram.
+                try {
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(false);
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().stop();
+                } catch (Throwable t) {
+                    fileLog("vpn enable: ws-bypass stop: " + t);
+                }
                 startCore(sub.links);
                 XcfgPrefs.setBool("tg_vpn", true);
                 fileLog("vpn: включён, серверов " + sub.links.size());
@@ -721,13 +729,65 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
         watcherGen = "";
         applyProxy(false);
         XcfgCore.stop();
+        // способ обхода возвращается на tg-ws-linki (быстрый встроенный движок)
+        try {
+            app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setRouteMode(
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.ROUTE_TGWS);
+            app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(true);
+            app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().ensureStarted();
+        } catch (Throwable t) {
+            fileLog("vpn disable: ws-bypass restart: " + t);
+        }
         if (notify) {
             toast("VPN для Telegram выключен");
         }
     }
 
+    // ─────────────────── интеграция со способом обхода ───────────────────
+
+    /** VPN X-CFG сейчас работает (для экрана «Обход блокировок»). */
+    public static boolean vpnActive() {
+        try {
+            return getInstance().vpnRunning();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Выбор X-CFG как способа обхода: сам включает VPN.
+     * Без входа открывает вход, без подписки — кабинет.
+     */
+    public static void requestEnable() {
+        XcfgController c = getInstance();
+        if (c.vpnRunning()) {
+            return;
+        }
+        if (XcfgPrefs.token().isEmpty()) {
+            openMain(UserConfig.selectedAccount);
+            return;
+        }
+        String sub = XcfgPrefs.get("tg_sub", "");
+        if (sub.isEmpty() || "null".equals(sub)) {
+            c.showCabinet();
+            return;
+        }
+        c.vpnEnable(sub);
+    }
+
+    /** Отказ от X-CFG как способа обхода (вернётся tg-ws-linki). */
+    public static void requestDisable(boolean notify) {
+        getInstance().vpnDisable(notify);
+    }
+
     private void autostartInternal() {
         try {
+            // автозапуск X-CFG — значит он и есть способ обхода: гасим WS-bypass
+            try {
+                app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(false);
+                app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().stop();
+            } catch (Throwable ignored) {
+            }
             List<String> links = loadLinks();
             if (!links.isEmpty() && XcfgCore.isReady()) {
                 startCore(links);

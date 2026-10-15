@@ -31,7 +31,7 @@ public final class TgWsBridge {
                 if (!checked) {
                     boolean ok;
                     try {
-                        nativeSetPoolSize(4);
+                        nativeSetPoolSize(8);
                         ok = true;
                     } catch (Throwable t) {
                         ok = false;

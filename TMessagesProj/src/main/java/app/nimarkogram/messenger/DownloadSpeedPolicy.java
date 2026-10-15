@@ -12,8 +12,11 @@ public final class DownloadSpeedPolicy {
     private static final Profile DIRECT_AVERAGE = new Profile(512 * KIB, 8);
     private static final Profile DIRECT_EXTREME = new Profile(1024 * KIB, 12);
 
-    private static final Profile BYPASS_AVERAGE = new Profile(256 * KIB, 4);
-    private static final Profile BYPASS_EXTREME = new Profile(512 * KIB, 4);
+    // Bypass profiles now match the direct ones: the tg-ws-linki core and the local
+    // Xray SOCKS5 (X-CFG) both hand Telegram a plain local socket, so there is no
+    // reason to halve chunk sizes / request count while a bypass is active.
+    private static final Profile BYPASS_AVERAGE = new Profile(512 * KIB, 8);
+    private static final Profile BYPASS_EXTREME = new Profile(1024 * KIB, 12);
 
     public static int normalizeBoost(int value) {
         return value >= BOOST_NONE && value <= BOOST_EXTREME ? value : BOOST_NONE;

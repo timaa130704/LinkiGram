@@ -11952,6 +11952,7 @@
 <string name="NM_WSB_RouteHeader">Route mode</string>
 <string name="NM_WSB_RouteRelay">Via relay</string>
 <string name="NM_WSB_RouteTgws">tg-ws-linki</string>
+<string name="NM_WSB_RouteXcfg">X-CFG (built-in VPN)</string>
 <string name="NM_WSB_RouteDesc">Relay routes traffic through the author\'s server. tg-ws-linki is a built-in engine that connects straight to Telegram and holds a WebSocket pool — it works on networks that throttle the relay.</string>
 <string name="NM_WSB_AuthorHeader">Author</string>
 <string name="NM_WSB_AuthorChannel">Author\'s channel</string>
