@@ -71,6 +71,7 @@ public final class NimarkoWsBypassConfig {
 
     public static final int ROUTE_RELAY = 0;
     public static final int ROUTE_TGWS = 1;
+    public static final int ROUTE_XCFG = 2;
 
     public static int routeMode = loadRouteMode();
 
@@ -79,11 +80,11 @@ public final class NimarkoWsBypassConfig {
         // relay and keeps working when the relay is unreachable. An explicit "relay"
         // choice is remembered, so only the untouched state falls back to the default.
         int stored = prefs().getInt("route_mode", ROUTE_TGWS);
-        return stored == ROUTE_RELAY ? ROUTE_RELAY : ROUTE_TGWS;
+        return stored == ROUTE_RELAY || stored == ROUTE_XCFG ? stored : ROUTE_TGWS;
     }
 
     public static void setRouteMode(int v) {
-        if (v != ROUTE_RELAY) v = ROUTE_TGWS;
+        if (v != ROUTE_RELAY && v != ROUTE_XCFG) v = ROUTE_TGWS;
         routeMode = v;
         editor().putInt("route_mode", v).apply();
     }

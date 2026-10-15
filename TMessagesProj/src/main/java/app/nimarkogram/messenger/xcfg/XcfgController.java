@@ -717,6 +717,8 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
                 // X-CFG становится активным способом обхода: гасим WS-bypass,
                 // чтобы два локальных прокси не спорили за подключение Telegram.
                 try {
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setRouteMode(
+                            app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.ROUTE_XCFG);
                     app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(false);
                     app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().stop();
                 } catch (Throwable tw) {
@@ -729,6 +731,15 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             } catch (Exception e) {
                 fileLog("vpn enable: " + e);
                 toast("X-CFG: не удалось включить VPN: " + e.getMessage());
+                // откат: X-CFG не поднялся — возвращаем tg-ws, чтобы обход не пропал
+                try {
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setRouteMode(
+                            app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.ROUTE_TGWS);
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassConfig.setEnabled(true);
+                    app.nimarkogram.messenger.wsbypass.NimarkoWsBypassController.getInstance().ensureStarted();
+                } catch (Throwable tw) {
+                    fileLog("vpn enable: ws-bypass rollback: " + tw);
+                }
             } finally {
                 vpnEnabling.set(false);
             }

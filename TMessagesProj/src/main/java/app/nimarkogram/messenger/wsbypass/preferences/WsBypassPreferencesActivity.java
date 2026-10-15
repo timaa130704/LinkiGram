@@ -140,7 +140,7 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
         items.add(UItem.asRadio(ID_ROUTE_TGWS, LocaleController.getString(R.string.NM_WSB_RouteTgws))
                 .setChecked(NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_TGWS));
         items.add(UItem.asRadio(ID_ROUTE_XCFG, LocaleController.getString(R.string.NM_WSB_RouteXcfg))
-                .setChecked(app.nimarkogram.messenger.xcfg.XcfgController.vpnActive()));
+                .setChecked(NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_XCFG));
         items.add(UItem.asShadow(LocaleController.getString(R.string.NM_WSB_RouteDesc)));
 
         items.add(UItem.asHeader(LocaleController.getString(R.string.NM_WSB_MiscHeader)));
@@ -201,7 +201,8 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
             case ID_ROUTE_RELAY:
             case ID_ROUTE_TGWS:
                 // выбор WS-маршрута снимает X-CFG и сам включает WS-bypass
-                if (app.nimarkogram.messenger.xcfg.XcfgController.vpnActive()) {
+                if (NimarkoWsBypassConfig.routeMode == NimarkoWsBypassConfig.ROUTE_XCFG
+                        || app.nimarkogram.messenger.xcfg.XcfgController.vpnActive()) {
                     app.nimarkogram.messenger.xcfg.XcfgController.requestDisable(false);
                 }
                 NimarkoWsBypassConfig.setRouteMode(
@@ -214,6 +215,7 @@ public class WsBypassPreferencesActivity extends BasePreferencesActivity
                 break;
             case ID_ROUTE_XCFG:
                 // выбор X-CFG сам включает его VPN (и гасит WS-bypass)
+                NimarkoWsBypassConfig.setRouteMode(NimarkoWsBypassConfig.ROUTE_XCFG);
                 app.nimarkogram.messenger.xcfg.XcfgController.requestEnable();
                 scheduleStatusPoll();
                 reload();
