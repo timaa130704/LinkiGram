@@ -225,7 +225,7 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             return;
         }
         closeBusy();
-        AlertDialog.Builder b = new AlertDialog.Builder(a, AlertDialog.Builder.ALERT_TYPE_SPINNER);
+        AlertDialog.Builder b = new AlertDialog.Builder(a, AlertDialog.ALERT_TYPE_SPINNER);
         b.setTitle(title);
         busyDialog = b.show();
     }
@@ -300,7 +300,7 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             // бота нет в кэше — спрашиваем Telegram по юзернейму
             TLRPC.TL_contacts_resolveUsername req = new TLRPC.TL_contacts_resolveUsername();
             req.username = XcfgPrefs.BOT;
-            ConnectionsManager.getInstance(account).sendRequest(req, (ResponseDelegate) (response, error) -> {
+            ConnectionsManager.getInstance(account).sendRequest(req, (RequestDelegate) (response, error) -> {
                 try {
                     if (!(response instanceof TLRPC.TL_contacts_resolvedPeer) || ((TLRPC.TL_contacts_resolvedPeer) response).users.isEmpty()) {
                         throw new RuntimeException("bot not resolved: " + (error != null ? error.text : "empty"));
@@ -440,7 +440,7 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
             TLRPC.TL_messages_getHistory req = new TLRPC.TL_messages_getHistory();
             req.peer = MessagesController.getInstance(account).getInputPeer(w.botId);
             req.limit = 6;
-            ConnectionsManager.getInstance(account).sendRequest(req, (ResponseDelegate) (response, error) -> {
+            ConnectionsManager.getInstance(account).sendRequest(req, (RequestDelegate) (response, error) -> {
                 try {
                     LoginWait lw = wait;
                     if (lw == null || lw != w) {

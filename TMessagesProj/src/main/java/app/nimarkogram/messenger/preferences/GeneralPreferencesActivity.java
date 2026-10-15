@@ -575,7 +575,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         container.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
                 LayoutHelper.WRAP_CONTENT, 24f, 0f, 24f, 10f));
 
-        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context, resourcesProvider);
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context);
         builder.setTitle(getString(R.string.OEGeneralLastFm));
         builder.setView(container);
         builder.setPositiveButton(getString(R.string.Done), (dialog, which) -> {
@@ -609,7 +609,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     private void applyLastFmToProfileMusic(String nick) {
         org.telegram.ui.ActionBar.AlertDialog progress = getParentActivity() != null
-                ? new org.telegram.ui.ActionBar.AlertDialog(getParentActivity(), org.telegram.ui.ActionBar.AlertDialog.ALERT_TYPE_LOADING, resourcesProvider) : null;
+                ? new org.telegram.ui.ActionBar.AlertDialog(getParentActivity(), org.telegram.ui.ActionBar.AlertDialog.ALERT_TYPE_LOADING) : null;
         if (progress != null) {
             progress.setTitle(getString(R.string.OEGeneralLastFm));
             progress.setMessage(getString(R.string.OEGeneralLastFmStageDownload));

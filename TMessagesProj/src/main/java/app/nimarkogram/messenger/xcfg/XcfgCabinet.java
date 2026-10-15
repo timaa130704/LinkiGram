@@ -123,7 +123,7 @@ public final class XcfgCabinet {
         }
 
         if (hasSub && active) {
-            if (ctl.isVpnRunning()) {
+            if (ctl.vpnRunning()) {
                 ui.text("VPN для Telegram включён", 14, XcfgPrefs.EMERALD, true, 14);
                 ui.button("Выключить VPN в Telegram", false, () -> ctl.vpnDisable(true), 8, false);
             } else {
