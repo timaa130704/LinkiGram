@@ -437,8 +437,8 @@ public class UniversalRecyclerView extends RecyclerListView {
     }
     /** Материал-3: радиус карточки секции. Если карточки выключены — оставляем значение вызывающего. */
     private static float resolveSectionRadius(float requested) {
-        if (NimarkoConfig.materialCards && NimarkoConfig.sectionRadius > 0) {
-            return dp(NimarkoConfig.sectionRadius);
+        if ((NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) && (NimarkoConfig.sectionRadius > 0 || NimarkoConfig.m3ListItems())) {
+            return dp(Math.max(NimarkoConfig.sectionRadius, 16));
         }
         return requested;
     }
@@ -469,7 +469,7 @@ public class UniversalRecyclerView extends RecyclerListView {
      */
     @Override
     public void drawBackgroundRect(Canvas canvas, RectF rect, float topRadius, float bottomRadius, float alpha) {
-        if (!NimarkoConfig.materialCards || NimarkoConfig.sectionRadius <= 0) {
+        if (!(NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) || (NimarkoConfig.sectionRadius <= 0 && !NimarkoConfig.m3ListItems())) {
             super.drawBackgroundRect(canvas, rect, topRadius, bottomRadius, alpha);
             return;
         }

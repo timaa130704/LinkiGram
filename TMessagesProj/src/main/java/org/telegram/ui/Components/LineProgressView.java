@@ -14,6 +14,8 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.Log;
 import android.view.View;
+
+import org.telegram.ui.ActionBar.Theme;
 import android.view.animation.DecelerateInterpolator;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -107,6 +109,17 @@ public class LineProgressView extends View {
     }
 
     public void onDraw(Canvas canvas) {
+        // LinkiGram: MD3-дорожка индикатора (порт exteraless, NM_Style_Loaders) —
+        // приглушённая полоса на всю ширину, когда фон не задан узором темы.
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newLoadingStyle() && backColor == 0) {
+            int prevColor = progressPaint.getColor();
+            int prevAlpha = progressPaint.getAlpha();
+            progressPaint.setColor(Theme.multAlpha(progressColor, 0.12f));
+            rect.set(0, 0, getWidth(), getHeight());
+            canvas.drawRoundRect(rect, getHeight() / 2f, getHeight() / 2f, progressPaint);
+            progressPaint.setColor(prevColor);
+            progressPaint.setAlpha(prevAlpha);
+        }
         if (backColor != 0 && animatedProgressValue != 1) {
             progressPaint.setColor(backColor);
             progressPaint.setAlpha((int) (255 * animatedAlphaValue));

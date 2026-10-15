@@ -896,6 +896,11 @@ public final class NimarkoConfig {
     public static boolean materialCards = getPreferences().getBoolean("materialCards", true);
     public static void toggleMaterialCards() { materialCards = !materialCards; getEditor().putBoolean("materialCards", materialCards).apply(); }
 
+    /** Material 3: элементы списков карточками (порт exteraless, NM_Style_ListItems). */
+    public static boolean m3ListItems() {
+        return getPreferences().getBoolean("m3ListItems", false);
+    }
+
     /** Радиус карточек секций, dp. 0 — секции плоские, без скругления. */
     public static final int SECTION_RADIUS_MAX = 28;
     public static int sectionRadius = getPreferences().getInt("sectionRadius", 20);

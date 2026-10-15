@@ -353,8 +353,10 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         } else if (item.id == hideStoriesRow) {
             NimarkoConfig.toggleHideStories();
             SettingsHelper.updateCheckState(view, NimarkoConfig.hideStories);
-
-            showRestartBulletin();
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
+            getNotificationCenter().postNotificationName(NotificationCenter.storiesUpdated);
         } else if (item.id == archiveStoriesRow) {
             showStoriesArchiveConfigurator();
         } else if (item.id == useSystemEmojiRow) {

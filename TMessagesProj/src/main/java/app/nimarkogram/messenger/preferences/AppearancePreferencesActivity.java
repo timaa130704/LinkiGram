@@ -32,6 +32,7 @@ import org.telegram.ui.LaunchActivity;
 import java.util.ArrayList;
 
 import app.nimarkogram.messenger.NimarkoConfig;
+import app.nimarkogram.messenger.appearance.AppearanceConfig;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 
 public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesActivity {
@@ -62,8 +63,25 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int messagesAndProfilesRow = 9;
     private final int appBackgroundRow = 22;
     private final int classicUiRow = 23;
-    private final int navigationDrawerRow = 24;
-    private final int immersiveDrawerRow = 25;
+    private final int navigationDrawerRow = 26;
+    private final int immersiveDrawerRow = 27;
+    private boolean materialExpanded;
+    private boolean iosExpanded;
+    private static final int MATERIAL_GROUP = 100;
+    private static final int IOS_GROUP = 101;
+    private static final int STYLE_BASE = 110;
+    private static final int[] MATERIAL_LABELS = {R.string.NM_Style_Loaders, R.string.NM_Style_Sliders,
+            R.string.NM_Style_Switches, R.string.NM_Style_ChatHeader, R.string.NM_Style_Navigation,
+            R.string.NM_Style_ListItems, R.string.OEAppearanceMd3Player, R.string.OEAppearanceMd3MiniPlayer};
+    private static final int[] IOS_LABELS = {R.string.NM_Style_Navigation, R.string.NM_Style_ChatHeader};
+
+    private static String styleCount(String[] keys) {
+        int n = 0;
+        for (String key : keys) {
+            if (AppearanceConfig.enabled(key)) n++;
+        }
+        return String.valueOf(n);
+    }
 
     private app.nimarkogram.messenger.preferences.components.AvatarCornersPreviewCell avatarCornersCell;
     private app.nimarkogram.messenger.preferences.components.StickerSizeCell stickerSizeCell;
@@ -86,6 +104,22 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
+        items.add(UItem.asButton(MATERIAL_GROUP, getString(R.string.NM_Style_Material),
+                styleCount(AppearanceConfig.MATERIAL_KEYS) + "/8"));
+        if (materialExpanded) {
+            for (int i = 0; i < AppearanceConfig.MATERIAL_KEYS.length; i++) {
+                items.add(SettingsHelper.asSwitchCG(STYLE_BASE + i, getString(MATERIAL_LABELS[i]))
+                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.MATERIAL_KEYS[i])));
+            }
+        }
+        items.add(UItem.asButton(IOS_GROUP, getString(R.string.NM_Style_IOS),
+                styleCount(AppearanceConfig.IOS_KEYS) + "/2"));
+        if (iosExpanded) {
+            for (int i = 0; i < AppearanceConfig.IOS_KEYS.length; i++) {
+                items.add(SettingsHelper.asSwitchCG(STYLE_BASE + 8 + i, getString(IOS_LABELS[i]))
+                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.IOS_KEYS[i])));
+            }
+        }
         items.add(SettingsHelper.asSwitchCG(disableDividersRow, getString(R.string.AP_DisableDividers))
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.disableDividers)
         );
@@ -193,6 +227,26 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == MATERIAL_GROUP || item.id == IOS_GROUP) {
+            if (item.id == MATERIAL_GROUP) {
+                materialExpanded = !materialExpanded;
+            } else {
+                iosExpanded = !iosExpanded;
+            }
+            listView.adapter.update(true);
+            return;
+        } else if (item.id >= STYLE_BASE && item.id < STYLE_BASE + 10) {
+            int index = item.id - STYLE_BASE;
+            String key = index < 8 ? AppearanceConfig.MATERIAL_KEYS[index] : AppearanceConfig.IOS_KEYS[index - 8];
+            AppearanceConfig.setEnabled(key, !AppearanceConfig.enabled(key));
+            updateCheckState(view, AppearanceConfig.enabled(key));
+            listView.adapter.update(true);
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
+            return;
+        }
         if (item.id == centerTitleRow) {
             
             if (getActionBar() != null) {

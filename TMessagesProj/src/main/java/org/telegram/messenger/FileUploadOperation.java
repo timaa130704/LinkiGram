@@ -47,6 +47,8 @@ public class FileUploadOperation {
     private int maxRequestsCount;
     private int uploadChunkSize = 64 * 1024;
     private boolean slowNetwork;
+    // Snapshot per operation: do not change part geometry in the middle of an upload.
+    private final boolean boostUpload = app.nimarkogram.messenger.NimarkoConfig.uploadSpeedBoost;
     // LinkiGram: ported from exteraless — paths marked for upload without slow-network
     // throttling, used by the profile music stamp when re-uploading a track.
     private static final java.util.Set<String> FAST_PATHS = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -63,7 +65,7 @@ public class FileUploadOperation {
     }
 
     private boolean isFastUpload() {
-        return uploadingFilePath != null && FAST_PATHS.contains(uploadingFilePath);
+        return boostUpload || uploadingFilePath != null && FAST_PATHS.contains(uploadingFilePath);
     }
     private ArrayList<byte[]> freeRequestIvs;
     private int requestNum;
@@ -150,8 +152,9 @@ public class FileUploadOperation {
             return;
         }
         Utilities.stageQueue.postRunnable(() -> {
-            if (slowNetwork != slow) {
-                slowNetwork = slow;
+            final boolean effectiveSlow = slow && !isFastUpload();
+            if (slowNetwork != effectiveSlow) {
+                slowNetwork = effectiveSlow;
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("network changed to slow = " + slowNetwork);
                 }
@@ -335,7 +338,7 @@ public class FileUploadOperation {
                     }
                     uploadChunkSize = chunkSize;
                 }
-                maxRequestsCount = Math.max(1, (slowNetwork ? maxUploadingSlowNetworkKBytes : maxUploadingKBytes) / uploadChunkSize);
+                maxRequestsCount = Math.max(1, (slowNetwork ? maxUploadingSlowNetworkKBytes : maxUploadingKBytes * (boostUpload ? 2 : 1)) / uploadChunkSize);
 
                 if (isEncrypted) {
                     freeRequestIvs = new ArrayList<>(maxRequestsCount);

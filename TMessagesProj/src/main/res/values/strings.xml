@@ -11572,6 +11572,14 @@
 <string name="NM_ForumAvatarsLikeChats">Unified rounding</string>
 <string name="NM_ForumAvatarsLikeChats_Desc">Forum avatars are rounded the same way as regular chats.</string>
 <string name="NM_SwitchStyle">Switch style</string>
+    <string name="NM_Style_Material">Material Design</string>
+    <string name="NM_Style_IOS">iOS Design</string>
+    <string name="NM_Style_Loaders">MD3 loading indicators</string>
+    <string name="NM_Style_Sliders">MD3 sliders</string>
+    <string name="NM_Style_Switches">MD3 switches</string>
+    <string name="NM_Style_ChatHeader">Chat header</string>
+    <string name="NM_Style_Navigation">Navigation bar</string>
+    <string name="NM_Style_ListItems">List items</string>
 <string name="NM_Chat_Section">Chats</string>
 <string name="NM_Stickers_Header">Stickers</string>
 <string name="NM_StickerSize">Sticker size</string>

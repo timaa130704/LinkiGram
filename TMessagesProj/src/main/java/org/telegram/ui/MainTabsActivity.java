@@ -311,10 +311,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsView = new MainTabsLayout(context, resourceProvider);
         tabsView.setClipChildren(false);
-        final boolean dockedTabs = MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
+        // LinkiGram: стили навигации из exteraless (NM_Style_Navigation) — MD3: полный
+        // квадратный док, iOS: капсула во всю ширину. Оба сильнее режима «плавающая».
+        final boolean md3Nav = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        final boolean iosNav = app.nimarkogram.messenger.appearance.AppearanceConfig.iosNavigationBarStyle();
+        final boolean dockedTabs = MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW || md3Nav;
+        final boolean fullWidthTabs = dockedTabs || iosNav;
         final int tabsPad = (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
         tabsView.setPadding(dp(tabsPad), dp(tabsPad), dp(tabsPad), dp(tabsPad));
-        tabsView.setMaxWidth(dockedTabs ? 0 : dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
+        tabsView.setMaxWidth(fullWidthTabs ? 0 : dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
 
         tabs = new GlassTabView[5];
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);

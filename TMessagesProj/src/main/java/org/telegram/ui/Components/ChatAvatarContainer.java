@@ -79,6 +79,15 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     public boolean allowDrawStories;
     private Integer storiesForceState;
     private int avatarSizeInDp = 42;
+
+    /** LinkiGram: MD3-шапка чата (порт exteraless ChatHeaderUiHelper, NM_Style_ChatHeader). */
+    public int getAvatarSizeInDp() {
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle()
+                && !app.nimarkogram.messenger.appearance.AppearanceConfig.iosChatHeader()) {
+            return 46;
+        }
+        return avatarSizeInDp;
+    }
     public BackupImageView avatarImageView;
     private boolean avatarImageIsHidden;
     private SimpleTextView titleTextView;
@@ -665,7 +674,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         final int width = MeasureSpec.getSize(widthMeasureSpec);
         final int availableWidth = width - dp((avatarImageView.getVisibility() == VISIBLE ? 54 : 0) + 16);
-        avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp) - 2, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(avatarSizeInDp) - 2, MeasureSpec.EXACTLY));
+        avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - 2, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - 2, MeasureSpec.EXACTLY));
         titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8), MeasureSpec.AT_MOST));
         if (subtitleTextView != null) {
             subtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
@@ -765,13 +774,33 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     }
 
     @Override
+    /** LinkiGram: iOS-шапка чата (порт exteraless, NM_Style_ChatHeader) — заголовок
+     *  с подзаголовком центрируются, аватарка скрывается (hideAvatarForIosHeader). */
+    public void hideAvatarForIosHeader() {
+        avatarImageView.setVisibility(GONE);
+        requestLayout();
+    }
+
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         final int actionBarHeight = ActionBar.getCurrentActionBarHeight();
         final int viewTop = (actionBarHeight - avatarImageView.getMeasuredHeight() - 2) / 2 + (occupyStatusBar ? AndroidUtilities.statusBarHeight : 0);
         final int subtitleTop = viewTop + dp(glassMode ? 23.66f : 24);
 
         avatarImageView.layout(1 + leftPadding, 1 + viewTop, 1 + leftPadding + avatarImageView.getMeasuredWidth(), 1 + viewTop + avatarImageView.getMeasuredHeight());
-        int l = leftPadding + (avatarImageView.getVisibility() == VISIBLE ? dp(glassMode ? 49.66f : 55) : dp(glassMode ? 13 : 1)) + rightAvatarPadding;
+        // LinkiGram: iOS-шапка чата (порт exteraless, NM_Style_ChatHeader) — заголовок
+        // с подзаголовком центрируются, аватарка скрывается (hideAvatarForIosHeader).
+        int l;
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.iosChatHeader()) {
+            int textWidth = titleTextView.getMeasuredWidth();
+            if (subtitleTextView != null && subtitleTextView.getVisibility() != GONE) {
+                textWidth = Math.max(textWidth, subtitleTextView.getMeasuredWidth());
+            } else if (animatedSubtitleTextView != null) {
+                textWidth = Math.max(textWidth, animatedSubtitleTextView.getMeasuredWidth());
+            }
+            l = Math.max((getMeasuredWidth() - textWidth) / 2, leftPadding);
+        } else {
+            l = leftPadding + (avatarImageView.getVisibility() == VISIBLE ? dp(glassMode ? 49.66f : 55) : dp(glassMode ? 13 : 1)) + rightAvatarPadding;
+        }
         SimpleTextView titleTextLargerCopyView = this.titleTextLargerCopyView.get();
         if (getSubtitleTextView().getVisibility() != GONE) {
             titleTextView.layout(l, viewTop + dp(1.66f) - titleTextView.getPaddingTop(), l + titleTextView.getMeasuredWidth(), viewTop + titleTextView.getTextHeight() + dp(1.66f) - titleTextView.getPaddingTop() + titleTextView.getPaddingBottom());

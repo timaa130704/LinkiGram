@@ -792,6 +792,14 @@
     <string name="NM_ForumAvatarsLikeChats_Desc">Аватарки форумов скругляются так же, как у обычных чатов.</string>
     
 <string name="NM_SwitchStyle">Стиль переключателей</string>
+    <string name="NM_Style_Material">Material Design</string>
+    <string name="NM_Style_IOS">iOS Design</string>
+    <string name="NM_Style_Loaders">Загрузчики MD3</string>
+    <string name="NM_Style_Sliders">Слайдеры MD3</string>
+    <string name="NM_Style_Switches">Переключатели MD3</string>
+    <string name="NM_Style_ChatHeader">Шапка чата</string>
+    <string name="NM_Style_Navigation">Панель навигации</string>
+    <string name="NM_Style_ListItems">Элементы списков</string>
     <string name="NM_Chat_Section">Чаты</string>
     <string name="NM_Stickers_Header">Стикеры</string>
     <string name="NM_StickerSize">Размер стикеров</string>

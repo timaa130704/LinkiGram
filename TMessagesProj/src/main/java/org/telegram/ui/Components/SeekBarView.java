@@ -342,6 +342,15 @@ public class SeekBarView extends FrameLayout {
         lineWidthDp = dp;
     }
 
+    /** LinkiGram: MD3-слайдер (порт exteraless, NM_Style_Sliders). */
+    private static boolean isMd3Slider() {
+        return app.nimarkogram.messenger.appearance.AppearanceConfig.enabled("md3Slider");
+    }
+
+    private int effectiveLineWidthDp() {
+        return isMd3Slider() ? 16 : lineWidthDp;
+    }
+
     int lastValue;
     private void setSeekBarDrag(boolean stop, float progress) {
         if (delegate != null) {
@@ -449,7 +458,7 @@ public class SeekBarView extends FrameLayout {
 
         float centerY = getMeasuredHeight() / 2f;
         float left = selectorWidth / 2f, right = getMeasuredWidth() - selectorWidth / 2;
-        float top = centerY - AndroidUtilities.dp(lineWidthDp) / 2f, bottom = centerY + AndroidUtilities.dp(lineWidthDp) / 2f;
+        float top = centerY - AndroidUtilities.dp(effectiveLineWidthDp()) / 2f, bottom = centerY + AndroidUtilities.dp(effectiveLineWidthDp()) / 2f;
 
         rect.set(left, top, right, bottom);
         drawProgressBar(canvas, rect, innerPaint1);
@@ -487,7 +496,7 @@ public class SeekBarView extends FrameLayout {
             hoverDrawable.draw(canvas);
         }
         boolean needInvalidate = false;
-        int newRad = AndroidUtilities.dp(pressed ? 8 : 6);
+        int newRad = AndroidUtilities.dp(pressed ? (isMd3Slider() ? 10 : 8) : (isMd3Slider() ? 8 : 6));
         long newUpdateTime = SystemClock.elapsedRealtime();
         long dt = newUpdateTime - lastUpdateTime;
         if (dt > 18) {

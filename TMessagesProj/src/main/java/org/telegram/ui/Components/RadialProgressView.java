@@ -228,14 +228,31 @@ public class RadialProgressView extends View {
         int x = (getMeasuredWidth() - size) / 2;
         int y = (getMeasuredHeight() - size) / 2;
         cicleRect.set(x, y, x + size, y + size);
+        drawMd3Track(canvas, cicleRect);
         canvas.drawArc(cicleRect, radOffset, drawingCircleLenght = currentCircleLength, false, progressPaint);
         updateAnimation();
     }
 
     public void draw(Canvas canvas, float cx, float cy) {
         cicleRect.set(cx - size / 2f, cy - size / 2f, cx + size / 2f, cy +  size / 2f);
+        drawMd3Track(canvas, cicleRect);
         canvas.drawArc(cicleRect, radOffset, drawingCircleLenght = currentCircleLength, false, progressPaint);
         updateAnimation();
+    }
+
+    /** LinkiGram: MD3-дорожка под индикатором (порт exteraless M3CircularProgress, NM_Style_Loaders). */
+    private void drawMd3Track(Canvas canvas, RectF rect) {
+        if (!app.nimarkogram.messenger.appearance.AppearanceConfig.newLoadingStyle()
+                || Math.abs(currentCircleLength) >= 360) {
+            return;
+        }
+        final int prevColor = progressPaint.getColor();
+        final Paint.Style prevStyle = progressPaint.getStyle();
+        progressPaint.setColor(Theme.multAlpha(prevColor, 0.12f));
+        progressPaint.setStyle(Paint.Style.STROKE);
+        canvas.drawArc(rect, 0, 360, false, progressPaint);
+        progressPaint.setColor(prevColor);
+        progressPaint.setStyle(prevStyle);
     }
 
     public boolean isCircle() {

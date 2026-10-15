@@ -4209,6 +4209,10 @@ public class ChatActivity extends BaseFragment implements
             }
         };
         avatarContainer.setGlassMode();
+        // LinkiGram: iOS-шапка чата (NM_Style_ChatHeader) — центрированный заголовок без аватарки.
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.iosChatHeader()) {
+            avatarContainer.hideAvatarForIosHeader();
+        }
         avatarContainer.allowShorterStatus = true;
         avatarContainer.premiumIconHiddable = true;
         avatarContainer.allowDrawStories = dialog_id < 0 && !isTopic;

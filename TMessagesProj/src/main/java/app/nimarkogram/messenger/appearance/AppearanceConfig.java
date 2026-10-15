@@ -19,6 +19,46 @@ public final class AppearanceConfig {
     public static void ensureLoaded() {
     }
 
+    // Style switches from exteraless/OpenExteraAppearanceActivity (GPL-2.0-or-later).
+    public static final String[] MATERIAL_KEYS = {"newLoadingStyle", "md3Slider", "md3Switch",
+            "newChatHeaderStyle", "newNavigationBarStyle", "m3ListItems", "md3Player", "md3MiniPlayer"};
+    public static final String[] IOS_KEYS = {"iosNavigationBarStyle", "iosChatHeader"};
+
+    public static boolean enabled(String key) {
+        switch (key) {
+            case "md3Switch": return NimarkoConfig.switchStyle == NimarkoConfig.SWITCH_STYLE_MD3;
+            case "md3Player": return NimarkoConfig.md3Player();
+            case "md3MiniPlayer": return NimarkoConfig.md3MiniPlayer();
+            default: return NimarkoConfig.getPreferences().getBoolean(key, false);
+        }
+    }
+
+    public static void setEnabled(String key, boolean value) {
+        if ("md3Switch".equals(key)) {
+            NimarkoConfig.setSwitchStyle(value ? NimarkoConfig.SWITCH_STYLE_MD3 : NimarkoConfig.SWITCH_STYLE_DEFAULT);
+        } else if ("md3Player".equals(key)) {
+            NimarkoConfig.setMd3Player(value);
+        } else if ("md3MiniPlayer".equals(key)) {
+            NimarkoConfig.setMd3MiniPlayer(value);
+        }
+        android.content.SharedPreferences.Editor editor = NimarkoConfig.getPreferences().edit().putBoolean(key, value);
+        if (value && "newNavigationBarStyle".equals(key)) {
+            editor.putBoolean("iosNavigationBarStyle", false);
+            if (NimarkoConfig.isBottomNavigationFloating()) {
+                NimarkoConfig.setBottomNavigationMode(NimarkoConfig.BOTTOM_NAVIGATION_MODE_SHOW);
+            }
+        } else if (value && "iosNavigationBarStyle".equals(key)) {
+            editor.putBoolean("newNavigationBarStyle", false);
+        }
+        editor.apply();
+    }
+
+    public static boolean newLoadingStyle() { return enabled("newLoadingStyle"); }
+    public static boolean newChatHeaderStyle() { return enabled("newChatHeaderStyle"); }
+    public static boolean newNavigationBarStyle() { return enabled("newNavigationBarStyle"); }
+    public static boolean iosNavigationBarStyle() { return enabled("iosNavigationBarStyle"); }
+    public static boolean iosChatHeader() { return enabled("iosChatHeader"); }
+
     public static boolean navigationDrawer() {
         return NimarkoConfig.navigationDrawer;
     }

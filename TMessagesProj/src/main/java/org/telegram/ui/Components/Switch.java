@@ -226,6 +226,11 @@ public class Switch extends View {
         return color;
     }
 
+    /** LinkiGram: MD3-переключатель (порт настроек exteraless, NM_Style_Switches). */
+    private static boolean isMd3Style() {
+        return app.nimarkogram.messenger.NimarkoConfig.switchStyle == app.nimarkogram.messenger.NimarkoConfig.SWITCH_STYLE_MD3;
+    }
+
     public void setColors(int track, int trackChecked, int thumb, int thumbChecked) {
         trackColorKey = track;
         trackCheckedColorKey = trackChecked;
@@ -445,9 +450,20 @@ public class Switch extends View {
             paint.setColor(color);
             paint2.setColor(color);
 
-            rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
-            canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
-            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(10), paint);
+            if (isMd3Style()) {
+                final float trackH = AndroidUtilities.dpf2(19);
+                rectF.set(x, ty - trackH / 2f, x + width, ty + trackH / 2f);
+                if (colorProgress < 0.5f) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(AndroidUtilities.dp(2));
+                }
+                canvasToDraw.drawRoundRect(rectF, trackH / 2f, trackH / 2f, paint);
+                paint.setStyle(Paint.Style.FILL);
+            } else {
+                rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
+                canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
+                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dpf2(10), paint);
+            }
 
             if (a == 0 && rippleDrawable != null) {
                 rippleDrawable.setBounds(tx - AndroidUtilities.dp(18), ty - AndroidUtilities.dp(18), tx + AndroidUtilities.dp(18), ty + AndroidUtilities.dp(18));
@@ -494,6 +510,11 @@ public class Switch extends View {
             alpha = (int) (a1 + (a2 - a1) * colorProgress);
             paint.setColor(((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff));
 
+            if (isMd3Style()) {
+                final float thumbR = AndroidUtilities.dpf2(4.8f + 2.4f * colorProgress);
+                canvasToDraw.drawCircle(tx, ty, thumbR, paint);
+                continue;
+            }
             canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
 
             if (a == 0) {
