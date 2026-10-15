@@ -636,6 +636,26 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         textView.setText(text);
     }
 
+    // LinkiGram: X-CFG — вместо иконки-заглушки свой логотип (порт плагина X-CFG, @x_vare, GPL)
+    public void setTabIcon(android.graphics.Bitmap bitmap) {
+        if (bitmap == null) {
+            return;
+        }
+        try {
+            imageView.clearAnimationDrawable();
+        } catch (Exception ignore) {
+        }
+        imageView.setVisibility(GONE);
+        android.widget.ImageView iv = new android.widget.ImageView(getContext());
+        iv.setImageBitmap(bitmap);
+        try {
+            iv.setColorFilter(new PorterDuffColorFilter(
+                    Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider), PorterDuff.Mode.SRC_IN));
+        } catch (Exception ignore) {
+        }
+        addView(iv, LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
+    }
+
 
     private AvatarDrawable avatarDrawable;
 

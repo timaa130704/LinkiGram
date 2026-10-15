@@ -81,6 +81,11 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient3Row = 30;
     private final int sendOriginalPhotoRow = 31;
     private final int sleepTimerRow = 34;
+    private final int lastfmNickRow = 32;
+    private final int xcfgTabRow = 33;
+
+    // Ported from exteraless (OpenExteraGeneralActivity): Last.fm nick validation.
+    private static final java.util.regex.Pattern LASTFM_PATTERN = java.util.regex.Pattern.compile("[a-z0-9_-]{1,32}");
 
     private final int hideStoriesRow = 7;
     private final int archiveStoriesRow = 8;
@@ -191,6 +196,10 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
                 .setChecked(NimarkoConfig.systemFonts)
         );
         items.add(UItem.asButton(tabledModeRow, getString(R.string.AP_Tablet_Mode), getTabletModeValue()));
+        items.add(UItem.asButton(lastfmNickRow, getString(R.string.OEGeneralLastFm), getLastfmNickValue()));
+        items.add(SettingsHelper.asSwitchCG(xcfgTabRow, getString(R.string.XcfgTabToggle))
+                .setChecked(app.nimarkogram.messenger.xcfg.XcfgPrefs.getBool("show_tab", true))
+        );
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.EP_Network)));
@@ -350,6 +359,13 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             listView.adapter.update(true);
         } else if (item.id == notificationReactionEmojiRow) {
             showNotificationReactionDialog(view);
+        } else if (item.id == lastfmNickRow) {
+            showLastFmDialog();
+        } else if (item.id == xcfgTabRow) {
+            app.nimarkogram.messenger.xcfg.XcfgPrefs.setBool("show_tab",
+                    !app.nimarkogram.messenger.xcfg.XcfgPrefs.getBool("show_tab", true));
+            SettingsHelper.updateCheckState(view, app.nimarkogram.messenger.xcfg.XcfgPrefs.getBool("show_tab", true));
+            showRestartBulletin();
         } else if (item.id == hideStoriesRow) {
             NimarkoConfig.toggleHideStories();
             SettingsHelper.updateCheckState(view, NimarkoConfig.hideStories);
@@ -522,6 +538,136 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
             case NimarkoConfig.TABLET_DISABLE -> getString(R.string.LiteBatteryDisabled);
             default -> getString(R.string.QualityAuto);
         };
+    }
+
+    private String getLastfmNickValue() {
+        String nick = NimarkoConfig.lastfmNick();
+        return nick == null || nick.isEmpty() ? getString(R.string.OEGeneralLastFmNotSet) : nick;
+    }
+
+    // Ported from exteraless (OpenExteraGeneralActivity.showLastFmDialog, GPL-2.0-or-later):
+    // input dialog for the Last.fm nickname that gets written into profile music.
+    private void showLastFmDialog() {
+        Context context = getParentActivity();
+        if (context == null) {
+            return;
+        }
+
+        org.telegram.ui.Components.EditTextBoldCursor editText = new org.telegram.ui.Components.EditTextBoldCursor(context);
+        editText.lineYFix = true;
+        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        editText.setText(NimarkoConfig.lastfmNick());
+        editText.setTextColor(getThemedColor(Theme.key_dialogTextBlack));
+        editText.setHintColor(getThemedColor(Theme.key_groupcreate_hintText));
+        editText.setHintText(getString(R.string.OEGeneralLastFmHint));
+        editText.setFocusable(true);
+        editText.setSingleLine(true);
+        editText.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        editText.setBackground(null);
+        editText.setLineColors(getThemedColor(Theme.key_windowBackgroundWhiteInputField),
+                getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated),
+                getThemedColor(Theme.key_text_RedRegular));
+        editText.setCursorColor(getThemedColor(Theme.key_windowBackgroundWhiteInputFieldActivated));
+        editText.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6));
+
+        android.widget.LinearLayout container = new android.widget.LinearLayout(context);
+        container.setOrientation(android.widget.LinearLayout.VERTICAL);
+        container.addView(editText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
+                LayoutHelper.WRAP_CONTENT, 24f, 0f, 24f, 10f));
+
+        org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(context, resourcesProvider);
+        builder.setTitle(getString(R.string.OEGeneralLastFm));
+        builder.setView(container);
+        builder.setPositiveButton(getString(R.string.Done), (dialog, which) -> {
+            String value = editText.getText() == null ? "" : editText.getText().toString().trim();
+            if (value.startsWith("@")) {
+                value = value.substring(1);
+            }
+            value = value.toLowerCase();
+            if (!value.isEmpty() && !LASTFM_PATTERN.matcher(value).matches()) {
+                AndroidUtilities.shakeView(editText);
+                return;
+            }
+            NimarkoConfig.setLastfmNick(value);
+            if (listView != null && listView.adapter != null) {
+                listView.adapter.update(true);
+            }
+            dialog.dismiss();
+            applyLastFmToProfileMusic(value);
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), (dialog, which) -> dialog.dismiss());
+
+        org.telegram.ui.ActionBar.AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            editText.requestFocus();
+            editText.setSelection(editText.length());
+            AndroidUtilities.showKeyboard(editText);
+        });
+        dialog.setDismissDialogByButtons(false);
+        showDialog(dialog, d -> AndroidUtilities.hideKeyboard(editText));
+    }
+
+    private void applyLastFmToProfileMusic(String nick) {
+        org.telegram.ui.ActionBar.AlertDialog progress = getParentActivity() != null
+                ? new org.telegram.ui.ActionBar.AlertDialog(getParentActivity(), org.telegram.ui.ActionBar.AlertDialog.ALERT_TYPE_LOADING, resourcesProvider) : null;
+        if (progress != null) {
+            progress.setTitle(getString(R.string.OEGeneralLastFm));
+            progress.setMessage(getString(R.string.OEGeneralLastFmStageDownload));
+            progress.showDelayed(300);
+        }
+        app.exteraless.nowplaying.ProfileMusicStamp.apply(currentAccount, nick, new app.exteraless.nowplaying.ProfileMusicStamp.Callback() {
+            @Override
+            public void onStage(int stage, int percent) {
+                if (progress == null) {
+                    return;
+                }
+                int resId;
+                if (stage == app.exteraless.nowplaying.ProfileMusicStamp.STAGE_DOWNLOAD) {
+                    resId = R.string.OEGeneralLastFmStageDownload;
+                } else if (stage == app.exteraless.nowplaying.ProfileMusicStamp.STAGE_PREPARE) {
+                    resId = R.string.OEGeneralLastFmStagePrepare;
+                } else if (stage == app.exteraless.nowplaying.ProfileMusicStamp.STAGE_UPLOAD) {
+                    resId = R.string.OEGeneralLastFmStageUpload;
+                } else {
+                    resId = R.string.OEGeneralLastFmStageSave;
+                }
+                progress.setMessage(getString(resId));
+                progress.setProgress(percent);
+            }
+
+            @Override
+            public void onFinished(boolean ok, int reason) {
+                onLastFmApplied(progress, ok, reason);
+            }
+        });
+    }
+
+    private void onLastFmApplied(org.telegram.ui.ActionBar.AlertDialog progress, boolean ok, int reason) {
+        if (progress != null) {
+            progress.dismiss();
+        }
+        if (getParentActivity() == null) {
+            return;
+        }
+        int resId;
+        int icon;
+        if (ok) {
+            resId = R.string.OEGeneralLastFmApplied;
+            icon = R.raw.done;
+        } else if (reason == app.exteraless.nowplaying.ProfileMusicStamp.REASON_NO_MUSIC) {
+            resId = R.string.OEGeneralLastFmNoMusic;
+            icon = R.raw.info;
+        } else if (reason == app.exteraless.nowplaying.ProfileMusicStamp.REASON_DOWNLOAD) {
+            resId = R.string.OEGeneralLastFmNoFile;
+            icon = R.raw.error;
+        } else if (reason == app.exteraless.nowplaying.ProfileMusicStamp.REASON_UPLOAD) {
+            resId = R.string.OEGeneralLastFmNoUpload;
+            icon = R.raw.error;
+        } else {
+            resId = R.string.OEGeneralLastFmFailed;
+            icon = R.raw.error;
+        }
+        BulletinFactory.of(this).createSimpleBulletin(icon, getString(resId)).show();
     }
 
     private void showStoriesArchiveConfigurator() {

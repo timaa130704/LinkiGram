@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LinkiGram: X-CFG strings (port of the X-CFG plugin by @x_vare, GPL).
+-->
+<resources>
+    <string name="XcfgTabToggle">X-CFG tab in the bottom bar</string>
+</resources>

@@ -361,6 +361,23 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsView.addView(tabs[index]);
             tabsView.setViewVisible(view, true, false);
         }
+
+        // LinkiGram: вкладка X-CFG — встроенный способ обхода (порт плагина X-CFG, @x_vare, GPL).
+        // Не участвует в viewPager: просто кнопка посреди панели, открывающая кабинет.
+        if (app.nimarkogram.messenger.xcfg.XcfgPrefs.getBool("show_tab", true)) {
+            GlassTabView xcfgTab = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.LINK, R.string.Settings);
+            xcfgTab.setText("X-CFG");
+            xcfgTab.setTabIcon(app.nimarkogram.messenger.xcfg.XcfgController.tabIcon(context));
+            xcfgTab.setTag(app.nimarkogram.messenger.xcfg.XcfgPrefs.TAB_TAG);
+            xcfgTab.setOnClickListener(v -> app.nimarkogram.messenger.xcfg.XcfgController.openMain(currentAccount));
+            int xcfgIndex = tabsView.getChildCount();
+            if (tabs[INDEX_SETTINGS].getParent() == tabsView) {
+                // после «Контактов» — середина панели (Чаты · Контакты · X-CFG · Настройки · Профиль)
+                xcfgIndex = tabsView.indexOfChild(tabs[INDEX_SETTINGS]);
+            }
+            tabsView.addView(xcfgTab, xcfgIndex);
+            tabsView.setViewVisible(xcfgTab, true, false);
+        }
         checkUi_callTabVisible(getUserConfig().showCallsTab, false);
 
         selectTab(viewPager.getCurrentPosition(), false);

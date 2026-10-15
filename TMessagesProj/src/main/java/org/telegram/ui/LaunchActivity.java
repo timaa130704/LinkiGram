@@ -853,6 +853,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         //    refreshRateController = new RefreshRateController(this);
         //}
         checkFrameMetrics();
+
+        // LinkiGram: X-CFG — автозапуск VPN для Telegram, если он был включён (порт плагина X-CFG, @x_vare, GPL)
+        AndroidUtilities.runOnUIThread(() -> app.nimarkogram.messenger.xcfg.XcfgController.autostart(), 4000);
     }
 
     public void checkFrameMetrics() {

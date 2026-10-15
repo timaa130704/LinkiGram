@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LinkiGram: строки X-CFG (порт плагина X-CFG, автор @x_vare, GPL).
+-->
+<resources>
+    <string name="XcfgTabToggle">Вкладка X-CFG в нижней панели</string>
+</resources>
