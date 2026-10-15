@@ -3020,8 +3020,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
 
         BirthdayController.getInstance(currentAccount).check();
-        additionNavigationBarHeight = hasMainTabs ? dp(NimarkoConfig.isBottomNavigationFloating() ? MAIN_TABS_HEIGHT_WITH_MARGINS : MAIN_TABS_HEIGHT) : 0;
-        additionFloatingButtonOffset = hasMainTabs ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN) : 0;
+        updateAdditionNavigationBarHeight();
 
         return true;
     }
@@ -3247,6 +3246,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         pacmanAnimation = null;
         filterTabsView = null;
         selectedDialogs.clear();
+
+        updateAdditionNavigationBarHeight();
 
         maximumVelocity = ViewConfiguration.get(context).getScaledMaximumFlingVelocity();
 
@@ -13882,8 +13883,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private int additionNavigationBarHeight;
     private int additionFloatingButtonOffset;
 
+    /** LinkiGram: место под нижнюю панель зависит от режима (Show / Hide / Floating). */
+    private void updateAdditionNavigationBarHeight() {
+        final boolean bottomNavVisible = hasMainTabs && NimarkoConfig.isBottomNavigationVisible();
+        additionNavigationBarHeight = bottomNavVisible
+                ? dp(NimarkoConfig.isBottomNavigationFloating() ? MAIN_TABS_HEIGHT_WITH_MARGINS : MAIN_TABS_HEIGHT)
+                : 0;
+        additionFloatingButtonOffset = bottomNavVisible
+                ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN)
+                : 0;
+    }
+
     @NonNull
     private WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+        updateAdditionNavigationBarHeight();
         windowInsetsStateHolder.setInsets(insets);
 
         final Insets systemInsets = AndroidUtilities.getDefaultWindowInsets(insets, false);
@@ -14404,7 +14417,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         iBlur3PositionActionBar.set(0, -additionalList, fragmentView.getMeasuredWidth(), lerp(actionBarHeight, actionBarHeightSearch, animatorSearchVisible.getFloatValue()) + additionalList );
 
         boolean hasBottomBlur = false;
-        if (hasMainTabs) {
+        if (hasMainTabs && NimarkoConfig.isBottomNavigationVisible()) {
             iBlur3PositionMainTabs.set(0, mainTabTop, fragmentView.getMeasuredWidth(), mainTabBottom);
             iBlur3PositionMainTabs.inset(0, LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0 : -dp(48));
 

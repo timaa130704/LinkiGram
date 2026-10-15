@@ -311,7 +311,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsView = new MainTabsLayout(context, resourceProvider);
         tabsView.setClipChildren(false);
-        final boolean dockedTabs = !app.nimarkogram.messenger.NimarkoConfig.isBottomNavigationFloating();
+        final boolean dockedTabs = MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
         final int tabsPad = (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
         tabsView.setPadding(dp(tabsPad), dp(tabsPad), dp(tabsPad), dp(tabsPad));
         tabsView.setMaxWidth(dockedTabs ? 0 : dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
@@ -404,6 +404,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         updateLayout();
         checkUnreadCount(false);
+        checkUi_tabsPosition();
+        checkUi_fadeView();
         return contentView;
     }
 
@@ -943,7 +945,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
         {
             int bottomMargin = isUpdateLayoutVisible ? (navigationBarHeight + updateLayoutHeight) : 0;
-            if (tabletLayout) {
+            if (tabletLayout && MainTabsLayout.isBottomNavigationVisible()) {
                 bottomMargin = Math.max(bottomMargin, navigationBarHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS));
             }
             lp = (ViewGroup.MarginLayoutParams) viewPager.getLayoutParams();
@@ -1015,6 +1017,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (tabs != null && tabs[INDEX_PROFILE] != null) {
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
             }
+        } else if (id == NotificationCenter.cgTabsUpdated) {
+            if (tabsViewWrapper != null && updateLayoutWrapper != null) {
+                checkUi_tabsPosition();
+                checkUi_fadeView();
+                androidx.core.view.ViewCompat.requestApplyInsets(contentView);
+            }
         } else if (id == NotificationCenter.contactsPermissionBadgeCheck) {
             checkContactsTabBadge();
         }
@@ -1036,6 +1044,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             .add(NotificationCenter.contactsPermissionBadgeCheck)
             .addGlobal(NotificationCenter.appUpdateAvailable)
             .addGlobal(NotificationCenter.appUpdateLoading)
+            .addGlobal(NotificationCenter.cgTabsUpdated)
             .addGlobal(NotificationCenter.needSetDayNightTheme);
 
         return super.onFragmentCreate();
@@ -1071,7 +1080,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         final float isProfile = 1f - MathUtils.clamp(Math.abs(POSITION_PROFILE - animatedPosition), 0, 1);
         final float hide = 1f - AndroidUtilities.getNavigationBarThirdButtonsFactor(0, 1f, navigationBarHeight);
         float alpha = (1f - isProfile * hide) * animatorTabsVisible.getFloatValue();
-        if (tabletLayout) {
+        if (tabletLayout || MainTabsLayout.isBottomNavigationHidden()) {
             alpha = 0.0f;
         }
 
@@ -1087,7 +1096,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         final int normalY = -(updateLayoutHeight);
         final int hiddenY = normalY + dp(40);
 
-        final float factor = animatorTabsVisible.getFloatValue();
+        final boolean bottomNavVisible = MainTabsLayout.isBottomNavigationVisible();
+        final float factor = bottomNavVisible ? animatorTabsVisible.getFloatValue() : 0f;
         final float scale = lerp(0.85f, 1f, factor);
 
         tabsViewWrapper.setTranslationY(lerp(hiddenY, normalY, factor));
@@ -1095,6 +1105,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsView.setEnabled(factor > 1);
         tabsView.setAlpha(factor);
         tabsView.setVisibility(factor > 0 ? View.VISIBLE : View.GONE);
+        tabsViewWrapper.setVisibility(bottomNavVisible ? View.VISIBLE : View.GONE);
     }
 
     private void checkUi_miniPlayer() {
@@ -1103,7 +1114,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
         final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
         final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
-        final int tabsHeight = dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
+        final int tabsHeight = !MainTabsLayout.isBottomNavigationVisible() ? 0
+                : dp(MainTabsLayout.isBottomNavigationFloating()
+                        ? DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS : DialogsActivity.MAIN_TABS_HEIGHT);
         final float factor = animatorTabsVisible.getFloatValue();
         miniPlayer.setHostPosition(-(navigationBarHeight + updateLayoutHeight + tabsHeight), factor);
     }
