@@ -54,19 +54,30 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
     private LiquidGlassEffect liquidGlassEffect;
     private int liquidGlassCapturePadding;
+    private int liquidGlassShaderResource;
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassEffectAllowed() {
-        liquidGlassEffect = new LiquidGlassEffect(renderNodeFill);
+        setLiquidGlassEffectAllowed(true);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public void setLiquidGlassEffectAllowed(boolean allowed) {
+        liquidGlassEffect = allowed
+                ? (liquidGlassShaderResource != 0
+                    ? new LiquidGlassEffect(renderNodeFill, liquidGlassShaderResource)
+                    : new LiquidGlassEffect(renderNodeFill))
+                : null;
+        liquidGlassCapturePadding = allowed ? dp(32) : 0;
+        onBoundPropsChanged();
+        renderNodeInvalidated = true;
+        invalidateSelf();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassMaterial(int shaderResource) {
-        liquidGlassEffect = new LiquidGlassEffect(renderNodeFill, shaderResource);
-        liquidGlassCapturePadding = dp(32);
-        onBoundPropsChanged();
-        renderNodeInvalidated = true;
-        invalidateSelf();
+        liquidGlassShaderResource = shaderResource;
+        setLiquidGlassEffectAllowed(true);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)

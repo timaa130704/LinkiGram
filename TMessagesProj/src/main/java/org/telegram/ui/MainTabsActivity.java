@@ -44,6 +44,7 @@ import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
@@ -369,7 +370,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceTabGlass != null ? iBlur3SourceTabGlass : iBlur3SourceColor);
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
-        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(true);
+        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
@@ -1052,6 +1053,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 tabs[INDEX_PROFILE].updateUserAvatar(currentAccount);
             }
         } else if (id == NotificationCenter.cgTabsUpdated) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && tabsViewBackground instanceof BlurredBackgroundDrawableRenderNode) {
+                BlurredBackgroundDrawableRenderNode glassBackground = (BlurredBackgroundDrawableRenderNode) tabsViewBackground;
+                if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+                    glassBackground.setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
+                } else {
+                    glassBackground.setLiquidGlassEffectAllowed(false);
+                }
+            }
             if (tabsViewWrapper != null && updateLayoutWrapper != null) {
                 checkUi_tabsPosition();
                 checkUi_fadeView();

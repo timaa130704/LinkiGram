@@ -808,6 +808,8 @@
     <string name="NM_StickerSizePreviewReply">на Марс 🚀</string>
     <string name="NM_StickerSizePreviewText">ахаха 😂</string>
     <string name="NM_ForceBlur">Усиленный блюр</string>
+    <string name="NM_LiquidGlass">Liquid Glass</string>
+    <string name="NM_LiquidGlass_Desc">Стеклянные панели и элементы управления по всему приложению</string>
     <string name="NM_HideActionBarStatus">Скрыть статус в шапке чата</string>
     <string name="NM_DisableSendHints">Отключить подсказки отправки</string>
     <string name="NM_DisableSendHints_Desc">Не показывать подсказку «Удерживайте кнопку, чтобы отправить позже или без звука» над кнопкой отправки.</string>

@@ -15,11 +15,13 @@ package app.nimarkogram.messenger.preferences;
 import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
+import android.os.Build;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -65,6 +67,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int classicUiRow = 23;
     private final int navigationDrawerRow = 26;
     private final int immersiveDrawerRow = 27;
+    private final int liquidGlassRow = 28;
     private boolean materialExpanded;
     private boolean iosExpanded;
     private static final int MATERIAL_GROUP = 100;
@@ -130,6 +133,12 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asButton(sectionRadiusRow, getString(R.string.AP_SectionRadius), getSectionRadiusValueText()));
         items.add(SettingsHelper.asSwitchCG(forceBlurRow, getString(R.string.NM_ForceBlur))
                 .setChecked(NimarkoConfig.forceBlur));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            items.add(SettingsHelper.asSwitchCG(liquidGlassRow,
+                            getString(R.string.NM_LiquidGlass),
+                            getString(R.string.NM_LiquidGlass_Desc))
+                    .setChecked(LiteMode.isEnabledSetting(LiteMode.FLAG_LIQUID_GLASS)));
+        }
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.AP_Header)));
@@ -340,6 +349,13 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             updateCheckState(view, NimarkoConfig.forumAvatarsLikeChats);
             
             if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+        } else if (item.id == liquidGlassRow) {
+            LiteMode.toggleFlag(LiteMode.FLAG_LIQUID_GLASS);
+            updateCheckState(view, LiteMode.isEnabledSetting(LiteMode.FLAG_LIQUID_GLASS));
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
         } else if (item.id == forceBlurRow) {
             NimarkoConfig.toggleForceBlur();
             updateCheckState(view, NimarkoConfig.forceBlur);

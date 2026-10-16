@@ -6308,6 +6308,8 @@
     <string name="LiteOptionsSpoiler">Animated spoiler effect</string>
     <string name="LiteOptionsBlur2">Blur</string>
     <string name="LiteOptionsLiquidGlass">Liquid Glass</string>
+    <string name="NM_LiquidGlass">Liquid Glass</string>
+    <string name="NM_LiquidGlass_Desc">Glass panels and controls throughout the app</string>
     <string name="LiteOptionsScale">Zoom animations</string>
     <string name="LiteOptionsThanos">Dust-effect deletion</string>
     <string name="LiteOptionsCalls">Animations in Calls</string>
