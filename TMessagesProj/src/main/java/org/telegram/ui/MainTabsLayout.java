@@ -10,8 +10,10 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.os.Build;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +29,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedLinearLayout;
+import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
 import org.telegram.ui.Components.glass.GlassTabView;
 
 
@@ -360,6 +363,19 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             }
         }
         return null;
+    }
+
+    @Override
+    public void draw(@NonNull Canvas canvas) {
+        if (Build.VERSION.SDK_INT >= 33 && selectorInitialized
+                && getBackground() instanceof BlurredBackgroundDrawableRenderNode) {
+            BlurredBackgroundDrawableRenderNode glass =
+                    (BlurredBackgroundDrawableRenderNode) getBackground();
+            Rect bounds = glass.getPaddedBounds();
+            glass.setGlassLightPosition((animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX
+                    - bounds.left) / Math.max(1f, bounds.width()));
+        }
+        super.draw(canvas);
     }
 
     @Override

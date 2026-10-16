@@ -22,7 +22,7 @@ public class BlurredBackgroundProviderImpl {
     public static BlurredBackgroundProvider mainTabsLiquidGlass(Theme.ResourcesProvider resourcesProvider) {
         return new BlurredBackgroundProviderBuilder(resourcesProvider)
             .setBackgroundColor((r, isDark) -> Theme.multAlpha(
-                Theme.getColor(Theme.key_windowBackgroundWhite, r), isDark ? 0.42f : 0.32f))
+                Theme.getColor(Theme.key_windowBackgroundWhite, r), isDark ? 0.26f : 0.18f))
             .setStrokeColorTop(0xA0FFFFFF, 0x50FFFFFF)
             .setStrokeColorBottom(0x26000000, 0x20FFFFFF)
             .setShadowColor(0x24000000, 0x38000000)

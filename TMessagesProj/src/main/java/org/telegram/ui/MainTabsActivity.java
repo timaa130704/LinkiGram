@@ -73,6 +73,7 @@ import org.telegram.ui.Components.blur3.BlurredBackgroundWithFadeDrawable;
 import org.telegram.ui.Components.blur3.RenderNodeWithHash;
 import org.telegram.ui.Components.blur3.capture.IBlur3Hash;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
+import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
 import org.telegram.ui.Components.blur3.drawable.color.impl.BlurredBackgroundProviderImpl;
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceColor;
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode;
@@ -124,7 +125,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         super();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             iBlur3SourceTabGlass = new BlurredBackgroundSourceRenderNode(null);
-            iBlur3SourceTabGlass.setBlur(dp(7));
+            iBlur3SourceTabGlass.setBlur(dp(3));
             iBlur3SourceTabGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
                 @Override
                 public void renderNodeCalculateHash(IBlur3Hash hash) {
@@ -387,6 +388,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         iBlur3FactoryGlass.setLiquidGlassEffectAllowed(true);
 
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && tabsViewBackground instanceof BlurredBackgroundDrawableRenderNode) {
+            ((BlurredBackgroundDrawableRenderNode) tabsViewBackground)
+                    .setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
+        }
         tabsViewBackground.setThickness(dp(10));
         tabsViewBackground.setIntensity(0.85f);
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));

@@ -16,12 +16,33 @@ public class LiquidGlassEffect {
     private final RenderNode node;
     private final RuntimeShader shader;
     private RenderEffect effect;
+    private final boolean hasSurfaceLight;
+    private float surfaceLight = 0.5f;
 
     public LiquidGlassEffect(RenderNode node) {
+        this(node, R.raw.liquid_glass_shader);
+    }
+
+    public LiquidGlassEffect(RenderNode node, int shaderResource) {
         this.node = node;
-        final String code = AndroidUtilities.readRes(R.raw.liquid_glass_shader);
+        final String code = AndroidUtilities.readRes(shaderResource);
         shader = new RuntimeShader(code);
+        hasSurfaceLight = shaderResource == R.raw.main_tabs_glass_shader;
+        if (hasSurfaceLight) {
+            shader.setFloatUniform("light_position", surfaceLight);
+        }
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
+    }
+
+    public boolean setSurfaceLight(float position) {
+        position = Math.max(0f, Math.min(1f, position));
+        if (!hasSurfaceLight || Math.abs(surfaceLight - position) < 0.001f) {
+            return false;
+        }
+        surfaceLight = position;
+        shader.setFloatUniform("light_position", position);
+        node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
+        return true;
     }
 
     private float resolutionX, resolutionY;

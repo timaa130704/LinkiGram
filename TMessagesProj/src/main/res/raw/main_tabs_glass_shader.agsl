@@ -1,0 +1,88 @@
+uniform shader img;
+uniform float2 resolution;
+uniform float2 center;
+uniform float2 size;
+uniform float4 radius;
+uniform float thickness;
+uniform float refract_index;
+uniform float refract_intensity;
+uniform float4 foreground_color_premultiplied;
+uniform float light_position;
+
+float square(float value) {
+    return value * value;
+}
+
+float distanceToGlass(float2 p) {
+    float4 r = p.x > 0.0 ? radius : radius.zwxy;
+    float corner = p.y > 0.0 ? r.x : r.y;
+    float2 q = abs(p) - size + corner;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - corner;
+}
+
+half4 main(float2 fragCoord) {
+    float2 p = fragCoord - center;
+    float sd = distanceToGlass(p);
+    float depth = max(-sd, 0.0);
+    float bevel = max(thickness, 1.0);
+    float2 gradient = float2(
+        distanceToGlass(p + float2(0.5, 0.0)) - distanceToGlass(p - float2(0.5, 0.0)),
+        distanceToGlass(p + float2(0.0, 0.5)) - distanceToGlass(p - float2(0.0, 0.5)));
+    float2 outward = gradient / max(length(gradient), 0.001);
+    float2 local = p / max(size, float2(1.0));
+    // Quartic superellipse cross-section: flat shoulder, steep rolled rim.
+    // z = (1 - u^4)^(1/4); its derivative supplies the surface normal.
+    float u = clamp(1.0 - depth / (bevel * 1.8), 0.0, 0.999);
+    float u2 = u * u;
+    float slope = min(u2 * u / pow(max(1.0 - u2 * u2, 0.001), 0.75), 4.0);
+    float edgeWeight = smoothstep(0.0, 1.0, u);
+    // A shallow convex face joins the much steeper rolled glass edge.
+    float2 faceNormal = float2(local.x * 0.065, local.y * 0.16);
+    float3 normal = normalize(float3(outward * slope + faceNormal * (1.0 - edgeWeight), 1.0));
+    float3 ray = refract(float3(0.0, 0.0, -1.0), normal, 1.0 / refract_index);
+    float2 bend = ray.xy / max(-ray.z, 0.1) * bevel * 3.5 * refract_intensity;
+    // The broad lens also bends content slightly away from the bevel.
+    float2 uv = fragCoord + bend - p * (0.018 * (1.0 - edgeWeight));
+    float2 fringe = outward * edgeWeight * bevel * 0.035;
+    float2 lo = float2(0.5);
+    float2 hi = max(resolution - 0.5, lo);
+    half4 sampleColor = img.eval(clamp(uv, lo, hi));
+    half3 transmitted = half3(
+        img.eval(clamp(uv + fringe, lo, hi)).r,
+        sampleColor.g,
+        img.eval(clamp(uv - fringe, lo, hi)).b);
+    half4 tint = half4(foreground_color_premultiplied);
+    // Keep navigation legible over bright images and high-contrast text while
+    // preserving the backdrop's hue. This is local material adaptation.
+    half luminance = dot(transmitted, half3(0.2126, 0.7152, 0.0722));
+    half3 themeColor = tint.rgb / max(tint.a, half(0.001));
+    half themeLuminance = dot(themeColor, half3(0.2126, 0.7152, 0.0722));
+    half mismatch = abs(luminance - themeLuminance);
+    half adaptiveAlpha = min(tint.a + mismatch * half(0.22), half(0.48));
+    tint = half4(themeColor * adaptiveAlpha, adaptiveAlpha);
+    half3 color = transmitted * (1.0 - tint.a) + tint.rgb;
+
+    // A broad reflection gives the flat face a surface, even over plain content.
+    float lightX = (light_position - 0.5) * 1.4;
+    float ribbon = exp(-square((local.y + 0.46 + (local.x - lightX) * 0.28) * 4.2));
+    float softbox = exp(-square((local.x - lightX) * 1.7)
+        - square((local.y + 0.7) * 1.6));
+    float faceReflection = ribbon * 0.12 + softbox * 0.10;
+    float fresnel = pow(1.0 - normal.z, 2.2);
+    float light = pow(max(dot(normal, normalize(float3(lightX - 0.3, -0.65, 0.68))), 0.0), 22.0);
+    float rim = exp(-depth / max(bevel * 0.10, 0.7));
+    float upper = clamp(-outward.y * 0.7 - outward.x * 0.3, 0.0, 1.0);
+    float reflection = clamp(faceReflection + light * 0.50 + fresnel * 0.36
+        + rim * (0.13 + upper * 0.40), 0.0, 0.78);
+    // Neutral reflections keep dark themes glassy rather than turning them blue.
+    color = mix(color, half3(1.0), half(reflection));
+    // The lower inner edge provides visible thickness instead of a white outline alone.
+    float innerShadow = exp(-square((depth - bevel * 0.65) / max(bevel * 0.32, 1.0)))
+        * max(outward.y, 0.0) * 0.14;
+    color *= half(1.0 - innerShadow);
+    // A narrow inner caustic defines where the bevel focuses transmitted light.
+    float caustic = exp(-square((depth - bevel * 0.9) / max(bevel * 0.16, 0.8)))
+        * max(outward.y * 0.7 + outward.x * 0.3, 0.0) * 0.10;
+    color = mix(color, half3(1.0), half(caustic));
+    return half4(color, 1.0);
+}
