@@ -11,7 +11,7 @@
 #include <sdk/android/native_api/base/init.h>
 #include <voip/webrtc/media/base/media_constants.h>
 #include <tgnet/FileLog.h>
-#include <voip/tgcalls/group/GroupInstanceCustomImpl.h>
+#include <tgcalls/tgcalls/group/GroupInstanceCustomImpl.h>
 
 #include <memory>
 #include <utility>

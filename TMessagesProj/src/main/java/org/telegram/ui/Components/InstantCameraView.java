@@ -201,6 +201,11 @@ public class InstantCameraView extends InstantCameraViewBase implements Notifica
     private int nmCamera2SwitchGeneration;
     private volatile boolean nmCamera2SwitchPending;
     private boolean needDrawFlickerStub;
+    private volatile long legacyCameraSwitchStartedNs;
+    private volatile int legacyCameraSwitchSequence;
+    private volatile int legacyCameraSwitchTargetSurface;
+    private volatile boolean legacyCameraSwitchAwaitingFrame;
+    private volatile String legacyCameraSwitchPath;
 
     private boolean isCameraSessionInitiated() {
         if (useCameraX) {
@@ -2486,6 +2491,10 @@ public class InstantCameraView extends InstantCameraViewBase implements Notifica
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.d("InstantCamera create camera session " + index);
             }
+            if (legacyCameraSwitchAwaitingFrame
+                    && index == legacyCameraSwitchTargetSurface) {
+                logLegacyCameraSwitchStage("camera open submitted: surface=" + index);
+            }
 
             if (app.nimarkogram.messenger.NimarkoCameraLog.DEBUG) app.nimarkogram.messenger.NimarkoCameraLog.log(
                     "InstantRound create index=" + index + " useCX=" + useCameraX
@@ -3535,6 +3544,10 @@ public class InstantCameraView extends InstantCameraViewBase implements Notifica
                     && nmShouldHoldCameraXInitialWideFrame()) {
                 return;
             }
+            boolean completesCameraSwitch = legacyCameraSwitchAwaitingFrame
+                    && surfaceIndex == legacyCameraSwitchTargetSurface
+                    && (surfaceIndex == 0 && updateTexImage1
+                    || surfaceIndex == 1 && updateTexImage2);
 
             boolean captureFirstFrameThumb = false;
             if (!recording) {
@@ -3634,6 +3647,11 @@ public class InstantCameraView extends InstantCameraViewBase implements Notifica
             GLES20.glUseProgram(0);
 
             egl10.eglSwapBuffers(eglDisplay, eglSurface);
+            if (completesCameraSwitch && legacyCameraSwitchAwaitingFrame) {
+                legacyCameraSwitchAwaitingFrame = false;
+                logLegacyCameraSwitchStage("first target frame presented: surface="
+                        + surfaceIndex);
+            }
 
             if (useCameraX && !cameraReady && !cameraXSingleSwitchAwaitingBind) {
                 cameraReady = true;
