@@ -216,6 +216,7 @@ import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
 import org.telegram.ui.ActionBar.AlertDialog;
 
 import app.nimarkogram.messenger.utils.NimarkoAutoClean;
+import app.nimarkogram.messenger.ui.MessageMenuTelegramPlus;
 import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
@@ -32259,6 +32260,10 @@ public class ChatActivity extends BaseFragment implements
                 View tapAndHoldView = createMenuTextOption(getContext(), themeDelegate, getString(R.string.EphemeralMessageMenuHint), 13);
                 tapAndHoldView.setMinimumHeight(dp(32));
                 popupLayout.addView(tapAndHoldView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            }
+
+            if (optionsView == null && selectedObject != null) {
+                MessageMenuTelegramPlus.apply(popupLayout, scrimPopupWindowItems, options, themeDelegate);
             }
 
             ChatScrimPopupContainerLayout scrimPopupContainerLayout = new ChatScrimPopupContainerLayout(contentView.getContext()) {
