@@ -2703,7 +2703,7 @@ public class ChatActivity extends BaseFragment implements
         super(args);
 
         navbarContentSourceWallpaper = new BlurredBackgroundSourceWrapped();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SharedConfig.chatBlurEnabled()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (SharedConfig.chatBlurEnabled() || LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS))) {
             scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor();
 
             recommendedAdditionalSizeY = Math.max(0, dp(48) - Math.min(AndroidUtilities.navigationBarHeight, AndroidUtilities.statusBarHeight));

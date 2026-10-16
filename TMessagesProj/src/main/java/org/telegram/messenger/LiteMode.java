@@ -55,8 +55,9 @@ public class LiteMode {
         FLAG_ANIMATED_EMOJI_REACTIONS_PREMIUM |
         FLAG_AUTOPLAY_GIFS |
         FLAG_CHAT_THANOS |
+        FLAG_LIQUID_GLASS |
         FLAG_PARTICLES
-    ); // 198684
+    ); // 460828
     public static int PRESET_MEDIUM = (
         FLAGS_ANIMATED_STICKERS |
         FLAG_ANIMATED_EMOJI_KEYBOARD_PREMIUM |
@@ -67,8 +68,9 @@ public class LiteMode {
         FLAG_AUTOPLAY_VIDEOS |
         FLAG_AUTOPLAY_GIFS |
         FLAG_CHAT_THANOS |
+        FLAG_LIQUID_GLASS |
         FLAG_PARTICLES
-    ); // 204383
+    ); // 466527
     public static int PRESET_HIGH = (
         FLAGS_ANIMATED_STICKERS |
         FLAGS_ANIMATED_EMOJI |
@@ -78,11 +80,12 @@ public class LiteMode {
         FLAG_CHAT_BLUR |
         FLAG_CHAT_SCALE |
         FLAG_CHAT_THANOS |
+        FLAG_LIQUID_GLASS |
         FLAG_CALLS_ANIMATIONS |
         FLAG_AUTOPLAY_VIDEOS |
         FLAG_AUTOPLAY_GIFS |
         FLAG_PARTICLES
-    ); // 262143
+    ); // 524287
     public static int PRESET_POWER_SAVER = 0;
 
     private static int BATTERY_LOW = 10;
@@ -213,7 +216,9 @@ public class LiteMode {
         if (!preferences.contains("lite_mode6")) {
             if (preferences.contains("lite_mode5")) {
                 defaultValue = preferences.getInt("lite_mode5", defaultValue);
-                defaultValue &=~ FLAG_LIQUID_GLASS;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    defaultValue |= FLAG_LIQUID_GLASS;
+                }
                 preferences.edit().putInt("lite_mode6", defaultValue).apply();
             } else if (preferences.contains("lite_mode4")) {
                 defaultValue = preferences.getInt("lite_mode4", defaultValue);
@@ -274,6 +279,10 @@ public class LiteMode {
                     }
                 }
             }
+        }
+
+        if (!preferences.contains("lite_mode6") && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            defaultValue |= FLAG_LIQUID_GLASS;
         }
 
         int prevValue = value;
