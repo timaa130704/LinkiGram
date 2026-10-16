@@ -43,7 +43,6 @@ import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
-import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
@@ -125,6 +124,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         super();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             iBlur3SourceTabGlass = new BlurredBackgroundSourceRenderNode(null);
+            iBlur3SourceTabGlass.setBlur(dp(7));
             iBlur3SourceTabGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
                 @Override
                 public void renderNodeCalculateHash(IBlur3Hash hash) {
@@ -333,11 +333,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabs[INDEX_CALLS].setOnLongClickListener(this::openCallsSelector);
         tabs[INDEX_PROFILE].setOnLongClickListener(this::openAccountSelector);
 
-        tabsView.addTabToIgnoreClick(tabs[INDEX_CHATS]);
-        tabsView.addTabToIgnoreClick(tabs[INDEX_CONTACTS]);
-        tabsView.addTabToIgnoreClick(tabs[INDEX_PROFILE]);
-        tabsView.addTabToIgnoreClick(tabs[INDEX_CALLS]);
-
         for (int index = 0; index < tabs.length; index++) {
             final GlassTabView view = tabs[index];
 
@@ -389,9 +384,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceTabGlass != null ? iBlur3SourceTabGlass : iBlur3SourceColor);
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
-        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
+        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(true);
 
-        tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
+        tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
+        tabsViewBackground.setThickness(dp(10));
+        tabsViewBackground.setIntensity(0.85f);
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         tabsView.setBackground(tabsViewBackground);
@@ -761,8 +758,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     @Override
     protected void onViewPagerScrollEnd() {
         if (tabsView != null) {
-            selectTab(viewPager.getCurrentPosition(), true);
             setGestureSelectedOverride(0, false);
+            selectTab(viewPager.getCurrentPosition(), true);
         }
         blur3_invalidateBlur();
 
@@ -789,10 +786,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         if (tabsView != null) {
             final float position = viewPager.getPositionAnimated();
-            setGestureSelectedOverride(position, isDragByGesture);
             if (isDragByGesture) {
                 selectTab(Math.round(position), true);
             }
+            setGestureSelectedOverride(position, isDragByGesture);
         }
 
         checkUi_fadeView();
@@ -898,6 +895,23 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             final int position = indexToPosition(index);
             final float visibility = Math.max(0, 1f - Math.abs(position - animatedPosition));
             tabs[index].setGestureSelectedOverride(visibility, allow);
+        }
+        tabsView.setSelectorFollowsPager(allow);
+        if (allow) {
+            final int fromPosition = (int) Math.floor(animatedPosition);
+            final int toPosition = (int) Math.ceil(animatedPosition);
+            View from = null;
+            View to = null;
+            for (int index = 0; index < tabs.length; index++) {
+                if (!tabsView.isViewVisible(tabs[index])) {
+                    continue;
+                }
+                final int position = indexToPosition(index);
+                if (position == fromPosition) from = tabs[index];
+                if (position == toPosition) to = tabs[index];
+            }
+            tabsView.setSelectorBetween(from != null ? from : to,
+                    to != null ? to : from, animatedPosition - fromPosition);
         }
         tabsView.invalidate();
     }

@@ -18,6 +18,19 @@ import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundProvider
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundProviderBuilder;
 
 public class BlurredBackgroundProviderImpl {
+    // Main navigation uses a translucent material over its live, blurred content source.
+    public static BlurredBackgroundProvider mainTabsLiquidGlass(Theme.ResourcesProvider resourcesProvider) {
+        return new BlurredBackgroundProviderBuilder(resourcesProvider)
+            .setBackgroundColor((r, isDark) -> Theme.multAlpha(
+                Theme.getColor(Theme.key_windowBackgroundWhite, r), isDark ? 0.42f : 0.32f))
+            .setStrokeColorTop(0xA0FFFFFF, 0x50FFFFFF)
+            .setStrokeColorBottom(0x26000000, 0x20FFFFFF)
+            .setShadowColor(0x24000000, 0x38000000)
+            .setShadowLayer(dpf2(5), 0, dpf2(2))
+            .setStrokeWidth(dpf2(0.75f), dpf2(0.5f))
+            .build();
+    }
+
     public static BlurredBackgroundProvider mainTabs(Theme.ResourcesProvider resourcesProvider) {
         return new BlurredBackgroundProviderBuilder(resourcesProvider)
             .setBackgroundColor((r, isDark) -> {
