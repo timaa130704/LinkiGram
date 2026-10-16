@@ -471,3 +471,94 @@ sweep of every external symbol the new code references against this tree.
 - Release 2.5.1 was published on GitHub with an announcement to the channel.
   Whatever ships next needs its own release entry, or users never get it.
 - The bot token was pasted into chat once and should be rotated via @BotFather.
+
+## X-CFG — built-in VPN bypass (2.5.4)
+
+Ported the X-CFG plugin (author @x_vare, GPL, kept) as a built-in bypass
+method, mutually exclusive with tg-ws-linki. Six files in
+`app/nimarkogram/messenger/xcfg`: `XcfgPrefs`, `XcfgApi`, `XcfgCore`,
+`XcfgVless`, `XcfgController` (~1.2k lines), `XcfgCabinet`, plus the cabinet
+tab injection, autostart and settings rows. Log tag is `xcfg`; file log via
+`XcfgController.fileLog` → `files/log.txt`.
+
+How it works: login through the bot `xvpnoff_bot` (code is read from chat
+history/updates), the subscription URL comes back from `/me`, links are
+`vless://` and go into an Xray config. The core is AndroidLibXrayLite shipped
+by the X-VPN server as DEX + gzipped `.so` and loaded with `DexClassLoader`
+from `files/xcfgcore/` (`libgojni.so` 33.6 MB unpacked, `classes.dex` 12 KB).
+The core listens as a local SOCKS5 proxy that Telegram is then pointed at
+through the normal proxy path.
+
+Things that were real bugs, in order found:
+
+- **Server stalls.** x-vpn.x-vare.com (Cloudflare, 188.114.97.1) serves any
+  response larger than ~16 KB as ~16–18 KB and then dead-stalls the socket.
+  Reproduced from a PC with curl and python on several paths. Small files and
+  `Range: bytes=0-16383` requests answer in ~0.4 s. Fixed with
+  `XcfgApi.downloadChunked`: sequential 16 KB ranges, 4 retries per chunk,
+  SHA-256 check, direct download first with a 45 s read timeout then the
+  chunked fallback (`XcfgCore.downloadWithRetry` logs each stage). The 11.75 MB
+  `.so.gz` needs ~5 min on device; nothing is logged per chunk, only at the end,
+  so silence in logcat is normal. Hashes live in `XcfgPrefs` and matched the
+  copies exteraless had unpacked on the phone.
+- **Cabinet spinner froze** because `vpnEnable` ran on the single-thread pool
+  that also served the UI callbacks. It now runs on its own `xcfg-enable`
+  thread and is guarded by an `AtomicBoolean` (the "VPN уже включается…" toast
+  is that guard, not an error).
+- **Two bypass radios checked at once.** The X-CFG radio row read live
+  `XcfgController.vpnActive()` while the other two read
+  `NimarkoWsBypassConfig.routeMode`, so after the cabinet enabled the VPN both
+  rows showed selected. All three now read `routeMode`; `ROUTE_XCFG = 2` was
+  added (load/save accept it), enabling from the cabinet/radio/autostart sets
+  it, disabling returns to `ROUTE_TGWS`, and a failed enable rolls back to
+  tg-ws so the bypass never silently disappears.
+- **Subscription servers.** The cabinet can now re-fetch the server list from
+  the API (`refreshServers`, restarts the core on the fresh list if the VPN is
+  running) and pick one server (`showServerPicker` → `pickServer`). Auto (−1)
+  keeps the leastPing balancer; a chosen index pins the config to that single
+  outbound. Names come from the vless `#remark`. Choice persists as
+  `tg_server` in the same prefs file.
+
+Root access on this device (KernelSU Next) is the fastest way to stage the
+core: `su -c cp` into another app's data dir is blocked by SELinux categories
+and the denials are intermittent — `sha256sum`/`dd` reads sometimes work while
+`cat >` does not. `su 10416 -c` does not help (its context stays `ksu:s0`).
+What worked in the end: copy into `/data/local/tmp` as root, then
+`su -c` copy the files into `files/xcfgcore/` during a window when the denials
+were gone. Alternative if that fails: MT Manager on the phone.
+
+## Where this session stopped (2.5.4, before release)
+
+- 2.5.3 is the published release. 2.5.4 is the current
+  `gradle.properties` version (`APP_VERSION_CODE=20250400`) and is meant to be
+  the last of the 2.5.x line. Builds that passed and are on the phone:
+  `38786191857` (X-CFG port), `38793111331` (mutual exclusion), `38810598498`
+  (radio fix), `38813793105` (server refresh + picker, commit `a8b817c2`).
+  APKs are in `.tmp-apk-2.5.4d/` and `.tmp-apk-2.5.4e/`.
+- Verified on device: X-CFG login completes, the core starts
+  (`vpn: ядро: Started successfully, running`), 10 servers, `прокси Telegram
+  включён`, notifications keep coming. Not yet verified by the user: the new
+  server buttons and that the bypass radios now show a single selection.
+- Before the 2.5.4 release commit: remove the `LinkiPluginHook` diagnostic
+  logging in `MessagesController.processUpdateArray` and
+  `PluginsController.executeUpdateHook`.
+- Publishing needs the user's explicit go-ahead every time: GitHub release
+  `prerelease=false` (the in-app updater reads `/releases/latest`), channel
+  post, landing deploy.
+- `landing/index.html` was updated for 2.5.3 (the stale "Новое в 2.21" proxy
+  banner label was dropped) but **is not deployed**: `vercel --prod` returns
+  "Not authorized" and the interactive `vercel login` has to be completed by
+  the user in a browser. The file is the user's own work — do not commit it.
+- 2.6 is planned as the Telegram base update to **13.0.2** plus **Liquid Glass
+  for the bottom tab bar** (one shared sliding pill with spring + squash-and-
+  stretch, draggable by finger, moving specular highlight). The glass package
+  and per-tab selector already exist in this tree
+  (`org/telegram/ui/Components/glass/`, `MainTabsActivity`, `ChatAttachAlert`,
+  `StarGiftPreviewSheet`, `StatisticActivity`), so the work is a shared
+  selector view plus a drag controller, not a new subsystem. Do not build it
+  on 12.10.5 — it goes in with the 13.0.2 merge.
+- Phone: SM-G973F, Android 16 (Project Infinity X 3.12), root via
+  FrEeRuNnEr kernel 4.14.356 v3.8 + KernelSU Next 3.3.0 (manager upped from
+  3.2.0 to match the kernel). `su` works from adb and is not visible to the
+  app in the usual way — KernelSU Next hides it from `adb shell` by default.
+  adb drops constantly; `adb kill-server` + retry usually recovers it.
