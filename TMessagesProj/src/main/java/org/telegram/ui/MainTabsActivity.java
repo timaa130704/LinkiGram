@@ -1058,8 +1058,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 BlurredBackgroundDrawableRenderNode glassBackground = (BlurredBackgroundDrawableRenderNode) tabsViewBackground;
                 if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
                     glassBackground.setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
+                    glassBackground.setColorProvider(BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
                 } else {
                     glassBackground.setLiquidGlassEffectAllowed(false);
+                    glassBackground.setColorProvider(BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
                 }
             }
             if (tabsViewWrapper != null && updateLayoutWrapper != null) {
