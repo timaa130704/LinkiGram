@@ -14468,6 +14468,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     @Override
+    public IBlur3Capture getTabGlassCapture() {
+        return iBlur3Capture;
+    }
+
+    @Override
     public void onParentScrollToTop() {
         scrollToTop(true, true);
     }

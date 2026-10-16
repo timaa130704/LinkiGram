@@ -1714,6 +1714,11 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
         return iBlur3SourceGlass;
     }
 
+    @Override
+    public IBlur3Capture getTabGlassCapture() {
+        return iBlur3Capture;
+    }
+
 
     @Override
     public void onParentScrollToTop() {

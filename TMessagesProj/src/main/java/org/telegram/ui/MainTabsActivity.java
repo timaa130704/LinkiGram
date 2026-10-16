@@ -72,6 +72,7 @@ import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
 import org.telegram.ui.Components.blur3.BlurredBackgroundWithFadeDrawable;
 import org.telegram.ui.Components.blur3.RenderNodeWithHash;
 import org.telegram.ui.Components.blur3.capture.IBlur3Hash;
+import org.telegram.ui.Components.blur3.capture.IBlur3Capture;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
 import org.telegram.ui.Components.blur3.drawable.color.impl.BlurredBackgroundProviderImpl;
@@ -129,32 +130,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             iBlur3SourceTabGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
                 @Override
                 public void renderNodeCalculateHash(IBlur3Hash hash) {
-                    hash.add(getThemedColor(Theme.key_windowBackgroundWhite));
-                    hash.add(SharedConfig.chatBlurEnabled());
-
-                    for (int a = 0, N = fragmentsArr.size(); a < N; a++) {
-                        final FragmentState state = fragmentsArr.valueAt(a);
-                        final BaseFragment fragment = state.fragment;
-                        if (fragment.fragmentView == null) {
-                            continue;
-                        }
-                        if (!ViewPositionWatcher.computeRectInParent(fragment.fragmentView, contentView, fragmentPosition)) {
-                            continue;
-                        }
-                        if (fragmentPosition.right <= 0 || fragmentPosition.left >= fragmentView.getMeasuredWidth()) {
-                            continue;
-                        }
-
-                        if (fragment instanceof TabFragmentDelegate) {
-                            TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
-                            BlurredBackgroundSourceRenderNode source = delegate.getGlassSource();
-                            if (source != null) {
-                                hash.addF(fragmentPosition.left);
-                                hash.addF(fragmentPosition.top);
-                                hash.add(fragment.getClassGuid());
-                            }
-                        }
-                    }
+                    // Raw list content changes while its fragment stays in place.
+                    hash.unsupported();
                 }
 
                 @Override
@@ -179,11 +156,18 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
                         if (fragment instanceof TabFragmentDelegate) {
                             TabFragmentDelegate delegate = (TabFragmentDelegate) fragment;
+                            IBlur3Capture capture = delegate.getTabGlassCapture();
                             BlurredBackgroundSourceRenderNode source = delegate.getGlassSource();
-                            if (source != null) {
+                            if (capture != null || source != null) {
                                 canvas.save();
                                 canvas.translate(fragmentPosition.left, fragmentPosition.top);
-                                source.draw(canvas, 0, 0, width, height);
+                                tabCapturePosition.set(0, Math.max(0, height - dp(192)), width, height);
+                                canvas.clipRect(tabCapturePosition);
+                                if (capture != null) {
+                                    capture.capture(canvas, tabCapturePosition);
+                                } else {
+                                    source.draw(canvas, 0, 0, width, height);
+                                }
                                 canvas.restore();
                             }
                         }
@@ -937,6 +921,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         default BlurredBackgroundSourceRenderNode getGlassSource() {
             return null;
         }
+
+        default IBlur3Capture getTabGlassCapture() {
+            return null;
+        }
     }
 
     @Override
@@ -1274,6 +1262,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceTabGlass;
 
     private final RectF fragmentPosition = new RectF();
+    private final RectF tabCapturePosition = new RectF();
     private void blur3_invalidateBlur() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || iBlur3SourceTabGlass == null || fragmentView == null) {
             return;
