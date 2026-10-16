@@ -17955,6 +17955,8 @@ public class MessagesController extends BaseController implements NotificationCe
                     updates.getClass().getSimpleName(), currentAccount, updates);
             if (afterUpdatesHook == null) {
                 return; // a plugin cancelled the container
+            }
+        }
         if (updates instanceof TLRPC.TL_updates || updates instanceof TLRPC.TL_updatesCombined) {
             boolean hasMessageIdUpdates = false;
             for (int i = 0; i < updates.updates.size(); i++) {

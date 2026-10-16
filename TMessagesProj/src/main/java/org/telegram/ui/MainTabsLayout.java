@@ -6,7 +6,11 @@ import static org.telegram.messenger.AndroidUtilities.lerp;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Shader;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,6 +45,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     public MainTabsLayout(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
     }
 
     private static final float[] PASS_TEXT_SIZES_DP = {12f, 12f, 10f};
@@ -257,6 +262,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
         checkVisualWidth();
+        final View selected = findSelectedTab();
+        if (selected != null && !isInLongPress) {
+            moveSelectorTo(selected, false);
+        }
     }
 
     @Override
@@ -285,7 +294,47 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             final View child = getChildAt(a);
             if (child instanceof GlassTabView) {
                 ((GlassTabView) child).setSelected(child == tab, animated);
+                ((GlassTabView) child).setSkipDrawSelector(true);
             }
+        }
+        moveSelectorTo(tab, animated);
+    }
+
+    public void setSelectorToSelectedTab(boolean animated) {
+        selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
+        final View selected = findSelectedTab();
+        for (int a = 0, N = getChildCount(); a < N; a++) {
+            final View child = getChildAt(a);
+            if (child instanceof GlassTabView) {
+                ((GlassTabView) child).setSkipDrawSelector(true);
+            }
+        }
+        moveSelectorTo(selected, animated);
+    }
+
+    private void moveSelectorTo(View tab, boolean animated) {
+        if (tab == null || tab.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        final float centerX = tab.getX() + tab.getWidth() / 2f;
+        if (getWidth() == 0 || tab.getWidth() == 0) {
+            animatedLongSelectedViewCenterX = centerX;
+            invalidate();
+            return;
+        }
+        if (animated) {
+            selectedTabPositionOffsetX.animateToFinalPosition(0);
+            selectedTabPositionX.animateToFinalPosition(centerX);
+            selectorStretchXAnimation.setStartValue(1.08f);
+            selectorStretchYAnimation.setStartValue(0.94f);
+            selectorStretchXAnimation.animateToFinalPosition(1f);
+            selectorStretchYAnimation.animateToFinalPosition(1f);
+        } else {
+            selectedTabPositionX.cancel();
+            selectedTabPositionOffsetX.cancel();
+            animatedLongSelectedViewCenterX = centerX;
+            animatedLongSelectedViewOffsetX = 0;
+            invalidate();
         }
     }
 
@@ -307,12 +356,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     private final Runnable restoreDrawSelector = () -> setSkipDrawSelector(false);
 
-    private boolean drawCustomSelector;
+    private boolean drawCustomSelector = true;
     private void setSkipDrawSelector(boolean skipDrawSelector) {
-        drawCustomSelector = skipDrawSelector;
-        if (drawCustomSelector) {
-            selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
-        }
+        drawCustomSelector = true;
+        selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
             if (child.getVisibility() != View.VISIBLE) {
@@ -320,7 +367,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             }
 
             if (child instanceof GlassTabView) {
-                ((GlassTabView) child).setSkipDrawSelector(skipDrawSelector);
+                ((GlassTabView) child).setSkipDrawSelector(true);
             }
         }
         invalidate();
@@ -338,11 +385,18 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             final float x = animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX;
             final float sWidth = getInterpolatedWidthByX(x, this);
             final float sHeight = getHeight() - getPaddingTop() - getPaddingBottom();
-
-            canvas.drawRoundRect(
-                    x - sWidth / 2f, (getHeight() - sHeight) / 2f,
-                    x + sWidth / 2f, (getHeight() + sHeight) / 2f,
-                    sHeight / 2f, sHeight / 2f, selectorPaint);
+            selectorRect.set(x - sWidth / 2f, (getHeight() - sHeight) / 2f,
+                    x + sWidth / 2f, (getHeight() + sHeight) / 2f);
+            final float radius = sHeight / 2f;
+            canvas.save();
+            canvas.scale(selectorStretchX, selectorStretchY, x, getHeight() / 2f);
+            canvas.drawRoundRect(selectorRect, radius, radius, selectorPaint);
+            selectorHighlightPaint.setShader(new LinearGradient(0, selectorRect.top, 0, selectorRect.bottom,
+                    new int[]{0x28FFFFFF, 0x0AFFFFFF, 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(selectorRect, radius, radius, selectorHighlightPaint);
+            selectorHighlightPaint.setShader(null);
+            canvas.drawRoundRect(selectorRect, radius, radius, selectorEdgePaint);
+            canvas.restore();
         }
 
         super.dispatchDraw(canvas);
@@ -350,6 +404,35 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
 
     final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectorHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selectorEdgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF selectorRect = new RectF();
+    private float selectorStretchX = 1f;
+    private float selectorStretchY = 1f;
+    private final SpringAnimation selectorStretchXAnimation = new SpringAnimation(this, new FloatPropertyCompat<MainTabsLayout>("selectorStretchX") {
+        @Override
+        public float getValue(MainTabsLayout object) {
+            return object.selectorStretchX;
+        }
+
+        @Override
+        public void setValue(MainTabsLayout object, float value) {
+            object.selectorStretchX = value;
+            object.invalidate();
+        }
+    });
+    private final SpringAnimation selectorStretchYAnimation = new SpringAnimation(this, new FloatPropertyCompat<MainTabsLayout>("selectorStretchY") {
+        @Override
+        public float getValue(MainTabsLayout object) {
+            return object.selectorStretchY;
+        }
+
+        @Override
+        public void setValue(MainTabsLayout object, float value) {
+            object.selectorStretchY = value;
+            object.invalidate();
+        }
+    });
     final SpringAnimation scaleX = new SpringAnimation(this, DynamicAnimation.SCALE_X, 1f);
     final SpringAnimation scaleY = new SpringAnimation(this, DynamicAnimation.SCALE_Y, 1f);
 
@@ -379,6 +462,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     });
 
     {
+        selectorHighlightPaint.setColor(Color.WHITE);
+        selectorEdgePaint.setStyle(Paint.Style.STROKE);
+        selectorEdgePaint.setStrokeWidth(dp(0.75f));
+        selectorEdgePaint.setColor(0x20FFFFFF);
+        selectorStretchXAnimation.setSpring(new SpringForce(1f).setStiffness(420f).setDampingRatio(0.42f));
+        selectorStretchYAnimation.setSpring(new SpringForce(1f).setStiffness(420f).setDampingRatio(0.42f));
         selectedTabPositionOffsetX.setSpring(new SpringForce(1)
             .setStiffness(SpringForce.STIFFNESS_MEDIUM)
             .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY));

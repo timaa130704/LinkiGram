@@ -63,6 +63,7 @@
 }
 -keepclassmembers class com.exteragram.** {
     public <init>(...);
+}
 -keep class org.telegram.utils.code.highlight.PrismaHighlighter {
     private static native <methods>;
 }
