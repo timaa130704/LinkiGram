@@ -44,7 +44,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         super(context);
         this.resourcesProvider = resourcesProvider;
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-        selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
+        updateSelectorColor();
     }
 
     private static final float[] PASS_TEXT_SIZES_DP = {12f, 12f, 10f};
@@ -289,7 +289,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     }
 
     public void setSelectorToSelectedTab(boolean animated) {
-        selectorPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider), 0.09f));
+        updateSelectorColor();
         final View selected = findSelectedTab();
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
@@ -373,9 +373,15 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                     (BlurredBackgroundDrawableRenderNode) getBackground();
             Rect bounds = glass.getPaddedBounds();
             glass.setGlassLightPosition((animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX
-                    - bounds.left) / Math.max(1f, bounds.width()));
+                    - bounds.left) / Math.max(1f, bounds.width()), selectorPress);
         }
         super.draw(canvas);
+    }
+
+    private void updateSelectorColor() {
+        final int background = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+        final boolean dark = androidx.core.graphics.ColorUtils.calculateLuminance(background) < 0.5;
+        selectorPaint.setColor(dark ? 0x24FFFFFF : 0x14000000);
     }
 
     @Override
@@ -390,7 +396,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             canvas.save();
             final float travel = Math.min(0.18f,
                     Math.abs(selectorTargetX - x) / Math.max(1f, sWidth) * 0.16f);
-            canvas.scale(selectorStretchX + travel, selectorStretchY - travel * 0.3f,
+            canvas.scale((selectorStretchX + travel) * (1f + selectorPress * 0.08f),
+                    (selectorStretchY - travel * 0.3f) * (1f + selectorPress * 0.20f),
                     x, getHeight() / 2f);
             canvas.drawRoundRect(selectorRect, radius, radius, selectorPaint);
             final float lightOffset = Math.max(-sWidth * 0.35f,
@@ -412,12 +419,26 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     private final RectF selectorRect = new RectF();
     private final Matrix selectorLightMatrix = new Matrix();
     private final LinearGradient selectorLightShader = new LinearGradient(-dp(40), 0, dp(40), 0,
-            new int[]{0x00FFFFFF, 0x35FFFFFF, 0x00FFFFFF}, null, Shader.TileMode.CLAMP);
+            new int[]{0x00FFFFFF, 0x10FFFFFF, 0x00FFFFFF}, null, Shader.TileMode.CLAMP);
     private boolean selectorInitialized;
     private boolean selectorFollowsPager;
     private float selectorTargetX;
     private float selectorStretchX = 1f;
     private float selectorStretchY = 1f;
+    private float selectorPress;
+    private final SpringAnimation selectorPressAnimation = new SpringAnimation(this,
+            new FloatPropertyCompat<MainTabsLayout>("selectorPress") {
+                @Override
+                public float getValue(MainTabsLayout object) {
+                    return object.selectorPress;
+                }
+
+                @Override
+                public void setValue(MainTabsLayout object, float value) {
+                    object.selectorPress = value;
+                    object.invalidate();
+                }
+            }).setSpring(new SpringForce(0f).setStiffness(500f).setDampingRatio(0.8f));
     private final SpringAnimation selectorStretchXAnimation = new SpringAnimation(this, new FloatPropertyCompat<MainTabsLayout>("selectorStretchX") {
         @Override
         public float getValue(MainTabsLayout object) {
@@ -473,7 +494,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         selectorHighlightPaint.setShader(selectorLightShader);
         selectorEdgePaint.setStyle(Paint.Style.STROKE);
         selectorEdgePaint.setStrokeWidth(dp(0.75f));
-        selectorEdgePaint.setColor(0x20FFFFFF);
+        selectorEdgePaint.setColor(0x10FFFFFF);
         selectorStretchXAnimation.setSpring(new SpringForce(1f).setStiffness(420f).setDampingRatio(0.42f));
         selectorStretchYAnimation.setSpring(new SpringForce(1f).setStiffness(420f).setDampingRatio(0.42f));
         selectedTabPositionOffsetX.setSpring(new SpringForce(1)
@@ -550,11 +571,18 @@ public class MainTabsLayout extends AnimatedLinearLayout {
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
         final int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL
+                || action == MotionEvent.ACTION_POINTER_UP) {
+            selectorPressAnimation.animateToFinalPosition(0f);
+        }
         if (action == MotionEvent.ACTION_DOWN) {
             selectorPointerId = findTabUnder(event.getX(), event.getY()) != null
                     ? event.getPointerId(0) : -1;
             touchDownX = event.getX();
             touchDownY = event.getY();
+            if (selectorPointerId != -1) {
+                selectorPressAnimation.animateToFinalPosition(1f);
+            }
             if (selectorPointerId != -1 && getParent() != null) {
                 getParent().requestDisallowInterceptTouchEvent(true);
             }
@@ -631,6 +659,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         selectedTabPositionOffsetX.cancel();
         selectorStretchXAnimation.cancel();
         selectorStretchYAnimation.cancel();
+        selectorPressAnimation.cancel();
+        selectorPress = 0f;
         selectorStretchX = selectorStretchY = 1f;
         selectorInitialized = false;
         selectorFollowsPager = false;

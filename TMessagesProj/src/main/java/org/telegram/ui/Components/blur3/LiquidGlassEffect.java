@@ -18,6 +18,7 @@ public class LiquidGlassEffect {
     private RenderEffect effect;
     private final boolean hasSurfaceLight;
     private float surfaceLight = 0.5f;
+    private float pressProgress;
 
     public LiquidGlassEffect(RenderNode node) {
         this(node, R.raw.liquid_glass_shader);
@@ -30,17 +31,22 @@ public class LiquidGlassEffect {
         hasSurfaceLight = shaderResource == R.raw.main_tabs_glass_shader;
         if (hasSurfaceLight) {
             shader.setFloatUniform("light_position", surfaceLight);
+            shader.setFloatUniform("press_progress", 0f);
         }
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
     }
 
-    public boolean setSurfaceLight(float position) {
+    public boolean setSurfaceLight(float position, float pressProgress) {
         position = Math.max(0f, Math.min(1f, position));
-        if (!hasSurfaceLight || Math.abs(surfaceLight - position) < 0.001f) {
+        pressProgress = Math.max(0f, Math.min(1f, pressProgress));
+        if (!hasSurfaceLight || (Math.abs(surfaceLight - position) < 0.001f
+                && Math.abs(this.pressProgress - pressProgress) < 0.001f)) {
             return false;
         }
         surfaceLight = position;
+        this.pressProgress = pressProgress;
         shader.setFloatUniform("light_position", position);
+        shader.setFloatUniform("press_progress", pressProgress);
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
         return true;
     }

@@ -53,6 +53,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
     }
 
     private LiquidGlassEffect liquidGlassEffect;
+    private int liquidGlassCapturePadding;
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassEffectAllowed() {
@@ -62,13 +63,15 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassMaterial(int shaderResource) {
         liquidGlassEffect = new LiquidGlassEffect(renderNodeFill, shaderResource);
+        liquidGlassCapturePadding = dp(32);
+        onBoundPropsChanged();
         renderNodeInvalidated = true;
         invalidateSelf();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public void setGlassLightPosition(float position) {
-        if (liquidGlassEffect != null && liquidGlassEffect.setSurfaceLight(position)) {
+    public void setGlassLightPosition(float position, float pressProgress) {
+        if (liquidGlassEffect != null && liquidGlassEffect.setSurfaceLight(position, pressProgress)) {
             renderNodeInvalidated = true;
         }
     }
@@ -94,7 +97,9 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
         outline.setAlpha(1);
 
         if (!boundProps.boundsWithPadding.isEmpty()) {
-            renderNodeFill.setPosition(0, 0, boundProps.boundsWithPadding.width(), boundProps.boundsWithPadding.height());
+            renderNodeFill.setPosition(0, 0,
+                    boundProps.boundsWithPadding.width() + liquidGlassCapturePadding * 2,
+                    boundProps.boundsWithPadding.height() + liquidGlassCapturePadding * 2);
             renderNode.setPosition(0, 0, boundProps.boundsWithPadding.width(), boundProps.boundsWithPadding.height());
             renderNode.setOutline(outline);
 
@@ -127,14 +132,18 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
         c = renderNodeFill.beginRecording();
         c.save();
-        c.translate(-sL, -sT);
+        final int capturePadding = liquidGlassCapturePadding;
+        c.translate(capturePadding - sL, capturePadding - sT);
         if (liquidGlassEffect != null && Build.VERSION.SDK_INT >= 33) {
             final int thickness = Math.max(Math.min(
                 boundProps.liquidThickness <= 0 ? dp(11) : boundProps.liquidThickness,
-                Math.min(boundProps.boundsWithPadding.width(), boundProps.boundsWithPadding.height()) / 5), 1);
+                Math.min(boundProps.boundsWithPadding.width(), boundProps.boundsWithPadding.height())
+                        / (capturePadding > 0 ? 3 : 5)), 1);
 
             liquidGlassEffect.update(
-                0, 0, boundProps.boundsWithPadding.width(), boundProps.boundsWithPadding.height(),
+                capturePadding, capturePadding,
+                capturePadding + boundProps.boundsWithPadding.width(),
+                capturePadding + boundProps.boundsWithPadding.height(),
                 boundProps.shaderRadii[0], boundProps.shaderRadii[2], boundProps.shaderRadii[4], boundProps.shaderRadii[6],
                 thickness,
                 boundProps.liquidIntensity,
@@ -142,8 +151,8 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
                 backgroundColor
             );
         }
-        source.draw(c, sL, sT, sR, sB);
-        c.save();
+        source.draw(c, sL - capturePadding, sT - capturePadding, sR + capturePadding, sB + capturePadding);
+        c.restore();
         renderNodeFill.endRecording();
 
 
@@ -151,7 +160,10 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
         if (Color.alpha(backgroundColor) == 255) {
             c.drawColor(backgroundColor);
         } else {
+            c.save();
+            c.translate(-capturePadding, -capturePadding);
             c.drawRenderNode(renderNodeFill);
+            c.restore();
             if (liquidGlassEffect == null && Color.alpha(backgroundColor) != 0) {
                 c.drawColor(backgroundColor);
             }

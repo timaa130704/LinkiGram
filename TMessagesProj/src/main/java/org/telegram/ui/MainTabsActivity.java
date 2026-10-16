@@ -125,7 +125,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         super();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             iBlur3SourceTabGlass = new BlurredBackgroundSourceRenderNode(null);
-            iBlur3SourceTabGlass.setBlur(dp(3));
+            iBlur3SourceTabGlass.setBlur(dp(8));
             iBlur3SourceTabGlass.setupRenderer(new RenderNodeWithHash.Renderer() {
                 @Override
                 public void renderNodeCalculateHash(IBlur3Hash hash) {
@@ -393,8 +393,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             ((BlurredBackgroundDrawableRenderNode) tabsViewBackground)
                     .setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
         }
-        tabsViewBackground.setThickness(dp(10));
-        tabsViewBackground.setIntensity(0.85f);
+        tabsViewBackground.setThickness(dp(16));
+        tabsViewBackground.setIntensity(1f);
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         tabsView.setBackground(tabsViewBackground);
