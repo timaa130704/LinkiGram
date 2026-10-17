@@ -146,6 +146,7 @@ public final class AutoReplyClient {
             } catch (Exception e) {
                 elapsed = -1;
             }
+            if (Thread.currentThread().isInterrupted()) break;
             record(base, model, elapsed);
             result.put(model, elapsed);
         }

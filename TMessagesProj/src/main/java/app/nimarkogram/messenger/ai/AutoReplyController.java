@@ -24,6 +24,9 @@ public final class AutoReplyController {
     private final Map<Long, Long> historyGeneration = new HashMap<>();
     private final Set<Long> busy = new HashSet<>();
     private AutoReplyController(int account) { this.account = account; }
+    public void onLocalOutgoing(long did) {
+        if (busy.contains(did)) outgoingRevision.put(did, outgoingRevision.getOrDefault(did, 0L) + 1);
+    }
     public void onLive(long did, ArrayList<MessageObject> messages) {
         try { accept(did, messages); }
         catch (Exception ignored) { status(did, "Автоответ пропущен: не удалось прочитать защищённые настройки."); }

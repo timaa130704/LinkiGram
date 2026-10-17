@@ -22098,6 +22098,14 @@ public class MessagesController extends BaseController implements NotificationCe
         if (messages == null || messages.isEmpty()) {
             return false;
         }
+        if (mode == ChatActivity.MODE_DEFAULT) {
+            for (MessageObject message : messages) {
+                if (message.isOut()) {
+                    app.nimarkogram.messenger.ai.AutoReplyController.get(currentAccount).onLocalOutgoing(dialogId);
+                    break;
+                }
+            }
+        }
         final boolean scheduled = mode == ChatActivity.MODE_SCHEDULED;
         final boolean quickReplies = mode == ChatActivity.MODE_QUICK_REPLIES;
         final boolean welcomeMessages = mode == ChatActivity.MODE_WELCOME_MESSAGES;

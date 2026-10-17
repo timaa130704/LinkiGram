@@ -101,7 +101,7 @@ public class AutoReplyPreferencesActivity extends NimarkoUniversalPreferencesAct
                 else if (!busy) showDialog(new AlertDialog.Builder(getParentActivity()).setTitle(getString(R.string.AR_Auto)).setMessage(getString(R.string.AR_TestWarning)).setNegativeButton(getString(R.string.Cancel), null).setPositiveButton(getString(R.string.OK), (d,w) -> { try { config.putBoolean("auto", true); refresh(); network(true); } catch (Exception e) { error(); } }).create());
                 break;
             case 7: showDialog(new AlertDialog.Builder(getParentActivity()).setTitle(getString(R.string.AR_Benchmark)).setMessage(getString(R.string.AR_TestWarning)).setNegativeButton(getString(R.string.Cancel), null).setPositiveButton(getString(R.string.OK), (d,w) -> network(true)).create()); break;
-            case 8: AutoReplyClient.reset(); status = getString(R.string.AR_ResetDone); refresh(); break;
+            case 8: if (busy) { message(getString(R.string.AR_Working)); break; } AutoReplyClient.reset(); status = getString(R.string.AR_ResetDone); refresh(); break;
             case 10:
                 if (config.chat(dialogId).optBoolean("enabled")) saveChat("enabled", false);
                 else showDialog(new AlertDialog.Builder(getParentActivity()).setTitle(getString(R.string.AR_Enable)).setMessage(getString(R.string.AR_Notice)).setNegativeButton(getString(R.string.Cancel), null).setPositiveButton(getString(R.string.AR_Enable), (d,w) -> { try { saveChat("enabled", true); } catch (Exception e) { error(); } }).create());

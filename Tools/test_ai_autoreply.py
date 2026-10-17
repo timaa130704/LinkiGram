@@ -70,7 +70,7 @@ public class ControllerCheck {
  int calls=AutoReplyClient.calls;live(101,incoming);check(AutoReplyClient.calls==calls,"deduplicate same update");
  live(101,message(2));check(AutoReplyClient.calls==calls,"per-chat minute rate limit");
  enable(102);blocked();live(102,message(1));started();cfg.chat(102).put("enabled",false);release();check(SendMessagesHelper.sent==1,"disable cancels in-flight send");
- enable(103);blocked();live(103,message(1));started();MessageObject own=message(2);own.out=true;live(103,own);release();check(SendMessagesHelper.sent==1,"manual send cancels pending response");
+ enable(103);blocked();live(103,message(1));started();c.onLocalOutgoing(103);release();check(SendMessagesHelper.sent==1,"manual send cancels pending response");
  enable(104);blocked();live(104,message(1));started();cfg.revision++;release();check(SendMessagesHelper.sent==1,"connection edit cancels pending response");
  enable(105);blocked();live(105,message(1));started();cfg.chat(105).put("generation",2);release();check(SendMessagesHelper.sent==1,"chat setting edit cancels pending response");
  enable(106);cfg.chat(106).put("owner",11);live(106,message(1));check(AutoReplyClient.calls==calls+4,"account reuse cannot inherit permission");
