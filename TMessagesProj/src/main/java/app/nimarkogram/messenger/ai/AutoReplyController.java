@@ -44,6 +44,10 @@ public final class AutoReplyController {
         }
         return "участник";
     }
+    private String senderName(MessageObject message) {
+        if (!TextUtils.isEmpty(message.messageOwner.post_author)) return message.messageOwner.post_author;
+        return senderName(message.getSenderId());
+    }
     private String senderName(TLRPC.Message message) {
         if (!TextUtils.isEmpty(message.post_author)) return message.post_author;
         if (message.from_id instanceof TLRPC.TL_peerUser) return senderName(message.from_id.user_id);
