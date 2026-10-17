@@ -762,8 +762,15 @@ Python SDK gates account/connection, message/request, media-file and edit
 helpers through `PluginPermissions`. This is **not an OS sandbox**: plugins run
 in-process and can bypass SDK checks through direct Python/Java imports. Do not
 describe this as complete isolation; a real sandbox needs a separate design.
-These changes are not built or device-verified yet. No 2.6.1 build has been
-started.
+Material 3 list rows are now separated on the main Settings screen when the
+existing `Material 3 > List items` option is enabled. Adjacent account/settings
+rows get 4dp spacing; card radius remains controlled by `Section radius`.
+Commit `c36733fe2` was built successfully in Actions run `39074433830` on
+`codex/2.6.1`; APK `.tmp-apk-m3-list-39074433830/app.apk` has manifest
+`versionName=2.6.1-dev`, package `app.linkigram.messenger`, SHA-256
+`6915FA0CA16DBC1FD9EBC3A5CCB73C9DB903FB8FE66E7D12E271B2970B27F7E6`.
+Phone was not visible to ADB after build, so install and visual device
+verification are still pending. Do not claim device verification until done.
 
 Licensing: project `LICENSE` is GPL-2.0-only while exteraless is GPL-3.0.
 Implement compatible behavior independently; do not copy GPL-3.0 source into
