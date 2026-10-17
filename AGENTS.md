@@ -621,3 +621,8 @@ refraction path on API 33+, and the message menu uses a more detailed background
 capture, lighter tint, and rounded refracting edges when enabled. These changes
 require a fresh CI build and on-device ON/OFF + message-menu validation before
 claiming the regression is fixed. The previously installed APK lacks these fixes.
+
+The shared selector in `MainTabsLayout` also drew its own specular gradient and
+stretch effect independently of the global flag. These are now gated by the same
+Liquid Glass flag; OFF retains a flat sliding selection indicator. Build
+39025563690 was cancelled during checkout to include this additional fix.

@@ -27,6 +27,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LiteMode;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedLinearLayout;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
@@ -367,7 +368,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     @Override
     public void draw(@NonNull Canvas canvas) {
-        if (Build.VERSION.SDK_INT >= 33 && selectorInitialized
+        if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+                && Build.VERSION.SDK_INT >= 33 && selectorInitialized
                 && getBackground() instanceof BlurredBackgroundDrawableRenderNode) {
             BlurredBackgroundDrawableRenderNode glass =
                     (BlurredBackgroundDrawableRenderNode) getBackground();
@@ -396,16 +398,21 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             canvas.save();
             final float travel = Math.min(0.18f,
                     Math.abs(selectorTargetX - x) / Math.max(1f, sWidth) * 0.16f);
-            canvas.scale((selectorStretchX + travel) * (1f + selectorPress * 0.08f),
-                    (selectorStretchY - travel * 0.3f) * (1f + selectorPress * 0.20f),
-                    x, getHeight() / 2f);
+            final boolean liquidGlass = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+            if (liquidGlass) {
+                canvas.scale((selectorStretchX + travel) * (1f + selectorPress * 0.08f),
+                        (selectorStretchY - travel * 0.3f) * (1f + selectorPress * 0.20f),
+                        x, getHeight() / 2f);
+            }
             canvas.drawRoundRect(selectorRect, radius, radius, selectorPaint);
-            final float lightOffset = Math.max(-sWidth * 0.35f,
-                    Math.min(sWidth * 0.35f, selectorTargetX - x));
-            selectorLightMatrix.setTranslate(x + lightOffset, 0);
-            selectorLightShader.setLocalMatrix(selectorLightMatrix);
-            canvas.drawRoundRect(selectorRect, radius, radius, selectorHighlightPaint);
-            canvas.drawRoundRect(selectorRect, radius, radius, selectorEdgePaint);
+            if (liquidGlass) {
+                final float lightOffset = Math.max(-sWidth * 0.35f,
+                        Math.min(sWidth * 0.35f, selectorTargetX - x));
+                selectorLightMatrix.setTranslate(x + lightOffset, 0);
+                selectorLightShader.setLocalMatrix(selectorLightMatrix);
+                canvas.drawRoundRect(selectorRect, radius, radius, selectorHighlightPaint);
+                canvas.drawRoundRect(selectorRect, radius, radius, selectorEdgePaint);
+            }
             canvas.restore();
         }
 
