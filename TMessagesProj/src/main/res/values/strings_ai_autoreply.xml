@@ -5,7 +5,7 @@
     <string name="AR_Prompt">System instruction / tone</string>
     <string name="AR_Length">Maximum reply length (50–4000 characters)</string>
     <string name="AR_Context">Previous messages (0–6, since enabling)</string>
-    <string name="AR_Notice">Enabling sends new incoming message text and up to the selected number of previous messages to your external AI provider. Generated replies are sent automatically on your behalf. Only enable for chats whose participants agree. Disabling stops new replies. One reply per minute, at most three per ten minutes; no reply catch-up. For a batch of group messages, replies target its newest message.</string>
+    <string name="AR_Notice">Only messages sent as replies to another message trigger the auto-reply. The new reply, its referenced message when available, sender names, and selected previous messages are sent to your external AI provider. Generated replies are sent automatically on your behalf. Only enable for chats whose participants agree. Disabling stops new replies. One reply per minute, at most three per ten minutes; no reply catch-up.</string>
     <string name="AR_Connection">AI connection settings</string>
     <string name="AR_Provider">Provider name</string>
     <string name="AR_Base">API base URL (for example https://api.openai.com/v1)</string>
@@ -18,7 +18,7 @@
     <string name="AR_Reset">Clear speed measurements</string>
     <string name="AR_SpeedNotice">Speed uses a short generated test, not the model-list request. Results are cached for 7 days. Up to 12 models are measured per test; run again to measure the next models. Failed models are skipped (×). Manual model ID works without a catalogue.</string>
     <string name="AR_Working">Request in progress…</string>
-    <string name="AR_ChooseChats">Open the menu of an individual chat to enable AI auto-reply. Available in ordinary personal chats and groups; secret chats, bots, broadcast channels and forum topics are excluded. Disabled by default. The API key is stored separately from exported settings.</string>
+    <string name="AR_ChooseChats">Open the menu of an individual chat to enable AI auto-reply. Available in ordinary personal chats, groups and forum topics; secret chats, bots, broadcast channels and mono-forums are excluded. Disabled by default. The API key is stored separately from exported settings.</string>
     <string name="AR_SaveError">Could not securely save settings. Check the device lock and try again.</string>
     <string name="AR_Invalid">Invalid value. Check the permitted range or URL.</string>
     <string name="AR_TestWarning">This sends a short synthetic prompt to your provider and may incur API charges. Chat text is not sent.</string>

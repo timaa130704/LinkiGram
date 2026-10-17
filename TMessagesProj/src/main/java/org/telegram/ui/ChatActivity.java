@@ -4401,7 +4401,7 @@ public class ChatActivity extends BaseFragment implements
                 userFull = getMessagesController().getUserFull(currentUser.id);
             }
             headerItem = menu.addItem(chat_menu_options, otherIcon);
-            if (currentEncryptedChat == null && !isTopic && (currentUser != null && !currentUser.bot && !currentUser.self || currentChat != null && (!ChatObject.isChannel(currentChat) || currentChat.megagroup) && !currentChat.forum && !currentChat.monoforum)) {
+            if (currentEncryptedChat == null && (currentUser != null && !currentUser.bot && !currentUser.self || currentChat != null && (!ChatObject.isChannel(currentChat) || currentChat.megagroup) && !currentChat.monoforum)) {
                 headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.AR_Title));
             }
             headerItem.setSubMenuDelegate(new ActionBarMenuItem.ActionBarSubMenuItemDelegate() {
