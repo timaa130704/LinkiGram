@@ -3776,6 +3776,10 @@ public class ChatActivity extends BaseFragment implements
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(final int id) {
+                if (id == 9876) {
+                    presentFragment(new app.nimarkogram.messenger.preferences.AutoReplyPreferencesActivity(currentAccount, dialog_id));
+                    return;
+                }
                 if (id == -1) {
                     if (isInPollAddOptionMode()) {
                         pollAddOptionModeClose();
@@ -4397,6 +4401,9 @@ public class ChatActivity extends BaseFragment implements
                 userFull = getMessagesController().getUserFull(currentUser.id);
             }
             headerItem = menu.addItem(chat_menu_options, otherIcon);
+            if (currentEncryptedChat == null && !isTopic && (currentUser != null && !currentUser.bot && !currentUser.self || currentChat != null && (!ChatObject.isChannel(currentChat) || currentChat.megagroup) && !currentChat.forum && !currentChat.monoforum)) {
+                headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.AR_Title));
+            }
             headerItem.setSubMenuDelegate(new ActionBarMenuItem.ActionBarSubMenuItemDelegate() {
                 @Override
                 public void onShowSubMenu() {

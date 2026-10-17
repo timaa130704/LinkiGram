@@ -81,6 +81,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int inBubbleGradient3Row = 30;
     private final int sendOriginalPhotoRow = 31;
     private final int sleepTimerRow = 34;
+    private final int aiAutoReplyRow = 35;
     private final int lastfmNickRow = 32;
     private final int xcfgTabRow = 33;
 
@@ -144,6 +145,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
+        items.add(UItem.asButton(aiAutoReplyRow, getString(R.string.AR_Title), ""));
         items.add(UItem.asHeader(getString(R.string.LiteMode)));
         items.add(UItem.asButton(springAnimationRow, getString(R.string.EP_NavigationAnimation), getSpringValue()));
         if (NimarkoConfig.springAnimation == NimarkoConfig.SPRING_SPRING) {
@@ -273,7 +275,9 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
-        if (item.id == sleepTimerRow) {
+        if (item.id == aiAutoReplyRow) {
+            presentFragment(new AutoReplyPreferencesActivity(currentAccount, 0));
+        } else if (item.id == sleepTimerRow) {
             ArrayList<String> labels = new ArrayList<>();
             int selected = 0;
             // Labelled by the clock time playback will stop rather than by a

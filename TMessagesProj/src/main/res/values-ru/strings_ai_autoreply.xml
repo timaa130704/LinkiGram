@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="AR_Title">ИИ-автоответчик</string>
+    <string name="AR_Enable">Включить в этом чате</string>
+    <string name="AR_Prompt">Системная инструкция / тон</string>
+    <string name="AR_Length">Длина ответа (50–4000 символов)</string>
+    <string name="AR_Context">Предыдущих сообщений (0–6, с момента включения)</string>
+    <string name="AR_Notice">При включении текст новых входящих и выбранное число предыдущих сообщений передаются внешнему ИИ-провайдеру. Ответы отправляются автоматически от вашего имени. Включайте только с согласия участников чата. Выключение останавливает новые ответы. Не чаще раза в минуту и трёх раз за десять минут; пропущенные ответы не догоняются. В пачке групповых сообщений ответ относится к последнему.</string>
+    <string name="AR_Connection">Настройки подключения ИИ</string>
+    <string name="AR_Provider">Название провайдера</string>
+    <string name="AR_Base">Base URL API (например https://api.openai.com/v1)</string>
+    <string name="AR_Key">API-ключ</string>
+    <string name="AR_EditKey">Изменить безопасно</string>
+    <string name="AR_Model">ID модели (ручной ввод)</string>
+    <string name="AR_Models">Обновить и выбрать модели</string>
+    <string name="AR_Auto">Автовыбор по скорости генерации</string>
+    <string name="AR_Benchmark">Измерить скорость генерации</string>
+    <string name="AR_Reset">Сбросить измерения скорости</string>
+    <string name="AR_SpeedNotice">Скорость измеряется короткой тестовой генерацией, а не запросом списка. Результаты хранятся 7 дней. За тест проверяются до 12 моделей; повторите для следующих. Ошибочные модели пропускаются (×). ID модели можно ввести без каталога.</string>
+    <string name="AR_Working">Выполняется запрос…</string>
+    <string name="AR_ChooseChats">Включите ИИ-автоответчик через меню нужного чата. Доступен в обычных личных чатах и группах; секретные чаты, боты, каналы и темы форумов исключены. По умолчанию он выключен. API-ключ хранится отдельно от экспорта настроек.</string>
+    <string name="AR_SaveError">Не удалось безопасно сохранить настройки. Проверьте блокировку устройства и повторите.</string>
+    <string name="AR_Invalid">Неверное значение. Проверьте диапазон или URL.</string>
+    <string name="AR_TestWarning">Провайдеру будет отправлен короткий тестовый запрос; API может списать оплату. Текст чатов не отправляется.</string>
+    <string name="AR_ResetDone">Измерения скорости сброшены.</string>
+    <string name="AR_TestDone">Измерения скорости сохранены.</string>
+    <string name="AR_ModelsDone">Каталог моделей обновлён.</string>
+    <string name="AR_NetworkError">Не удалось связаться с ИИ-провайдером. Проверьте подключение.</string>
+    <string name="AR_BaseNotice">Смена endpoint выключает автоответ во всех чатах. Включите нужные чаты заново, подтвердив передачу новому провайдеру.</string>
+</resources>
