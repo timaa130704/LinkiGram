@@ -4,8 +4,10 @@
     <string name="AR_Enable">Enable in this chat</string>
     <string name="AR_Prompt">System instruction / tone</string>
     <string name="AR_Length">Maximum reply length (50–4000 characters)</string>
-    <string name="AR_Context">Previous messages (0–6, since enabling)</string>
-    <string name="AR_Notice">Only messages sent as replies to another message trigger the auto-reply. The new reply, its referenced message when available, sender names, and selected previous messages are sent to your external AI provider. Generated replies are sent automatically on your behalf. Only enable for chats whose participants agree. Disabling stops new replies. One reply per minute, at most three per ten minutes; no reply catch-up.</string>
+    <string name="AR_Context">Memory: previous messages (0–6)</string>
+    <string name="AR_ClearMemory">Clear saved memory</string>
+    <string name="AR_MemoryCleared">Saved memory for this chat was cleared.</string>
+    <string name="AR_Notice">Only messages sent as replies to another message trigger the auto-reply. The new reply, its referenced message when available, sender names, and selected previous messages are sent to your external AI provider. Up to six recent messages per topic are stored encrypted on this device until cleared. Generated replies are sent automatically on your behalf. Only enable for chats whose participants agree. At most three requests per ten minutes; requests are queued while the AI is busy.</string>
     <string name="AR_Connection">AI connection settings</string>
     <string name="AR_Provider">Provider name</string>
     <string name="AR_Base">API base URL (for example https://api.openai.com/v1)</string>

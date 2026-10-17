@@ -41,7 +41,8 @@ public class AutoReplyPreferencesActivity extends NimarkoUniversalPreferencesAct
             items.add(SettingsHelper.asSwitchCG(10, getString(R.string.AR_Enable)).setChecked(chat.optBoolean("enabled")));
             items.add(UItem.asButton(11, getString(R.string.AR_Prompt), chat.optString("prompt", "")));
             items.add(UItem.asButton(12, getString(R.string.AR_Length), "" + chat.optInt("max_chars", 500)));
-            items.add(UItem.asButton(13, getString(R.string.AR_Context), "" + chat.optInt("context", 0)));
+            items.add(UItem.asButton(13, getString(R.string.AR_Context), "" + chat.optInt("context", 6)));
+            items.add(UItem.asButton(15, getString(R.string.AR_ClearMemory), ""));
             items.add(UItem.asShadow(getString(R.string.AR_Notice)));
             String error = config.getString("status_" + dialogId, "");
             if (!error.isEmpty()) items.add(UItem.asShadow(error));
@@ -108,8 +109,13 @@ public class AutoReplyPreferencesActivity extends NimarkoUniversalPreferencesAct
                 break;
             case 11: edit(R.string.AR_Prompt, config.chat(dialogId).optString("prompt", ""), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, 4000, v -> saveChat("prompt", v)); break;
             case 12: edit(R.string.AR_Length, "" + config.chat(dialogId).optInt("max_chars", 500), InputType.TYPE_CLASS_NUMBER, 4, v -> { int n = Integer.parseInt(v); if (n < 50 || n > 4000) throw new IllegalArgumentException(); saveChat("max_chars", n); }); break;
-            case 13: edit(R.string.AR_Context, "" + config.chat(dialogId).optInt("context", 0), InputType.TYPE_CLASS_NUMBER, 1, v -> { int n = Integer.parseInt(v); if (n < 0 || n > 6) throw new IllegalArgumentException(); saveChat("context", n); }); break;
+            case 13: edit(R.string.AR_Context, "" + config.chat(dialogId).optInt("context", 6), InputType.TYPE_CLASS_NUMBER, 1, v -> { int n = Integer.parseInt(v); if (n < 0 || n > 6) throw new IllegalArgumentException(); saveChat("context", n); }); break;
             case 14: presentFragment(new AutoReplyPreferencesActivity(currentAccount, 0)); break;
+            case 15:
+                config.putChatMemory(dialogId, new JSONArray());
+                message(getString(R.string.AR_MemoryCleared));
+                refresh();
+                break;
             }
         } catch (Exception e) { error(); }
     }

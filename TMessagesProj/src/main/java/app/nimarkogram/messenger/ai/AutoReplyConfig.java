@@ -4,6 +4,7 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.AtomicFile;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.telegram.messenger.ApplicationLoader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -98,6 +99,22 @@ public final class AutoReplyConfig {
     public synchronized JSONObject chat(long did) {
         try { return new JSONObject(data.optJSONObject("chat_" + did) == null ? "{}" : data.getJSONObject("chat_" + did).toString()); }
         catch (Exception e) { return new JSONObject(); }
+    }
+    public synchronized JSONArray chatMemory(long did) {
+        try {
+            JSONObject chat = data.optJSONObject("chat_" + did);
+            return chat == null ? new JSONArray() : new JSONArray(chat.optJSONArray("memory") == null ? "[]" : chat.getJSONArray("memory").toString());
+        } catch (Exception e) { return new JSONArray(); }
+    }
+    public synchronized void putChatMemory(long did, JSONArray memory) {
+        try {
+            JSONObject next = new JSONObject(data.toString());
+            JSONObject chat = next.optJSONObject("chat_" + did);
+            if (chat == null) chat = new JSONObject();
+            chat.put("memory", new JSONArray(memory.toString()));
+            next.put("chat_" + did, chat);
+            persist(next);
+        } catch (org.json.JSONException e) { throw new IllegalArgumentException("Не удалось обновить память автоответчика."); }
     }
     public synchronized void saveChat(long did, JSONObject chat) throws Exception {
         JSONObject copy = new JSONObject(chat.toString());
