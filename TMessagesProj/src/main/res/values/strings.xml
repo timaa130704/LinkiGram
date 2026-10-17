@@ -6307,8 +6307,8 @@
     <string name="LiteOptionsTopics">Side menu in topics</string>
     <string name="LiteOptionsSpoiler">Animated spoiler effect</string>
     <string name="LiteOptionsBlur2">Blur</string>
-    <string name="LiteOptionsLiquidGlass">Liquid Glass</string>
-    <string name="NM_LiquidGlass">Liquid Glass</string>
+    <string name="LiteOptionsLiquidGlass">Linki Glass</string>
+    <string name="NM_LiquidGlass">Linki Glass</string>
     <string name="NM_LiquidGlass_Desc">Glass panels and controls throughout the app</string>
     <string name="LiteOptionsScale">Zoom animations</string>
     <string name="LiteOptionsThanos">Dust-effect deletion</string>
@@ -11549,8 +11549,8 @@
 <string name="NM_IconPack_DefaultSubtitle">Standard Telegram icons</string>
 <string name="NM_IconPack_SolarTitle">Solar</string>
 <string name="NM_IconPack_SolarSubtitle">Built-in Solar icon pack</string>
-<string name="NM_IconPack_LiquidTitle">Liquid Glass</string>
-<string name="NM_IconPack_LiquidSubtitle">Liquid Glass icon pack</string>
+<string name="NM_IconPack_LiquidTitle">Linki Glass</string>
+<string name="NM_IconPack_LiquidSubtitle">Linki Glass icon pack</string>
 <string name="NM_IconPack_PlumpyTitle">Plumpy</string>
 <string name="NM_IconPack_PlumpySubtitle">Plumpy icon pack</string>
 <string name="NM_BAN_PickFile">Select file</string>
@@ -11938,7 +11938,7 @@
 <string name="NM_Without_Authorship">without authorship</string>
 <string name="NM_Without_Caption">without caption</string>
 <string name="NM_Menu_TelegramPlus">Modern message menu</string>
-<string name="NM_Menu_TelegramPlus_Desc">A compact Liquid Glass menu with grouped actions, spring animations, and responsive effects. Compact layout remains available.</string>
+<string name="NM_Menu_TelegramPlus_Desc">A compact Linki Glass menu with grouped actions, spring animations, and responsive effects. Compact layout remains available.</string>
 <string name="NM_CAM_Improvements">Improvements</string>
 <string name="NM_CAM_VideoQuality">Video quality</string>
 <string name="NM_CAM_OpticalStabilization">Optical stabilization</string>

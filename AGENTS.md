@@ -626,3 +626,14 @@ The shared selector in `MainTabsLayout` also drew its own specular gradient and
 stretch effect independently of the global flag. These are now gated by the same
 Liquid Glass flag; OFF retains a flat sliding selection indicator. Build
 39025563690 was cancelled during checkout to include this additional fix.
+
+
+## Linki Glass switches — 2026-10-17
+
+User confirmed build 39025681460 works: global OFF and message menu are fixed.
+New request: rename visible Liquid Glass labels to Linki Glass and style switches.
+Switch.java now uses the existing refraction shader for the moving thumb over its
+colored track, with surface reflections and animated stretch. Global OFF restores
+the selected normal/MD3 style; color override transitions retain their original path.
+Visible EN/RU labels renamed; internal resource and preference keys preserved.
+Implementation pending CI build/device review. Build only codex/2.6, 2.6.0-dev.

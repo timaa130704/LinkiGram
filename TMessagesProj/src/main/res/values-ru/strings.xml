@@ -808,7 +808,7 @@
     <string name="NM_StickerSizePreviewReply">на Марс 🚀</string>
     <string name="NM_StickerSizePreviewText">ахаха 😂</string>
     <string name="NM_ForceBlur">Усиленный блюр</string>
-    <string name="NM_LiquidGlass">Liquid Glass</string>
+    <string name="NM_LiquidGlass">Linki Glass</string>
     <string name="NM_LiquidGlass_Desc">Стеклянные панели и элементы управления по всему приложению</string>
     <string name="NM_HideActionBarStatus">Скрыть статус в шапке чата</string>
     <string name="NM_DisableSendHints">Отключить подсказки отправки</string>
@@ -879,8 +879,8 @@
     <string name="NM_IconPack_DefaultSubtitle">Стандартные иконки Telegram</string>
     <string name="NM_IconPack_SolarTitle">Solar</string>
     <string name="NM_IconPack_SolarSubtitle">Встроенный набор Solar</string>
-    <string name="NM_IconPack_LiquidTitle">Liquid Glass</string>
-    <string name="NM_IconPack_LiquidSubtitle">Набор Liquid Glass</string>
+    <string name="NM_IconPack_LiquidTitle">Linki Glass</string>
+    <string name="NM_IconPack_LiquidSubtitle">Набор Linki Glass</string>
     <string name="NM_IconPack_PlumpyTitle">Plumpy</string>
     <string name="NM_IconPack_PlumpySubtitle">Набор Plumpy</string>
     <string name="NM_BAN_PickFile">Выберите файл</string>
@@ -1170,7 +1170,7 @@
     <!-- MessageMenu -->
     <string name="CP_MessageMenuItems">Элементы меню сообщения</string>
     <string name="NM_Menu_TelegramPlus">Современное меню сообщений</string>
-    <string name="NM_Menu_TelegramPlus_Desc">Компактное меню в стиле Liquid Glass с группировкой действий, пружинными анимациями и живым откликом. Компактная компоновка остаётся доступной.</string>
+    <string name="NM_Menu_TelegramPlus_Desc">Компактное меню в стиле Linki Glass с группировкой действий, пружинными анимациями и живым откликом. Компактная компоновка остаётся доступной.</string>
     <string name="CP_MessageMenuCompactLayout">Компактная компоновка меню</string>
     <string name="CP_MessageMenuCompactLayout_Desc">Переносит до четырёх основных действий в отдельную панель с крупными значками и подписями. Остальные пункты сохраняют обычный размер.</string>
     <string name="CP_MessageMenuCompactLayout_Dot">Зоны нажатия остаются удобными; точка рядом с действием означает, что доступно и долгое нажатие.</string>
