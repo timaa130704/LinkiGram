@@ -764,6 +764,19 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
 
         items.add(UItem.asCustomShadow(versionView));
+        if (app.nimarkogram.messenger.NimarkoConfig.m3ListItems()) {
+            for (int i = items.size() - 2; i >= 0; i--) {
+                UItem current = items.get(i);
+                UItem next = items.get(i + 1);
+                boolean currentIsSettingsRow = UItem.findFactory(current.viewType) instanceof SettingCell.Factory
+                        || UItem.findFactory(current.viewType) instanceof AccountCell.Factory;
+                boolean nextIsSettingsRow = UItem.findFactory(next.viewType) instanceof SettingCell.Factory
+                        || UItem.findFactory(next.viewType) instanceof AccountCell.Factory;
+                if (currentIsSettingsRow && nextIsSettingsRow) {
+                    items.add(i + 1, UItem.asSpacing(4));
+                }
+            }
+        }
     }
 
     private void presentSettingFragment(BaseFragment fragment) {

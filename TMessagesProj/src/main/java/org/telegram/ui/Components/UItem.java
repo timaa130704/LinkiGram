@@ -393,6 +393,12 @@ public class UItem extends AdapterWithDiffUtils.Item {
         return i;
     }
 
+    public static UItem asSpacing(int heightDp) {
+        UItem i = new UItem(UniversalAdapter.VIEW_TYPE_SHADOW, false);
+        i.intValue = heightDp;
+        return i;
+    }
+
     public static UItem asLargeShadow(CharSequence text) {
         UItem i = new UItem(UniversalAdapter.VIEW_TYPE_LARGE_SHADOW, false);
         i.text = text;
