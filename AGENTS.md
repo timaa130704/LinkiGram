@@ -647,3 +647,95 @@ Build 39027613487 succeeded and its APK was installed with `adb install -r` on S
 ## Sticker sizing and switch follow-up (2026-10-17)
 
 User reported the previous build wasted a 20-minute build cycle: the sticker slider did not resize ordinary chat stickers, and the preview used an unrelated sticker. Root cause: prior scaling was added only to the link-preview branch; regular sticker messages size themselves in `ChatMessageCell`'s `isAnyKindOfSticker()` path. Current edits scale `maxWidth` and `maxHeight` there and rebuild fragments on slider release. The preview now constructs the exact document from the user's Bot API file ID fields. Glass rendering was removed from the shared `Switch`; retain the separate global Linki Glass setting and glass surfaces. Changes require CI compile and on-device verification of the exact preview/download and slider in a real chat. Build from codex/2.6, version 2.6.0-dev only.
+
+
+## Latest correction installed (2026-10-17)
+
+Commit c0dbe334c removed the glass treatment from shared switches and fixed sticker scaling in the normal message layout. It also puts the exact decoded sticker document from the user's Bot API file_id in the size preview. CI rerun 39041526461 succeeded; artifact was installed with adb install -r. Verified package app.linkigram.messenger versionName 2.6.0-dev, versionCode 202600019, install time 2026-10-17 18:08:33. Device screen was asleep at last screenshot, so visual preview/file-reference loading and real-chat slider behavior still need verification. Ask user to wake/unlock and open Appearance > Sticker size; inspect before any UI interaction. Continue on codex/2.6, do not touch X-CFG/wsbypass/landing.
+
+## Sticker fix device verification (2026-10-17)
+
+User opened Appearance > Sticker size on the installed build. The exact supplied
+sticker loaded in the preview (black dancing silhouette with “а что звучит
+хайпово”). Moving the slider to maximum visibly enlarged it; releasing updated
+the preview immediately. Slider was returned to the user's original value 10.
+Shared switch styling is reverted. No further build needed for this request.
+
+## Install successful CI builds
+
+User preference (2026-10-17): after every successful APK CI build, download the
+artifact, verify package/version against the intended branch, and install it on
+the connected phone with `adb install -r` to preserve app data. If the phone is
+not visible or artifact download is temporarily unavailable, keep going where
+possible and report the exact blocker; resume installation when connectivity
+returns without requiring the user to repeat this preference.
+
+## AI auto-reply build installed (2026-10-17)
+
+CI run 39047948894 succeeded for commit c3ae2b5aaf5dbb68045e12fde2f6152621fb2b2f.
+APK artifact `linkigram-apk` was verified with aapt2: package
+`app.linkigram.messenger`, versionCode 202600019, versionName `2.6.0-dev`.
+Installed on SM-G973F (`RF8MA188NFZ`) with `adb install -r`; install succeeded
+and preserved app data. Install time: 2026-10-17 21:15:54. User preference is to
+automatically install every successful CI APK build after verifying branch and
+manifest version (see install rule above).
+
+## AI auto-reply follow-up (2026-10-17)
+
+User requested replies only to Telegram replies, access from forum topics, and
+speaker-aware group context. Commit cda067bb4 on codex/2.6 implements: require a
+nonzero reply_to_msg_id; include the referenced message and author when locally
+available, current author, and author-labeled context from the same forum topic;
+show the setting in forum/topic menus and permit forum groups through eligibility.
+EN/RU notice now discloses the reply/author/context data sent to the provider.
+`git diff --check`, XML parsing, and EN/RU key parity passed. CI run
+39058525005 is queued for 2.6.0-dev; install it with `adb install -r` after
+successful build and verify its manifest first. Do not touch X-CFG/wsbypass/landing.
+
+CI follow-up: run 39058525005 caught missing `senderName(MessageObject)` overloads
+before APK assembly. Fixed in commit 4d73757fd; rerun 39058939550 is queued for
+that exact branch commit. Install only after smoke compile/build succeeds and APK
+manifest matches 2.6.0-dev.
+
+## AI auto-reply queue and memory follow-up (2026-10-17)
+
+User reported that a second reply was not answered and asked for persistent
+memory. The previous controller silently dropped requests while busy or inside
+its one-minute per-chat cooldown. Commit `381e279a7` removes that cooldown and
+queues requests on the single worker, retaining the cap of three requests per
+chat per ten minutes. Generated outgoing messages are excluded from the manual
+send cancellation revision, so they do not cancel the next queued answer.
+
+The previous-message context now defaults to six and persists in the existing
+AES-GCM Android Keystore protected, no-backup settings file, scoped by chat and
+forum topic. The setting can be 0–6; a chat settings row clears stored memory.
+AI replies are included in subsequent context. EN/RU disclosure explains local
+encrypted retention and provider transfer. Commits `381e279a7` and
+`7c6467aad` are pushed to `codex/2.6`. CI run `39059497890` failed on an uncaught
+`JSONException`; run `39060053152` was cancelled at the user's request. Run
+`39061238264` passed on `7c6467aad3e12a477f62a31dc2a9ba55093bd9cb`. Artifact
+`.tmp-apk-2.6.0-dev-39061238264/app.apk` has package `app.linkigram.messenger`,
+versionCode `202600019`, versionName `2.6.0-dev`, SHA-256
+`63C1805364EFF91F6449D699D3926D8545A288D377C90894D6790DA89EEB1267`; installed
+successfully with `adb install -r` on SM-G973F at 2026-10-17 22:37:53. Verify on
+device that a second queued reply sends and encrypted per-topic memory survives an
+app restart; these functional checks remain pending. The user confirmed the lyrics
+search issue was caused by their VPN disconnecting; no lyrics-search code changed.
+
+## 2.6.0 promotion to main — 2026-10-17
+
+The user authorized promoting the 2.6 work to `main` and setting the stable app
+version. Telegram base is 13.0.2. `gradle.properties` now has
+`APP_VERSION_NAME=2.6.0` and `APP_VERSION_CODE=20260002`.
+
+Commit `5dbb551d6` merges the 2.6 work with main's Linki Glass refresh fix and
+was pushed successfully to `origin/main`. The push output confirmed
+`4c3e680b8..5dbb551d6 HEAD -> main`. GitHub Actions status could not be checked
+because `gh` could not connect to api.github.com. Treat the CI build, APK,
+GitHub release, and Telegram announcement as pending; verify the build commit
+and APK manifest (`2.6.0`) before release or installation.
+
+The separate local `C:/Users/dolbaeb/LinkiGram` checkout contains uncommitted
+user edits, including `landing/` files and artifacts. Do not reset, stash,
+overwrite, or include them in commits. Do not change X-CFG, `wsbypass`, or
+`landing/` as part of 2.6 release follow-up.
