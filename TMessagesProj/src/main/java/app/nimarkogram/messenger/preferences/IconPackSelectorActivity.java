@@ -34,6 +34,7 @@ import org.telegram.ui.LaunchActivity;
 import java.util.ArrayList;
 
 import app.nimarkogram.messenger.NimarkoConfig;
+import app.nimarkogram.messenger.icons.CustomSvgIconPack;
 import app.nimarkogram.messenger.icons.icon_replaces.BaseIconReplace;
 import app.nimarkogram.messenger.icons.icon_replaces.SolarIconReplace;
 import app.nimarkogram.messenger.icons.icon_replaces.LiquidGlassFullReplace;
