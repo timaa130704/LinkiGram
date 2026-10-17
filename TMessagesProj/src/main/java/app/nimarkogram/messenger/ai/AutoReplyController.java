@@ -199,13 +199,14 @@ public final class AutoReplyController {
                 String reply = null;
                 String error = "ИИ не смог ответить. Проверьте endpoint, ключ и модель.";
                 long deadline = android.os.SystemClock.elapsedRealtime() + 60000;
-                JSONArray prompt = new JSONArray().put(new JSONObject().put("role", "system").put("content", systemPrompt));
-                for (JSONObject item : contextMessages) {
-                    String content = item.optString("content", "");
-                    if ("user".equals(item.optString("role"))) content = "Сообщение от " + item.optString("name", "участник") + ": " + content;
-                    prompt.put(new JSONObject().put("role", item.optString("role", "user")).put("content", content));
-                }
+                JSONArray prompt = new JSONArray();
                 try {
+                    prompt.put(new JSONObject().put("role", "system").put("content", systemPrompt));
+                    for (JSONObject item : contextMessages) {
+                        String content = item.optString("content", "");
+                        if ("user".equals(item.optString("role"))) content = "Сообщение от " + item.optString("name", "участник") + ": " + content;
+                        prompt.put(new JSONObject().put("role", item.optString("role", "user")).put("content", content));
+                    }
                     TLRPC.Message parent = repliedMessage(did, original);
                     String parentText = parent != null ? parent.message : replyQuote;
                     if (!TextUtils.isEmpty(parentText)) {
@@ -213,18 +214,17 @@ public final class AutoReplyController {
                         String parentAuthor = parent != null ? senderName(parent) : "участник";
                         prompt.put(new JSONObject().put("role", "user").put("content", "Сообщение, на которое ответили (автор: " + parentAuthor + "): " + parentText));
                     }
-                } catch (Exception ignored) { }
-                prompt.put(new JSONObject().put("role", "user").put("content", "Ответ от " + replyAuthor + ": " + replyText));
-                try { for (int i = 0; i < Math.min(3, candidates.size()); i++) {
-                    JSONObject live = config.chat(did);
-                    if (!live.optBoolean("enabled") || live.optLong("owner") != UserConfig.getInstance(account).getClientUserId() || live.optLong("generation") != generation || config.connectionRevision() != connectionRevision
-                            || android.os.SystemClock.elapsedRealtime() > deadline - 30000) break;
-                    try { reply = AutoReplyClient.generate(base, key, candidates.get(i), prompt, max); break; }
-                    catch (AutoReplyClient.ClientException e) {
-                        error = e.getMessage();
-                        if (!auto || e.status == 401 || e.status == 403 || e.status == 429) break;
+                    prompt.put(new JSONObject().put("role", "user").put("content", "Ответ от " + replyAuthor + ": " + replyText));
+                    for (int i = 0; i < Math.min(3, candidates.size()); i++) {
+                        JSONObject live = config.chat(did);
+                        if (!live.optBoolean("enabled") || live.optLong("owner") != UserConfig.getInstance(account).getClientUserId() || live.optLong("generation") != generation || config.connectionRevision() != connectionRevision
+                                || android.os.SystemClock.elapsedRealtime() > deadline - 30000) break;
+                        try { reply = AutoReplyClient.generate(base, key, candidates.get(i), prompt, max); break; }
+                        catch (AutoReplyClient.ClientException e) {
+                            error = e.getMessage();
+                            if (!auto || e.status == 401 || e.status == 403 || e.status == 429) break;
+                        }
                     }
-                }
                 } catch (Exception ignored) { error = "Не удалось выполнить запрос ИИ."; }
                 String response = reply, failure = error;
                 AndroidUtilities.runOnUIThread(() -> {
