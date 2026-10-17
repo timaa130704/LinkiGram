@@ -14,6 +14,7 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import org.telegram.messenger.LiteMode;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.blur3.LiquidGlassEffect;
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
@@ -53,6 +54,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
     }
 
     private LiquidGlassEffect liquidGlassEffect;
+    private boolean liquidGlassRequested;
     private int liquidGlassCapturePadding;
     private int liquidGlassShaderResource;
 
@@ -63,6 +65,20 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassEffectAllowed(boolean allowed) {
+        liquidGlassRequested = allowed;
+        updateLiquidGlassState();
+    }
+
+    private void updateLiquidGlassState() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        final boolean allowed = liquidGlassRequested && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+        if (allowed == (liquidGlassEffect != null)) {
+            return;
+        }
+        // Clearing the Java wrapper alone leaves the GPU effect attached to the node.
+        renderNodeFill.setRenderEffect(null);
         liquidGlassEffect = allowed
                 ? (liquidGlassShaderResource != 0
                     ? new LiquidGlassEffect(renderNodeFill, liquidGlassShaderResource)
@@ -76,7 +92,11 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     public void setLiquidGlassMaterial(int shaderResource) {
-        liquidGlassShaderResource = shaderResource;
+        if (liquidGlassShaderResource != shaderResource) {
+            liquidGlassShaderResource = shaderResource;
+            liquidGlassEffect = null;
+            renderNodeFill.setRenderEffect(null);
+        }
         setLiquidGlassEffectAllowed(true);
     }
 
@@ -131,6 +151,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
     @Override
     public void updateDisplayList() {
+        updateLiquidGlassState();
         final float offsetX = sourceOffsetX;
         final float offsetY = sourceOffsetY;
 
@@ -205,6 +226,7 @@ public class BlurredBackgroundDrawableRenderNode extends BlurredBackgroundDrawab
 
     @Override
     public void draw(@NonNull Canvas canvas) {
+        updateLiquidGlassState();
         if (boundProps.boundsWithPadding.isEmpty()) {
             return;
         }

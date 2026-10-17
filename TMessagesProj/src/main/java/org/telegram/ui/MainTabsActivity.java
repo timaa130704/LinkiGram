@@ -372,8 +372,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
         iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
-        tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+        tabsViewBackground = iBlur3FactoryGlass.create(tabsView,
+                LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+                        ? BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider)
+                        : BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
+        if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && tabsViewBackground instanceof BlurredBackgroundDrawableRenderNode) {
             ((BlurredBackgroundDrawableRenderNode) tabsViewBackground)
                     .setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);

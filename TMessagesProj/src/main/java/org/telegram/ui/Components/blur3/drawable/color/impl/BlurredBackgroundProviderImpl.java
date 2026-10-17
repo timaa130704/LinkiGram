@@ -34,6 +34,9 @@ public class BlurredBackgroundProviderImpl {
     public static BlurredBackgroundProvider mainTabs(Theme.ResourcesProvider resourcesProvider) {
         return new BlurredBackgroundProviderBuilder(resourcesProvider)
             .setBackgroundColor((r, isDark) -> {
+                if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+                    return Theme.getColor(Theme.key_windowBackgroundWhite, r) | 0xFF000000;
+                }
                 final float alpha = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0.85f : 0.76f;
                 final int colorBg = Theme.getColor(Theme.key_windowBackgroundWhite, r);
                 final int colorTarget = Theme.getColor(Theme.key_glass_targetMainTabs, r);
@@ -110,10 +113,11 @@ public class BlurredBackgroundProviderImpl {
     public static BlurredBackgroundProvider messageMenuBackground(Theme.ResourcesProvider resourcesProvider) {
         return new BlurredBackgroundProviderBuilder(resourcesProvider)
                 .setBackgroundColor((r, isDark) -> {
-                    if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_BLUR)) {
-                        return Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground);
+                    if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+                        return Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, r) | 0xFF000000;
                     }
-                    return Theme.multAlpha(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), isDark ? 0.85f : 0.825f);
+                    return Theme.multAlpha(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, r),
+                            android.os.Build.VERSION.SDK_INT >= 33 ? (isDark ? 0.28f : 0.22f) : 0.85f);
                 })
                 .setStrokeColorTop(0x44FFFFFF, 0)
                 .setStrokeColorBottom(0x22FFFFFF, 0)

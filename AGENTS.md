@@ -562,3 +562,62 @@ were gone. Alternative if that fails: MT Manager on the phone.
   3.2.0 to match the kernel). `su` works from adb and is not visible to the
   app in the usual way — KernelSU Next hides it from `adb shell` by default.
   adb drops constantly; `adb kill-server` + retry usually recovers it.
+
+## Current handoff — 2.6 Liquid Glass (2026-10-16)
+
+Read this section first when continuing in a new chat. Then check `git status`,
+the current branch and recent commits; this file can lag the checkout. Keep the
+user's standing boundaries: do not change X-CFG, `wsbypass`, or `landing`.
+
+- Current checkout is branch `codex/2.6`, commit
+  `3f847505366fa330d73139fc73765261dd62e444` (`Restore solid tab material when
+  Liquid Glass is off`), based on Telegram **13.0.2**. App version is
+  `2.6.0-dev` (`APP_VERSION_CODE=20260001`).
+- **Build 2.6 only from branch `codex/2.6`.** Before starting Actions, verify
+  `git branch --show-current` is exactly `codex/2.6` and
+  `gradle.properties` contains `APP_VERSION_NAME=2.6.0-dev` (and the expected
+  2.6 version code). Do not build this work from `main` or take an APK from
+  another chat/run just because it is newer. After downloading, verify the APK
+  metadata (`versionName=2.6.0-dev`) before installing or handing it over; a
+  2.5.4 APK is the wrong artifact.
+- Liquid Glass setting reported OFF on the user's phone. Root-only read of
+  `mainconfig.xml` showed `lite_mode6=262143`: the Liquid Glass bit
+  (`1<<18`) was clear, while legacy chat blur (`1<<8`) remained on. This was
+  initially mistaken for the reason the tab bar still looked glassy.
+- Global appearance switch was wired to existing blur surfaces in commit
+  `cf8e1ba22`; commit `3f8475053` additionally switches the main tab bar to
+  `BlurredBackgroundProviderImpl.mainTabs(...)` when Liquid Glass is OFF.
+  Actions build **38951695984** passed, and its `2.6.0-dev` APK (92,365,360
+  bytes) was installed with `adb install -r`, preserving app data.
+- The user still reports that switching Liquid Glass OFF leaves the visual
+  effect on. The post-install screenshot attempt was inconclusive: the device
+  went to sleep and showed a black screen. Therefore this regression is **not
+  verified fixed**; diagnose the actual rendered UI when the device is awake,
+  trace all surfaces that continue to use blur/material after the flag changes,
+  and fix the underlying behavior before reporting completion. ADB device is
+  `RF8MA188NFZ`; USB debugging is enabled, though ADB may drop.
+- User also requested that the message long-press/context menu use the Liquid
+  Glass style. This has not been implemented yet. Inspect the menu presentation
+  path and existing glass components before changing it; respect the global
+  toggle so OFF removes the effect there too.
+- User wants to use a fresh chat for each change. In every new chat, read this
+  handoff and the relevant parts of `AGENTS.md`, summarize the current state
+  briefly, then proceed without asking them to repeat project history. Update
+  this section after meaningful work (commit/build/install/verification),
+  recording what is confirmed and what remains open. Never store credentials,
+  tokens, or other secrets here.
+
+
+### Pending validation — 2026-10-17
+
+The installed build 39019267465 was a rebuild of 3f8475053; the user confirms
+that OFF still leaves glass and the message context menu has no Liquid Glass.
+New fixes in this checkout address the actual paths: main-tab creation no longer
+unconditionally applies its shader; disabling a RenderNode drawable explicitly
+clears `renderNodeFill.setRenderEffect(null)` (clearing the Java wrapper did not
+remove the GPU effect). Existing drawables also check the global flag on draw.
+The OFF tab/menu backgrounds are opaque. Bitmap-backed menus gain a RenderNode
+refraction path on API 33+, and the message menu uses a more detailed background
+capture, lighter tint, and rounded refracting edges when enabled. These changes
+require a fresh CI build and on-device ON/OFF + message-menu validation before
+claiming the regression is fixed. The previously installed APK lacks these fixes.

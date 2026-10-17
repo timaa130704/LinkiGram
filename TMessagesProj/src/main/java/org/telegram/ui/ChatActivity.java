@@ -11965,6 +11965,16 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private void updateScrimSourceBitmap() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+            // Keep enough scene detail for the menu's refracting edges.
+            AndroidUtilities.makeGlobalBlurBitmap(bitmap -> {
+                scrimBlur3SourceBitmap.setBitmap(bitmap);
+                Blur3Utils.checkBitmapSourceMatrixScale(scrimBlur3SourceBitmap, fragmentView);
+                scrimBlur3Factory.invalidateAllLinkedViews();
+            }, 3f, 2, null, null);
+            return;
+        }
         ScrimOptions.makeGlobalBlurBitmaps((bitmapBg, bitmapOptions) -> {
             scrimBlur3SourceBitmap.setBitmap(bitmapOptions);
             Blur3Utils.checkBitmapSourceMatrixScale(scrimBlur3SourceBitmap, fragmentView);
@@ -31373,9 +31383,12 @@ public class ChatActivity extends BaseFragment implements
 
             updateScrimSourceBitmap();
 
+            final boolean liquidMessageMenu = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+            scrimBlur3Factory.setLiquidGlassEffectAllowed(liquidMessageMenu);
             popupLayout.setBackground(scrimBlur3Factory.create(popupLayout, true)
                 .setColorProvider(BlurredBackgroundProviderImpl.messageMenuBackground(resourceProvider))
-                .setRadius(dp(12))
+                .setThickness(dp(14))
+                .setRadius(dp(liquidMessageMenu ? 20 : 12))
                 .setPadding(dp(8)));
 
             boolean addGap = false;

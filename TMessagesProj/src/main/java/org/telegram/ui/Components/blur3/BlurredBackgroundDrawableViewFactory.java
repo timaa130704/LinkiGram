@@ -11,6 +11,7 @@ import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
 import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider;
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
+import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceBitmap;
 import org.telegram.ui.Components.chat.ViewPositionWatcher;
 import org.telegram.utils.glass.GlassEngine;
 
@@ -67,6 +68,13 @@ public class BlurredBackgroundDrawableViewFactory {
     }
 
     public void invalidateAllLinkedViews() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && linkedDrawables != null) {
+            for (BlurredBackgroundDrawable drawable : linkedDrawables) {
+                if (drawable instanceof BlurredBackgroundDrawableRenderNode) {
+                    ((BlurredBackgroundDrawableRenderNode) drawable).invalidateDisplayList();
+                }
+            }
+        }
         if (linkedViews != null) {
             for (View v : linkedViews) {
                 v.invalidate();
@@ -98,8 +106,13 @@ public class BlurredBackgroundDrawableViewFactory {
     }
 
     public BlurredBackgroundDrawable create(View view, BlurredBackgroundColorProvider provider, boolean multiwindow) {
-        final BlurredBackgroundDrawable drawable = source.createDrawable();
-        if (isLiquidGlassEffectAllowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        final boolean useLiquidGlass = isLiquidGlassEffectAllowed
+                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+        // Bitmap-backed popup menus also need a RenderNode to support refraction.
+        final BlurredBackgroundDrawable drawable = useLiquidGlass && source instanceof BlurredBackgroundSourceBitmap
+                ? new BlurredBackgroundDrawableRenderNode(source) : source.createDrawable();
+        if (useLiquidGlass) {
             if (drawable instanceof BlurredBackgroundDrawableRenderNode) {
                 ((BlurredBackgroundDrawableRenderNode) drawable).setLiquidGlassEffectAllowed();
             }
