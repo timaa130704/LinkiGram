@@ -769,8 +769,10 @@ Commit `c36733fe2` was built successfully in Actions run `39074433830` on
 `codex/2.6.1`; APK `.tmp-apk-m3-list-39074433830/app.apk` has manifest
 `versionName=2.6.1-dev`, package `app.linkigram.messenger`, SHA-256
 `6915FA0CA16DBC1FD9EBC3A5CCB73C9DB903FB8FE66E7D12E271B2970B27F7E6`.
-Phone was not visible to ADB after build, so install and visual device
-verification are still pending. Do not claim device verification until done.
+APK was installed with `adb install -r` on SM-G973F; data was preserved and
+`dumpsys package` confirmed `versionName=2.6.1-dev`, `versionCode=202601009`.
+Visual confirmation of the separate Material 3 cards is still pending; do not
+claim visual verification until the user opens the screen and checks it.
 
 Licensing: project `LICENSE` is GPL-2.0-only while exteraless is GPL-3.0.
 Implement compatible behavior independently; do not copy GPL-3.0 source into
