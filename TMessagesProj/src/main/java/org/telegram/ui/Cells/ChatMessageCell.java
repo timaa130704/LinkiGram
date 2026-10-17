@@ -8546,11 +8546,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                                 } else {
                                     maxPhotoWidth = (int) (getParentWidth() * 0.5f);
                                 }
-                                if (documentAttachType == DOCUMENT_ATTACH_TYPE_STICKER) {
-                                    float stickerScale = NimarkoConfig.stickerSize / NimarkoConfig.STICKER_SIZE_DEFAULT;
-                                    int maxStickerWidth = (int) (getParentWidth() * 0.72f);
-                                    maxPhotoWidth = Math.min((int) (maxPhotoWidth * stickerScale), maxStickerWidth);
-                                }
                             } else if (documentAttachType == DOCUMENT_ATTACH_TYPE_ROUND) {
                                 maxPhotoWidth = AndroidUtilities.roundMessageSize;
                                 photoImage.setAllowDecodeSingleFrame(true);
@@ -9698,6 +9693,13 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         maxHeight = maxWidth = (int) (AndroidUtilities.getMinTabletSide() * 0.4f);
                     } else {
                         maxHeight = maxWidth = (int) (Math.min(getParentWidth(), AndroidUtilities.displaySize.y) * 0.5f);
+                    }
+                    if ((messageObject.isSticker() || messageObject.isAnimatedSticker() || messageObject.isVideoSticker())
+                            && !messageObject.isAnimatedEmoji() && !messageObject.isDice()) {
+                        float stickerScale = NimarkoConfig.stickerSize / NimarkoConfig.STICKER_SIZE_DEFAULT;
+                        int stickerLimit = (int) (Math.min(getParentWidth(), AndroidUtilities.displaySize.y) * 0.72f);
+                        maxWidth = Math.min(Math.round(maxWidth * stickerScale), stickerLimit);
+                        maxHeight = Math.min(Math.round(maxHeight * stickerScale), stickerLimit);
                     }
                     String filter;
                     if (messageObject.isAnimatedEmoji() || messageObject.isDice()) {

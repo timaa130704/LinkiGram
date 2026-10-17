@@ -642,3 +642,8 @@ Implementation pending CI build/device review. Build only codex/2.6, 2.6.0-dev.
 ## Linki Glass installation update (2026-10-17)
 
 Build 39027613487 succeeded and its APK was installed with `adb install -r` on SM-G973F. Data preserved. Verify switch rendering on device; active branch codex/2.6, version 2.6.0-dev.
+
+
+## Sticker sizing and switch follow-up (2026-10-17)
+
+User reported the previous build wasted a 20-minute build cycle: the sticker slider did not resize ordinary chat stickers, and the preview used an unrelated sticker. Root cause: prior scaling was added only to the link-preview branch; regular sticker messages size themselves in `ChatMessageCell`'s `isAnyKindOfSticker()` path. Current edits scale `maxWidth` and `maxHeight` there and rebuild fragments on slider release. The preview now constructs the exact document from the user's Bot API file ID fields. Glass rendering was removed from the shared `Switch`; retain the separate global Linki Glass setting and glass surfaces. Changes require CI compile and on-device verification of the exact preview/download and slider in a real chat. Build from codex/2.6, version 2.6.0-dev only.

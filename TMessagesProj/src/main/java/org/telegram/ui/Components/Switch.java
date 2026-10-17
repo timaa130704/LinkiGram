@@ -18,8 +18,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
-import android.graphics.LinearGradient;
-import android.graphics.Shader;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -35,10 +33,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import androidx.annotation.Keep;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.LiteMode;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
-import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.BaseCell;
 
@@ -48,76 +42,6 @@ public class Switch extends View {
     private final BoolAnimator animatorIconVisibility = new BoolAnimator(this, CubicBezierInterpolator.EASE_OUT_QUINT, 380L, true);
 
     private RectF rectF;
-    private final Paint glassPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF glassTrack = new RectF();
-    private BlurredBackgroundDrawableRenderNode glassThumb;
-    private int glassTrackColor;
-    private int glassBackgroundColor;
-    private int cachedGlassColor;
-    private float cachedGlassTop = Float.NaN;
-    private Shader glassTrackShader;
-
-    private boolean useLinkiGlass() {
-        return Build.VERSION.SDK_INT >= 33 && overrideColorProgress == 0
-                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
-    }
-
-    private void drawGlassTrack(Canvas canvas) {
-        glassPaint.setStyle(Paint.Style.FILL);
-        if (glassTrackShader == null || cachedGlassColor != glassTrackColor || cachedGlassTop != glassTrack.top) {
-            cachedGlassColor = glassTrackColor;
-            cachedGlassTop = glassTrack.top;
-            glassTrackShader = new LinearGradient(0, glassTrack.top, 0, glassTrack.bottom,
-                    new int[]{androidx.core.graphics.ColorUtils.blendARGB(glassTrackColor, Color.WHITE, .24f),
-                            glassTrackColor, androidx.core.graphics.ColorUtils.blendARGB(glassTrackColor, Color.BLACK, .20f)},
-                    new float[]{0, .46f, 1}, Shader.TileMode.CLAMP);
-        }
-        glassPaint.setShader(glassTrackShader);
-        canvas.drawRoundRect(glassTrack, glassTrack.height() / 2, glassTrack.height() / 2, glassPaint);
-        glassPaint.setShader(null);
-    }
-
-    private void drawGlassThumb(Canvas canvas, float cx, float cy) {
-        if (Build.VERSION.SDK_INT < 33 || !canvas.isHardwareAccelerated()) {
-            canvas.drawCircle(cx, cy, AndroidUtilities.dpf2(8), paint);
-            return;
-        }
-        if (glassThumb == null) {
-            glassThumb = new BlurredBackgroundDrawableRenderNode(new BlurredBackgroundSource() {
-                @Override
-                public BlurredBackgroundDrawable createDrawable() {
-                    return new BlurredBackgroundDrawableRenderNode(this);
-                }
-
-                @Override
-                public void draw(Canvas target, float left, float top, float right, float bottom) {
-                    target.drawColor(glassBackgroundColor);
-                    drawGlassTrack(target);
-                }
-            });
-            glassThumb.setLiquidGlassEffectAllowed(true);
-            glassThumb.setThickness(AndroidUtilities.dp(5));
-            glassThumb.setIntensity(.85f);
-        }
-        float stretch = (float) Math.sin(Math.PI * Math.max(0, Math.min(1, progress)));
-        float rx = AndroidUtilities.dpf2(10 + 1.5f * stretch);
-        float ry = AndroidUtilities.dpf2(10 - .6f * stretch);
-        glassThumb.setBounds((int) (cx - rx), (int) (cy - ry), (int) (cx + rx), (int) (cy + ry));
-        glassThumb.setRadius(ry);
-        glassThumb.setGlassLightPosition(progress, stretch);
-        glassThumb.invalidateDisplayList();
-        glassThumb.draw(canvas);
-        // A thin surface reflection keeps the lens legible over a flat settings row.
-        glassPaint.setColor(0x22ffffff);
-        canvas.drawOval(cx - rx, cy - ry, cx + rx, cy + ry, glassPaint);
-        glassPaint.setStyle(Paint.Style.STROKE);
-        glassPaint.setStrokeWidth(AndroidUtilities.dpf2(.7f));
-        glassPaint.setShader(new LinearGradient(cx - rx, cy - ry, cx + rx, cy + ry,
-                new int[]{0xccffffff, 0x18ffffff, 0x70ffffff}, null, Shader.TileMode.CLAMP));
-        canvas.drawOval(cx - rx, cy - ry, cx + rx, cy + ry, glassPaint);
-        glassPaint.setShader(null);
-        glassPaint.setStyle(Paint.Style.FILL);
-    }
 
     private float progress;
     private ObjectAnimator checkAnimator;
@@ -531,13 +455,7 @@ public class Switch extends View {
             paint.setColor(color);
             paint2.setColor(color);
 
-            if (useLinkiGlass()) {
-                glassTrackColor = color;
-                glassBackgroundColor = Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
-                glassTrack.set(x - AndroidUtilities.dpf2(3), ty - AndroidUtilities.dpf2(11),
-                        x + width + AndroidUtilities.dpf2(3), ty + AndroidUtilities.dpf2(11));
-                drawGlassTrack(canvasToDraw);
-            } else if (isMd3Style()) {
+            if (isMd3Style()) {
                 final float trackH = AndroidUtilities.dpf2(19);
                 rectF.set(x, ty - trackH / 2f, x + width, ty + trackH / 2f);
                 if (colorProgress < 0.5f) {
@@ -597,16 +515,12 @@ public class Switch extends View {
             alpha = (int) (a1 + (a2 - a1) * colorProgress);
             paint.setColor(((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff));
 
-            if (!useLinkiGlass() && isMd3Style()) {
+            if (isMd3Style()) {
                 final float thumbR = AndroidUtilities.dpf2(4.8f + 2.4f * colorProgress);
                 canvasToDraw.drawCircle(tx, ty, thumbR, paint);
                 continue;
             }
-            if (useLinkiGlass()) {
-                drawGlassThumb(canvasToDraw, tx, ty);
-            } else {
-                canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
-            }
+            canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);
 
             if (a == 0) {
                 if (iconDrawable != null) {

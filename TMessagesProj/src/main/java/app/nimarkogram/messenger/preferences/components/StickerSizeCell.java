@@ -32,6 +32,7 @@ public class StickerSizeCell extends FrameLayout {
     private final TextView rightLabel;
     private final SeekBarView seekBar;
     private StickerSizePreviewCell preview;
+    private final BaseFragment fragment;
 
     private final int min = (int) NimarkoConfig.STICKER_SIZE_MIN;
     private final int max = (int) NimarkoConfig.STICKER_SIZE_MAX;
@@ -39,6 +40,7 @@ public class StickerSizeCell extends FrameLayout {
 
     public StickerSizeCell(Context context, BaseFragment fragment) {
         super(context);
+        this.fragment = fragment;
         setWillNotDraw(false);
         setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         
@@ -87,6 +89,9 @@ public class StickerSizeCell extends FrameLayout {
                 onValueChanged(Math.round(value));
                 
                 if (preview != null) preview.update();
+                if (stop && fragment != null && fragment.getParentLayout() != null) {
+                    fragment.getParentLayout().rebuildAllFragmentViews(false, false);
+                }
             }
             @Override
             public void onSeekBarPressed(boolean pressed) {}

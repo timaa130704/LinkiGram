@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Shader;
+import android.util.Base64;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -14,7 +15,6 @@ import android.widget.LinearLayout;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
@@ -27,13 +27,15 @@ import org.telegram.ui.Components.BackgroundGradientDrawable;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.MotionBackgroundDrawable;
 
-import java.util.ArrayList;
 
 @SuppressLint("ViewConstructor")
 public class StickerSizePreviewCell extends LinearLayout {
 
-    private static final String PREVIEW_PACK = "pack7_by_Pascal_Stickers_bot";
-    private static final int PREVIEW_STICKER_INDEX = 32; 
+    private static final long PREVIEW_STICKER_ID = 3335858935109255274L;
+    private static final long PREVIEW_STICKER_ACCESS_HASH = -348948256773426370L;
+    private static final String PREVIEW_STICKER_FILE_REFERENCE = "AQAv0wdq04a7353P8F3BDwpYVMeBTlR16g==";
+    private static final int PREVIEW_STICKER_DC = 2;
+    private static final int PREVIEW_STICKER_SIZE = 9886;
 
     private BackgroundGradientDrawable.Disposable backgroundGradientDisposable;
     private BackgroundGradientDrawable.Disposable oldBackgroundGradientDisposable;
@@ -68,64 +70,27 @@ public class StickerSizePreviewCell extends LinearLayout {
         }
 
         bindSticker(resolveStickerSync());
-        loadPreviewPackAsync();
     }
 
     private TLRPC.Document resolveStickerSync() {
-        TLRPC.Document d = elonFromCachedSet();
-        if (d == null) d = pickFallbackSticker();
-        return d;
-    }
+        TLRPC.TL_document sticker = new TLRPC.TL_document();
+        sticker.id = PREVIEW_STICKER_ID;
+        sticker.access_hash = PREVIEW_STICKER_ACCESS_HASH;
+        sticker.file_reference = Base64.decode(PREVIEW_STICKER_FILE_REFERENCE, Base64.DEFAULT);
+        sticker.dc_id = PREVIEW_STICKER_DC;
+        sticker.size = PREVIEW_STICKER_SIZE;
+        sticker.date = (int) (System.currentTimeMillis() / 1000);
+        sticker.mime_type = "image/webp";
 
-    private TLRPC.Document elonFromCachedSet() {
-        try {
-            TLRPC.TL_messages_stickerSet set = MediaDataController.getInstance(account).getStickerSetByName(PREVIEW_PACK);
-            return stickerAt(set);
-        } catch (Throwable ignore) {
-            return null;
-        }
-    }
-
-    private static TLRPC.Document stickerAt(TLRPC.TL_messages_stickerSet set) {
-        if (set == null || set.documents == null || set.documents.isEmpty()) return null;
-        if (PREVIEW_STICKER_INDEX < set.documents.size()) {
-            TLRPC.Document d = set.documents.get(PREVIEW_STICKER_INDEX);
-            if (d != null && d.id != 0) return d;
-        }
-        return set.documents.get(0); 
-    }
-
-    private void loadPreviewPackAsync() {
-        try {
-            TLRPC.TL_inputStickerSetShortName input = new TLRPC.TL_inputStickerSetShortName();
-            input.short_name = PREVIEW_PACK;
-            MediaDataController.getInstance(account).getStickerSet(input, null, false, set -> {
-                TLRPC.Document d = stickerAt(set);
-                if (d != null) {
-                    bindSticker(d);
-                    update();
-                }
-            });
-        } catch (Throwable ignore) {}
-    }
-
-    private TLRPC.Document pickFallbackSticker() {
-        try {
-            MediaDataController mdc = MediaDataController.getInstance(account);
-            TLRPC.Document d = firstSticker(mdc.getRecentStickers(MediaDataController.TYPE_FAVE));
-            if (d == null) d = firstSticker(mdc.getRecentStickers(MediaDataController.TYPE_IMAGE));
-            return d;
-        } catch (Throwable ignore) {
-            return null;
-        }
-    }
-
-    private static TLRPC.Document firstSticker(ArrayList<TLRPC.Document> list) {
-        if (list == null) return null;
-        for (TLRPC.Document d : list) {
-            if (d != null && d.id != 0 && !d.attributes.isEmpty()) return d;
-        }
-        return null;
+        TLRPC.TL_documentAttributeSticker stickerAttribute = new TLRPC.TL_documentAttributeSticker();
+        stickerAttribute.alt = "🚀";
+        stickerAttribute.stickerset = new TLRPC.TL_inputStickerSetEmpty();
+        sticker.attributes.add(stickerAttribute);
+        TLRPC.TL_documentAttributeImageSize imageSize = new TLRPC.TL_documentAttributeImageSize();
+        imageSize.w = 320;
+        imageSize.h = 320;
+        sticker.attributes.add(imageSize);
+        return sticker;
     }
 
     private void bindSticker(TLRPC.Document sticker) {
