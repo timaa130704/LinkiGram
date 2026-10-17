@@ -3289,7 +3289,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     public void setSections(int padding, float roundRadius, boolean topPadding) {
         setSections(
             view -> {
-                if (view instanceof HeaderCell && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()) {
+                if (view instanceof org.telegram.ui.Cells.HeaderCell && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()) {
                     view.setBackgroundColor(Color.TRANSPARENT);
                     return false;
                 }
