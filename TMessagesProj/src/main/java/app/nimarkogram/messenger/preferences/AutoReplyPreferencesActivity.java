@@ -113,6 +113,7 @@ public class AutoReplyPreferencesActivity extends NimarkoUniversalPreferencesAct
             }
         } catch (Exception e) { error(); }
     }
+    @Override public boolean onLongClick(UItem item, View view, int position, float x, float y) { return false; }
     private void network(boolean benchmark) {
         if (busy) return;
         final String base = config.getString("base", "https://api.openai.com/v1");
