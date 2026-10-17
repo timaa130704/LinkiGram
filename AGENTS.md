@@ -730,10 +730,9 @@ version. Telegram base is 13.0.2. `gradle.properties` now has
 
 Commit `5dbb551d6` merges the 2.6 work with main's Linki Glass refresh fix and
 was pushed successfully to `origin/main`. The push output confirmed
-`4c3e680b8..5dbb551d6 HEAD -> main`. GitHub Actions status could not be checked
-because `gh` could not connect to api.github.com. Treat the CI build, APK,
-GitHub release, and Telegram announcement as pending; verify the build commit
-and APK manifest (`2.6.0`) before release or installation.
+`4c3e680b8..5dbb551d6 HEAD -> main`. Run 39063854026 succeeded on `main` at commit `1b6cfc6d4ea701af7cdb58d4f11d828b9fb7b5ad`. Its APK was verified as package `app.linkigram.messenger`, versionName `2.6.0`, versionCode `202600029`; APK signature verification passed. SHA-256: `9c82710bac4d9505a124230333d9d86e2edc6b1a910f688df45b2a367a3a46a1`. Installed with `adb install -r` on SM-G973F.
+
+Stable GitHub release `v2.6.0` is published at https://github.com/timaa130704/LinkiGram/releases/tag/v2.6.0 with `prerelease=false` and asset `LinkiGram-2.6.0.apk`. The user will post the Telegram announcement.
 
 The separate local `C:/Users/dolbaeb/LinkiGram` checkout contains uncommitted
 user edits, including `landing/` files and artifacts. Do not reset, stash,
