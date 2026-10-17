@@ -883,6 +883,12 @@
     <string name="NM_IconPack_LiquidSubtitle">Набор Linki Glass</string>
     <string name="NM_IconPack_PlumpyTitle">Plumpy</string>
     <string name="NM_IconPack_PlumpySubtitle">Набор Plumpy</string>
+    <string name="NM_IconPack_CustomTitle">Свой SVG</string>
+    <string name="NM_IconPack_CustomSubtitle">Импортированный набор SVG-иконок</string>
+    <string name="NM_IconPack_ImportSvg">Импортировать набор SVG (.zip)</string>
+    <string name="NM_IconPack_ImportSvgHint">В ZIP нужен manifest.json с картой иконок, например: {"icons":{"msg_settings":"icons/settings.svg"}}. Поддерживаются только безопасные локальные SVG.</string>
+    <string name="NM_IconPack_Imported">Набор SVG-иконок импортирован</string>
+    <string name="NM_IconPack_ImportError">Не удалось импортировать SVG-набор</string>
     <string name="NM_BAN_PickFile">Выберите файл</string>
     <string name="NM_BAN_IdError">Не удалось получить ID</string>
     <string name="NM_BAN_LocalNa">Локальный баннер недоступен при глобальном</string>
@@ -1492,4 +1498,16 @@
     <string name="DisableGhostMode">Выключить режим призрака</string>
     <string name="GhostModeEnabled">Режим призрака включён</string>
     <string name="GhostModeDisabled">Режим призрака выключен</string>
+    <string name="PluginReviewTitle">Проверка исходного кода плагина</string>
+    <string name="PluginReviewUnavailable">Не удалось проверить исходный код.</string>
+    <string name="PluginReviewNoFindings">Распространённых рискованных шаблонов не найдено.</string>
+    <string name="PluginReviewDisclaimer">Эта эвристическая проверка не является песочницей. Изучите исходный код и разрешения.</string>
+    <string name="PluginReviewNetwork">Найдены признаки сетевого доступа</string>
+    <string name="PluginReviewFiles">Найдены признаки доступа к файлам</string>
+    <string name="PluginReviewDynamicCode">Найдены признаки динамической загрузки кода</string>
+    <string name="PluginReviewEncodedPayload">Найдены признаки закодированных или сжатых данных</string>
+    <string name="PluginReviewDexPayload">Найдены признаки загрузки DEX</string>
+    <string name="PluginPermissionsTitle">Разрешения плагина</string>
+    <string name="PluginPermissionTelegram">Доступ к аккаунту и Telegram API, включая сообщения и запросы</string>
+    <string name="PluginPermissionFiles">Чтение файлов, выбранных плагином</string>
 </resources>

@@ -58,6 +58,7 @@ import java.util.regex.Pattern;
 
 import app.nimarkogram.messenger.NimarkoConfig;
 import app.nimarkogram.messenger.plugins.Plugin;
+import app.nimarkogram.messenger.plugins.PluginPermissions;
 import app.nimarkogram.messenger.plugins.PluginsController;
 import app.nimarkogram.messenger.plugins.ui.components.EmptyPluginsView;
 import app.nimarkogram.messenger.plugins.ui.components.PluginCell;
@@ -857,7 +858,7 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
                 pluginCell.setChecked(z, true);
                 
                 pluginCell.setLoading(isPluginToggleLoading(pluginId));
-                controller.setPluginEnabled(pluginId, z, str ->
+                Runnable applyToggle = () -> controller.setPluginEnabled(pluginId, z, str ->
                     AndroidUtilities.runOnUIThread(() -> {
                         if (!isPluginUiOperationEpochCurrent(
                                 callbackLifecycleEpoch, pluginId, operationEpoch)) {
@@ -889,6 +890,20 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
                         }
                     })
                 );
+                if (z) {
+                    PluginPermissions.showEnablePrompt(
+                            PluginsActivity.this.getParentActivity(), pluginId,
+                            applyToggle,
+                            () -> AndroidUtilities.runOnUIThread(() -> {
+                                finishPluginUiOperation(pluginId, operationEpoch);
+                                if (pluginCell.isBoundTo(pluginId, cellBindingEpoch)) {
+                                    pluginCell.setLoading(isPluginToggleLoading(pluginId));
+                                    pluginCell.setChecked(false, true);
+                                }
+                            }));
+                } else {
+                    applyToggle.run();
+                }
             }
 
             @Override

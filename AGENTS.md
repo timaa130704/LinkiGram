@@ -738,3 +738,33 @@ The separate local `C:/Users/dolbaeb/LinkiGram` checkout contains uncommitted
 user edits, including `landing/` files and artifacts. Do not reset, stash,
 overwrite, or include them in commits. Do not change X-CFG, `wsbypass`, or
 `landing/` as part of 2.6 release follow-up.
+
+## 2.6.1 follow-up (2026-10-18)
+
+Continue from development worktree branch `codex/2.6.1`, based on stable 2.6.0.
+Current app version is `2.6.1-dev` (`APP_VERSION_CODE=20260100`); keep package
+`app.linkigram.messenger`. The user's accepted scope is link tracking cleanup,
+plugin installation safety/permissions, custom SVG icon packs, and all Material
+3 items from exteraless. Do not touch X-CFG, `wsbypass`, or `landing/`; do not
+publish without fresh explicit authorization.
+
+Audit before implementation: AyuGram deleted-message DB import/export already
+exists in `AyuData` and `AyuMomentsPreferencesActivity`. The Material 3 group
+already exposes eight options in `AppearancePreferencesActivity`, with code
+integrations for loaders, slider, switch, chat header, navigation, list cards,
+MD3 player and mini-player. Do not duplicate these. Link tracking cleanup is
+implemented centrally in `Browser.openUrl` and text paste via
+`LinkTrackingCleaner`; a custom SVG ZIP importer is implemented through
+`CustomSvgIconPack` and the icon-pack selector. Plugin installation now has a
+heuristic source review, and the user selected active permission blocking:
+enable prompts persist per-plugin Telegram API and file permissions, and the
+Python SDK gates account/connection, message/request, media-file and edit
+helpers through `PluginPermissions`. This is **not an OS sandbox**: plugins run
+in-process and can bypass SDK checks through direct Python/Java imports. Do not
+describe this as complete isolation; a real sandbox needs a separate design.
+These changes are not built or device-verified yet. No 2.6.1 build has been
+started.
+
+Licensing: project `LICENSE` is GPL-2.0-only while exteraless is GPL-3.0.
+Implement compatible behavior independently; do not copy GPL-3.0 source into
+this repository without an explicit license decision.

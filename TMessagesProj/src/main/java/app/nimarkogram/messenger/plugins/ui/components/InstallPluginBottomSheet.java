@@ -51,6 +51,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import app.nimarkogram.messenger.plugins.Plugin;
+import app.nimarkogram.messenger.plugins.PluginPermissions;
+import app.nimarkogram.messenger.plugins.PluginSourceScanner;
 import app.nimarkogram.messenger.plugins.PluginsController;
 import app.nimarkogram.messenger.plugins.ui.PluginUiDiskExecutor;
 import app.nimarkogram.messenger.plugins.ui.PluginUiRegistry;
@@ -259,6 +261,8 @@ public class InstallPluginBottomSheet extends BottomSheet {
         descView.setText(LocaleUtils.fullyFormatText(result.plugin.getDescription(), baseFragment, this::dismiss));
         linearLayout.addView(descView, LayoutHelper.createLinear(-1, -2, 0, 21, 28, 21, 0));
 
+        addSourceReviewCard(linearLayout, context, PluginSourceScanner.scan(params != null ? params.filePath : null));
+
         installBtn = new ButtonWithCounterView(context, true, this.resourcesProvider);
         installBtn.setText(LocaleController.getString((int) (isUpdate ? R.string.UpdatePlugin : R.string.InstallPlugin)), false);
         installBtn.setSubText(null, false);
@@ -327,6 +331,47 @@ public class InstallPluginBottomSheet extends BottomSheet {
         scrollView.setClipToPadding(false);
         scrollView.addView(container);
         setCustomView(scrollView);
+    }
+
+    private void addSourceReviewCard(LinearLayout parent, Context context, PluginSourceScanner.Result result) {
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+        card.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16), getThemedColor(Theme.key_windowBackgroundGray)));
+        card.setElevation(AndroidUtilities.dp(1));
+
+        TextView title = new TextView(context);
+        title.setText(R.string.PluginReviewTitle);
+        title.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        title.setTextSize(1, 14);
+        title.setTypeface(AndroidUtilities.bold());
+        card.addView(title, LayoutHelper.createLinear(-1, -2));
+
+        TextView findings = new TextView(context);
+        findings.setTextSize(1, 13);
+        findings.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        findings.setPadding(0, AndroidUtilities.dp(6), 0, 0);
+        if (result == null || !result.readable) {
+            findings.setText(R.string.PluginReviewUnavailable);
+        } else if (result.getFindings().isEmpty()) {
+            findings.setText(R.string.PluginReviewNoFindings);
+        } else {
+            StringBuilder summary = new StringBuilder();
+            for (Integer finding : result.getFindings()) {
+                if (summary.length() > 0) summary.append('\n');
+                summary.append("• ").append(LocaleController.getString(finding));
+            }
+            findings.setText(summary);
+        }
+        card.addView(findings, LayoutHelper.createLinear(-1, -2));
+
+        TextView disclaimer = new TextView(context);
+        disclaimer.setText(R.string.PluginReviewDisclaimer);
+        disclaimer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        disclaimer.setTextSize(1, 12);
+        disclaimer.setPadding(0, AndroidUtilities.dp(8), 0, 0);
+        card.addView(disclaimer, LayoutHelper.createLinear(-1, -2));
+        parent.addView(card, LayoutHelper.createLinear(-1, -2, 16, 0, 16, 12));
     }
 
     public final synchronized boolean bindHostInstallAuthority(
@@ -529,7 +574,9 @@ public class InstallPluginBottomSheet extends BottomSheet {
                         }
                 ).show();
             } else if (shouldEnableAfterInstallation) {
-                PluginsController.getInstance().setPluginEnabled(result.plugin.getId(), true, err -> {
+                PluginPermissions.showEnablePrompt(
+                        fragment.getParentActivity(), result.plugin.getId(),
+                        () -> PluginsController.getInstance().setPluginEnabled(result.plugin.getId(), true, err -> {
                     AndroidUtilities.runOnUIThread(() -> {
                         if (err == null) {
                             showSuccessBulletin(
@@ -556,7 +603,13 @@ public class InstallPluginBottomSheet extends BottomSheet {
                                 }
                         ).show();
                     });
-                });
+                }),
+                        () -> AndroidUtilities.runOnUIThread(() -> {
+                            if (finishInstallOperation(operationEpoch)) {
+                                showSuccessBulletin(fragment, result.plugin, update,
+                                        callbackLifecycleEpoch, operationEpoch);
+                            }
+                        }));
             } else {
                 showSuccessBulletin(
                         fragment,

@@ -5535,6 +5535,21 @@ public class ChatActivityEnterView extends FrameLayout implements
                     if (clipData.getItemCount() == 1 && clipData.getDescription().hasMimeType("image/*") && !isEditingBusinessLink()) {
                         editPhoto(clipData.getItemAt(0).getUri(), clipData.getDescription().getMimeType(0));
                     }
+                    if (clipData.getItemCount() == 1 && clipData.getItemAt(0).getText() != null) {
+                        CharSequence copiedText = clipData.getItemAt(0).getText();
+                        String cleanedText = app.nimarkogram.messenger.utils.LinkTrackingCleaner.cleanText(copiedText.toString());
+                        if (!cleanedText.contentEquals(copiedText)) {
+                            int start = Math.max(0, getSelectionStart());
+                            int end = Math.max(0, getSelectionEnd());
+                            if (start > end) {
+                                int swap = start;
+                                start = end;
+                                end = swap;
+                            }
+                            getText().replace(start, end, cleanedText);
+                            return true;
+                        }
+                    }
                 }
             }
             return super.onTextContextMenuItem(id);

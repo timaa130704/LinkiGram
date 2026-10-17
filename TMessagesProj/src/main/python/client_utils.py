@@ -17,6 +17,7 @@ from app.nimarkogram.messenger.plugins.utils import (
     PythonNotificationDelegate,
     PythonRequestDelegate,
 )
+from app.nimarkogram.messenger.plugins import PluginPermissions
 from java import jarray, jbyte, jint
 
 try:
@@ -62,7 +63,7 @@ def RequestCallback(fn: callable):
     return PythonRequestDelegate(fn, token)
 
 def send_request(request: Any, fn: callable, account: Optional[int]=None) -> int:
-    
+    PluginPermissions.require(PluginPermissions.TELEGRAM)
     return get_connections_manager(account).sendRequest(
         request, RequestCallback(fn))
 
@@ -86,6 +87,7 @@ def _resolve_account(account: Optional[int]=None) -> int:
     return UserConfig.selectedAccount if account is None else int(account)
 
 def get_account_instance(account: Optional[int]=None):
+    PluginPermissions.require(PluginPermissions.TELEGRAM)
     return AccountInstance.getInstance(_resolve_account(account))
 
 def get_messages_controller(account: Optional[int]=None):
@@ -98,6 +100,7 @@ def get_media_data_controller(account: Optional[int]=None):
     return get_account_instance(account).getMediaDataController()
 
 def get_connections_manager(account: Optional[int]=None):
+    PluginPermissions.require(PluginPermissions.TELEGRAM)
     return get_account_instance(account).getConnectionsManager()
 
 def get_current_datacenter_id(account: Optional[int]=None) -> int:
@@ -137,6 +140,7 @@ def get_user_config(account: Optional[int]=None):
     return get_account_instance(account).getUserConfig()
 
 def send_message(params: dict, account: Optional[int]=None):
+    PluginPermissions.require(PluginPermissions.TELEGRAM)
     params = dict(params or {})
     if account is None:
         account = params.pop('account', None)
@@ -168,6 +172,7 @@ def send_message(params: dict, account: Optional[int]=None):
 
 def _generate_photo_sizes(file_path: str, high_quality: bool=False,
                           account: Optional[int]=None) -> Optional[TLRPC.TL_photo]:
+    PluginPermissions.require(PluginPermissions.FILES)
     try: 
         photo_size_limit = AndroidUtilities.getPhotoSize(high_quality)
         bitmap = ImageLoader.loadBitmap(file_path, None, photo_size_limit, photo_size_limit, True)
@@ -206,6 +211,7 @@ def _generate_photo_sizes(file_path: str, high_quality: bool=False,
 
 def _prepare_document(file_path: str, mime_type_str: Optional[str]=None,
                       account: Optional[int]=None) -> Optional[TLRPC.TL_document]:
+    PluginPermissions.require(PluginPermissions.FILES)
     try:
         file = File(file_path)
         if not file.exists():
@@ -240,6 +246,7 @@ def _prepare_document(file_path: str, mime_type_str: Optional[str]=None,
         return None
 
 def _add_video_attributes(document: TLRPC.TL_document, file_path: str):
+    PluginPermissions.require(PluginPermissions.FILES)
     try:
         retriever = MediaMetadataRetriever()
         retriever.setDataSource(file_path)
@@ -260,6 +267,7 @@ def _add_video_attributes(document: TLRPC.TL_document, file_path: str):
         log(f'Could not get video metadata for \'{file_path}\': {e}')
 
 def _add_audio_attributes(document: TLRPC.TL_document, file_path: str):
+    PluginPermissions.require(PluginPermissions.FILES)
     try:
         retriever = MediaMetadataRetriever()
         retriever.setDataSource(file_path)
@@ -331,6 +339,7 @@ def send_audio(peer: int, file_path: str, caption: str='',
 
 def edit_message(message_obj: Any, text: Optional[str]=None, file_path: Optional[str]=None,
                  with_spoiler: bool=False, account: Optional[int]=None, **kwargs):
+    PluginPermissions.require(PluginPermissions.TELEGRAM)
     if not isinstance(message_obj, MessageObject):
         log('\'message_obj\' must be a valid MessageObject instance.')
         return None

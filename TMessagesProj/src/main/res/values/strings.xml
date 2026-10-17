@@ -11553,6 +11553,12 @@
 <string name="NM_IconPack_LiquidSubtitle">Linki Glass icon pack</string>
 <string name="NM_IconPack_PlumpyTitle">Plumpy</string>
 <string name="NM_IconPack_PlumpySubtitle">Plumpy icon pack</string>
+<string name="NM_IconPack_CustomTitle">Custom SVG</string>
+<string name="NM_IconPack_CustomSubtitle">Imported SVG icon pack</string>
+<string name="NM_IconPack_ImportSvg">Import SVG pack (.zip)</string>
+<string name="NM_IconPack_ImportSvgHint">ZIP needs manifest.json with an icons map, for example: {"icons":{"msg_settings":"icons/settings.svg"}}. Only safe, local SVG files are accepted.</string>
+<string name="NM_IconPack_Imported">SVG icon pack imported</string>
+<string name="NM_IconPack_ImportError">Could not import this SVG pack</string>
 <string name="NM_BAN_PickFile">Select file</string>
 <string name="NM_BAN_IdError">Failed to get ID</string>
 <string name="NM_BAN_LocalNa">Local banner not available with global</string>
@@ -12850,4 +12856,16 @@
     <string name="CreateManagedBotUsernameBotLimit">This bot already has a Premium username. Remove it before adding another.</string>
     <string name="CreateManagedBotUsernameSuffixMissing">The username must end in %1$s.</string>
     <string name="CreateManagedBotUsernameCheckFailed">Couldn\'t check this username. Please try again.</string>
+    <string name="PluginReviewTitle">Plugin source review</string>
+    <string name="PluginReviewUnavailable">Source could not be scanned.</string>
+    <string name="PluginReviewNoFindings">No common risk patterns found.</string>
+    <string name="PluginReviewDisclaimer">This heuristic scan is not a security sandbox. Review the source and requested permissions.</string>
+    <string name="PluginReviewNetwork">Network access patterns detected</string>
+    <string name="PluginReviewFiles">File access patterns detected</string>
+    <string name="PluginReviewDynamicCode">Dynamic code loading patterns detected</string>
+    <string name="PluginReviewEncodedPayload">Encoded or compressed payload patterns detected</string>
+    <string name="PluginReviewDexPayload">DEX loading patterns detected</string>
+    <string name="PluginPermissionsTitle">Plugin permissions</string>
+    <string name="PluginPermissionTelegram">Telegram account/API access, including messages and requests</string>
+    <string name="PluginPermissionFiles">Read files selected by the plugin</string>
 </resources>

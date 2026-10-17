@@ -3,6 +3,7 @@ package app.nimarkogram.messenger.preferences;
 import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -17,10 +18,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.R;
+import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -45,14 +48,17 @@ public class IconPackSelectorActivity extends BaseFragment {
             NimarkoConfig.ICON_REPLACE_SOLAR,
             NimarkoConfig.ICON_REPLACE_LIQUID_GLASS,
             NimarkoConfig.ICON_REPLACE_PLUMPY,
+            NimarkoConfig.ICON_REPLACE_CUSTOM_SVG,
     };
     private static final int[] TITLES = {
             R.string.NM_IconPack_DefaultTitle, R.string.NM_IconPack_SolarTitle,
-            R.string.NM_IconPack_LiquidTitle, R.string.NM_IconPack_PlumpyTitle
+            R.string.NM_IconPack_LiquidTitle, R.string.NM_IconPack_PlumpyTitle,
+            R.string.NM_IconPack_CustomTitle
     };
     private static final int[] SUBTITLES = {
             R.string.NM_IconPack_DefaultSubtitle, R.string.NM_IconPack_SolarSubtitle,
-            R.string.NM_IconPack_LiquidSubtitle, R.string.NM_IconPack_PlumpySubtitle
+            R.string.NM_IconPack_LiquidSubtitle, R.string.NM_IconPack_PlumpySubtitle,
+            R.string.NM_IconPack_CustomSubtitle
     };
 
     private static final int[] SAMPLE_RES = {
@@ -62,6 +68,7 @@ public class IconPackSelectorActivity extends BaseFragment {
     private static final String[] SAMPLE_NAMES = {
             "msg_settings", "msg_calls", "msg_folders", "msg_camera", "msg_contacts", "msg_archive",
     };
+    private static final int REQUEST_IMPORT_SVG_PACK = 45123;
 
     @Override
     public View createView(Context context) {
@@ -87,6 +94,22 @@ public class IconPackSelectorActivity extends BaseFragment {
             list.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
                     16, i == 0 ? 8 : 6, 16, 0));
         }
+
+        TextView importPack = new TextView(context);
+        importPack.setText(getString(R.string.NM_IconPack_ImportSvg));
+        importPack.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        importPack.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        importPack.setGravity(Gravity.CENTER);
+        importPack.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        importPack.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(14), Theme.getColor(Theme.key_windowBackgroundWhite)));
+        importPack.setOnClickListener(v -> openSvgPackPicker());
+        list.addView(importPack, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16, 12, 16, 4));
+        TextView importHint = new TextView(context);
+        importHint.setText(getString(R.string.NM_IconPack_ImportSvgHint));
+        importHint.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        importHint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        importHint.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), 0);
+        list.addView(importHint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16, 0, 16, 4));
 
         ScrollView scroll = new ScrollView(context);
         scroll.addView(list, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -130,6 +153,11 @@ public class IconPackSelectorActivity extends BaseFragment {
     }
 
     private void select(int value) {
+        if (value == NimarkoConfig.ICON_REPLACE_CUSTOM_SVG
+                && !CustomSvgIconPack.isInstalled(ApplicationLoader.applicationContext)) {
+            openSvgPackPicker();
+            return;
+        }
         if (NimarkoConfig.iconReplacement != value) {
             NimarkoConfig.setIconReplacement(value);
             for (PreviewCell c : cells) c.refreshSelected();   
@@ -140,6 +168,46 @@ public class IconPackSelectorActivity extends BaseFragment {
             nmApplyPending = true;
             AndroidUtilities.runOnUIThread(nmApplyPackRunnable, 500);
         }
+    }
+
+    private void openSvgPackPicker() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            startActivityForResult(intent, REQUEST_IMPORT_SVG_PACK);
+        } catch (Throwable error) {
+            Toast.makeText(getContext(), getString(R.string.NM_IconPack_ImportError), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (requestCode != REQUEST_IMPORT_SVG_PACK) {
+            super.onActivityResultFragment(requestCode, resultCode, data);
+            return;
+        }
+        if (resultCode != android.app.Activity.RESULT_OK || data == null || data.getData() == null) return;
+        final Context context = getContext();
+        if (context == null) return;
+        final android.net.Uri uri = data.getData();
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                CustomSvgIconPack.importZip(context, uri);
+                AndroidUtilities.runOnUIThread(() -> {
+                    select(NimarkoConfig.ICON_REPLACE_CUSTOM_SVG);
+                    for (PreviewCell cell : cells) cell.refreshSelected();
+                    if (getParentActivity() instanceof LaunchActivity) {
+                        ((LaunchActivity) getParentActivity()).reloadResources();
+                    }
+                    Toast.makeText(context, getString(R.string.NM_IconPack_Imported), Toast.LENGTH_SHORT).show();
+                });
+            } catch (Throwable error) {
+                org.telegram.messenger.FileLog.e(error);
+                AndroidUtilities.runOnUIThread(() -> Toast.makeText(context,
+                        getString(R.string.NM_IconPack_ImportError), Toast.LENGTH_LONG).show());
+            }
+        });
     }
 
     @Override
@@ -163,6 +231,14 @@ public class IconPackSelectorActivity extends BaseFragment {
         BaseIconReplace replace = replaceFor(value);
         for (int i = 0; i < n; i++) {
             int resId = SAMPLE_RES[i];
+            if (value == NimarkoConfig.ICON_REPLACE_CUSTOM_SVG) {
+                out[i] = CustomSvgIconPack.load(base, resId);
+                if (out[i] == null) {
+                    try { out[i] = base.getDrawable(resId); } catch (Throwable ignore) {}
+                }
+                if (out[i] != null) out[i] = out[i].mutate();
+                continue;
+            }
             int wrappedId = replace != null ? replace.wrap(resId) : resId;
             Drawable d = null;
             try { d = base.getDrawable(wrappedId); } catch (Throwable ignore) {}
