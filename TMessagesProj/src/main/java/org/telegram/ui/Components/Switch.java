@@ -414,6 +414,11 @@ public class Switch extends View {
         if (overrideColorProgress == override) {
             return;
         }
+        if (override == 0) {
+            overrideColorProgress = 0;
+            invalidate();
+            return;
+        }
         if (overlayBitmap == null) {
             try {
                 overlayBitmap = new Bitmap[2];

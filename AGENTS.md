@@ -637,3 +637,8 @@ colored track, with surface reflections and animated stretch. Global OFF restore
 the selected normal/MD3 style; color override transitions retain their original path.
 Visible EN/RU labels renamed; internal resource and preference keys preserved.
 Implementation pending CI build/device review. Build only codex/2.6, 2.6.0-dev.
+
+
+## Linki Glass installation update (2026-10-17)
+
+Build 39027613487 succeeded and its APK was installed with `adb install -r` on SM-G973F. Data preserved. Verify switch rendering on device; active branch codex/2.6, version 2.6.0-dev.

@@ -335,6 +335,7 @@ public class TextCheckCell extends FrameLayout {
             public void onAnimationEnd(Animator animation) {
                 animatedColorBackground = 0;
                 setBackgroundColor(color);
+                checkBox.setOverrideColor(0);
                 invalidate();
             }
         });
@@ -371,6 +372,7 @@ public class TextCheckCell extends FrameLayout {
             public void onAnimationEnd(Animator animation) {
                 setBackgroundColor(color);
                 animatedColorBackground = 0;
+                checkBox.setOverrideColor(0);
                 invalidate();
             }
         });

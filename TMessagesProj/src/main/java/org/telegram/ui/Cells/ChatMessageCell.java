@@ -100,6 +100,7 @@ import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
 import app.nimarkogram.messenger.plugins.xposed.PluginHookBypassTarget;
+import app.nimarkogram.messenger.NimarkoConfig;
 
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AccountInstance;
@@ -8544,6 +8545,11 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                                     maxPhotoWidth = (int) (AndroidUtilities.getMinTabletSide() * 0.5f);
                                 } else {
                                     maxPhotoWidth = (int) (getParentWidth() * 0.5f);
+                                }
+                                if (documentAttachType == DOCUMENT_ATTACH_TYPE_STICKER) {
+                                    float stickerScale = NimarkoConfig.stickerSize / NimarkoConfig.STICKER_SIZE_DEFAULT;
+                                    int maxStickerWidth = (int) (getParentWidth() * 0.72f);
+                                    maxPhotoWidth = Math.min((int) (maxPhotoWidth * stickerScale), maxStickerWidth);
                                 }
                             } else if (documentAttachType == DOCUMENT_ATTACH_TYPE_ROUND) {
                                 maxPhotoWidth = AndroidUtilities.roundMessageSize;
