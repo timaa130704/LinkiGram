@@ -120,6 +120,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private FrameLayout tabsViewWrapper;
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
+    private boolean tabsDocked;
+    private boolean tabsLiquidGlassEnabled;
     private View fadeView;
     private app.exteraless.player.PlayerMiniView miniPlayer;
 
@@ -263,6 +265,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             miniPlayer.update(true);
         }
         blur3_updateColors();
+        refreshTabsLiquidGlass();
         checkContactsTabBadge();
         checkUnreadCount(true);
 
@@ -303,6 +306,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         final boolean md3Nav = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         final boolean iosNav = app.nimarkogram.messenger.appearance.AppearanceConfig.iosNavigationBarStyle();
         final boolean dockedTabs = MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW || md3Nav;
+        tabsDocked = dockedTabs;
         final boolean fullWidthTabs = dockedTabs || iosNav;
         final int tabsPad = (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
         tabsView.setPadding(dp(tabsPad), dp(tabsPad), dp(tabsPad), dp(tabsPad));
@@ -370,7 +374,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceTabGlass != null ? iBlur3SourceTabGlass : iBlur3SourceColor);
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
-        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
+        tabsLiquidGlassEnabled = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+        iBlur3FactoryGlass.setLiquidGlassEffectAllowed(tabsLiquidGlassEnabled);
 
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView,
                 LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
@@ -1296,6 +1301,26 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         if (fadeView != null) {
             fadeView.invalidate();
         }
+    }
+
+    private void refreshTabsLiquidGlass() {
+        if (tabsView == null || contentView == null) {
+            return;
+        }
+        boolean enabled = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+        if (enabled == tabsLiquidGlassEnabled) {
+            return;
+        }
+        tabsLiquidGlassEnabled = enabled;
+        BlurredBackgroundDrawableViewFactory factory = new BlurredBackgroundDrawableViewFactory(
+                iBlur3SourceTabGlass != null ? iBlur3SourceTabGlass : iBlur3SourceColor);
+        factory.setSourceRootView(new ViewPositionWatcher(contentView), contentView);
+        factory.setLiquidGlassEffectAllowed(enabled);
+        tabsViewBackground = factory.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
+        tabsViewBackground.setRadius(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
+        tabsViewBackground.setPadding(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
+        tabsView.setBackground(tabsViewBackground);
+        tabsView.invalidate();
     }
 
     private void blur3_updateColors() {
