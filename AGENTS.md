@@ -798,3 +798,24 @@ and separated-header controls. Preserve the existing Linki Glass mode when
 Material options are off. CI compilation and real-device ON/OFF navigation,
 settings and chat checks are required before claiming parity. X-CFG, wsbypass
 and landing remain outside this task.
+
+
+### Material build ready for manual installation — 2026-10-18
+
+Shared Material changes are in `30cd9bd9b`; `9e9f8eabc` fixes the header type
+reference found by CI and preserves top-fade visibility. Actions run
+`39077496616` succeeded on `codex/2.6.1` at
+`9e9f8eabcd6686f3b0a2f82a6d047ee1fdc7a77a`. Verified ZIP integrity and binary
+manifest: package `app.linkigram.messenger`, versionName `2.6.1-dev`,
+versionCode `202601009`. APK size 92,774,049 bytes; SHA-256
+`daf7e0511b632eaf6536bcc178fd6708a45c4d6f87f17eef21b99edecf0820ad`.
+Artifact: `.tmp-material-build-39077496616/app.apk`; convenient copy in this
+DEV checkout: `LinkiGram-2.6.1-dev-Material-39077496616.apk`.
+The user explicitly requested building only and will install it in the morning;
+do not auto-install this artifact until requested. On-device visual parity and
+ON/OFF behavior are not yet verified. Enable the full preset through Appearance
+> Material 3 > Enable all Material 3 styles, then check standard settings pages,
+nav destinations, chat header, toggles, sliders and loading states. Do not claim
+pixel-identical parity before that check. No release was created. An automatic
+approval review rejected saving the artifact in the primary checkout, so all
+new source and APK output remain in the dev checkout.
