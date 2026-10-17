@@ -103,6 +103,19 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         counter.setTextSize(dp(10));
     }
 
+    private boolean materialMainTab;
+    private void applyMaterialMainTab() {
+        materialMainTab = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        if (!materialMainTab) return;
+        imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 10, 0, 0));
+        if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 11, 0, 0));
+        textView.setIncludeFontPadding(false);
+        textView.setLetterSpacing(1f / 24f);
+        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 16, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 42, 0, 0));
+        isSelectedAnimator.setDuration(500);
+        isSelectedAnimator.setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.Emphasized);
+    }
+
     private boolean hasVisualWidth;
     private float visualWidth;
     public void setVisualWidth(float width) {
@@ -155,11 +168,17 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             final float alpha = AnimatorUtils.DECELERATE_INTERPOLATOR.getInterpolation(selectedFactor);
 
             paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
-            tmpRectF.set(0, 0, viewWidth, getHeight());
+            if (materialMainTab) {
+                float width = Math.min(dp(56), Math.max(0, viewWidth - dp(8)));
+                tmpRectF.set((viewWidth - width) / 2f, dp(6), (viewWidth + width) / 2f, dp(38));
+                paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.125f * alpha));
+            } else {
+                tmpRectF.set(0, 0, viewWidth, getHeight());
+            }
             final float r = Math.min(tmpRectF.width(), tmpRectF.height()) / 2f;
             final float s = lerp(0.6f, 1, selectedFactor) * MathUtils.clamp(attachScale, 0, 1);
             canvas.save();
-            canvas.scale(s, s, tmpRectF.centerX(), tmpRectF.centerY());
+            canvas.scale(materialMainTab ? lerp(0.4f, 1f, selectedFactor) : s, materialMainTab ? 1f : s, tmpRectF.centerX(), tmpRectF.centerY());
             canvas.drawRoundRect(tmpRectF, r, r, paintCounterBackground);
             canvas.restore();
         }
@@ -177,7 +196,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
             final float gap = dpf2(1.33f);
             final float cx = viewWidth / 2f + dpf2(11);
-            final float cy = dpf2(10);
+            final float cy = dpf2(materialMainTab ? 16 : 10);
             final float height = dpf2(16);
             final float width = Math.max(height, counter.getCurrentWidth() + dp(8));
             final float rOuter = dpf2(9.333f);
@@ -417,6 +436,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
         tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
         tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
+        tab.applyMaterialMainTab();
         tab.updateColors();
         return tab;
     }
@@ -438,6 +458,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
         tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
         tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
+        tab.applyMaterialMainTab();
         tab.updateColors();
         return tab;
     }

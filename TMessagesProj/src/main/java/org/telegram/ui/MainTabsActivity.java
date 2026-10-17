@@ -121,6 +121,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private boolean tabsDocked;
+    private static boolean useGlassTabs() {
+        return !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
+                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+    }
+
     private boolean tabsLiquidGlassEnabled;
     private View fadeView;
     private app.exteraless.player.PlayerMiniView miniPlayer;
@@ -308,7 +313,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         final boolean dockedTabs = MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW || md3Nav;
         tabsDocked = dockedTabs;
         final boolean fullWidthTabs = dockedTabs || iosNav;
-        final int tabsPad = (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
+        final int tabsPad = md3Nav ? 0 : (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
         tabsView.setPadding(dp(tabsPad), dp(tabsPad), dp(tabsPad), dp(tabsPad));
         tabsView.setMaxWidth(fullWidthTabs ? 0 : dp(328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
 
@@ -374,14 +379,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceTabGlass != null ? iBlur3SourceTabGlass : iBlur3SourceColor);
         iBlur3FactoryGlass.setSourceRootView(viewPositionWatcher, contentView);
-        tabsLiquidGlassEnabled = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+        tabsLiquidGlassEnabled = useGlassTabs();
         iBlur3FactoryGlass.setLiquidGlassEffectAllowed(tabsLiquidGlassEnabled);
 
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView,
-                LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+                useGlassTabs()
                         ? BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider)
                         : BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
-        if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
+        if (useGlassTabs()
                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && tabsViewBackground instanceof BlurredBackgroundDrawableRenderNode) {
             ((BlurredBackgroundDrawableRenderNode) tabsViewBackground)
@@ -391,7 +396,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground.setIntensity(1f);
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
-        tabsView.setBackground(tabsViewBackground);
+        tabsView.setBackground(app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
+                ? new android.graphics.drawable.ColorDrawable(getThemedColor(Theme.key_windowBackgroundWhite)) : tabsViewBackground);
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
         iBlur3FactoryFade.setSourceRootView(viewPositionWatcher, contentView);
@@ -410,7 +416,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsViewWrapper = new FrameLayout(context);
         tabsViewWrapper.setOnClickListener(v -> {});
-        tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, dockedTabs ? DialogsActivity.MAIN_TABS_HEIGHT : DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, md3Nav ? 64 : dockedTabs ? DialogsActivity.MAIN_TABS_HEIGHT : DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         tabsViewWrapper.setClipToPadding(false);
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
 
@@ -1001,7 +1007,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             }
         }
 
-        tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
+        final boolean materialNavigation = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, materialNavigation ? 0 : navigationBarHeight);
+        if (materialNavigation) {
+            ViewGroup.LayoutParams tabsParams = tabsView.getLayoutParams();
+            int height = dp(64) + navigationBarHeight;
+            if (tabsParams.height != height) { tabsParams.height = height; tabsView.setLayoutParams(tabsParams); }
+            tabsView.setPadding(0, 0, 0, navigationBarHeight);
+            tabsView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        }
 
         final WindowInsetsCompat consumed = isUpdateLayoutVisible ?
             insets.inset(0, 0, 0, navigationBarHeight) : insets;
@@ -1065,7 +1079,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                     && tabsViewBackground instanceof BlurredBackgroundDrawableRenderNode) {
                 BlurredBackgroundDrawableRenderNode glassBackground = (BlurredBackgroundDrawableRenderNode) tabsViewBackground;
-                if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+                if (useGlassTabs()) {
                     glassBackground.setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
                     glassBackground.setColorProvider(BlurredBackgroundProviderImpl.mainTabsLiquidGlass(resourceProvider));
                 } else {
@@ -1307,7 +1321,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         if (tabsView == null || contentView == null) {
             return;
         }
-        boolean enabled = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+        boolean enabled = useGlassTabs();
         if (enabled == tabsLiquidGlassEnabled) {
             return;
         }
@@ -1319,7 +1333,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground = factory.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
         tabsViewBackground.setRadius(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
-        tabsView.setBackground(tabsViewBackground);
+        tabsView.setBackground(app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
+                ? new android.graphics.drawable.ColorDrawable(getThemedColor(Theme.key_windowBackgroundWhite)) : tabsViewBackground);
         tabsView.invalidate();
     }
 
@@ -1333,6 +1348,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             fadeView.invalidate();
         }
         if (tabsView != null) {
+            if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
+                tabsView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            }
             tabsView.invalidate();
         }
         if (tabs != null) {

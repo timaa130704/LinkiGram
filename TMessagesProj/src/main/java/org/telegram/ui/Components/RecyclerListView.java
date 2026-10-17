@@ -3281,14 +3281,21 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     }
 
     public void setSections() {
-        setSections(dp(12), dp(16), false);
+        setSections(dp(12), dp(app.nimarkogram.messenger.NimarkoConfig.sectionRadius), false);
     }
     public void setSections(boolean topPadding) {
-        setSections(dp(12), dp(16), topPadding);
+        setSections(dp(12), dp(app.nimarkogram.messenger.NimarkoConfig.sectionRadius), topPadding);
     }
     public void setSections(int padding, float roundRadius, boolean topPadding) {
         setSections(
-            view -> !(view instanceof TextInfoPrivacyCell || view instanceof ShadowSectionCell || view instanceof FiltersSetupActivity.HintInnerCell || view instanceof GraySectionCell || view instanceof CollapseTextCell) && !Objects.equals(view.getTag(), TAG_NOT_SECTION),
+            view -> {
+                if (view instanceof HeaderCell && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()) {
+                    view.setBackgroundColor(Color.TRANSPARENT);
+                    return false;
+                }
+                return !(view instanceof TextInfoPrivacyCell || view instanceof ShadowSectionCell || view instanceof FiltersSetupActivity.HintInnerCell || view instanceof GraySectionCell || view instanceof CollapseTextCell)
+                        && !Objects.equals(view.getTag(), TAG_NOT_SECTION);
+            },
             padding,
             roundRadius,
             this::drawBackgroundRect,
@@ -3403,6 +3410,9 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
 
                         if (first) outRect.top = enableTopPadding ? padding : dp(4);
                         if (last) outRect.bottom = padding;
+                        if (!first && this.parent.materialSegments() && this.parent.sectionNeighbor(view, -1)) {
+                            outRect.top += dp(2);
+                        }
                     }
                 }
             }
@@ -3421,6 +3431,35 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
             canvas.clipRect(position);
             parent.drawSectionsBackgrounds(canvas);
             canvas.restore();
+        }
+    }
+
+    private boolean materialSegments() {
+        return hasSections() && app.nimarkogram.messenger.appearance.MaterialStyle.segments();
+    }
+
+    private boolean sectionNeighbor(View view, int direction) {
+        int position = getChildAdapterPosition(view) + direction;
+        return getChildAdapterPosition(view) != NO_POSITION && getAdapter() != null
+                && position >= 0 && position < getAdapter().getItemCount()
+                && isViewTypeSection != null && isViewTypeSection.run(getAdapter().getItemViewType(position));
+    }
+
+    private final float[] materialCorners = new float[8];
+    private void materialCorners(View view) {
+        boolean above = sectionNeighbor(view, -1), below = sectionNeighbor(view, 1);
+        boolean pill = !above && !below && (Boolean.TRUE.equals(view.getTag(R.id.linki_material_pill))
+                || view instanceof org.telegram.ui.Cells.TextCheckCell);
+        float top = pill ? view.getHeight() / 2f : above ? Math.min(sectionRadius, dp(4)) : sectionRadius;
+        float bottom = pill ? view.getHeight() / 2f : below ? Math.min(sectionRadius, dp(4)) : sectionRadius;
+        for (int i = 0; i < 4; i++) materialCorners[i] = top;
+        for (int i = 4; i < 8; i++) materialCorners[i] = bottom;
+    }
+
+    private void materialBounds(View view, RectF bounds) {
+        bounds.set(view.getX(), top(view), view.getX() + view.getWidth(), bottom(view));
+        if (view instanceof JoinToSendSettingsView) {
+            bounds.bottom -= ((JoinToSendSettingsView) view).getBottomInfoMargin();
         }
     }
 
@@ -3476,7 +3515,17 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     public void drawSectionsBackgrounds(Canvas canvas) {
         if (drawSectionBackground == null) return;
 
-        if (isAnimating()) {
+        if (materialSegments()) {
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (child == emptyView || child.getVisibility() != VISIBLE || child.getAlpha() <= 0
+                        || !sectionsItemDecoration.isSectionItem.run(child)
+                        || isInsideForcedSection(getChildAdapterPosition(child))) continue;
+                materialBounds(child, AndroidUtilities.rectTmp);
+                materialCorners(child);
+                drawSectionBackground.run(canvas, AndroidUtilities.rectTmp, materialCorners[0], materialCorners[4], child.getAlpha());
+            }
+        } else if (isAnimating()) {
             if (sections == null) {
                 sections = new ArrayList<>();
             }
@@ -3627,6 +3676,15 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
         if (child == null || !shouldClipChildToSection(child) || !sectionsItemDecoration.isSectionItem.run(child))
             return;
 
+        if (materialSegments() && !isInsideForcedSection(getChildAdapterPosition(child))) {
+            materialBounds(child, AndroidUtilities.rectTmp);
+            materialCorners(child);
+            clipPath.rewind();
+            clipPath.addRoundRect(AndroidUtilities.rectTmp, materialCorners, Path.Direction.CW);
+            canvas.clipPath(clipPath);
+            return;
+        }
+
         boolean prev, next;
         int position = getChildAdapterPosition(child);
         if (position == RecyclerView.NO_POSITION) {
@@ -3711,7 +3769,10 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
             if (prev && next) return Theme.createRoundRectDrawable(0, Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
         }
         final Path clipPath = new Path();
-        if (!prev && !next || forceRound) {
+        if (materialSegments() && !isInsideForcedSection(position)) {
+            materialCorners(child);
+            clipPath.addRoundRect(rect, materialCorners, Path.Direction.CW);
+        } else if (!prev && !next || forceRound) {
             clipPath.rewind();
             clipPath.addRoundRect(rect, sectionRadius, sectionRadius, Path.Direction.CW);
         } else if (!prev) {

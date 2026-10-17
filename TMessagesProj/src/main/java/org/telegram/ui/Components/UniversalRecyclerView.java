@@ -438,7 +438,7 @@ public class UniversalRecyclerView extends RecyclerListView {
     /** Материал-3: радиус карточки секции. Если карточки выключены — оставляем значение вызывающего. */
     private static float resolveSectionRadius(float requested) {
         if ((NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) && (NimarkoConfig.sectionRadius > 0 || NimarkoConfig.m3ListItems())) {
-            return dp(Math.max(NimarkoConfig.sectionRadius, 16));
+            return dp(NimarkoConfig.sectionRadius);
         }
         return requested;
     }
@@ -448,9 +448,16 @@ public class UniversalRecyclerView extends RecyclerListView {
             view -> {
                 if (view.getParent() != this) return false;
                 final ViewHolder viewHolder = getChildViewHolder(view);
-                return !UniversalAdapter.isShadow(viewHolder.getItemViewType());
+                final int type = viewHolder.getItemViewType();
+                if (UniversalAdapter.isHeader(type) && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()) {
+                    view.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                    return false;
+                }
+                UItem item = adapter.getItem(viewHolder.getAdapterPosition());
+                return !UniversalAdapter.isShadow(type) && (item == null || !item.transparent);
             },
-            UniversalAdapter::isShadow,
+            type -> !UniversalAdapter.isShadow(type)
+                    && !(UniversalAdapter.isHeader(type) && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()),
             padding, resolveSectionRadius(roundRadius),
             this::drawBackgroundRect,
             topPadding

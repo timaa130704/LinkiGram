@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="NM_Material_All">Включить все стили Material 3</string>
+    <string name="NM_Material_Dividers">Разделители секций</string>
+    <string name="NM_Material_DividerHidden">Скрыты</string>
+    <string name="NM_Material_DividerLine">Линии</string>
+    <string name="NM_Material_DividerSegments">Сегменты</string>
+    <string name="NM_Material_Headers">Выносить заголовки секций</string>
+</resources>

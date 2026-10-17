@@ -271,7 +271,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             }
         }
         avatarImageView.setContentDescription(getString(R.string.AccDescrProfilePicture));
-        avatarImageView.setRoundRadius(dp(21));
+        avatarImageView.setRoundRadius(dp(getAvatarSizeInDp() / 2f));
         addView(avatarImageView);
         if (avatarClickable) {
             final TLRPC.Chat chat = parentFragment != null ? parentFragment.getCurrentChat() : null;
@@ -674,7 +674,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         final int width = MeasureSpec.getSize(widthMeasureSpec);
         final int availableWidth = width - dp((avatarImageView.getVisibility() == VISIBLE ? 54 : 0) + 16);
-        avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - 2, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - 2, MeasureSpec.EXACTLY));
+        avatarImageView.measure(MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle() ? 0 : 2), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(getAvatarSizeInDp()) - (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle() ? 0 : 2), MeasureSpec.EXACTLY));
         titleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24 + 8), MeasureSpec.AT_MOST));
         if (subtitleTextView != null) {
             subtitleTextView.measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.AT_MOST));
@@ -1512,7 +1512,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                 avatarImageView.setAnimatedEmojiDrawable(null);
                 ForumUtilities.setMonoForumAvatar(currentAccount, chat, avatarDrawable, avatarImageView);
             }
-            avatarImageView.setRoundRadius(dp(21));
+            avatarImageView.setRoundRadius(dp(getAvatarSizeInDp() / 2f));
         } else if (chat != null) {
             avatarDrawable.setScaleSize(1f);
             avatarDrawable.setInfo(currentAccount, chat);

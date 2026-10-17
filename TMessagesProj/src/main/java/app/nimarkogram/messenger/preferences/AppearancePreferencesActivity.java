@@ -72,6 +72,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private boolean iosExpanded;
     private static final int MATERIAL_GROUP = 100;
     private static final int IOS_GROUP = 101;
+    private static final int MATERIAL_ALL = 102;
+    private static final int MATERIAL_HEADERS = 103;
     private static final int STYLE_BASE = 110;
     private static final int[] MATERIAL_LABELS = {R.string.NM_Style_Loaders, R.string.NM_Style_Sliders,
             R.string.NM_Style_Switches, R.string.NM_Style_ChatHeader, R.string.NM_Style_Navigation,
@@ -108,8 +110,10 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
         items.add(UItem.asButton(MATERIAL_GROUP, getString(R.string.NM_Style_Material),
-                styleCount(AppearanceConfig.MATERIAL_KEYS) + "/8"));
+                styleCount(AppearanceConfig.MATERIAL_KEYS) + "/" + AppearanceConfig.MATERIAL_KEYS.length));
         if (materialExpanded) {
+            items.add(SettingsHelper.asSwitchCG(MATERIAL_ALL, getString(R.string.NM_Material_All))
+                    .setChecked(Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) == AppearanceConfig.MATERIAL_KEYS.length));
             for (int i = 0; i < AppearanceConfig.MATERIAL_KEYS.length; i++) {
                 items.add(SettingsHelper.asSwitchCG(STYLE_BASE + i, getString(MATERIAL_LABELS[i]))
                         .setChecked(AppearanceConfig.enabled(AppearanceConfig.MATERIAL_KEYS[i])));
@@ -123,9 +127,12 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                         .setChecked(AppearanceConfig.enabled(AppearanceConfig.IOS_KEYS[i])));
             }
         }
-        items.add(SettingsHelper.asSwitchCG(disableDividersRow, getString(R.string.AP_DisableDividers))
-                .setChecked(app.nimarkogram.messenger.NimarkoConfig.disableDividers)
-        );
+        items.add(UItem.asButton(disableDividersRow, getString(R.string.NM_Material_Dividers),
+                getString(new int[]{R.string.NM_Material_DividerHidden, R.string.NM_Material_DividerLine,
+                        R.string.NM_Material_DividerSegments}[app.nimarkogram.messenger.appearance.MaterialStyle.dividerStyle()])));
+        items.add(SettingsHelper.asSwitchCG(MATERIAL_HEADERS, getString(R.string.NM_Material_Headers))
+                .setChecked(app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders())
+                .setEnabled(!app.nimarkogram.messenger.appearance.MaterialStyle.segments()));
         items.add(SettingsHelper.asSwitchCG(materialCardsRow,
                         getString(R.string.AP_MaterialCards),
                         getString(R.string.AP_MaterialCards_Desc))
@@ -236,6 +243,19 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == MATERIAL_ALL) {
+            boolean enable = Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) != AppearanceConfig.MATERIAL_KEYS.length;
+            for (String key : AppearanceConfig.MATERIAL_KEYS) AppearanceConfig.setEnabled(key, enable);
+            refreshMaterialViews();
+            return;
+        } else if (item.id == MATERIAL_HEADERS) {
+            if (!app.nimarkogram.messenger.appearance.MaterialStyle.segments()) {
+                NimarkoConfig.getPreferences().edit().putBoolean("materialSeparateHeaders",
+                        !app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()).apply();
+                refreshMaterialViews();
+            }
+            return;
+        }
         if (item.id == MATERIAL_GROUP || item.id == IOS_GROUP) {
             if (item.id == MATERIAL_GROUP) {
                 materialExpanded = !materialExpanded;
@@ -248,6 +268,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             int index = item.id - STYLE_BASE;
             String key = index < 8 ? AppearanceConfig.MATERIAL_KEYS[index] : AppearanceConfig.IOS_KEYS[index - 8];
             AppearanceConfig.setEnabled(key, !AppearanceConfig.enabled(key));
+            Theme.applyCommonTheme();
             updateCheckState(view, AppearanceConfig.enabled(key));
             listView.adapter.update(true);
             if (getParentLayout() != null) {
@@ -304,13 +325,15 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                         showRestartBulletin();
                     });
         } else if (item.id == disableDividersRow) {
-            NimarkoConfig.toggleDisableDividers();
-            updateCheckState(view, app.nimarkogram.messenger.NimarkoConfig.disableDividers);
-
-            Theme.applyCommonTheme();
-            listView.adapter.update(true);
-            
-            if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+            java.util.ArrayList<CharSequence> styles = new java.util.ArrayList<>();
+            styles.add(getString(R.string.NM_Material_DividerHidden));
+            styles.add(getString(R.string.NM_Material_DividerLine));
+            styles.add(getString(R.string.NM_Material_DividerSegments));
+            app.nimarkogram.messenger.preferences.helpers.PopupHelper.show(styles, getString(R.string.NM_Material_Dividers),
+                    app.nimarkogram.messenger.appearance.MaterialStyle.dividerStyle(), getContext(), value -> {
+                        NimarkoConfig.getPreferences().edit().putInt("materialDividerStyle", value).apply();
+                        refreshMaterialViews();
+                    });
         } else if (item.id == materialCardsRow) {
             NimarkoConfig.toggleMaterialCards();
             updateCheckState(view, NimarkoConfig.materialCards);
@@ -459,11 +482,18 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
      * Радиус карточек хранится в RecyclerListView на момент вызова setSections,
      * поэтому после его смены секции надо пересобрать, а не просто перерисовать.
      */
+    private void refreshMaterialViews() {
+        Theme.applyCommonTheme();
+        if (listView != null) listView.adapter.update(true);
+        if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
+    }
+
     private void refreshSectionCards() {
         if (listView == null) {
             return;
         }
-        if (NimarkoConfig.materialCards) {
+        if (NimarkoConfig.materialCards || app.nimarkogram.messenger.appearance.MaterialStyle.segments()) {
             listView.setSections(true);
         } else {
             listView.disableSections();

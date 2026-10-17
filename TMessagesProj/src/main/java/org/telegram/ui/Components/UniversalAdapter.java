@@ -592,7 +592,14 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
     private boolean hasDivider(int position) {
         UItem item = getItem(position);
         UItem nextItem = getItem(position + 1);
+        if (nextItem != null && isHeader(nextItem.viewType)
+                && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()) return false;
         return item != null && !item.hideDivider && nextItem != null && isShadow(nextItem.viewType) == isShadow(item.viewType);
+    }
+
+    public static boolean isHeader(int viewType) {
+        return viewType == VIEW_TYPE_HEADER || viewType == VIEW_TYPE_BLACK_HEADER
+                || viewType == VIEW_TYPE_LARGE_HEADER || viewType == VIEW_TYPE_ANIMATED_HEADER;
     }
 
     public static boolean isShadow(int viewType) {
@@ -754,7 +761,9 @@ public class UniversalAdapter extends AdapterWithDiffUtils {
                 if (viewType == VIEW_TYPE_SHADOW || viewType == VIEW_TYPE_LARGE_SHADOW) {
                     TextInfoPrivacyCell cell2 = (TextInfoPrivacyCell) holder.itemView;
                     if (TextUtils.isEmpty(item.text)) {
-                        cell2.setFixedSize(item.intValue > 0 ? item.intValue : viewType == VIEW_TYPE_LARGE_SHADOW ? 220 : 12);
+                        cell2.setFixedSize(viewType == VIEW_TYPE_LARGE_SHADOW ? 220
+                                : app.nimarkogram.messenger.appearance.MaterialStyle.shadowHeight(
+                                        position + 1 < getItemCount() && isHeader(getItemViewType(position + 1))));
                         cell2.setText("");
                     } else {
                         cell2.setFixedSize(0);

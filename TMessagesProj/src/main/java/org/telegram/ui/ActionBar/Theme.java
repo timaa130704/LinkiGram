@@ -8977,6 +8977,7 @@ public class Theme {
     }
 
     public static int getColor(int key, ResourcesProvider provider) {
+        if (key == key_divider && app.nimarkogram.messenger.appearance.MaterialStyle.hideDividers()) return 0;
         if (provider != null) {
             return provider.getColor(key);
         }
@@ -8996,6 +8997,7 @@ public class Theme {
     }
 
     public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+        if (key == key_divider && app.nimarkogram.messenger.appearance.MaterialStyle.hideDividers()) return 0;
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {

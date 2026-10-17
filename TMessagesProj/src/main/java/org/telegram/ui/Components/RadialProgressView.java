@@ -228,31 +228,59 @@ public class RadialProgressView extends View {
         int x = (getMeasuredWidth() - size) / 2;
         int y = (getMeasuredHeight() - size) / 2;
         cicleRect.set(x, y, x + size, y + size);
-        drawMd3Track(canvas, cicleRect);
-        canvas.drawArc(cicleRect, radOffset, drawingCircleLenght = currentCircleLength, false, progressPaint);
+        drawingCircleLenght = currentCircleLength;
+        drawProgressArc(canvas);
         updateAnimation();
     }
 
     public void draw(Canvas canvas, float cx, float cy) {
         cicleRect.set(cx - size / 2f, cy - size / 2f, cx + size / 2f, cy +  size / 2f);
-        drawMd3Track(canvas, cicleRect);
-        canvas.drawArc(cicleRect, radOffset, drawingCircleLenght = currentCircleLength, false, progressPaint);
+        drawingCircleLenght = currentCircleLength;
+        drawProgressArc(canvas);
         updateAnimation();
     }
 
-    /** LinkiGram: MD3-дорожка под индикатором (порт exteraless M3CircularProgress, NM_Style_Loaders). */
-    private void drawMd3Track(Canvas canvas, RectF rect) {
-        if (!app.nimarkogram.messenger.appearance.AppearanceConfig.newLoadingStyle()
-                || Math.abs(currentCircleLength) >= 360) {
+    private final app.nimarkogram.messenger.appearance.MaterialProgress materialProgress = new app.nimarkogram.messenger.appearance.MaterialProgress();
+    private com.google.android.material.loadingindicator.LoadingIndicator materialIndicator;
+    private Drawable materialDrawable;
+
+    private void drawProgressArc(Canvas canvas) {
+        if (!app.nimarkogram.messenger.appearance.AppearanceConfig.newLoadingStyle()) {
+            if (materialDrawable != null) materialDrawable.setVisible(false, false);
+            canvas.drawArc(cicleRect, radOffset, currentCircleLength, false, progressPaint);
             return;
         }
-        final int prevColor = progressPaint.getColor();
-        final Paint.Style prevStyle = progressPaint.getStyle();
-        progressPaint.setColor(Theme.multAlpha(prevColor, 0.12f));
-        progressPaint.setStyle(Paint.Style.STROKE);
-        canvas.drawArc(rect, 0, 360, false, progressPaint);
-        progressPaint.setColor(prevColor);
-        progressPaint.setStyle(prevStyle);
+        if (noProgress) {
+            if (materialIndicator == null) {
+                android.view.ContextThemeWrapper themed = new android.view.ContextThemeWrapper(getContext(), com.google.android.material.R.style.Theme_Material3_DayNight);
+                materialIndicator = new com.google.android.material.loadingindicator.LoadingIndicator(themed);
+                materialDrawable = materialIndicator.getDrawable();
+                materialDrawable.setCallback(this);
+            }
+            materialIndicator.setIndicatorSize(size);
+            materialIndicator.setIndicatorColor(progressPaint.getColor());
+            materialDrawable.setBounds((int) cicleRect.left, (int) cicleRect.top, (int) cicleRect.right, (int) cicleRect.bottom);
+            materialDrawable.setVisible(true, false);
+            if (materialDrawable instanceof android.graphics.drawable.Animatable) {
+                android.graphics.drawable.Animatable animation = (android.graphics.drawable.Animatable) materialDrawable;
+                if (!animation.isRunning()) animation.start();
+            }
+            materialDrawable.draw(canvas);
+        } else {
+            if (materialDrawable != null) materialDrawable.setVisible(false, false);
+            materialProgress.draw(canvas, cicleRect, radOffset, currentCircleLength, progressPaint, true);
+        }
+    }
+
+    @Override
+    protected boolean verifyDrawable(Drawable drawable) {
+        return drawable == materialDrawable || super.verifyDrawable(drawable);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (materialDrawable != null) materialDrawable.setVisible(false, false);
+        super.onDetachedFromWindow();
     }
 
     public boolean isCircle() {

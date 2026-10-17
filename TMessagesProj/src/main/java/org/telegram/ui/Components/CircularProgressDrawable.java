@@ -55,6 +55,7 @@ public class CircularProgressDrawable extends Drawable {
         paint.setStrokeJoin(Paint.Join.ROUND);
     }
 
+    private final app.nimarkogram.messenger.appearance.MaterialProgress materialProgress = new app.nimarkogram.messenger.appearance.MaterialProgress();
     private float angleOffset;
     private final RectF bounds = new RectF();
 
@@ -64,13 +65,11 @@ public class CircularProgressDrawable extends Drawable {
             start = SystemClock.elapsedRealtime();
         }
         updateSegment();
-        canvas.drawArc(
-            bounds,
-            angleOffset + segment[0],
-            segment[1] - segment[0],
-            false,
-            paint
-        );
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newLoadingStyle()) {
+            materialProgress.draw(canvas, bounds, angleOffset + segment[0], segment[1] - segment[0], paint, true);
+        } else {
+            canvas.drawArc(bounds, angleOffset + segment[0], segment[1] - segment[0], false, paint);
+        }
         invalidateSelf();
     }
 

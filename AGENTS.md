@@ -777,3 +777,24 @@ claim visual verification until the user opens the screen and checks it.
 Licensing: project `LICENSE` is GPL-2.0-only while exteraless is GPL-3.0.
 Implement compatible behavior independently; do not copy GPL-3.0 source into
 this repository without an explicit license decision.
+
+
+## Material parity correction — 2026-10-18
+
+User rejected the settings-only 4dp spacing change. Work now targets the shared
+Material component behavior using exteraless commit
+`1ad6a60a6834ffca722b1a22f4fba27ecb29a061` as a visual/behavior reference;
+no GPL-3 source files are vendored. Independent implementation in `MaterialStyle`
+and `MaterialProgress` drives shared RecyclerListView segments, 2dp gaps,
+4dp inner corners, section radius, separated headers, standard row heights,
+neutral circular settings icons and pill master rows. The previous UItem spacer
+hack is removed. Material switches/sliders use the reference metrics; radial
+spinners use the already-installed Material 1.13 LoadingIndicator (Apache-2.0),
+determinate progress uses a track gap and expressive wave. Material navigation
+uses equal destinations, individual selected indicators and 64dp height with
+system insets; the chat-header option now also affects the middle pill and fade.
+Appearance exposes enable-all plus independent component toggles, divider style
+and separated-header controls. Preserve the existing Linki Glass mode when
+Material options are off. CI compilation and real-device ON/OFF navigation,
+settings and chat checks are required before claiming parity. X-CFG, wsbypass
+and landing remain outside this task.

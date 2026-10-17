@@ -4689,6 +4689,11 @@ public class ChatActivity extends BaseFragment implements
             glassBackgroundDrawableFactory,
             BlurredBackgroundProviderImpl.topPanelChatActivity(themeDelegate),
             ChatObject.isForum(currentChat));
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle()) {
+            actionBar.setDrawGlassTitle(false);
+            actionBar.setShadowAlpha(0);
+        }
+
 
         if (chatMode == MODE_PINNED) {
             actionBar.setChatAvatarContainer(avatarContainer);
@@ -7089,7 +7094,7 @@ public class ChatActivity extends BaseFragment implements
 
         chatActivityFadeView = new ChatActivityFadeView(context);
         chatActivityFadeView.setup(navbarContentDrawableFactory);
-        chatActivityFadeView.setFadeHeightTop(dp(48));
+        chatActivityFadeView.setFadeHeightTop(dp(app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle() ? 78 : 48));
         chatActivityFadeView.setFadeHeightBottom(dp(48));
         contentView.addView(chatActivityFadeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
@@ -46931,6 +46936,10 @@ public class ChatActivity extends BaseFragment implements
         }
         fadeHeight += dp(36 + 7) * getHashtagTabsShownT();
 
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle()) {
+            fadeHeight += dp(42);
+            chatActivityFadeView.setTopFadeColor(getThemedColor(Theme.key_windowBackgroundGray));
+        }
         chatActivityFadeView.setFadeZoneTop((int) fadeHeight);
     }
 

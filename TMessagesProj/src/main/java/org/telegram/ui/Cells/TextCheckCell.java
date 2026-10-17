@@ -146,10 +146,14 @@ public class TextCheckCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        float materialShift = app.nimarkogram.messenger.appearance.MaterialStyle.listItems()
+                && !isMultiline && valueTextView.getVisibility() == VISIBLE ? AndroidUtilities.dp(4) : 0;
+        textView.setTranslationY(materialShift);
+        valueTextView.setTranslationY(materialShift);
         if (isMultiline) {
             super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         } else {
-            super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(valueTextView.getVisibility() == VISIBLE ? 64 : height) + (needDivider ? 1 : 0), MeasureSpec.EXACTLY));
+            super.onMeasure(MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(valueTextView.getVisibility() == VISIBLE ? app.nimarkogram.messenger.appearance.MaterialStyle.detailHeight(64) : app.nimarkogram.messenger.appearance.MaterialStyle.rowHeight(height)) + (needDivider ? 1 : 0), MeasureSpec.EXACTLY));
         }
     }
 

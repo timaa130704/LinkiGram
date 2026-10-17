@@ -50,6 +50,8 @@ public final class AppearanceConfig {
         } else if (value && "iosNavigationBarStyle".equals(key)) {
             editor.putBoolean("newNavigationBarStyle", false);
         }
+        if (value && "newChatHeaderStyle".equals(key)) editor.putBoolean("iosChatHeader", false);
+        if (value && "iosChatHeader".equals(key)) editor.putBoolean("newChatHeaderStyle", false);
         editor.apply();
     }
 

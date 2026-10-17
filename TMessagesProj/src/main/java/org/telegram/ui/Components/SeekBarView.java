@@ -348,7 +348,7 @@ public class SeekBarView extends FrameLayout {
     }
 
     private int effectiveLineWidthDp() {
-        return isMd3Slider() ? 16 : lineWidthDp;
+        return isMd3Slider() ? 8 : lineWidthDp;
     }
 
     int lastValue;
@@ -460,6 +460,12 @@ public class SeekBarView extends FrameLayout {
         float left = selectorWidth / 2f, right = getMeasuredWidth() - selectorWidth / 2;
         float top = centerY - AndroidUtilities.dp(effectiveLineWidthDp()) / 2f, bottom = centerY + AndroidUtilities.dp(effectiveLineWidthDp()) / 2f;
 
+        if (isMd3Slider() && !twoSided) {
+            drawMaterialSlider(canvas, left, right, centerY, thumbX);
+            drawTimestampLabel(canvas);
+            return;
+        }
+
         rect.set(left, top, right, bottom);
         drawProgressBar(canvas, rect, innerPaint1);
         if (bufferedProgress > 0) {
@@ -541,6 +547,41 @@ public class SeekBarView extends FrameLayout {
         if (needInvalidate) {
             postInvalidateOnAnimation();
         }
+    }
+
+    private final Path materialTrackPath = new Path();
+    private final float[] materialTrackCorners = new float[8];
+
+    private void materialTrack(Canvas canvas, float from, float to, float cy, Paint paint, boolean active) {
+        if (to <= from) return;
+        float outer = AndroidUtilities.dp(4), inner = AndroidUtilities.dp(2);
+        for (int i = 0; i < 8; i++) materialTrackCorners[i] = (i < 2 || i >= 6) == active ? outer : inner;
+        rect.set(from, cy - outer, to, cy + outer);
+        materialTrackPath.rewind();
+        materialTrackPath.addRoundRect(rect, materialTrackCorners, Path.Direction.CW);
+        canvas.drawPath(materialTrackPath, paint);
+    }
+
+    private void drawMaterialSlider(Canvas canvas, float left, float right, float cy, int position) {
+        float cx = left + position;
+        if (transitionProgress < 1f) {
+            transitionProgress = Math.min(1f, transitionProgress + 16f / 225f);
+            cx = left + transitionThumbX + (position - transitionThumbX) * CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(transitionProgress);
+            postInvalidateOnAnimation();
+        }
+        float gap = AndroidUtilities.dp(6);
+        materialTrack(canvas, left, cx - gap, cy, outerPaint1, true);
+        materialTrack(canvas, cx + gap, right, cy, innerPaint1, false);
+        canvas.drawCircle(right - AndroidUtilities.dp(4), cy, AndroidUtilities.dp(2), outerPaint1);
+        if (separatorsCount > 1) {
+            for (int i = 1; i < separatorsCount - 1; i++) {
+                float x = left + (right - left) * i / (separatorsCount - 1f);
+                if (Math.abs(x - cx) > gap) canvas.drawCircle(x, cy, AndroidUtilities.dp(1), x < cx ? innerPaint1 : outerPaint1);
+            }
+        }
+        rect.set(cx - AndroidUtilities.dpf2(1.5f), cy - AndroidUtilities.dp(12),
+                cx + AndroidUtilities.dpf2(1.5f), cy + AndroidUtilities.dp(12));
+        canvas.drawRoundRect(rect, AndroidUtilities.dp(2), AndroidUtilities.dp(2), outerPaint1);
     }
 
     private ArrayList<Pair<Float, CharSequence>> timestamps;

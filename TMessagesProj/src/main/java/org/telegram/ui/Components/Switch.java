@@ -393,6 +393,7 @@ public class Switch extends View {
         float y = (getMeasuredHeight() - AndroidUtilities.dpf2(14)) / 2;
         int tx = x + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
         int ty = getMeasuredHeight() / 2;
+        if (isMd3Style()) tx = x + AndroidUtilities.dp(8) + (int) (AndroidUtilities.dp(16) * Math.max(0f, Math.min(1f, progress)));
 
 
         int color1;
@@ -456,14 +457,10 @@ public class Switch extends View {
             paint2.setColor(color);
 
             if (isMd3Style()) {
-                final float trackH = AndroidUtilities.dpf2(19);
-                rectF.set(x, ty - trackH / 2f, x + width, ty + trackH / 2f);
-                if (colorProgress < 0.5f) {
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(AndroidUtilities.dp(2));
-                }
-                canvasToDraw.drawRoundRect(rectF, trackH / 2f, trackH / 2f, paint);
-                paint.setStyle(Paint.Style.FILL);
+                final float trackH = AndroidUtilities.dp(26);
+                rectF.set(-AndroidUtilities.dp(2), ty - trackH / 2f,
+                        getMeasuredWidth() + AndroidUtilities.dp(3), ty + trackH / 2f);
+                canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(14), AndroidUtilities.dpf2(14), paint);
             } else {
                 rectF.set(x, y, x + width, y + AndroidUtilities.dpf2(14));
                 canvasToDraw.drawRoundRect(rectF, AndroidUtilities.dpf2(7), AndroidUtilities.dpf2(7), paint);
@@ -516,8 +513,11 @@ public class Switch extends View {
             paint.setColor(((alpha & 0xff) << 24) | ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff));
 
             if (isMd3Style()) {
-                final float thumbR = AndroidUtilities.dpf2(4.8f + 2.4f * colorProgress);
-                canvasToDraw.drawCircle(tx, ty, thumbR, paint);
+                final float p = Math.max(0f, Math.min(1f, progress));
+                final float thumbR = AndroidUtilities.dp(9) - AndroidUtilities.dp(2) * (1f - p) * (1f - p);
+                final float stretch = AndroidUtilities.dpf2(3) * (1f - Math.abs(2f * p - 1f));
+                rectF.set(tx - thumbR - stretch, ty - thumbR, tx + thumbR + stretch, ty + thumbR);
+                canvasToDraw.drawRoundRect(rectF, thumbR, thumbR, paint);
                 continue;
             }
             canvasToDraw.drawCircle(tx, ty, AndroidUtilities.dp(8), paint);

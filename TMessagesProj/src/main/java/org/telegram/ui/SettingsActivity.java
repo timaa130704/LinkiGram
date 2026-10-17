@@ -764,19 +764,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         }
 
         items.add(UItem.asCustomShadow(versionView));
-        if (app.nimarkogram.messenger.NimarkoConfig.m3ListItems()) {
-            for (int i = items.size() - 2; i >= 0; i--) {
-                UItem current = items.get(i);
-                UItem next = items.get(i + 1);
-                boolean currentIsSettingsRow = UItem.findFactory(current.viewType) instanceof SettingCell.Factory
-                        || UItem.findFactory(current.viewType) instanceof AccountCell.Factory;
-                boolean nextIsSettingsRow = UItem.findFactory(next.viewType) instanceof SettingCell.Factory
-                        || UItem.findFactory(next.viewType) instanceof AccountCell.Factory;
-                if (currentIsSettingsRow && nextIsSettingsRow) {
-                    items.add(i + 1, UItem.asSpacing(4));
-                }
-            }
-        }
+
     }
 
     private void presentSettingFragment(BaseFragment fragment) {
@@ -1255,6 +1243,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             subtitleView.setTranslationX(icon == 0 ? dp(2) : 0);
 
             applyNeutralIconStyle();
+            int iconSize = dp(!mini && app.nimarkogram.messenger.appearance.MaterialStyle.listItems() ? 36 : 28);
+            android.view.ViewGroup.LayoutParams iconParams = iconLayout.getLayoutParams();
+            if (iconParams != null && iconParams.width != iconSize) {
+                iconParams.width = iconParams.height = iconSize;
+                iconLayout.setLayoutParams(iconParams);
+            }
             iconView.setImageResource(icon);
             titleView.setText(title);
             subtitleView.setVisibility((twoLines = !TextUtils.isEmpty(subtitle)) ? View.VISIBLE : View.GONE);
@@ -1272,7 +1266,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             super.onMeasure(
                 MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(dp(mini ? 44 : twoLines ? 60 : 50), MeasureSpec.EXACTLY)
+                MeasureSpec.makeMeasureSpec(dp(mini ? 44 : app.nimarkogram.messenger.appearance.MaterialStyle.listItems() ? (twoLines ? 64 : 52) : (twoLines ? 60 : 50)), MeasureSpec.EXACTLY)
             );
         }
 
@@ -1300,7 +1294,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
             @Override
             public void draw(@NonNull Canvas canvas) {
-                final float r = dp(10);
+                final float r = app.nimarkogram.messenger.appearance.MaterialStyle.listItems() ? getBounds().height() / 2f : dp(10);
                 AndroidUtilities.rectTmp.set(getBounds());
                 matrix.reset();
                 matrix.postTranslate(AndroidUtilities.rectTmp.left, AndroidUtilities.rectTmp.top);
@@ -1336,6 +1330,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
             @Override
             public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+                view.setTag(R.id.linki_material_pill, item.id == 900 ? Boolean.TRUE : null);
                 int iconColorTop    = (int) item.longValue;
                 int iconColorBottom = (int) (item.longValue >>> 32);
                 ((SettingCell) view).set(

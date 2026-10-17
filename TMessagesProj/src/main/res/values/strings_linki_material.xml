@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="NM_Material_All">Enable all Material 3 styles</string>
+    <string name="NM_Material_Dividers">Section dividers</string>
+    <string name="NM_Material_DividerHidden">Hidden</string>
+    <string name="NM_Material_DividerLine">Lines</string>
+    <string name="NM_Material_DividerSegments">Segments</string>
+    <string name="NM_Material_Headers">Separate section headers</string>
+</resources>

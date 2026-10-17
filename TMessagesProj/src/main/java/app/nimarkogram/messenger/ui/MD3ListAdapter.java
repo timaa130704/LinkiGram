@@ -155,7 +155,8 @@ public abstract class MD3ListAdapter extends RecyclerListView.SelectionAdapter {
     }
 
     protected final void applyMD3Background(@NonNull RecyclerView.ViewHolder holder, int position) {
-        if (position == RecyclerView.NO_POSITION || !isMd3ContainersEnabled() || mustIgnoreViewForPosition(position)) {
+        if (position == RecyclerView.NO_POSITION || !isMd3ContainersEnabled() || mustIgnoreViewForPosition(position)
+                || attachedRecyclerView instanceof RecyclerListView && ((RecyclerListView) attachedRecyclerView).hasSections()) {
             return;
         }
 

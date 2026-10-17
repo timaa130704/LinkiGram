@@ -162,6 +162,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             }
         }
 
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
+            for (int a = 0; a < getChildCount(); a++) {
+                tabsTextWidthWithMargin[a] = isViewVisible(getChildAt(a)) ? maxTotalWidthForTabs / (float) Math.max(1, visibleChildCount) : 0;
+            }
+        }
+
         int l = 0;
         for (int a = 0, N = getChildCount(); a < N; a++) {
             if (!isViewVisible(getChildAt(a))) {
@@ -283,7 +289,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             final View child = getChildAt(a);
             if (child instanceof GlassTabView) {
                 ((GlassTabView) child).setSelected(child == tab, animated);
-                ((GlassTabView) child).setSkipDrawSelector(true);
+                ((GlassTabView) child).setSkipDrawSelector(!app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle());
             }
         }
         moveSelectorTo(tab, animated);
@@ -295,7 +301,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
             if (child instanceof GlassTabView) {
-                ((GlassTabView) child).setSkipDrawSelector(true);
+                ((GlassTabView) child).setSkipDrawSelector(!app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle());
             }
         }
         moveSelectorTo(selected, animated);
@@ -388,7 +394,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
-        if (selectorInitialized) {
+        if (selectorInitialized && !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
             final float x = animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX;
             final float sWidth = getInterpolatedWidthByX(x, this);
             final float sHeight = getHeight() - getPaddingTop() - getPaddingBottom();

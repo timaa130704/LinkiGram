@@ -73,7 +73,7 @@ public abstract class UniversalFragment extends BaseFragment {
 
         // Material 3: секции-карточки. Радиус и сам факт карточек берутся из NimarkoConfig,
         // отрисовку тени см. UniversalRecyclerView#drawBackgroundRect.
-        if (NimarkoConfig.materialCards) {
+        if (NimarkoConfig.materialCards || app.nimarkogram.messenger.appearance.MaterialStyle.segments()) {
             listView.setSections(true);
         }
 
