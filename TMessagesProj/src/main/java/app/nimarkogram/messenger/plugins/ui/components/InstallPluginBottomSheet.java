@@ -2,6 +2,7 @@ package app.nimarkogram.messenger.plugins.ui.components;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
