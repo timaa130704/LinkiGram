@@ -841,3 +841,16 @@ resource caches before fragment rebuild; Theme drawable creation uses the app
 icon resource wrapper even when an Activity retains stock Resources. Build and
 device verification pending. Existing overwritten navigation preference is not
 silently migrated because explicit docked selections cannot be distinguished.
+
+
+### Panel/icon-pack APK built — 2026-10-18
+
+Actions run 39117724865 succeeded on codex/2.6.1 at
+18e8d8ebef09b8375c44ac1ad71e9dd337e463e2. Downloaded artifact
+.tmp-panel-icons-39117724865/app.apk, convenient copy
+LinkiGram-2.6.1-dev-panel-icons.apk. Verified binary manifest: package
+app.linkigram.messenger, versionName 2.6.1-dev, versionCode 202601009,
+arm64-v8a. ZIP integrity passed. SHA-256:
+471dc30faac5172b371ebde5e16f60a87a9409a9b967bf1f143fffbd775d60bb.
+This turn requested building; this artifact has not been installed and the
+panel/icon fixes remain unverified on device. No release created.
