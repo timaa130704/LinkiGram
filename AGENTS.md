@@ -877,3 +877,15 @@ across stable and prerelease. Stable beats a prerelease of the same base; versio
 comparison handles dev/alpha/beta/rc and numeric suffixes without integer overflow.
 Equal/older installed versions are not offered. No APK build or device verification
 for this change yet. No release published.
+
+
+### Beta OTA APK built and installed — 2026-10-18
+
+Actions 39119970505 succeeded on codex/2.6.1 at
+953d8013fc2ea0cdf5277fedd4cb8a2bb2edac1c. Artifact
+.tmp-beta-ota-39119970505/app.apk verified ZIP integrity and manifest:
+app.linkigram.messenger, 2.6.1-dev, versionCode 202601009, arm64-v8a.
+SHA-256 f369d5ae38389185115c204b799e400d2fbe0861a30bebc7e620cc8a34ab110b.
+Installed at user request on RF8MA188NFZ with adb install -r: Success,
+data preserved. Beta toggle remains OFF by default. On-device interaction
+and real prerelease selection have not been verified. No release published.
