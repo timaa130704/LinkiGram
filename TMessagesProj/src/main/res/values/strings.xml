@@ -12868,4 +12868,6 @@
     <string name="PluginPermissionsTitle">Plugin permissions</string>
     <string name="PluginPermissionTelegram">Telegram account/API access, including messages and requests</string>
     <string name="PluginPermissionFiles">Read files selected by the plugin</string>
+    <string name="LUS_Beta">Beta updates</string>
+    <string name="LUS_BetaInfo">Include prereleases. Offer the newest version; a newer stable release takes priority.</string>
 </resources>

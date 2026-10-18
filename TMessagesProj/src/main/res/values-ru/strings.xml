@@ -1510,4 +1510,6 @@
     <string name="PluginPermissionsTitle">Разрешения плагина</string>
     <string name="PluginPermissionTelegram">Доступ к аккаунту и Telegram API, включая сообщения и запросы</string>
     <string name="PluginPermissionFiles">Чтение файлов, выбранных плагином</string>
+    <string name="LUS_Beta">Beta-обновления</string>
+    <string name="LUS_BetaInfo">Учитывать предварительные версии. Предлагать самую новую версию; более свежий стабильный релиз имеет приоритет.</string>
 </resources>

@@ -286,7 +286,7 @@ public class NimarkoUpdater {
     private static final java.util.regex.Pattern VERSION_PATTERN =
             java.util.regex.Pattern.compile("^[A-Za-z0-9._-]+$");
 
-    private static final int MAX_RESPONSE_BYTES = 64 * 1024;
+    private static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
     public interface OnCheckFailed { void run(); }
 
@@ -335,36 +335,15 @@ public class NimarkoUpdater {
         otaQueue.postRunnable(() -> {
             NimarkoUpdateConfig.setLastUpdateCheckTime(System.currentTimeMillis());
             try {
-                HttpURLConnection connection = (HttpURLConnection) new URI(ENDPOINT).toURL().openConnection();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("User-Agent", "LinkiGram-OTA");
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(15000);
-
-                if (connection.getResponseCode() != 200) {
-                    
-                    if (onCheckFailed != null) AndroidUtilities.runOnUIThread(onCheckFailed::run);
+                JSONObject obj = findRelease(NimarkoUpdateConfig.getBetaUpdates());
+                if (obj == null) {
+                    lastUpdate = null;
+                    NimarkoUpdateConfig.setLastUpdate("", 0, "", "", "", "");
+                    NimarkoUpdateConfig.setUpdateAvailable(false);
+                    if (onUpdateNotFound != null) AndroidUtilities.runOnUIThread(onUpdateNotFound::run);
                     checkingForUpdates = false;
                     return;
                 }
-
-                long responseLength = connection.getContentLengthLong();
-                if (responseLength > MAX_RESPONSE_BYTES) throw new java.io.IOException("response body too large");
-                java.io.ByteArrayOutputStream responseBytes = new java.io.ByteArrayOutputStream(
-                        responseLength > 0 ? (int) responseLength : 4096);
-                try (InputStream input = connection.getInputStream()) {
-                    byte[] buffer = new byte[4096];
-                    int total = 0;
-                    int read;
-                    while ((read = input.read(buffer)) != -1) {
-                        total += read;
-                        if (total > MAX_RESPONSE_BYTES) throw new java.io.IOException("response body too large");
-                        responseBytes.write(buffer, 0, read);
-                    }
-                }
-
-                JSONObject obj = new JSONObject(responseBytes.toString(StandardCharsets.UTF_8.name()));
                 version = obj.optString("tag_name", "");
                 if (version.startsWith("v")) version = version.substring(1);
                 version = version.replaceAll("[^A-Za-z0-9._-]", "");
@@ -380,18 +359,10 @@ public class NimarkoUpdater {
                 if (changelog == null) changelog = "";
                 downloadURL = "";
                 long sizeBytes = 0;
-                org.json.JSONArray assets = obj.optJSONArray("assets");
-                if (assets != null) {
-                    for (int i = 0; i < assets.length(); i++) {
-                        org.json.JSONObject asset = assets.optJSONObject(i);
-                        if (asset == null) continue;
-                        String name = asset.optString("name", "");
-                        if (name != null && name.toLowerCase().endsWith(".apk")) {
-                            downloadURL = asset.optString("browser_download_url", "");
-                            sizeBytes = asset.optLong("size", 0);
-                            break;
-                        }
-                    }
+                JSONObject apk = findApkAsset(obj);
+                if (apk != null) {
+                    downloadURL = apk.optString("browser_download_url", "");
+                    sizeBytes = apk.optLong("size", 0);
                 }
                 if (downloadURL == null || downloadURL.isEmpty() || !isHttps(downloadURL)) {
                     FileLog.e("NimarkoUpdater: no https apk asset found in GitHub release");
@@ -441,6 +412,63 @@ public class NimarkoUpdater {
             }
             checkingForUpdates = false;
         }, 200);
+    }
+
+    private static String fetchReleaseJson(String endpoint) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URI(endpoint).toURL().openConnection();
+        try {
+            connection.setRequestProperty("User-Agent", "LinkiGram-OTA");
+            connection.setRequestProperty("Accept", "application/vnd.github+json");
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(15000);
+            if (connection.getResponseCode() != 200) throw new java.io.IOException("GitHub HTTP " + connection.getResponseCode());
+            if (connection.getContentLengthLong() > MAX_RESPONSE_BYTES) throw new java.io.IOException("response body too large");
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            try (InputStream input = connection.getInputStream()) {
+                byte[] buffer = new byte[4096];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    if (bytes.size() + read > MAX_RESPONSE_BYTES) throw new java.io.IOException("response body too large");
+                    bytes.write(buffer, 0, read);
+                }
+            }
+            return bytes.toString(StandardCharsets.UTF_8.name());
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static JSONObject findApkAsset(JSONObject release) {
+        org.json.JSONArray assets = release.optJSONArray("assets");
+        if (assets != null) for (int i = 0; i < assets.length(); i++) {
+            JSONObject asset = assets.optJSONObject(i);
+            if (asset != null && asset.optString("name").toLowerCase(Locale.ROOT).endsWith(".apk")
+                    && isHttps(asset.optString("browser_download_url"))
+                    && asset.optLong("size") > 0 && asset.optLong("size") <= MAX_APK_BYTES) return asset;
+        }
+        return null;
+    }
+
+    private static JSONObject findRelease(boolean includeBeta) throws Exception {
+        if (!includeBeta) return new JSONObject(fetchReleaseJson(ENDPOINT));
+        JSONObject newest = null;
+        // GitHub lists by creation time, so inspect all pages instead of taking entry 0.
+        for (int page = 1; ; page++) {
+            org.json.JSONArray releases = new org.json.JSONArray(fetchReleaseJson(
+                    "https://api.github.com/repos/" + GITHUB_REPO + "/releases?per_page=100&page=" + page));
+            for (int i = 0; i < releases.length(); i++) {
+                JSONObject release = releases.optJSONObject(i);
+                if (release == null || release.optBoolean("draft")) continue;
+                String tag = release.optString("tag_name", "").replaceFirst("^v", "");
+                if (!tag.matches("[0-9]+(?:\\.[0-9]+)*(?:-[A-Za-z0-9][A-Za-z0-9._-]*)?")) continue;
+                if (findApkAsset(release) == null) continue;
+                int order = newest == null ? 1 : compareVersions(tag, newest.optString("tag_name").replaceFirst("^v", ""));
+                if (order > 0 || (order == 0 && newest.optBoolean("prerelease") && !release.optBoolean("prerelease"))) {
+                    newest = release;
+                }
+            }
+            if (releases.length() < 100) return newest;
+        }
     }
 
     private static volatile boolean downloadCanceled = false;
@@ -1232,74 +1260,45 @@ public class NimarkoUpdater {
         }
 
         public boolean isNew() {
-            boolean isNew = versionCode > getCurrentVersionCode();
-            if (!isNew && version != null && !version.isEmpty()) {
-                String current = getCurrentVersionName();
-                if (current != null && !current.isEmpty()) {
-                    if (version.equals(current)) {
-                        // Same version is never an update, even if the name
-                        // comparison below would say otherwise.
-                        isNew = false;
-                    } else {
-                        // Tag names in this fork order numerically
-                        // (2.5 < 2.6 < 2.10), so a greater release name
-                        // means an update even when it was published
-                        // before this APK was installed (test releases
-                        // published between build and install). The date
-                        // only breaks ties between equal names.
-                        int byName = compareVersions(version, current);
-                        if (byName != 0) {
-                            isNew = byName > 0;
-                        } else {
-                            int byDate = compareDates(uploadDate, getInstalledTime());
-                            isNew = byDate > 0;
-                        }
-                    }
-                }
-            }
+            boolean isNew = versionCode > getCurrentVersionCode()
+                    || (version != null && !version.isEmpty()
+                    && compareVersions(version, getCurrentVersionName()) > 0);
             NimarkoUpdateConfig.setUpdateAvailable(isNew);
             return isNew;
         }
     }
 
-    private static long getInstalledTime() {
-        try {
-            Context ctx = ApplicationLoader.applicationContext;
-            return ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).lastUpdateTime;
-        } catch (Exception e) {
-            FileLog.e(e);
-            return 0L;
-        }
-    }
-
-    private static int compareDates(String publishedAt, long installedAt) {
-        long published = parseDate(publishedAt);
-        if (published <= 0L || installedAt <= 0L) return 0;
-        return Long.compare(published, installedAt);
-    }
-
-    private static long parseDate(String publishedAt) {
-        if (publishedAt == null || publishedAt.isEmpty()) return 0L;
-        try {
-            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(
-                    "yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
-            f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-            java.util.Date d = f.parse(publishedAt);
-            return d == null ? 0L : d.getTime();
-        } catch (Exception e) {
-            return 0L;
-        }
-    }
-
     private static int compareVersions(String a, String b) {
-        String[] pa = a.replaceAll("[^0-9.]", "").split("\\.");
-        String[] pb = b.replaceAll("[^0-9.]", "").split("\\.");
-        int len = Math.max(pa.length, pb.length);
-        for (int i = 0; i < len; i++) {
-            int na = i < pa.length && !pa[i].isEmpty() ? Integer.parseInt(pa[i]) : 0;
-            int nb = i < pb.length && !pb[i].isEmpty() ? Integer.parseInt(pb[i]) : 0;
-            if (na != nb) return Integer.compare(na, nb);
+        String[] left = a.replaceFirst("^v", "").split("-", 2);
+        String[] right = b.replaceFirst("^v", "").split("-", 2);
+        String[] pa = left[0].split("\\.");
+        String[] pb = right[0].split("\\.");
+        for (int i = 0; i < Math.max(pa.length, pb.length); i++) {
+            String na = i < pa.length ? pa[i] : "0";
+            String nb = i < pb.length ? pb[i] : "0";
+            if (!na.matches("[0-9]+") || !nb.matches("[0-9]+")) return a.compareToIgnoreCase(b);
+            int order = new java.math.BigInteger(na).compareTo(new java.math.BigInteger(nb));
+            if (order != 0) return order;
         }
-        return 0;
+        if (left.length != right.length) return left.length == 1 ? 1 : -1;
+        if (left.length == 1) return 0;
+        String la = left[1].toLowerCase(Locale.ROOT), lb = right[1].toLowerCase(Locale.ROOT);
+        String[] stages = {"dev", "alpha", "beta", "rc"};
+        int ra = stages.length, rb = stages.length;
+        for (int i = 0; i < stages.length; i++) {
+            if (la.startsWith(stages[i])) ra = i;
+            if (lb.startsWith(stages[i])) rb = i;
+        }
+        if (ra != rb) return Integer.compare(ra, rb);
+        java.util.regex.Matcher ma = java.util.regex.Pattern.compile("[0-9]+|[a-z]+").matcher(la);
+        java.util.regex.Matcher mb = java.util.regex.Pattern.compile("[0-9]+|[a-z]+").matcher(lb);
+        while (true) {
+            boolean ha = ma.find(), hb = mb.find();
+            if (!ha || !hb) return Boolean.compare(ha, hb);
+            String ta = ma.group(), tb = mb.group();
+            int order = ta.matches("[0-9]+") && tb.matches("[0-9]+")
+                    ? new java.math.BigInteger(ta).compareTo(new java.math.BigInteger(tb)) : ta.compareTo(tb);
+            if (order != 0) return order;
+        }
     }
 }

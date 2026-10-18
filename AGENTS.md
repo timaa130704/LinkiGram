@@ -854,3 +854,26 @@ arm64-v8a. ZIP integrity passed. SHA-256:
 471dc30faac5172b371ebde5e16f60a87a9409a9b967bf1f143fffbd775d60bb.
 This turn requested building; this artifact has not been installed and the
 panel/icon fixes remain unverified on device. No release created.
+
+
+### Panel/icon-pack APK installed — 2026-10-18
+
+At the user request, installed LinkiGram-2.6.1-dev-panel-icons.apk from
+Actions run 39117724865 on RF8MA188NFZ using adb install -r: Success.
+SHA-256 matched the build record; data preserved. Visual confirmation of
+the panel and chat icon-pack behavior is pending user feedback.
+
+
+### Optional beta OTA channel — 2026-10-18
+
+User requested a beta toggle in automatic updates. Existing LaunchActivity
+onResume schedules checkOnLaunch after 2500ms; enabled by default, once per
+process (with existing hourly throttle). Added persisted betaUpdates, OFF by
+default, in LinkiUpdateSheet. Switching channel immediately rechecks and clears
+stale release selection; unavailable while checking or a download is active/paused.
+Stable mode keeps releases/latest. Beta mode scans paginated GitHub releases,
+skips drafts and entries without a valid HTTPS APK, chooses highest version
+across stable and prerelease. Stable beats a prerelease of the same base; version
+comparison handles dev/alpha/beta/rc and numeric suffixes without integer overflow.
+Equal/older installed versions are not offered. No APK build or device verification
+for this change yet. No release published.

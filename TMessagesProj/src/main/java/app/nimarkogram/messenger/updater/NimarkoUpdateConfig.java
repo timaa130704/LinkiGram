@@ -16,6 +16,13 @@ public final class NimarkoUpdateConfig {
     public static boolean getAutoOTA() { return prefs().getBoolean("autoOTA", true); }
     public static void setAutoOTA(boolean v) { prefs().edit().putBoolean("autoOTA", v).apply(); }
 
+    public static boolean getBetaUpdates() { return prefs().getBoolean("betaUpdates", false); }
+    public static void setBetaUpdates(boolean value) {
+        prefs().edit().putBoolean("betaUpdates", value)
+                .remove("lastUpdateVersion").remove("lastUpdateUrl")
+                .putBoolean("updateAvailable", false).apply();
+    }
+
     public static boolean getUpdateAvailable() { return prefs().getBoolean("updateAvailable", false); }
     public static void setUpdateAvailable(boolean v) { prefs().edit().putBoolean("updateAvailable", v).apply(); }
 

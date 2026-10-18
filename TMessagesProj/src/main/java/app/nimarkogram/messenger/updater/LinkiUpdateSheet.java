@@ -79,6 +79,7 @@ public class LinkiUpdateSheet extends BottomSheet implements NimarkoUpdater.Down
     private final LineProgressView progressView;
     private final ButtonWithCounterView actionButton;
     private final TextView channelInfo;
+    private final org.telegram.ui.Cells.TextCheckCell betaToggle;
     private final TextView[] channelSegments = new TextView[2];
 
     private int state = -1;
@@ -222,6 +223,23 @@ public class LinkiUpdateSheet extends BottomSheet implements NimarkoUpdater.Down
         channelInfo.setTextColor(getThemedColor(Theme.key_dialogTextGray2));
         content.addView(channelInfo, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 8, 4, 0));
 
+        betaToggle = new org.telegram.ui.Cells.TextCheckCell(context, 4, true, resourcesProvider);
+        betaToggle.setTextAndValueAndCheck(getString(R.string.LUS_Beta),
+                getString(R.string.LUS_BetaInfo), NimarkoUpdateConfig.getBetaUpdates(), true, false);
+        betaToggle.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
+        betaToggle.setOnClickListener(v -> {
+            NimarkoUpdater.DownloadUiState download = NimarkoUpdater.getDownloadUiState();
+            if (state == STATE_CHECKING || download.downloading || download.paused) return;
+            boolean enabled = !NimarkoUpdateConfig.getBetaUpdates();
+            NimarkoUpdateConfig.setBetaUpdates(enabled);
+            NimarkoUpdater.lastUpdate = null;
+            betaToggle.setChecked(enabled);
+            downloadFinished = false;
+            downloadClicked = false;
+            check();
+        });
+        content.addView(betaToggle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 12, 0, 0));
+
         content.addView(createLink(context, R.drawable.msg_link, getString(R.string.LUS_AllReleases), () ->
                 Browser.openUrl(getContext(), RELEASES_URL)), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 40, 0, 20, 0, 0));
 
@@ -341,6 +359,8 @@ public class LinkiUpdateSheet extends BottomSheet implements NimarkoUpdater.Down
         animateLayout();
         state = value;
         boolean checking = value == STATE_CHECKING;
+        betaToggle.setEnabled(!checking);
+        betaToggle.setAlpha(checking ? 0.5f : 1f);
         statusProgress.setVisibility(checking ? View.VISIBLE : View.GONE);
         statusImage.setVisibility(checking ? View.GONE : View.VISIBLE);
         int iconColor = accent;
