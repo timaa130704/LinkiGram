@@ -913,3 +913,16 @@ No APK build/device verification for these local changes yet.
 User instruction: after implementing requested changes, build through GitHub
 Actions and install the verified APK on their phone automatically. Do not stop
 at local edits or ask again; report a disconnected device if installation fails.
+
+
+### Ghost features APK installed — 2026-10-18
+
+Initial Actions run 39130851618 failed on a missing NimarkoConfig import in
+ChatActivity; fixed in 60047d550. Run 39131315330 succeeded on codex/2.6.1 at
+60047d55044d32c2ea7ef034c17492f8130c9cf8. Artifact
+.tmp-ghost-39131315330/app.apk: ZIP integrity checked; manifest
+app.linkigram.messenger, 2.6.1-dev, versionCode 202601009, arm64-v8a.
+SHA-256 1137e71cc9e533214cafb9841fdb8d348aa4d8f4ab789d34e4e4febb803183ee.
+Installed on RF8MA188NFZ using adb install -r: Success, data preserved.
+Ghost indicator and per-chat exceptions still need user interaction checks;
+do not claim their on-device behavior verified merely from successful install.
