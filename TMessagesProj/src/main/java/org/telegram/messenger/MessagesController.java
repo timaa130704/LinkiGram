@@ -14486,13 +14486,13 @@ public class MessagesController extends BaseController implements NotificationCe
                     return;
                 }
                 req.id.add(messageObject.getId());
-                getConnectionsManager().sendRequest(req, (response, error) -> {
+                getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, dialogId), (response, error) -> {
 
                 });
             } else {
                 TLRPC.TL_messages_readMessageContents req = new TLRPC.TL_messages_readMessageContents();
                 req.id.add(messageObject.getId());
-                getConnectionsManager().sendRequest(req, (response, error) -> {
+                getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, dialogId), (response, error) -> {
                     if (error == null) {
                         TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
                         processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
@@ -14511,13 +14511,13 @@ public class MessagesController extends BaseController implements NotificationCe
                 return;
             }
             req.id.add(mid);
-            getConnectionsManager().sendRequest(req, (response, error) -> {
+            getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, did), (response, error) -> {
 
             });
         } else {
             TLRPC.TL_messages_readMessageContents req = new TLRPC.TL_messages_readMessageContents();
             req.id.add(mid);
-            getConnectionsManager().sendRequest(req, (response, error) -> {
+            getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, did), (response, error) -> {
                 if (error == null) {
                     TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
                     processNewDifferenceParams(-1, res.pts, -1, res.pts_count);
@@ -14587,7 +14587,7 @@ public class MessagesController extends BaseController implements NotificationCe
             TLRPC.TL_channels_readMessageContents req = new TLRPC.TL_channels_readMessageContents();
             req.channel = inputChannel;
             req.id.add(mid);
-            getConnectionsManager().sendRequest(req, (response, error) -> {
+            getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, dialogId), (response, error) -> {
                 if (newTaskId != 0) {
                     getMessagesStorage().removePendingTask(newTaskId);
                 }
@@ -14595,7 +14595,7 @@ public class MessagesController extends BaseController implements NotificationCe
         } else {
             TLRPC.TL_messages_readMessageContents req = new TLRPC.TL_messages_readMessageContents();
             req.id.add(mid);
-            getConnectionsManager().sendRequest(req, (response, error) -> {
+            getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(req, dialogId), (response, error) -> {
                 if (error == null) {
                     TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
                     processNewDifferenceParams(-1, res.pts, -1, res.pts_count);

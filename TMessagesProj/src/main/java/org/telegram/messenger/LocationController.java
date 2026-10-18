@@ -930,7 +930,7 @@ public class LocationController extends BaseController implements NotificationCe
             }
             request = req;
         }
-        getConnectionsManager().sendRequest(request, (response, error) -> {
+        getConnectionsManager().sendRequest(com.radolyn.ayugram.utils.AyuGhostUtils.withDialog(request, dialogId), (response, error) -> {
             if (response instanceof TLRPC.TL_messages_affectedMessages) {
                 TLRPC.TL_messages_affectedMessages res = (TLRPC.TL_messages_affectedMessages) response;
                 getMessagesController().processNewDifferenceParams(-1, res.pts, -1, res.pts_count);

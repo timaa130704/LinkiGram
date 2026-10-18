@@ -1378,14 +1378,55 @@ public class ChatActivity extends BaseFragment implements
         showDialog(builder.create());
     }
 
+    private ActionBarMenuItem ghostStatusItem;
+
+    private String getGhostStatusText() {
+        boolean readExcluded = com.radolyn.ayugram.utils.AyuGhostPreferences.isReadExcluded(currentAccount, getDialogId());
+        boolean typingExcluded = com.radolyn.ayugram.utils.AyuGhostPreferences.isTypingExcluded(currentAccount, getDialogId());
+        java.util.ArrayList<String> hidden = new java.util.ArrayList<>();
+        if (NimarkoConfig.ghostReadReceipts && !readExcluded) hidden.add(LocaleController.getString(R.string.NM_GhostReadReceipts));
+        if (NimarkoConfig.ghostTyping && !typingExcluded) hidden.add(LocaleController.getString(R.string.NM_GhostTyping));
+        if (NimarkoConfig.ghostRecording && !typingExcluded) hidden.add(LocaleController.getString(R.string.NM_GhostRecording));
+        if (com.radolyn.ayugram.utils.AyuGhostUtils.storyGhostSession
+                || ((NimarkoConfig.ghostStories || NimarkoConfig.hideStoryViews) && !readExcluded)) {
+            hidden.add(LocaleController.getString(R.string.NM_GhostStories));
+        }
+        if (NimarkoConfig.ghostOnline) hidden.add(LocaleController.getString(R.string.NM_GhostOnline));
+        return TextUtils.join("\n", hidden);
+    }
+
+    private void updateGhostIndicator() {
+        if (ghostStatusItem == null) return;
+        String status = getGhostStatusText();
+        boolean active = !status.isEmpty();
+        ghostStatusItem.setIconColor(getThemedColor(active ? Theme.key_windowBackgroundWhiteBlueText : Theme.key_actionBarDefaultIcon));
+        ghostStatusItem.setAlpha(active ? 1f : 0.45f);
+        ghostStatusItem.setContentDescription(LocaleController.getString(R.string.NM_GhostMode) + ": "
+                + (active ? status : LocaleController.getString(R.string.NM_GhostNormalChat)));
+    }
+
     private void toggleGhostChat() {
-        final long dialogId = getDialogId();
-        final boolean currentlyExcluded = com.radolyn.ayugram.utils.AyuGhostPreferences.getGhostModeReadExclusion(dialogId);
-        final boolean excludeNow = !currentlyExcluded;
-        com.radolyn.ayugram.utils.AyuGhostPreferences.setGhostModeReadExclusion(dialogId, excludeNow);
-        com.radolyn.ayugram.utils.AyuGhostPreferences.setGhostModeTypingExclusion(dialogId, excludeNow);
-        BulletinFactory.of(this).createSimpleBulletin(R.raw.info,
-                LocaleController.getString(excludeNow ? R.string.NM_GhostChat_Disabled : R.string.NM_GhostChat_Enabled)).show();
+        final boolean normal = com.radolyn.ayugram.utils.AyuGhostPreferences.isNormalChat(currentAccount, getDialogId());
+        String status = getGhostStatusText();
+        String[] choices = {
+                (normal ? "✓  " : "") + LocaleController.getString(R.string.NM_GhostNormalChat),
+                (!normal ? "✓  " : "") + LocaleController.getString(R.string.NM_GhostFollowGlobal),
+                LocaleController.getString(R.string.NM_GhostSettings)
+        };
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), getResourceProvider());
+        builder.setTitle(LocaleController.getString(R.string.NM_GhostMode));
+        builder.setMessage((status.isEmpty() ? LocaleController.getString(R.string.NM_GhostNothingHidden) : status)
+                + "\n\n" + LocaleController.getString(R.string.NM_GhostChatScope));
+        builder.setItems(choices, (dialog, which) -> {
+            if (which == 2) {
+                presentFragment(new app.nimarkogram.messenger.preferences.AyuMomentsPreferencesActivity());
+                return;
+            }
+            com.radolyn.ayugram.utils.AyuGhostPreferences.setNormalChat(currentAccount, getDialogId(), which == 0);
+            updateGhostIndicator();
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     public void deleteHistory(int dateSelectedStart, int dateSelectedEnd, boolean forAll) {
@@ -1699,6 +1740,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int boost_group = 29;
     private final static int auto_clean_timer = 75;
     private final static int ghost_chat_toggle = 76;
+    private final static int ghost_chat_status = 77;
 
     private final static int bot_help = 30;
     private final static int bot_settings = 31;
@@ -3917,7 +3959,7 @@ public class ChatActivity extends BaseFragment implements
                         return;
                     }
                     showAutoCleanDialog();
-                } else if (id == ghost_chat_toggle) {
+                } else if (id == ghost_chat_toggle || id == ghost_chat_status) {
                     if (getParentActivity() == null) {
                         return;
                     }
@@ -4336,6 +4378,12 @@ public class ChatActivity extends BaseFragment implements
         });
 
         ActionBarMenu menu = actionBar.createMenu();
+
+        ghostStatusItem = null;
+        if (chatMode == 0) {
+            ghostStatusItem = menu.addItem(ghost_chat_status, R.drawable.ghost_solar);
+            updateGhostIndicator();
+        }
 
         if (chatMode == MODE_QUICK_REPLIES && !QuickRepliesController.isSpecial(quickReplyShortcut)) {
             menu.addItem(edit_quick_reply, R.drawable.group_edit).setContentDescription(LocaleController.getString(R.string.Edit));
@@ -30094,6 +30142,7 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
+        updateGhostIndicator();
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {

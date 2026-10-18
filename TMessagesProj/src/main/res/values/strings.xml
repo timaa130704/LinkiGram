@@ -12870,4 +12870,11 @@
     <string name="PluginPermissionFiles">Read files selected by the plugin</string>
     <string name="LUS_Beta">Beta updates</string>
     <string name="LUS_BetaInfo">Include prereleases. Offer the newest version; a newer stable release takes priority.</string>
+    <string name="NM_GhostRecording">Hide recording status</string>
+    <string name="NM_GhostRecording_Desc">Hide voice, video and video message recording independently of typing</string>
+    <string name="NM_GhostNormalChat">Normal mode in this chat</string>
+    <string name="NM_GhostFollowGlobal">Use global ghost settings</string>
+    <string name="NM_GhostSettings">Ghost settings</string>
+    <string name="NM_GhostNothingHidden">No hidden actions are active</string>
+    <string name="NM_GhostChatScope">The chat exception allows read receipts, typing, recording and story views. Online status is account-wide. Explicit hidden-story sessions stay hidden.</string>
 </resources>

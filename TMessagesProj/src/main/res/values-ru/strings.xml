@@ -1512,4 +1512,11 @@
     <string name="PluginPermissionFiles">Чтение файлов, выбранных плагином</string>
     <string name="LUS_Beta">Beta-обновления</string>
     <string name="LUS_BetaInfo">Учитывать предварительные версии. Предлагать самую новую версию; более свежий стабильный релиз имеет приоритет.</string>
+    <string name="NM_GhostRecording">Скрывать запись голоса и видео</string>
+    <string name="NM_GhostRecording_Desc">Скрывать запись голоса, видео и кружков независимо от набора текста</string>
+    <string name="NM_GhostNormalChat">Обычный режим в этом чате</string>
+    <string name="NM_GhostFollowGlobal">Использовать общие настройки призрака</string>
+    <string name="NM_GhostSettings">Настройки призрака</string>
+    <string name="NM_GhostNothingHidden">Скрытые действия не включены</string>
+    <string name="NM_GhostChatScope">Исключение разрешает отметки прочтения, набор текста, запись и просмотры историй. Онлайн скрывается для всего аккаунта. Сеанс скрытого просмотра историй остаётся скрытым.</string>
 </resources>

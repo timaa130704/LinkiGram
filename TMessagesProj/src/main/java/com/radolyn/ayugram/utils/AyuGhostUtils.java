@@ -28,6 +28,15 @@ public class AyuGhostUtils {
 
     private static final Set<TLObject> bypassed = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
+    private static final java.util.Map<TLObject, Long> requestDialogs =
+            Collections.synchronizedMap(new WeakHashMap<>());
+
+    // Content-read requests contain message IDs but no peer.
+    public static <T extends TLObject> T withDialog(T request, long dialogId) {
+        requestDialogs.put(request, dialogId);
+        return request;
+    }
+
     public static <T extends TLObject> T bypass(T request) {
         bypassed.add(request);
         return request;
@@ -54,7 +63,7 @@ public class AyuGhostUtils {
         if (peer == null) {
             return null;
         }
-        return (long) DialogObject.getEncryptedChatId(peer.chat_id);
+        return DialogObject.makeEncryptedDialogId(peer.chat_id);
     }
 
     public static ConnectionsManager getConnectionsManager() {
@@ -158,19 +167,29 @@ public class AyuGhostUtils {
     }
 
     public static InterceptResult interceptRequest(TLObject object, RequestDelegate onCompleteOrig) {
+        return interceptRequest(UserConfig.selectedAccount, object, onCompleteOrig);
+    }
+
+    public static InterceptResult interceptRequest(int account, TLObject object, RequestDelegate onCompleteOrig) {
         if (bypassed.remove(object)) {
             return InterceptResult.Proceed(onCompleteOrig);
         }
-        Long dialogId = extractDialogId(object);
-        boolean readExcluded = dialogId != null && AyuGhostPreferences.getGhostModeReadExclusion(dialogId);
-        boolean typingExcluded = dialogId != null && AyuGhostPreferences.getGhostModeTypingExclusion(dialogId);
+        Long dialogId = requestDialogs.remove(object);
+        if (dialogId == null) dialogId = extractDialogId(object);
+        boolean readExcluded = dialogId != null && AyuGhostPreferences.isReadExcluded(account, dialogId);
+        boolean typingExcluded = dialogId != null && AyuGhostPreferences.isTypingExcluded(account, dialogId);
 
-        // Block typing if disabled
-        if (app.nimarkogram.messenger.NimarkoConfig.ghostTyping && (object instanceof TLRPC.TL_messages_setTyping || object instanceof TLRPC.TL_messages_setEncryptedTyping)) {
-            if (!typingExcluded) {
-                FileLog.d("GhostMode: Blocking typing status request.");
-                return InterceptResult.Blocked(onCompleteOrig);
+        // Recording has its own switch; cancellation must clear an already-sent status.
+        if (object instanceof TLRPC.TL_messages_setTyping || object instanceof TLRPC.TL_messages_setEncryptedTyping) {
+            boolean hidden = NimarkoConfig.ghostTyping;
+            if (object instanceof TLRPC.TL_messages_setTyping typing) {
+                boolean recording = typing.action instanceof TLRPC.TL_sendMessageRecordAudioAction
+                        || typing.action instanceof TLRPC.TL_sendMessageRecordRoundAction
+                        || typing.action instanceof TLRPC.TL_sendMessageRecordVideoAction;
+                hidden = recording ? NimarkoConfig.ghostRecording : NimarkoConfig.ghostTyping;
+                if (typing.action instanceof TLRPC.TL_sendMessageCancelAction) hidden = false;
             }
+            if (hidden && !typingExcluded) return InterceptResult.Blocked(onCompleteOrig);
         }
 
         // Block read receipts if disabled
@@ -199,21 +218,21 @@ public class AyuGhostUtils {
         }
 
         // Handle Mark read after sending
-        handleReadAfterSend(object);
+        handleReadAfterSend(account, object);
 
         // Go offline after sending
-        RequestDelegate effectiveOnComplete = handleOfflineAfterSend(object, onCompleteOrig);
+        RequestDelegate effectiveOnComplete = handleOfflineAfterSend(account, object, onCompleteOrig);
 
         return InterceptResult.Proceed(effectiveOnComplete);
     }
 
-    private static void handleReadAfterSend(TLObject object) {
+    private static void handleReadAfterSend(int account, TLObject object) {
         if (app.nimarkogram.messenger.NimarkoConfig.ghostReadAfterSend && app.nimarkogram.messenger.NimarkoConfig.ghostReadReceipts) {
             TLRPC.InputPeer peer = extractPeerFromSendObject(object);
 
             if (peer != null) {
                 var dialogId = AyuGhostUtils.getDialogId(peer);
-                if (AyuGhostPreferences.getGhostModeReadExclusion(dialogId)) {
+                if (AyuGhostPreferences.isReadExcluded(account, dialogId)) {
                     return;
                 }
                 getMessagesStorage().getStorageQueue().postRunnable(() ->
@@ -225,10 +244,10 @@ public class AyuGhostUtils {
         }
     }
 
-    private static RequestDelegate handleOfflineAfterSend(TLObject object, RequestDelegate onCompleteOrig) {
+    private static RequestDelegate handleOfflineAfterSend(int account, TLObject object, RequestDelegate onCompleteOrig) {
         if (app.nimarkogram.messenger.NimarkoConfig.ghostOfflineAfterSend && isMessageSendRequest(object)) {
             TLRPC.InputPeer peer = extractPeerFromSendObject(object);
-            if (peer != null && AyuGhostPreferences.getGhostModeTypingExclusion(getDialogId(peer))) {
+            if (peer != null && AyuGhostPreferences.isTypingExcluded(account, getDialogId(peer))) {
                 return onCompleteOrig;
             }
             FileLog.d("GhostMode: Wrapping callback for offline-after-send.");

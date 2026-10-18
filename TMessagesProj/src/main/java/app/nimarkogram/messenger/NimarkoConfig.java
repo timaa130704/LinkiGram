@@ -267,7 +267,15 @@ public final class NimarkoConfig {
     public static volatile boolean ghostTyping = getPreferences().getBoolean("ghostTyping", false);
     public static void toggleGhostTyping() {
         ghostTyping = !ghostTyping;
-        getEditor().putBoolean("ghostTyping", ghostTyping).apply();
+        // Persist the migrated recording choice before typing changes its fallback.
+        getEditor().putBoolean("ghostTyping", ghostTyping)
+                .putBoolean("ghostRecording", ghostRecording).apply();
+    }
+
+    public static volatile boolean ghostRecording = getPreferences().getBoolean("ghostRecording", ghostTyping);
+    public static void toggleGhostRecording() {
+        ghostRecording = !ghostRecording;
+        getEditor().putBoolean("ghostRecording", ghostRecording).apply();
     }
 
     public static volatile boolean ghostOnline = getPreferences().getBoolean("ghostOnline", false);
@@ -317,6 +325,7 @@ public final class NimarkoConfig {
         privacyPreset = preset;
         final boolean hiding = preset != PRESET_NORMAL;
         ghostTyping = hiding;
+        ghostRecording = hiding;
         ghostOnline = hiding;
         ghostReadReceipts = hiding;
         ghostStories = hiding;
@@ -325,6 +334,7 @@ public final class NimarkoConfig {
         getEditor()
             .putInt("privacyPreset", preset)
             .putBoolean("ghostTyping", ghostTyping)
+            .putBoolean("ghostRecording", ghostRecording)
             .putBoolean("ghostOnline", ghostOnline)
             .putBoolean("ghostReadReceipts", ghostReadReceipts)
             .putBoolean("ghostStories", ghostStories)
@@ -411,16 +421,18 @@ public final class NimarkoConfig {
     // flips all hiding toggles at once. Behavior options (read-after-send,
     // offline-after-send) are never touched by the master toggle.
     public static boolean isGhostModeActive() {
-        return ghostTyping && ghostOnline && ghostReadReceipts && ghostStories;
+        return ghostTyping && ghostRecording && ghostOnline && ghostReadReceipts && ghostStories;
     }
 
     public static void setGhostMode(boolean enabled) {
         ghostTyping = enabled;
+        ghostRecording = enabled;
         ghostOnline = enabled;
         ghostReadReceipts = enabled;
         ghostStories = enabled;
         SharedPreferences.Editor editor = getEditor();
         editor.putBoolean("ghostTyping", enabled);
+        editor.putBoolean("ghostRecording", enabled);
         editor.putBoolean("ghostOnline", enabled);
         editor.putBoolean("ghostReadReceipts", enabled);
         editor.putBoolean("ghostStories", enabled);

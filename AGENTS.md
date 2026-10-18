@@ -889,3 +889,27 @@ SHA-256 f369d5ae38389185115c204b799e400d2fbe0861a30bebc7e620cc8a34ab110b.
 Installed at user request on RF8MA188NFZ with adb install -r: Success,
 data preserved. Beta toggle remains OFF by default. On-device interaction
 and real prerelease selection have not been verified. No release published.
+
+
+### Ghost exceptions, recording control and chat indicator — 2026-10-18
+
+User accepted suggestions 2/3/6. Local implementation adds explicit normal-chat
+vs global ghost policy via chat header ghost icon and existing overflow entry.
+Normal-chat overrides use client user ID plus signed dialog ID, independent
+across accounts/users/groups. Legacy read/typing exclusions remain fallback until
+an explicit per-chat choice is saved. ConnectionsManager passes its actual account
+to the interceptor (old public overload retained). Content-read requests without
+a peer carry local weak-map dialog context from MessagesController/LocationController;
+encrypted peer IDs now use makeEncryptedDialogId. Recording has its own persisted
+switch (defaults to previous typing behavior), included in presets/master. Cancel
+typing passes through. Stories and typing already had independent toggles.
+Header icon tint indicates active hidden actions; tap lists exact effective flags
+and chat exception choices, plus a link to settings. Refresh on chat resume.
+Online suppression remains account-wide; explicit hidden-story sessions remain
+hidden despite the exception. Secret-chat typing packets lack an action subtype,
+so separate recording detection is possible only for ordinary setTyping packets.
+No APK build/device verification for these local changes yet.
+
+User instruction: after implementing requested changes, build through GitHub
+Actions and install the verified APK on their phone automatically. Do not stop
+at local edits or ask again; report a disconnected device if installation fails.

@@ -75,6 +75,7 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
     private static final int ROW_GHOST_STORIES       = 165;
     private static final int ROW_GHOST_READ_AFTER    = 166;
     private static final int ROW_GHOST_OFFLINE_AFTER = 167;
+    private static final int ROW_GHOST_RECORDING = 169;
     private static final int ROW_LAST_SEEN_CACHE     = 168;
 
     private static final int DATABASE_IMPORT_REQUEST_CODE = 6110;
@@ -99,6 +100,10 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
                         LocaleController.getString(R.string.NM_GhostTyping),
                         LocaleController.getString(R.string.NM_GhostTyping_Desc))
                 .setChecked(NimarkoConfig.ghostTyping));
+        items.add(SettingsHelper.asSwitchCG(ROW_GHOST_RECORDING,
+                        LocaleController.getString(R.string.NM_GhostRecording),
+                        LocaleController.getString(R.string.NM_GhostRecording_Desc))
+                .setChecked(NimarkoConfig.ghostRecording));
         items.add(SettingsHelper.asSwitchCG(ROW_GHOST_ONLINE,
                         LocaleController.getString(R.string.NM_GhostOnline),
                         LocaleController.getString(R.string.NM_GhostOnline_Desc))
@@ -246,6 +251,10 @@ public class AyuMomentsPreferencesActivity extends BasePreferencesActivity {
             case ROW_GHOST_TYPING:
                 NimarkoConfig.toggleGhostTyping();
                 updateCheckState(view, NimarkoConfig.ghostTyping);
+                break;
+            case ROW_GHOST_RECORDING:
+                NimarkoConfig.toggleGhostRecording();
+                updateCheckState(view, NimarkoConfig.ghostRecording);
                 break;
             case ROW_GHOST_ONLINE:
                 NimarkoConfig.toggleGhostOnline();

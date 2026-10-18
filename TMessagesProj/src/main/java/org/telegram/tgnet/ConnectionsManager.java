@@ -402,7 +402,7 @@ public class ConnectionsManager extends BaseController {
         // --- Ghost Mode (AyuGram/exteraless port): runs before plugin hooks ---
         try {
             com.radolyn.ayugram.utils.AyuGhostUtils.InterceptResult ghostResult =
-                    com.radolyn.ayugram.utils.AyuGhostUtils.interceptRequest(objectIn, onCompleteIn);
+                    com.radolyn.ayugram.utils.AyuGhostUtils.interceptRequest(currentAccount, objectIn, onCompleteIn);
             if (ghostResult.blockRequest()) {
                 android.util.Log.i("NimarkoGhost", "request " + (objectIn != null ? objectIn.getClass().getSimpleName() : "null") + " blocked by ghost mode");
                 return;
