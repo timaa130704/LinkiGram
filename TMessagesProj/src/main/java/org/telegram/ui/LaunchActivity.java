@@ -7130,6 +7130,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     public void reloadResources() {
         try {
             org.telegram.messenger.ApplicationLoader.reloadAppIconResources();
+            // Fragment rebuilds alone retain Theme's process-wide chat/status icons.
+            Theme.reloadAllResources(ApplicationLoader.applicationContext);
         } catch (Throwable ignored) {
         }
         try {

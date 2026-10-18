@@ -4414,7 +4414,7 @@ public class Theme {
     }
 
     public static Drawable createEmojiIconSelectorDrawable(Context context, int resource, int defaultColor, int pressedColor) {
-        Resources resources = context.getResources();
+        Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
         Drawable defaultDrawable = resources.getDrawable(resource).mutate();
         if (defaultColor != 0) {
             defaultDrawable.setColorFilter(new PorterDuffColorFilter(defaultColor, PorterDuff.Mode.MULTIPLY));
@@ -4441,7 +4441,7 @@ public class Theme {
     }
 
     public static Drawable createEditTextDrawable(Context context, int color, int colorActivated) {
-        Resources resources = context.getResources();
+        Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
         Drawable defaultDrawable = resources.getDrawable(R.drawable.search_dark).mutate();
         defaultDrawable.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
         Drawable pressedDrawable = resources.getDrawable(R.drawable.search_dark_activated).mutate();
@@ -4515,7 +4515,7 @@ public class Theme {
     }
 
     public static Drawable createSimpleSelectorDrawable(Context context, int resource, int defaultColor, int pressedColor) {
-        Resources resources = context.getResources();
+        Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
         Drawable defaultDrawable = resources.getDrawable(resource).mutate();
         if (defaultColor != 0) {
             defaultDrawable.setColorFilter(new PorterDuffColorFilter(defaultColor, PorterDuff.Mode.MULTIPLY));
@@ -7660,7 +7660,7 @@ public class Theme {
             linkSelectionPaint = new Paint();
             linkSelectionPaint.setPathEffect(LinkPath.getRoundedEffect());
 
-            Resources resources = context.getResources();
+            Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
 
             avatarDrawables[0] = resources.getDrawable(R.drawable.chats_saved);
             avatarDrawables[1] = resources.getDrawable(R.drawable.ghost);
@@ -7806,7 +7806,7 @@ public class Theme {
         createCommonResources(context);
         createCommonDialogResources(context);
         if (dialogs_namePaint == null) {
-            Resources resources = context.getResources();
+            Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
 
             dialogs_namePaint = new TextPaint[2];
             dialogs_nameEncryptedPaint = new TextPaint[2];
@@ -8170,7 +8170,7 @@ public class Theme {
 
         if (!fontsOnly && chat_msgInDrawable == null) {
 
-            Resources resources = context.getResources();
+            Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
 
             chat_msgNoSoundDrawable = resources.getDrawable(R.drawable.video_muted);
             chat_livePhoto = resources.getDrawable(R.drawable.media_live_on).mutate();
@@ -8861,7 +8861,7 @@ public class Theme {
         if (profile_verifiedDrawable == null) {
             profile_aboutTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
-            Resources resources = context.getResources();
+            Resources resources = app.nimarkogram.messenger.icons.NimarkoIconResources.forContext(context);
 
             profile_verifiedDrawable = resources.getDrawable(R.drawable.verified_area).mutate();
             profile_verifiedCheckDrawable = resources.getDrawable(R.drawable.verified_check).mutate();

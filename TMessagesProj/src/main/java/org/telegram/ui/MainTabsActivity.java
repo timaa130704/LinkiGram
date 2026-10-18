@@ -123,6 +123,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private boolean tabsDocked;
     private static boolean useGlassTabs() {
         return !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
+                && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_FLOATING
                 && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
     }
 

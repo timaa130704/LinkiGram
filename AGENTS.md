@@ -819,3 +819,25 @@ nav destinations, chat header, toggles, sliders and loading states. Do not claim
 pixel-identical parity before that check. No release was created. An automatic
 approval review rejected saving the artifact in the primary checkout, so all
 new source and APK output remain in the dev checkout.
+
+
+### Material APK installed — 2026-10-18
+
+User explicitly requested installation. Verified APK SHA-256 against the build
+record above, then installed `LinkiGram-2.6.1-dev-Material-39077496616.apk` on
+`RF8MA188NFZ` using `adb install -r`: Success, data preserved. Device package
+metadata confirms `versionName=2.6.1-dev`, `versionCode=202601009`, update time
+2026-10-18 12:49:18. Visual Material parity and ON/OFF checks remain unverified.
+
+
+### Navigation and icon-pack corrections — 2026-10-18
+
+User reported a black-edged rectangular bottom panel and stock chat receipt icons
+after choosing Plumpy. Device preferences confirmed Material navigation OFF,
+floating mode OFF, Plumpy selected. Material no longer overwrites the user
+navigation mode; liquid refraction is restricted to floating tabs to avoid
+zero-radius refraction on a docked rectangle. Icon selection now reloads Theme
+resource caches before fragment rebuild; Theme drawable creation uses the app
+icon resource wrapper even when an Activity retains stock Resources. Build and
+device verification pending. Existing overwritten navigation preference is not
+silently migrated because explicit docked selections cannot be distinguished.

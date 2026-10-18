@@ -44,9 +44,8 @@ public final class AppearanceConfig {
         android.content.SharedPreferences.Editor editor = NimarkoConfig.getPreferences().edit().putBoolean(key, value);
         if (value && "newNavigationBarStyle".equals(key)) {
             editor.putBoolean("iosNavigationBarStyle", false);
-            if (NimarkoConfig.isBottomNavigationFloating()) {
-                NimarkoConfig.setBottomNavigationMode(NimarkoConfig.BOTTOM_NAVIGATION_MODE_SHOW);
-            }
+            // MainTabsActivity docks Material tabs while this flag is on.
+            // Preserve the user's navigation mode for when Material is disabled.
         } else if (value && "iosNavigationBarStyle".equals(key)) {
             editor.putBoolean("newNavigationBarStyle", false);
         }

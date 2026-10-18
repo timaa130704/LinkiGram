@@ -110,6 +110,14 @@ public class NimarkoIconResources extends Resources {
 
 
 
+    /** Activities can retain a stock Resources instance after a locale change. */
+    public static Resources forContext(android.content.Context context) {
+        Resources applicationResources = org.telegram.messenger.ApplicationLoader.applicationContext == null
+                ? null : org.telegram.messenger.ApplicationLoader.applicationContext.getResources();
+        return applicationResources instanceof NimarkoIconResources
+                ? applicationResources : context.getResources();
+    }
+
     public static Drawable getStockDrawable(android.content.Context context, int id) {
         final Resources resources = context.getResources();
         final Theme theme = context.getTheme();
