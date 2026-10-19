@@ -958,3 +958,24 @@ and color-persistence fixes can ship in the same APK. Final build still pending.
 APK installation is already authorized by earlier instructions, but adb devices was
 empty. SDK platform tools downloaded to sibling work/android-tools/platform-tools.
 Do not claim device UI verified from compilation or APK installation alone.
+
+
+### Feed/menu/icon build completed — 2026-10-19
+
+Actions run 39247497048 succeeded at source commit ff6f59b17160c6dc1d8c9f67bf6bd8bbd92c615d on
+codex/2.6.1. Java/Kotlin smoke compile and ARM64 APK assembly passed. Artifact
+linkigram-apk (id 12185940238), downloaded using parallel byte ranges after the
+regular gh download was slow. Both outer artifact and APK ZIP integrity passed.
+Binary manifest: app.linkigram.messenger, 2.6.2-dev, versionCode 202602009,
+ABI arm64-v8a. APK size 92790600 bytes, SHA-256:
+f0e7b397d3077acd885262ef6a5ab4fdf7817b43801abd992205c025c86b215b.
+Signing certificate SHA-256 matches the published 2.6.1 certificate:
+627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4.
+This confirms package/version/certificate compatibility; no separate apksigner
+cryptographic signature verification was run. Verified APK is in the task outputs
+as LinkiGram-2.6.2-dev.apk with notes and machine-readable verification metadata.
+
+ADB devices remained empty after download, so automatic installation could not
+run. No device UI checks performed. Install the verified artifact with adb install
+-r when the phone becomes available; installation was already authorized. No
+release published and no push notification sent (user cancelled notifications).
