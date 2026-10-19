@@ -7082,6 +7082,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void onResume() {
+        if (arguments != null && arguments.containsKey("linki_folder_id")) {
+            final int requestedFolder = arguments.getInt("linki_folder_id");
+            arguments.remove("linki_folder_id");
+            AndroidUtilities.runOnUIThread(() -> {
+                if (fragmentView != null) scrollToFolder(requestedFolder);
+            });
+        }
         super.onResume();
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();

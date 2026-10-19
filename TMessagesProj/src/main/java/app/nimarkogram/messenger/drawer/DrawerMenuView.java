@@ -113,6 +113,22 @@ public class DrawerMenuView extends ScrollView {
             }
             hasAnyItem = true;
         }
+        for (org.telegram.messenger.MessagesController.DialogFilter filter :
+                org.telegram.messenger.MessagesController.getInstance(currentAccount).dialogFilters) {
+            if (filter.id == 0 || filter.locked || !app.nimarkogram.messenger.feed.FeedPreferences.prefs()
+                    .getBoolean("linki_folder_" + currentAccount + "_" + filter.id, false)) continue;
+            DrawerMenuItemView itemView = new DrawerMenuItemView(getContext());
+            itemView.setMenuItem(10000 + filter.id, currentAccount, org.telegram.messenger.R.drawable.msg_folders, filter.name);
+            itemView.setOnClickListener(v -> {
+                if (onItemClick != null) onItemClick.run();
+                android.os.Bundle args = new android.os.Bundle();
+                args.putInt("linki_folder_id", filter.id);
+                org.telegram.ui.DialogsActivity target = new org.telegram.ui.DialogsActivity(args);
+                target.setCurrentAccount(currentAccount);
+                fragment.presentFragment(target);
+            });
+            container.addView(itemView);
+        }
     }
 
     public void updateColors() {

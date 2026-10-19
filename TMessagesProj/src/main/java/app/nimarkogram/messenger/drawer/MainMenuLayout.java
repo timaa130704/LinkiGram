@@ -37,6 +37,7 @@ public final class MainMenuLayout {
     public static List<Integer> getDefaultLayout() {
         final boolean bottomBarHidden = isBottomNavigationBarHidden();
         final ArrayList<Integer> layout = new ArrayList<>();
+        layout.add(MainMenuItem.FEED.getId());
         layout.add(MainMenuItem.ARCHIVE.getId());
         if (bottomBarHidden) {
             layout.add(MainMenuItem.PROFILE.getId());

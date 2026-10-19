@@ -232,6 +232,9 @@ public final class MainMenuHelper {
         final int currentAccount = ctx.currentAccount();
         final BaseFragment fragment = ctx.fragment();
         switch (item) {
+            case FEED:
+                return new MenuItemInfo(R.drawable.msg_channel, LocaleController.getString(R.string.LF_Title),
+                        () -> fragment.presentFragment(new app.nimarkogram.messenger.feed.FeedActivity()), null);
             case PROFILE:
                 return new MenuItemInfo(R.drawable.left_status_profile, LocaleController.getString(R.string.MyProfile), () -> {
                     final Bundle args = new Bundle();
@@ -336,6 +339,7 @@ public final class MainMenuHelper {
             return null;
         }
         return switch (item) {
+            case FEED -> new MenuItemInfo(R.drawable.msg_channel, LocaleController.getString(R.string.LF_Title), null, null);
             case PROFILE -> new MenuItemInfo(R.drawable.left_status_profile, LocaleController.getString(R.string.MyProfile), null, null);
             case ARCHIVE -> new MenuItemInfo(R.drawable.msg_archive, LocaleController.getString(R.string.ArchivedChats), null, null);
             case BOTS -> new MenuItemInfo(R.drawable.msg_bot, LocaleController.getString(R.string.SearchApps), null, null);

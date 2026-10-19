@@ -118,6 +118,15 @@
     >
         <!-- usesCleartextTraffic for browser supporting opening http:// links -->
 
+        <activity-alias android:enabled="false" android:name="org.telegram.messenger.LinkiMonoIcon" android:targetActivity="org.telegram.ui.LaunchActivity" android:icon="@mipmap/linki_mono_launcher" android:roundIcon="@mipmap/linki_mono_launcher" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:name="org.telegram.messenger.LinkiNeonIcon" android:targetActivity="org.telegram.ui.LaunchActivity" android:icon="@mipmap/linki_neon_launcher" android:roundIcon="@mipmap/linki_neon_launcher" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:enabled="false" android:name="org.telegram.messenger.LinkiSunsetIcon" android:targetActivity="org.telegram.ui.LaunchActivity" android:icon="@mipmap/linki_sunset_launcher" android:roundIcon="@mipmap/linki_sunset_launcher" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
         <activity-alias
             android:enabled="true"
             android:name="org.telegram.messenger.DefaultIcon"
