@@ -15,6 +15,11 @@ import android.content.Intent;
 public class AppStartReceiver extends BroadcastReceiver {
 
     public void onReceive(Context context, Intent intent) {
+        // A removed launcher variant may have been the only enabled alias.
+        if (intent != null && Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+            org.telegram.ui.LauncherIconController.tryFixLauncherIconIfNeeded();
+            return;
+        }
         if (intent != null && Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             AndroidUtilities.runOnUIThread(() -> {
                 SharedConfig.loadConfig();

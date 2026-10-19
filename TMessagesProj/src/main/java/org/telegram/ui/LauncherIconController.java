@@ -42,9 +42,6 @@ public class LauncherIconController {
         TURBO("TurboIcon", R.drawable.icon_5_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconTurbo),
         NOX("NoxIcon", R.mipmap.icon_2_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconNox),
 
-        LINKI_MONO("LinkiMonoIcon", R.drawable.linki_mono_bg, R.drawable.linki_mono_fg, R.string.LF_IconMono),
-        LINKI_NEON("LinkiNeonIcon", R.drawable.linki_neon_bg, R.drawable.linki_neon_fg, R.string.LF_IconNeon),
-        LINKI_SUNSET("LinkiSunsetIcon", R.drawable.linki_sunset_bg, R.drawable.linki_sunset_fg, R.string.LF_IconSunset),
 
         // --- LinkiGram: user-selectable icon colours (see res/drawable/icon_custom_bg_XX.xml)
         CUSTOM_01("CustomIcon01", R.drawable.icon_custom_bg_01, R.mipmap.icon_foreground_sa, 0, 0xFFE53935),

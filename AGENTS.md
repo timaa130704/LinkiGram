@@ -1018,3 +1018,24 @@ Verified deliverable: task outputs/LinkiGram-2.6.2-dev-no-feed.apk.
 Phone RF8MA188NFZ was authorized and connected when this task started but was
 absent from adb after the build. Installation pending reconnection; already
 authorized, use adb install -r without asking again. No release or notification.
+
+
+### Feed removal APK installed — 2026-10-19
+
+User reconnected RF8MA188NFZ. Verified no-feed APK SHA-256
+d059339a9a94f26e30dc849a281889b863da239e4f5cc9d925b6923b3983e5f8.
+adb install -r completed with Success, preserving application data.
+Installed artifact is LinkiGram-2.6.2-dev-no-feed.apk from Actions 39265130383;
+expected versionCode 202602019. No device UI checks performed.
+
+
+### Remove new icons and duplicate picker — 2026-10-19
+
+User requested removing Mono/Neon/Sunset and explicitly confirmed removal of the
+duplicate icon-selection screen because the original picker exists in chat settings.
+Removed new icon enum entries, aliases, vectors/adaptive resources, labels and
+LauncherIconsActivity plus its Appearance entry. Original ThemeActivity icon picker
+and the pre-existing icons/colors remain. AppStartReceiver now handles
+MY_PACKAGE_REPLACED by running the existing launcher-alias repair: if a removed
+icon was the only enabled alias, it restores DefaultIcon automatically.
+Version 2.6.2-dev, APP_VERSION_CODE=20260202. Build and auto-install pending.

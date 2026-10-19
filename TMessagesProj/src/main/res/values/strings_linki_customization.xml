@@ -8,9 +8,4 @@
     <string name="LF_Compact">Compact spacing</string>
     <string name="LF_Labels">Show labels and details</string>
     <string name="LF_Accent">Accent color</string>
-    <string name="LF_Icons">Application icons</string>
-    <string name="LF_IconHelp">Choose an icon or a background color. Custom HEX colors use the nearest of the 16 installed color variants. Your launcher may take a moment to update.</string>
-    <string name="LF_IconMono">Linki Mono</string>
-    <string name="LF_IconNeon">Linki Neon</string>
-    <string name="LF_IconSunset">Linki Sunset</string>
 </resources>

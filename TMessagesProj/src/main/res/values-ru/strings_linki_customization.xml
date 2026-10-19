@@ -8,9 +8,4 @@
     <string name="LF_Compact">Компактные отступы</string>
     <string name="LF_Labels">Подписи и подробности</string>
     <string name="LF_Accent">Акцентный цвет</string>
-    <string name="LF_Icons">Иконки приложения</string>
-    <string name="LF_IconHelp">Выберите иконку или цвет фона. Для HEX используется ближайший из 16 встроенных цветов. Лаунчер может обновить иконку с задержкой.</string>
-    <string name="LF_IconMono">Linki Mono</string>
-    <string name="LF_IconNeon">Linki Neon</string>
-    <string name="LF_IconSunset">Linki Sunset</string>
 </resources>
