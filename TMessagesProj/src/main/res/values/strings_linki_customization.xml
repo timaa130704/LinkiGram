@@ -1,25 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="LF_Title">Feed</string>
-    <string name="LF_Sources">Feed sources</string>
-    <string name="LF_SourceHelp">Select chats and channels to combine in your feed. Secret chats are excluded.</string>
-    <string name="LF_Empty">Tap to select chats and channels</string>
-    <string name="LF_Retry">Some sources could not load. Tap to retry.</string>
-    <string name="LF_NoMessages">No messages in the selected sources</string>
-    <string name="LF_End">You have reached the beginning</string>
-    <string name="LF_LoadMore">Tap to load older messages · refresh in the top bar</string>
     <string name="LF_Menu">Side menu settings</string>
     <string name="LF_MenuHelp">Tap to show or hide an item. Hold a visible item to move it. Selected folders appear below the menu.</string>
     <string name="LF_MoveUp">Move up</string>
     <string name="LF_MoveDown">Move down</string>
     <string name="LF_DrawerStyle">Side menu appearance</string>
-    <string name="LF_FeedStyle">Feed appearance</string>
     <string name="LF_Compact">Compact spacing</string>
     <string name="LF_Labels">Show labels and details</string>
     <string name="LF_Accent">Accent color</string>
     <string name="LF_Icons">Application icons</string>
     <string name="LF_IconHelp">Choose an icon or a background color. Custom HEX colors use the nearest of the 16 installed color variants. Your launcher may take a moment to update.</string>
-    <string name="LF_Spoiler">Spoiler · tap to open the original message</string>
     <string name="LF_IconMono">Linki Mono</string>
     <string name="LF_IconNeon">Linki Neon</string>
     <string name="LF_IconSunset">Linki Sunset</string>

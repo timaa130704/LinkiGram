@@ -1,25 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="LF_Title">Лента</string>
-    <string name="LF_Sources">Источники ленты</string>
-    <string name="LF_SourceHelp">Выберите чаты и каналы для общей ленты. Секретные чаты недоступны.</string>
-    <string name="LF_Empty">Нажмите, чтобы выбрать чаты и каналы</string>
-    <string name="LF_Retry">Часть источников не загрузилась. Нажмите для повтора.</string>
-    <string name="LF_NoMessages">В выбранных источниках пока нет сообщений</string>
-    <string name="LF_End">Вы дошли до начала истории</string>
-    <string name="LF_LoadMore">Нажмите для загрузки истории · обновление вверху</string>
     <string name="LF_Menu">Настройка бокового меню</string>
     <string name="LF_MenuHelp">Нажмите, чтобы показать или скрыть пункт. Удерживайте видимый пункт для перемещения. Выбранные папки появятся под меню.</string>
     <string name="LF_MoveUp">Выше</string>
     <string name="LF_MoveDown">Ниже</string>
     <string name="LF_DrawerStyle">Оформление бокового меню</string>
-    <string name="LF_FeedStyle">Оформление ленты</string>
     <string name="LF_Compact">Компактные отступы</string>
     <string name="LF_Labels">Подписи и подробности</string>
     <string name="LF_Accent">Акцентный цвет</string>
     <string name="LF_Icons">Иконки приложения</string>
     <string name="LF_IconHelp">Выберите иконку или цвет фона. Для HEX используется ближайший из 16 встроенных цветов. Лаунчер может обновить иконку с задержкой.</string>
-    <string name="LF_Spoiler">Спойлер · нажмите, чтобы открыть сообщение</string>
     <string name="LF_IconMono">Linki Mono</string>
     <string name="LF_IconNeon">Linki Neon</string>
     <string name="LF_IconSunset">Linki Sunset</string>

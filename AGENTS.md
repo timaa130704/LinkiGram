@@ -979,3 +979,26 @@ ADB devices remained empty after download, so automatic installation could not
 run. No device UI checks performed. Install the verified artifact with adb install
 -r when the phone becomes available; installation was already authorized. No
 release published and no push notification sent (user cancelled notifications).
+
+
+### 2.6.2-dev installed — 2026-10-19
+
+User authorized USB debugging and requested installation. Verified APK SHA-256
+f0e7b397d3077acd885262ef6a5ab4fdf7817b43801abd992205c025c86b215b.
+adb -s RF8MA188NFZ install -r completed with Success, preserving application data.
+dumpsys package confirms app.linkigram.messenger, versionName 2.6.2-dev,
+versionCode 202602009, lastUpdateTime 2026-10-19 16:58:11 (device clock).
+No device UI/functionality checks performed during installation.
+
+
+### Feed removal requested — 2026-10-19
+
+User requested removing the feed and explaining the remaining additions. Removed
+FeedActivity/FeedSourcesActivity and feed-source preferences, navigation/menu entries,
+feed appearance entry and feed-only strings. Saved menu item id 109 is discarded
+by the existing MainMenuLayout parser as unknown. Shared appearance preferences
+were moved out of the feed package to appearance.CustomizationPreferences; existing
+drawer colors/density/labels and folder shortcut keys are preserved. Retained menu
+editor, folder shortcuts, Mono/Neon/Sunset launcher icons and launcher picker.
+Version remains 2.6.2-dev, APP_VERSION_CODE=20260201 for an in-place update.
+Build and auto-install still pending. Do not send phone push notifications.

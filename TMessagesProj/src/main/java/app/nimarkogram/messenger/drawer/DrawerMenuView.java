@@ -115,7 +115,7 @@ public class DrawerMenuView extends ScrollView {
         }
         for (org.telegram.messenger.MessagesController.DialogFilter filter :
                 org.telegram.messenger.MessagesController.getInstance(currentAccount).dialogFilters) {
-            if (filter.id == 0 || filter.locked || !app.nimarkogram.messenger.feed.FeedPreferences.prefs()
+            if (filter.id == 0 || filter.locked || !app.nimarkogram.messenger.appearance.CustomizationPreferences.prefs()
                     .getBoolean("linki_folder_" + currentAccount + "_" + filter.id, false)) continue;
             DrawerMenuItemView itemView = new DrawerMenuItemView(getContext());
             itemView.setMenuItem(10000 + filter.id, currentAccount, org.telegram.messenger.R.drawable.msg_folders, filter.name);

@@ -77,7 +77,6 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         arrayList.add(UItem.asShadow(null));
 
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_HUB_Header_Misc)));
-        arrayList.add(UItem.asButton(2001, R.drawable.msg_channel, LocaleController.getString(R.string.LF_Title)));
         arrayList.add(UItem.asButton(2002, R.drawable.msg_customize, LocaleController.getString(R.string.LF_Menu)));
         if (PluginsController.isPluginEngineSupported()) {
             arrayList.add(category(ID_PLUGINS, IconBackgroundColors.PURPLE,
@@ -122,7 +121,6 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     @Override
     public void onClick(UItem uItem, View view, int i, float f, float f2) {
         switch (uItem.id) {
-            case 2001: presentFragment(new app.nimarkogram.messenger.feed.FeedActivity()); break;
             case 2002: presentFragment(new DrawerPreferencesActivity()); break;
             case ID_GENERAL:
                 presentFragment(new GeneralPreferencesActivity());

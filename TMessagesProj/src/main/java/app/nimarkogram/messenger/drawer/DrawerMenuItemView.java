@@ -37,7 +37,7 @@ public class DrawerMenuItemView extends FrameLayout {
     public DrawerMenuItemView(Context context) {
         super(context);
         setWillNotDraw(false);
-        setLayoutParams(new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(app.nimarkogram.messenger.feed.FeedPreferences.compact("drawer") ? 40 : 56)));
+        setLayoutParams(new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(app.nimarkogram.messenger.appearance.CustomizationPreferences.compact("drawer") ? 40 : 56)));
         setBackground(createSelectorDrawable());
         // exteraGram зовёт UIUtil.applyScaleStateListAnimator(this, 16f, false, false, 2, 0.04f, 1.5f);
         // у нас перенесена короткая форма — масштаб 0.04 и tension 1.5 те же.
@@ -65,9 +65,9 @@ public class DrawerMenuItemView extends FrameLayout {
         this.layoutButtonId = layoutButtonId;
         iconView.setImageResource(iconRes);
         textView.setText(text);
-        textView.setVisibility(app.nimarkogram.messenger.feed.FeedPreferences.labels("drawer") ? VISIBLE : INVISIBLE);
+        textView.setVisibility(app.nimarkogram.messenger.appearance.CustomizationPreferences.labels("drawer") ? VISIBLE : INVISIBLE);
         setContentDescription(text);
-        iconView.setColorFilter(new PorterDuffColorFilter(app.nimarkogram.messenger.feed.FeedPreferences.accent("drawer", Theme.getColor(COLOR_KEY_ICON)), PorterDuff.Mode.SRC_IN));
+        iconView.setColorFilter(new PorterDuffColorFilter(app.nimarkogram.messenger.appearance.CustomizationPreferences.accent("drawer", Theme.getColor(COLOR_KEY_ICON)), PorterDuff.Mode.SRC_IN));
         updateUnreadCounter(currentAccount);
     }
 
@@ -97,7 +97,7 @@ public class DrawerMenuItemView extends FrameLayout {
     }
 
     private static PorterDuffColorFilter createIconColorFilter() {
-        return new PorterDuffColorFilter(app.nimarkogram.messenger.feed.FeedPreferences.accent("drawer", Theme.getColor(COLOR_KEY_ICON)), PorterDuff.Mode.SRC_IN);
+        return new PorterDuffColorFilter(app.nimarkogram.messenger.appearance.CustomizationPreferences.accent("drawer", Theme.getColor(COLOR_KEY_ICON)), PorterDuff.Mode.SRC_IN);
     }
 
     private static Drawable createSelectorDrawable() {

@@ -7,7 +7,7 @@ import org.telegram.messenger.*;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.Components.*;
 import app.nimarkogram.messenger.drawer.*;
-import app.nimarkogram.messenger.feed.FeedPreferences;
+import app.nimarkogram.messenger.appearance.CustomizationPreferences;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 
 public class DrawerPreferencesActivity extends NimarkoUniversalPreferencesActivity {
@@ -29,7 +29,7 @@ public class DrawerPreferencesActivity extends NimarkoUniversalPreferencesActivi
         for (MessagesController.DialogFilter filter : getMessagesController().dialogFilters) {
             if (filter.id == 0) continue;
             items.add(SettingsHelper.asSwitchCG(10000 + filter.id, filter.name)
-                    .setChecked(FeedPreferences.prefs().getBoolean("linki_folder_" + currentAccount + "_" + filter.id, false)));
+                    .setChecked(CustomizationPreferences.prefs().getBoolean("linki_folder_" + currentAccount + "_" + filter.id, false)));
         }
     }
     @Override public void onClick(UItem item, View view, int position, float x, float y) {
@@ -44,12 +44,12 @@ public class DrawerPreferencesActivity extends NimarkoUniversalPreferencesActivi
         if (item.id == -10) { presentFragment(new ScreenAppearanceActivity("drawer")); return; }
         if (item.id == -11) {
             MainMenuLayout.reset();
-            android.content.SharedPreferences.Editor edit = FeedPreferences.prefs().edit();
+            android.content.SharedPreferences.Editor edit = CustomizationPreferences.prefs().edit();
             for (MessagesController.DialogFilter filter : getMessagesController().dialogFilters) edit.remove("linki_folder_" + currentAccount + "_" + filter.id);
             edit.apply();
         } else if (item.id >= 10000) {
             String key = "linki_folder_" + currentAccount + "_" + (item.id - 10000);
-            FeedPreferences.prefs().edit().putBoolean(key, !FeedPreferences.prefs().getBoolean(key, false)).apply();
+            CustomizationPreferences.prefs().edit().putBoolean(key, !CustomizationPreferences.prefs().getBoolean(key, false)).apply();
         } else if (item.id > 0 && item.id <= ids.size()) {
             int id = ids.get(item.id - 1);
             ArrayList<Integer> visible = MainMenuLayout.getLayoutMutable(), hidden = MainMenuLayout.getHiddenItemsMutable();

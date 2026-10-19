@@ -109,7 +109,6 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(UItem.asButton(2001, getString(R.string.LF_Icons)));
         items.add(UItem.asButton(2002, getString(R.string.LF_Menu)));
-        items.add(UItem.asButton(2003, getString(R.string.LF_FeedStyle)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
         items.add(UItem.asButton(MATERIAL_GROUP, getString(R.string.NM_Style_Material),
@@ -248,7 +247,6 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     public void onClick(UItem item, View view, int position, float x, float y) {
         if (item.id == 2001) { presentFragment(new LauncherIconsActivity()); return; }
         if (item.id == 2002) { presentFragment(new DrawerPreferencesActivity()); return; }
-        if (item.id == 2003) { presentFragment(new ScreenAppearanceActivity("feed")); return; }
         if (item.id == MATERIAL_ALL) {
             boolean enable = Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) != AppearanceConfig.MATERIAL_KEYS.length;
             for (String key : AppearanceConfig.MATERIAL_KEYS) AppearanceConfig.setEnabled(key, enable);
