@@ -97,7 +97,7 @@ public class DrawerMenuItemView extends FrameLayout {
     }
 
     private static PorterDuffColorFilter createIconColorFilter() {
-        return new PorterDuffColorFilter(Theme.getColor(COLOR_KEY_ICON), PorterDuff.Mode.SRC_IN);
+        return new PorterDuffColorFilter(app.nimarkogram.messenger.feed.FeedPreferences.accent("drawer", Theme.getColor(COLOR_KEY_ICON)), PorterDuff.Mode.SRC_IN);
     }
 
     private static Drawable createSelectorDrawable() {

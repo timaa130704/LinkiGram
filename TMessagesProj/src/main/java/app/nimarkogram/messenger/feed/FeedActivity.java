@@ -16,6 +16,7 @@ import org.telegram.messenger.*;
 import org.telegram.tgnet.*;
 import org.telegram.ui.ActionBar.*;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.PhotoViewer;
 import org.telegram.ui.Components.*;
 
 /** Independent timeline. Reading the feed never sends a read acknowledgement. */
@@ -43,7 +44,7 @@ public class FeedActivity extends BaseFragment {
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override public void onItemClick(int id) {
                 if (id == -1) finishFragment();
-                else if (id == 1) presentFragment(new FeedSourcesActivity());
+                else if (id == 1) openSources();
                 else if (id == 2) reload();
             }
         });
@@ -54,7 +55,7 @@ public class FeedActivity extends BaseFragment {
         status.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         status.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
         status.setGravity(Gravity.CENTER);
-        status.setOnClickListener(v -> { if (selected.isEmpty()) presentFragment(new FeedSourcesActivity()); else loadOlder(); });
+        status.setOnClickListener(v -> { if (selected.isEmpty()) openSources(); else loadOlder(); });
         root.addView(status, new LinearLayout.LayoutParams(-1, -2));
         recycler = new RecyclerView(context);
         recycler.setLayoutManager(new LinearLayoutManager(context));
@@ -79,6 +80,11 @@ public class FeedActivity extends BaseFragment {
         destroyed = true; generation++;
         getConnectionsManager().cancelRequestsForGuid(classGuid);
         super.onFragmentDestroy();
+    }
+    private void openSources() {
+        FeedSourcesActivity picker = new FeedSourcesActivity();
+        picker.setCurrentAccount(currentAccount);
+        presentFragment(picker);
     }
     private void reload() {
         generation++;
@@ -163,7 +169,9 @@ public class FeedActivity extends BaseFragment {
         Bundle args = new Bundle();
         args.putLong(id < 0 ? "chat_id" : "user_id", Math.abs(id));
         args.putInt("message_id", message.getId());
-        presentFragment(new ChatActivity(args));
+        ChatActivity chat = new ChatActivity(args);
+        chat.setCurrentAccount(currentAccount);
+        presentFragment(chat);
     }
     private class Adapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @Override public int getItemCount() { return messages.size(); }
@@ -201,6 +209,7 @@ public class FeedActivity extends BaseFragment {
             source.setTextColor(FeedPreferences.accent("feed", Theme.getColor(Theme.key_windowBackgroundWhiteBlueText)));
             source.setTextSize(14);
             source.setText(FeedSourcesActivity.name(currentAccount, message.getDialogId()));
+            source.setOnClickListener(v -> open(message));
             body.setTextSize(compact ? 14 : 16);
             body.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             CharSequence text = message.caption != null ? message.caption : message.messageText;
@@ -218,6 +227,13 @@ public class FeedActivity extends BaseFragment {
             TLRPC.PhotoSize thumb = preview ? FileLoader.getClosestPhotoSizeWithSize(message.photoThumbs, 320) : null;
             image.setVisibility(thumb == null ? GONE : VISIBLE);
             image.setImage(thumb == null ? null : ImageLocation.getForObject(thumb, message.photoThumbsObject), "320_220", (android.graphics.drawable.Drawable) null, message);
+            image.setOnClickListener(v -> {
+                if (message.isPhoto() || message.isVideo() || message.isGif()) {
+                    PhotoViewer viewer = PhotoViewer.getInstance();
+                    viewer.setParentActivity(FeedActivity.this);
+                    viewer.openPhoto(message, message.getDialogId(), 0, 0, new PhotoViewer.EmptyPhotoViewerProvider(), true);
+                } else open(message);
+            });
             setOnClickListener(v -> open(message));
         }
     }

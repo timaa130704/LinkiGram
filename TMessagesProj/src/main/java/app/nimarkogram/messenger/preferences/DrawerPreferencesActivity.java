@@ -15,6 +15,7 @@ public class DrawerPreferencesActivity extends NimarkoUniversalPreferencesActivi
     @Override protected CharSequence getTitle() { return LocaleController.getString(R.string.LF_Menu); }
     @Override public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         items.add(UItem.asShadow(LocaleController.getString(R.string.LF_MenuHelp)));
+        items.add(SettingsHelper.asSwitchCG(-12, LocaleController.getString(R.string.NM_Drawer_NavigationDrawer)).setChecked(app.nimarkogram.messenger.NimarkoConfig.navigationDrawer));
         items.add(UItem.asButton(-10, LocaleController.getString(R.string.LF_DrawerStyle)));
         items.add(UItem.asButton(-11, LocaleController.getString(R.string.Reset)));
         ids.clear(); ids.addAll(MainMenuLayout.getLayout());
@@ -32,6 +33,14 @@ public class DrawerPreferencesActivity extends NimarkoUniversalPreferencesActivi
         }
     }
     @Override public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == -12) {
+            app.nimarkogram.messenger.NimarkoConfig.toggleNavigationDrawer();
+            listView.adapter.update(true);
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.mainUserInfoChanged);
+            if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+            showRestartBulletin();
+            return;
+        }
         if (item.id == -10) { presentFragment(new ScreenAppearanceActivity("drawer")); return; }
         if (item.id == -11) {
             MainMenuLayout.reset();

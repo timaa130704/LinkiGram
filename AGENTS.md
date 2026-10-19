@@ -926,3 +926,35 @@ SHA-256 1137e71cc9e533214cafb9841fdb8d348aa4d8f4ab789d34e4e4febb803183ee.
 Installed on RF8MA188NFZ using adb install -r: Success, data preserved.
 Ghost indicator and per-chat exceptions still need user interaction checks;
 do not claim their on-device behavior verified merely from successful install.
+
+
+### Feed, menu editor and icon sets — 2026-10-19
+
+User requested implementing the combined channel/chat feed, side-menu customization,
+launcher icon sets, per-screen appearance and building an APK. The user cancelled
+phone push notifications explicitly; do not send a bot message or notification.
+
+Working checkout is the Linux copy on codex/2.6.1, now version 2.6.2-dev
+(APP_VERSION_CODE=20260200). Source base remains Telegram 13.0.2. This supersedes
+historical Windows checkout/version references above for this task.
+
+Implementation uses an independent FeedActivity rather than the Externaless synthetic
+ChatActivity host rewrite: selected ordinary dialogs per client user ID, bounded
+history requests (3 concurrent), per-source cursors, deduplication and chronological
+pagination boundary; text/captions and image thumbnails, PhotoViewer for photos/video,
+source-message navigation. Feed itself sends no read receipts; opening an original
+chat or media uses normal Telegram behavior. Spoiler text is concealed; protected
+media previews are omitted. Refresh is manual; secret chats are excluded. Full chat
+interactions (reactions/replies/etc.) remain in the original chat.
+
+Existing drawer/icon infrastructure was reused. Added menu visibility/order editor
+(long press moves visible items), folder shortcuts, independent feed/drawer accents,
+compact spacing/detail labels, and new Mono/Neon/Sunset native vector launcher icons
+with aliases/adaptive variants. Existing 16-color HEX picker remains quantized to
+installed icon colors; the UI states this explicitly.
+
+Initial build 39247139087 was cancelled during environment preparation so media-viewer
+and color-persistence fixes can ship in the same APK. Final build still pending.
+APK installation is already authorized by earlier instructions, but adb devices was
+empty. SDK platform tools downloaded to sibling work/android-tools/platform-tools.
+Do not claim device UI verified from compilation or APK installation alone.
