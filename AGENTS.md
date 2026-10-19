@@ -1039,3 +1039,20 @@ and the pre-existing icons/colors remain. AppStartReceiver now handles
 MY_PACKAGE_REPLACED by running the existing launcher-alias repair: if a removed
 icon was the only enabled alias, it restores DefaultIcon automatically.
 Version 2.6.2-dev, APP_VERSION_CODE=20260202. Build and auto-install pending.
+
+
+### Icon/window removal built and installed — 2026-10-19
+
+Actions 39272821097 succeeded on 157fc6626cbb3d90175cb1e0a0a5870707389675, artifact
+linkigram-apk id 12197387273. Outer ZIP and APK ZIP integrity passed. Binary
+manifest: app.linkigram.messenger, 2.6.2-dev, versionCode 202602029, arm64-v8a.
+Certificate matches preceding APK. SHA-256:
+da645698d4aa962eb9d260be3defff02d92e3801bea5d20a96b00fa32f6bdc67.
+Verified removed icon aliases absent from manifest; original DefaultIcon and
+CustomIcon16 retained. DEX files contain neither the removed launcher picker nor
+the feed package. Deliverable: task outputs/LinkiGram-2.6.2-dev-menu.apk.
+
+Installed with adb -s RF8MA188NFZ install -r: Success, data preserved.
+dumpsys confirms versionCode 202602029, versionName 2.6.2-dev, device-clock
+lastUpdateTime 2026-10-19 18:12:59. Launcher query resolves DefaultIcon after
+installation. No UI navigation/visual checks performed. No release or push sent.
