@@ -1085,3 +1085,20 @@ No release or phone push notification requested.
 
 First Actions run 39277563153 was cancelled during checkout to complete direct
 legacy-list and message/profile-page targets in the same APK. Final build pending.
+
+### Standard settings search APK built — 2026-10-19
+
+Final source commit 06ab941b7560acbd7819f097660d8426a9d7ee73 built successfully
+in Actions run 39278524695 (job 118148499642). Java/Kotlin smoke compile,
+ARM64 standalone APK build and artifact upload all succeeded. Artifact
+linkigram-apk id 12201310157. APK: task outputs/LinkiGram-2.6.2-dev-settings-search.apk.
+Outer ZIP and APK ZIP integrity passed. Binary manifest: app.linkigram.messenger,
+2.6.2-dev, versionCode 202602039, arm64-v8a. Signing certificate matches the
+prior installed APK. SHA-256:
+26fa9a5c6f7878d67c8aeec2440354b1b08ecf37a2c6705e9558d78a9d7fc387.
+DEX contains LinkiSettingsSearch, and contains neither removed feed classes nor
+the removed duplicate launcher icon picker.
+
+Install attempt is pending: adb did not list RF8MA188NFZ after starting the
+server. The device was authorized earlier; retry adb install -r when it reconnects.
+No UI smoke check yet. No release or push notification sent.
