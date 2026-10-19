@@ -1,5 +1,7 @@
 package app.nimarkogram.messenger.search;
 
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -8,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -19,15 +22,25 @@ import org.telegram.ui.ProfileActivity.SearchAdapter.SearchResult;
 /** Static labels only: indexing never instantiates settings screens or reads their values. */
 public final class LinkiSettingsSearch {
     private LinkiSettingsSearch() {}
+    private static Resources englishResources;
+    private static String englishLabel(int resource) {
+        if (englishResources == null) {
+            Configuration config = new Configuration(ApplicationLoader.applicationContext.getResources().getConfiguration());
+            config.setLocale(Locale.ENGLISH);
+            englishResources = ApplicationLoader.applicationContext.createConfigurationContext(config).getResources();
+        }
+        return englishResources.getString(resource);
+    }
     public interface Factory { BaseFragment create(int account); }
     public interface Target { void setSearchTarget(int titleResource); }
     private static class Result extends SearchResult {
         final String keywords;
-        Result(int id, String label, String section, Runnable open) {
+        Result(int id, String label, String section, String english, Runnable open) {
             super(id, label, null, LocaleController.getString(R.string.NimarkoGramSettings), section,
                     R.drawable.msg_settings_solar, open);
+            if (section.equals(LocaleController.getString(R.string.NimarkoGramSettings))) path = new String[]{section};
             keywords = label + " " + section + " " + LocaleController.getString(R.string.NimarkoGramSettings)
-                    + " LinkiGram Linki Линкиграм Линки";
+                    + " LinkiGram Linki Линкиграм Линки " + english;
         }
     }
     public static SearchResult[] append(SearchResult[] stock, BaseFragment host) {
@@ -36,15 +49,20 @@ public final class LinkiSettingsSearch {
         return all.toArray(new SearchResult[0]);
     }
     static void add(ArrayList<SearchResult> all, BaseFragment host, String key, int title, int section, Factory factory) {
+        addRow(all, host, key, title, section, factory, null);
+    }
+    static void addRow(ArrayList<SearchResult> all, BaseFragment host, String key, int title, int section, Factory factory, String row) {
         String label = LocaleController.getString(title);
         String sectionTitle = LocaleController.getString(section);
         int id = 0x40000000 | (key.hashCode() & 0x3fffffff);
-        all.add(new Result(id, label, sectionTitle, () -> {
+        Result result = new Result(id, label, sectionTitle, englishLabel(title) + " " + englishLabel(section), () -> {
             BaseFragment target = factory.create(host.getCurrentAccount());
             target.setCurrentAccount(host.getCurrentAccount());
             if (title != section && target instanceof Target) ((Target) target).setSearchTarget(title);
             host.presentFragment(target);
-        }));
+        });
+        result.rowName = row;
+        all.add(result);
     }
     public static boolean isLinkiResult(SearchResult result) { return result instanceof Result; }
     private static String normalize(String value) {

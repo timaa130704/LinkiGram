@@ -83,7 +83,41 @@ import java.util.Locale;
 
 import app.nimarkogram.messenger.NimarkoConfig;
 
-public class MessagesAndProfilesPreferencesActivity extends BaseFragment {
+public class MessagesAndProfilesPreferencesActivity extends BaseFragment implements app.nimarkogram.messenger.search.LinkiSettingsSearch.Target {
+
+    private int searchTitle;
+    @Override public void setSearchTarget(int resource) { searchTitle = resource; }
+    @Override public void onResume() {
+        super.onResume();
+        if (searchTitle == 0 || viewPager == null) return;
+        final int title = searchTitle;
+        searchTitle = 0;
+        boolean message = title == R.string.NM_MP_ShowSeconds || title == R.string.NM_MP_DisablePremiumStatuses
+                || title == R.string.NM_MP_ReplyBackground || title == R.string.NM_MP_ReplyCustomColors
+                || title == R.string.NM_MP_ReplyBackgroundEmoji;
+        viewPager.setPosition(message ? PAGE_MESSAGE : PAGE_PROFILE);
+        viewPager.post(() -> {
+            if (isFinished || getCurrentPage() == null) return;
+            Page page = getCurrentPage();
+            int row = -1;
+            if (title == R.string.NM_MP_ShowSeconds) row = page.timeWithSecondsSwitchRow;
+            else if (title == R.string.NM_MP_DisablePremiumStatuses) row = page.premiumStatusSwitchRow;
+            else if (title == R.string.NM_MP_ReplyBackground) row = page.replyBackgroundSwitchRow;
+            else if (title == R.string.NM_MP_ReplyCustomColors) row = page.replyColorSwitchRow;
+            else if (title == R.string.NM_MP_ReplyBackgroundEmoji) row = page.replyEmojiSwitchRow;
+            else if (title == R.string.NM_MP_ProfileChannelPreview) row = page.channelPreviewSwitchRow;
+            else if (title == R.string.NM_MP_ShowIdDc) row = page.showDcIdSwitchRow;
+            else if (title == R.string.NM_MP_ProfileBirthDatePreview) row = page.birthdayPreviewSwitchRow;
+            else if (title == R.string.NM_MP_ProfileBusinessPreview) row = page.businessPreviewSwitchRow;
+            else if (title == R.string.NM_MP_ProfileBackgroundColor) row = page.profileBackgroundSwitchRow;
+            else if (title == R.string.NM_MP_ProfileBackgroundEmoji) row = page.profileEmojiSwitchRow;
+            if (row >= 0) {
+                final int position = row;
+                ((LinearLayoutManager) page.listView.getLayoutManager()).scrollToPositionWithOffset(position, AndroidUtilities.dp(60));
+                page.listView.highlightRow(() -> position);
+            }
+        });
+    }
 
     private static final int PROFILE_BACKGROUND_COLOR_ID_RED = 14;
     private static final int REPLY_BACKGROUND_COLOR_ID = 13;

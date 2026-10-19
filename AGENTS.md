@@ -1062,10 +1062,11 @@ installation. No UI navigation/visual checks performed. No release or push sent.
 User requested LinkiGram settings in the existing ordinary settings search, not a
 separate screen. ProfileActivity.SearchAdapter.onCreateSearchArray now appends the
 static LinkiSettingsCatalog, shared by SettingsActivity and the legacy profile
-settings search. Catalog: 367 localized labels/section entries in 29 sections,
+settings search. Catalog: 400 localized labels/section entries in 29 sections,
 generated from settings declarations by Tools/generate_settings_search.py. Run it
 after changing settings labels. Generation checks stable GUID collisions; GUIDs
 hash screen name + resource name, preserving recent-search identity across builds.
+English base-resource labels are also indexed alongside the current locale.
 Index construction reads no setting values, credentials, plugin data or live UI.
 
 Linki results match labels and section/root names, case/yo normalization and
@@ -1073,10 +1074,14 @@ transliteration. Native Telegram/FAQ matching remains in its existing branch.
 Opening a result instantiates its settings page for the originating account;
 universal settings pages scroll/highlight the localized row. Appearance expands
 its Material/iOS groups for search without toggling styles. Conditional rows stay
-conditional and show an explanatory bulletin if not visible. Legacy custom-list
-pages are indexed as sections only. No result invokes a setting action directly.
+conditional and show an explanatory bulletin if not visible. Message menu/filter legacy lists use their existing row fields for direct scroll;
+message/profile appearance selects the right page and highlights its control.
+Choice-only custom lists (icon pack selection, reorder) are indexed as sections. No result invokes a setting action directly.
 
 Version 2.6.2-dev, APP_VERSION_CODE=20260203. XML, resource-key existence, Java brace
 balance and generated stable ID uniqueness passed; CI/device checks pending.
 Build and automatically install the verified APK as previously authorized.
 No release or phone push notification requested.
+
+First Actions run 39277563153 was cancelled during checkout to complete direct
+legacy-list and message/profile-page targets in the same APK. Final build pending.
