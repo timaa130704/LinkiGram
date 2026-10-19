@@ -1002,3 +1002,19 @@ drawer colors/density/labels and folder shortcut keys are preserved. Retained me
 editor, folder shortcuts, Mono/Neon/Sunset launcher icons and launcher picker.
 Version remains 2.6.2-dev, APP_VERSION_CODE=20260201 for an in-place update.
 Build and auto-install still pending. Do not send phone push notifications.
+
+
+### Feed removal APK verified — 2026-10-19
+
+Actions run 39265130383 succeeded at source commit d85cf4d112122391e96563a17eb61a8c77a45209.
+Artifact linkigram-apk id 12193713934 was downloaded and ZIP integrity checked.
+APK package app.linkigram.messenger, versionName 2.6.2-dev,
+versionCode 202602019, arm64-v8a; code is higher than installed 202602009.
+Signing certificate matches the preceding APK. APK SHA-256:
+d059339a9a94f26e30dc849a281889b863da239e4f5cc9d925b6923b3983e5f8.
+DEX files were checked: no app.nimarkogram.messenger.feed classes remain.
+Verified deliverable: task outputs/LinkiGram-2.6.2-dev-no-feed.apk.
+
+Phone RF8MA188NFZ was authorized and connected when this task started but was
+absent from adb after the build. Installation pending reconnection; already
+authorized, use adb install -r without asking again. No release or notification.
