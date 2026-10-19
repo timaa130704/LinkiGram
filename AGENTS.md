@@ -1056,3 +1056,27 @@ Installed with adb -s RF8MA188NFZ install -r: Success, data preserved.
 dumpsys confirms versionCode 202602029, versionName 2.6.2-dev, device-clock
 lastUpdateTime 2026-10-19 18:12:59. Launcher query resolves DefaultIcon after
 installation. No UI navigation/visual checks performed. No release or push sent.
+
+### Standard settings search integration — 2026-10-19
+
+User requested LinkiGram settings in the existing ordinary settings search, not a
+separate screen. ProfileActivity.SearchAdapter.onCreateSearchArray now appends the
+static LinkiSettingsCatalog, shared by SettingsActivity and the legacy profile
+settings search. Catalog: 367 localized labels/section entries in 29 sections,
+generated from settings declarations by Tools/generate_settings_search.py. Run it
+after changing settings labels. Generation checks stable GUID collisions; GUIDs
+hash screen name + resource name, preserving recent-search identity across builds.
+Index construction reads no setting values, credentials, plugin data or live UI.
+
+Linki results match labels and section/root names, case/yo normalization and
+transliteration. Native Telegram/FAQ matching remains in its existing branch.
+Opening a result instantiates its settings page for the originating account;
+universal settings pages scroll/highlight the localized row. Appearance expands
+its Material/iOS groups for search without toggling styles. Conditional rows stay
+conditional and show an explanatory bulletin if not visible. Legacy custom-list
+pages are indexed as sections only. No result invokes a setting action directly.
+
+Version 2.6.2-dev, APP_VERSION_CODE=20260203. XML, resource-key existence, Java brace
+balance and generated stable ID uniqueness passed; CI/device checks pending.
+Build and automatically install the verified APK as previously authorized.
+No release or phone push notification requested.

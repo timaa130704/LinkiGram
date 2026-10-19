@@ -68,6 +68,11 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int navigationDrawerRow = 26;
     private final int immersiveDrawerRow = 27;
     private final int liquidGlassRow = 28;
+    @Override protected void prepareSettingsSearch() {
+        materialExpanded = true;
+        iosExpanded = true;
+    }
+
     private boolean materialExpanded;
     private boolean iosExpanded;
     private static final int MATERIAL_GROUP = 100;

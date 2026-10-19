@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LS_Conditional">Этот пункт сейчас скрыт условиями раздела. Проверьте основные переключатели выше.</string>
+</resources>

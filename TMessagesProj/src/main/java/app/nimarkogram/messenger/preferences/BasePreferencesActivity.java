@@ -39,7 +39,20 @@ import org.telegram.ui.Components.UniversalAdapter;
 import org.telegram.ui.Components.UniversalRecyclerView;
 import org.telegram.ui.SettingsActivity;
 
-public abstract class BasePreferencesActivity extends BaseFragment {
+public abstract class BasePreferencesActivity extends BaseFragment implements app.nimarkogram.messenger.search.LinkiSettingsSearch.Target {
+    private int settingsSearchTarget;
+    @Override public void setSearchTarget(int titleResource) {
+        settingsSearchTarget = titleResource;
+        prepareSettingsSearch();
+    }
+    protected void prepareSettingsSearch() {}
+    private void focusSettingsSearch() {
+        if (settingsSearchTarget == 0 || listView == null) return;
+        int title = settingsSearchTarget;
+        settingsSearchTarget = 0;
+        app.nimarkogram.messenger.search.LinkiSettingsSearch.focus(this, listView, title);
+    }
+
     protected LinearLayoutManager layoutManager;
     protected UniversalRecyclerView listView;
 
@@ -134,6 +147,7 @@ public abstract class BasePreferencesActivity extends BaseFragment {
         if (this.listView != null) {
             this.listView.adapter.update(false);
         }
+        focusSettingsSearch();
         Bulletin.addDelegate(this, new Bulletin.Delegate() {
             @Override
             public int getBottomOffset(int i) {

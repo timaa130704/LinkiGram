@@ -7,7 +7,25 @@ import androidx.core.view.ViewCompat;
 
 import org.telegram.ui.Components.UniversalFragment;
 
-public abstract class NimarkoUniversalPreferencesActivity extends UniversalFragment {
+public abstract class NimarkoUniversalPreferencesActivity extends UniversalFragment implements app.nimarkogram.messenger.search.LinkiSettingsSearch.Target {
+    private int settingsSearchTarget;
+    @Override public void setSearchTarget(int titleResource) {
+        settingsSearchTarget = titleResource;
+        prepareSettingsSearch();
+    }
+    protected void prepareSettingsSearch() {}
+    private void focusSettingsSearch() {
+        if (settingsSearchTarget == 0 || listView == null) return;
+        int title = settingsSearchTarget;
+        settingsSearchTarget = 0;
+        app.nimarkogram.messenger.search.LinkiSettingsSearch.focus(this, listView, title);
+    }
+
+
+    @Override public void onResume() {
+        super.onResume();
+        focusSettingsSearch();
+    }
 
     protected void showRestartBulletin() {
         org.telegram.ui.Components.BulletinFactory.of(this).createSimpleBulletin(

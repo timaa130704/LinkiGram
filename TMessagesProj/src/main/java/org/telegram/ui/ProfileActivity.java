@@ -14617,7 +14617,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private static SearchResult[] onCreateSearchArray(final BaseFragment f) {
             final int currentAccount = f.getCurrentAccount();
             final Theme.ResourcesProvider resourcesProvider = f.getResourceProvider();
-            return new SearchResult[]{
+            return app.nimarkogram.messenger.search.LinkiSettingsSearch.append(new SearchResult[]{
                     new SearchResult(500, getString(R.string.EditName), 0, () -> f.presentFragment(new ChangeNameActivity(resourcesProvider))),
                     new SearchResult(501, getString(R.string.ChangePhoneNumber), 0, () -> f.presentFragment(new ActionIntroActivity(ActionIntroActivity.ACTION_TYPE_CHANGE_PHONE_NUMBER))).withLink("tg://settings/edit/change-number"),
                     new SearchResult(502, getString(R.string.AddAnotherAccount), 0, () -> {
@@ -14874,7 +14874,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     new SearchResult(402, getString(R.string.AskAQuestion), getString(R.string.SettingsHelp), R.drawable.msg2_help, () -> f.showDialog(AlertsCreator.createSupportAlert(f, null))).withLink("tg://settings/ask-question"),
                     new SearchResult(403, getString(R.string.TelegramFAQ), getString(R.string.SettingsHelp), R.drawable.msg2_help, () -> Browser.openUrl(f.getParentActivity(), getString(R.string.TelegramFaqUrl))).withLink("tg://settings/faq"),
                     new SearchResult(404, getString(R.string.PrivacyPolicy), getString(R.string.SettingsHelp), R.drawable.msg2_help, () -> Browser.openUrl(f.getParentActivity(), getString(R.string.PrivacyPolicyUrl))).withLink("tg://settings/privacy-policy"),
-            };
+            }, f);
         }
 
         private static boolean isPremiumFeatureAvailable(int currentAccount, int feature) {
@@ -15174,6 +15174,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 for (int a = 0; a < searchArray.length; a++) {
                     SearchResult result = searchArray[a];
                     if (result == null) {
+                        continue;
+                    }
+                    if (app.nimarkogram.messenger.search.LinkiSettingsSearch.isLinkiResult(result)) {
+                        CharSequence match = app.nimarkogram.messenger.search.LinkiSettingsSearch.match(result, text,
+                                fragment.getThemedColor(Theme.key_windowBackgroundWhiteBlueText4));
+                        if (match != null) { results.add(result); names.add(match); }
                         continue;
                     }
                     String title = " " + result.searchTitle.toLowerCase();
