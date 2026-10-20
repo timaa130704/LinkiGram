@@ -2599,7 +2599,7 @@ public class LocaleController {
 
     public static String formatDateOnline(long date, boolean[] madeShorter) {
         try {
-            // Relative last seen display, following exteraless (GPL-2.0).
+            // Relative last seen display, following exteraless (GPL-3.0).
             if (app.nimarkogram.messenger.LinkiPrivacy.relativeLastSeen()) {
                 long elapsed = Math.max(0, System.currentTimeMillis() / 1000 - date);
                 if (elapsed < 60) return getString(R.string.LastSeenNow);

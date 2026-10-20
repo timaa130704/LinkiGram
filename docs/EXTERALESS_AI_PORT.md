@@ -2,7 +2,9 @@
 
 Source: https://github.com/exteraless/exteraless
 Revision: 1ad6a60a6834ffca722b1a22f4fba27ecb29a061
-License: GPL-2.0 (same as LinkiGram; original packages retained).
+License: GPL-3.0, as provided by the exteraless repository.
+Original packages retained; license copied to third_party/exteraless-ai/LICENSE.
+Telegram source headers permit GPL v2 or later.
 
 The app.exteraless.ai package is imported from that revision. The settings base
 uses LinkiGram native cells instead of Neko settings dependencies; the loading
