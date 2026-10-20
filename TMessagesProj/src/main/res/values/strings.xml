@@ -12997,7 +12997,7 @@
     <string name="LinkiRepeatHours">Every %1$d h</string>
     <string name="LinkiRepeatInMinutes">Local repeat · minutes</string>
     <string name="LinkiRepeatInHours">Local repeat · hours</string>
-    <string name="LinkiRepeatInfo">For new text messages. The first send uses the selected date and time, then repeats at this interval. The phone must be on and online; Android power saving can delay sends. Local repeats are managed from the chat menu → Repeating messages.</string>
+    <string name="LinkiRepeatInfo">For new text messages. The first send uses the selected date and time, then repeats at this interval. The phone must be on and online; Android power saving can delay sends. Local repeats are managed from the chat menu → Repeating messages. Offline occurrences are skipped.</string>
     <string name="LinkiRepeatInvalid">Enter a positive interval of at most 31 days</string>
     <string name="LinkiChatAssistant">Chat AI assistant</string>
     <string name="LinkiChatAssistantEnabled">Enable assistant in this chat</string>

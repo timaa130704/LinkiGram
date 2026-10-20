@@ -16408,9 +16408,11 @@ public class MessagesStorage extends BaseController {
                                     if (app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory
                                             && message.edit_date != 0
                                             && (!android.text.TextUtils.equals(oldMessage.message, message.message) || !sameMedia)) {
-                                        com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(oldMessage, currentAccount);
-                                        prefs.setDialogId(MessageObject.getDialogId(message));
-                                        com.radolyn.ayugram.messages.AyuMessagesController.getInstance().onMessageEdited(prefs, message);
+                                        try {
+                                            com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(oldMessage, currentAccount);
+                                            prefs.setDialogId(MessageObject.getDialogId(message));
+                                            com.radolyn.ayugram.messages.AyuMessagesController.getInstance().onMessageEdited(prefs, message);
+                                        } catch (Exception e) { FileLog.e(e); }
                                     }
                                     // --- AyuGram hook ---
                                     if (!sameMedia) {

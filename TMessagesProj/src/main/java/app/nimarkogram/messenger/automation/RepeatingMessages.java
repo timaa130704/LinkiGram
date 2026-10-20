@@ -136,17 +136,35 @@ public final class RepeatingMessages {
                 // Advance before enqueueing; missing intervals never generate a burst of messages.
                 job.put("next", System.currentTimeMillis() + job.getLong("period") * 1000);
                 save(jobs); arm(job);
-                MessageObject template = decode(account, job.getString("message"));
-                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(
-                        template.messageOwner.message, job.getLong("dialog"),
-                        decode(account, job.optString("reply")), decode(account, job.optString("topic")),
-                        null, true, template.messageOwner.entities, null, null, job.optBoolean("notify", true), 0, 0, null, false);
-                params.monoForumPeer = job.optLong("mono");
                 ConnectionsManager.getInstance(account).resumeNetworkMaybe();
-                SendMessagesHelper.getInstance(account).sendMessage(params);
+                deliver(job, account, 0);
             } catch (Exception e) { FileLog.e(e); remove(id); toast(R.string.LinkiAutomationError); }
             return;
         }
+    }
+    private static void deliver(JSONObject job, int account, int attempt) {
+        if (account(job) != account) return;
+        boolean present = false;
+        JSONArray jobs = read();
+        for (int i = 0; i < jobs.length(); i++) {
+            JSONObject current = jobs.optJSONObject(i);
+            if (current != null && job.optString("id").equals(current.optString("id"))) { present = true; break; }
+        }
+        if (!present) return;
+        int state = ConnectionsManager.getInstance(account).getConnectionState();
+        if (state != ConnectionsManager.ConnectionStateConnected && state != ConnectionsManager.ConnectionStateUpdating) {
+            if (attempt < 2) AndroidUtilities.runOnUIThread(() -> deliver(job, account, attempt + 1), 2000);
+            return; // No offline backlog of repeated messages.
+        }
+        try {
+            MessageObject template = decode(account, job.getString("message"));
+            SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(
+                    template.messageOwner.message, job.getLong("dialog"),
+                    decode(account, job.optString("reply")), decode(account, job.optString("topic")),
+                    null, true, template.messageOwner.entities, null, null, job.optBoolean("notify", true), 0, 0, null, false);
+            params.monoForumPeer = job.optLong("mono");
+            SendMessagesHelper.getInstance(account).sendMessage(params);
+        } catch (Exception e) { FileLog.e(e); remove(job.optString("id")); toast(R.string.LinkiAutomationError); }
     }
     private static void remove(String id) {
         JSONArray jobs = read(), kept = new JSONArray();

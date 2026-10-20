@@ -9,7 +9,8 @@ server scheduled message are rejected. Jobs survive restarts/reboots in dedicate
 are bound to Telegram user ID and backend (not account slot), and can be cancelled in the chat
 menu. Exact alarms are used when Android permits them; the interval dialog offers the Android
 permission screen when needed. Doze/network restrictions can delay delivery. Missed intervals
-are skipped rather than replayed in a burst. Jobs from signed-out accounts are removed when due.
+are skipped rather than replayed in a burst. Offline occurrences are skipped too, preventing
+a backlog when the connection returns. Jobs from signed-out accounts are removed when due.
 
 The chat assistant is enabled explicitly in the chat menu. It uses the shared exteraless AI
 service configuration, with a separate prompt and bounded transient conversation per chat.

@@ -4661,19 +4661,11 @@ public class AlertsCreator {
                     }
                 }
                 sb.append(" v");
-                if (UserConfig.getInstance(UserConfig.selectedAccount).isPremium()) {
-                    final ColoredImageSpan imageSpan = new ColoredImageSpan(R.drawable.arrows_select);
-                    imageSpan.spaceScaleX = 0.7f;
-                    imageSpan.translate(dp(-1.33f), dp(0));
-                    imageSpan.setAlpha(0.75f);
-                    sb.setSpan(imageSpan, sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                } else {
-                    final ColoredImageSpan imageSpan = new ColoredImageSpan(R.drawable.mini_switch_lock);
-                    imageSpan.spaceScaleX = 0.7f;
-                    imageSpan.translate(dp(-1.33f), dp(0));
-                    imageSpan.setAlpha(0.75f);
-                    sb.setSpan(imageSpan, sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
+                final ColoredImageSpan imageSpan = new ColoredImageSpan(R.drawable.arrows_select);
+                imageSpan.spaceScaleX = 0.7f;
+                imageSpan.translate(dp(-1.33f), dp(0));
+                imageSpan.setAlpha(0.75f);
+                sb.setSpan(imageSpan, sb.length() - 1, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 repeatTextView.setText(sb);
             };
             updateRepeatText.run();
