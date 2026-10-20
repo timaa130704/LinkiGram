@@ -3835,8 +3835,12 @@ public class ChatActivity extends BaseFragment implements
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(final int id) {
+                if (id == 9878) {
+                    app.nimarkogram.messenger.automation.RepeatingMessages.show(ChatActivity.this, currentAccount, dialog_id);
+                    return;
+                }
                 if (id == 9876) {
-                    presentFragment(new app.nimarkogram.messenger.preferences.AutoReplyPreferencesActivity(currentAccount, dialog_id));
+                    presentFragment(new app.nimarkogram.messenger.preferences.ChatAssistantPreferencesActivity(currentAccount, dialog_id));
                     return;
                 }
                 if (id == -1) {
@@ -4467,8 +4471,9 @@ public class ChatActivity extends BaseFragment implements
             }
             headerItem = menu.addItem(chat_menu_options, otherIcon);
             if (currentEncryptedChat == null && (currentUser != null && !currentUser.bot && !currentUser.self || currentChat != null && (!ChatObject.isChannel(currentChat) || currentChat.megagroup) && !currentChat.monoforum)) {
-                headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.OEAiTitle));
+                headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.LinkiChatAssistant));
             }
+            if (currentEncryptedChat == null) headerItem.lazilyAddSubItem(9878, R.drawable.msg_calendar, getString(R.string.LinkiRepeatingMessages));
             headerItem.setSubMenuDelegate(new ActionBarMenuItem.ActionBarSubMenuItemDelegate() {
                 @Override
                 public void onShowSubMenu() {
@@ -33706,6 +33711,10 @@ public class ChatActivity extends BaseFragment implements
     }
 
     public void processSelectedOption(int option) {
+        if (option == 9879) {
+            if (selectedObject != null) app.nimarkogram.messenger.automation.EditHistory.show(this, currentAccount, selectedObject);
+            closeMenu(); return;
+        }
         if (option == 9877) {
             if (selectedObject != null && getParentActivity() != null) {
                 app.exteraless.ai.ui.AiResponseSheet.show(getParentActivity(), themeDelegate,
@@ -46230,6 +46239,9 @@ public class ChatActivity extends BaseFragment implements
         ArrayList<Integer> options
     ) {
         final MessageObject message = selectedObject;
+        if (message != null && (message.messageOwner.edit_date > 0 || app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory)) {
+            items.add(getString(R.string.LinkiEditHistory)); options.add(9879); icons.add(R.drawable.msg_recent);
+        }
         if (message != null && app.exteraless.ai.AiController.canUseAI()
                 && !TextUtils.isEmpty(message.messageText)) {
             items.add(getString(R.string.OEAiAsk));

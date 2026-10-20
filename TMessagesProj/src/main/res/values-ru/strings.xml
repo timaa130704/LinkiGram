@@ -1623,4 +1623,27 @@
     <string name="LinkiIconsOriginal">Исходные цвета</string>
     <string name="LinkiIconsCustom">Свой цвет</string>
     <string name="LinkiIconsInvalidColor">Введите цвет в формате #RRGGBB</string>
+    <string name="LinkiHistoryMedia">Медиафайл</string>
+    <string name="LinkiHistoryEmpty">Предыдущие версии не сохранены. Включите сохранение истории правок в LinkiGram → AyuMoments. Сохраняются только изменения, полученные после включения.</string>
+    <string name="LinkiHistoryCurrent">Текущая версия</string>
+    <string name="LinkiEditHistory">История изменений</string>
+    <string name="LinkiMinutes">мин</string>
+    <string name="LinkiRepeatSaved">Повторяющееся текстовое сообщение сохранено на этом устройстве</string>
+    <string name="LinkiAutomationError">Не удалось выполнить автоматизацию. Проверьте настройки.</string>
+    <string name="LinkiRepeatTextOnly">Локальные повторы работают для новых текстовых сообщений в обычных чатах. Медиа, пересылка, платные сообщения и правка серверных отложенных сообщений не поддерживаются.</string>
+    <string name="LinkiRepeatingMessages">Повторяющиеся сообщения</string>
+    <string name="LinkiRepeatEmpty">В этом чате нет локальных повторов. Чтобы добавить: зажмите «Отправить» → «Отправить позже» → «Повторять» → минуты или часы.</string>
+    <string name="LinkiRepeatCancel">Отменить повторяющееся сообщение?</string>
+    <string name="LinkiRepeatMinutes">Каждые %1$d мин</string>
+    <string name="LinkiRepeatHours">Каждые %1$d ч</string>
+    <string name="LinkiRepeatInMinutes">Локальный повтор · минуты</string>
+    <string name="LinkiRepeatInHours">Локальный повтор · часы</string>
+    <string name="LinkiRepeatInfo">Для новых текстовых сообщений. Первая отправка — в выбранные дату и время, затем с заданным интервалом. Телефон должен быть включён и подключён к интернету; энергосбережение Android может задерживать отправку. Управление: меню чата → «Повторяющиеся сообщения».</string>
+    <string name="LinkiRepeatInvalid">Введите положительный интервал не больше 31 дня</string>
+    <string name="LinkiChatAssistant">ИИ-ассистент чата</string>
+    <string name="LinkiChatAssistantEnabled">Включить ассистента в этом чате</string>
+    <string name="LinkiChatAssistantInfo">Автоматически отвечает от вашего аккаунта на новые входящие текстовые сообщения этого чата через выбранного ИИ-провайдера. Текст сообщений передаётся провайдеру. В группах по умолчанию отвечает только на упоминания. Боты и старые сообщения игнорируются; не чаще одного ответа в 30 секунд. Приложение должно получать обновления на этом устройстве.</string>
+    <string name="LinkiChatAssistantMentions">В группах отвечать только на упоминания</string>
+    <string name="LinkiChatAssistantPrompt">Инструкции для этого чата</string>
+    <string name="LinkiRepeatAllowExact">Разрешить точные будильники</string>
 </resources>

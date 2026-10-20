@@ -22100,6 +22100,9 @@ public class MessagesController extends BaseController implements NotificationCe
             return false;
         }
         if (mode == ChatActivity.MODE_DEFAULT) {
+            AndroidUtilities.runOnUIThread(() -> app.nimarkogram.messenger.automation.ChatAssistant.onMessages(currentAccount, dialogId, new ArrayList<>(messages)));
+        }
+        if (mode == ChatActivity.MODE_DEFAULT) {
             for (MessageObject message : messages) {
                 if (message.isOut()) {
                     break;

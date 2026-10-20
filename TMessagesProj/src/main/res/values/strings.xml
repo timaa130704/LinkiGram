@@ -12982,4 +12982,27 @@
     <string name="LinkiIconsOriginal">Original colors</string>
     <string name="LinkiIconsCustom">Custom color</string>
     <string name="LinkiIconsInvalidColor">Enter a color in #RRGGBB format</string>
+    <string name="LinkiHistoryMedia">Media attachment</string>
+    <string name="LinkiHistoryEmpty">No earlier versions were saved. Enable saving edit history in LinkiGram → AyuMoments. Only changes received after enabling can be recorded.</string>
+    <string name="LinkiHistoryCurrent">Current version</string>
+    <string name="LinkiEditHistory">Edit history</string>
+    <string name="LinkiMinutes">min</string>
+    <string name="LinkiRepeatSaved">Repeating text message saved on this device</string>
+    <string name="LinkiAutomationError">Could not complete the automation. Check the settings.</string>
+    <string name="LinkiRepeatTextOnly">Local repeats support new text messages in regular chats. Media, forwards, paid messages and edits of server scheduled messages are not supported.</string>
+    <string name="LinkiRepeatingMessages">Repeating messages</string>
+    <string name="LinkiRepeatEmpty">No local repeating messages in this chat. To add one, hold Send → Schedule message → Repeat → Minutes or Hours.</string>
+    <string name="LinkiRepeatCancel">Cancel this repeating message?</string>
+    <string name="LinkiRepeatMinutes">Every %1$d min</string>
+    <string name="LinkiRepeatHours">Every %1$d h</string>
+    <string name="LinkiRepeatInMinutes">Local repeat · minutes</string>
+    <string name="LinkiRepeatInHours">Local repeat · hours</string>
+    <string name="LinkiRepeatInfo">For new text messages. The first send uses the selected date and time, then repeats at this interval. The phone must be on and online; Android power saving can delay sends. Local repeats are managed from the chat menu → Repeating messages.</string>
+    <string name="LinkiRepeatInvalid">Enter a positive interval of at most 31 days</string>
+    <string name="LinkiChatAssistant">Chat AI assistant</string>
+    <string name="LinkiChatAssistantEnabled">Enable assistant in this chat</string>
+    <string name="LinkiChatAssistantInfo">Replies automatically from your account to new incoming text messages in this chat using the selected AI provider. Message text is sent to that provider. Group chats default to mentions only. Bots and old messages are ignored; replies are limited to one every 30 seconds. The app must receive updates on this device.</string>
+    <string name="LinkiChatAssistantMentions">Only reply to mentions in groups</string>
+    <string name="LinkiChatAssistantPrompt">Instructions for this chat</string>
+    <string name="LinkiRepeatAllowExact">Allow precise alarms</string>
 </resources>

@@ -460,6 +460,7 @@ public class ApplicationLoader extends Application {
             DownloadController.getInstance(a);
         }
         BillingController.getInstance().startConnection();
+        app.nimarkogram.messenger.automation.RepeatingMessages.restore();
     }
 
     public ApplicationLoader() {

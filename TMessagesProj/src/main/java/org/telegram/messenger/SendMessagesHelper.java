@@ -2235,6 +2235,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         long monoForumPeerId,
         MessageSuggestionParams suggestionParams
     ) {
+        if (scheduleRepeatPeriod < 0) { app.nimarkogram.messenger.automation.RepeatingMessages.reject(); return 0; }
         if (messages == null || messages.isEmpty()) {
             return 0;
         }
@@ -3565,6 +3566,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public int editMessage(MessageObject messageObject, String message, boolean searchLinks, final BaseFragment fragment, ArrayList<TLRPC.MessageEntity> entities, int scheduleDate, int scheduleRepeatPeriod) {
+        if (scheduleRepeatPeriod < 0) { app.nimarkogram.messenger.automation.RepeatingMessages.reject(); return 0; }
         if (fragment == null || fragment.getParentActivity() == null) {
             return 0;
         }
@@ -4415,6 +4417,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public void sendMessage(SendMessageParams sendMessageParams) {
+        if (app.nimarkogram.messenger.automation.RepeatingMessages.capture(currentAccount, sendMessageParams)) return;
         final SendMessageChatArguments sendMessageChatArguments = sendMessageParams.sendMessageChatArguments != null ?
                 sendMessageParams.sendMessageChatArguments : SendMessageChatArguments.EMPTY;
         String message = sendMessageParams.message;

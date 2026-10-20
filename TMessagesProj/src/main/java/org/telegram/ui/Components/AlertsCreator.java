@@ -4652,6 +4652,7 @@ public class AlertsCreator {
                 sb.append(getString(R.string.MessageScheduledRepeatOption));
                 sb.append(" ");
                 int fromIndex = sb.length();
+                if (repeat[0] < 0) sb.append(app.nimarkogram.messenger.automation.RepeatPicker.label(-repeat[0]));
                 for (int i = 0; i < repeatValues.length; ++i) {
                     if (repeat[0] == repeatValues[i]) {
                         sb.append(repeatLabels[i]);
@@ -4719,24 +4720,22 @@ public class AlertsCreator {
 
         if (repeatTextView != null) {
             repeatTextView.setOnClickListener(v -> {
-                if (!UserConfig.getInstance(UserConfig.selectedAccount).isPremium()) {
-                    BulletinFactory.of(bulletinContainer, resourcesProvider)
-                        .createSimpleBulletin(R.raw.star_premium_2, AndroidUtilities.premiumText(LocaleController.getString(R.string.MessageScheduledRepeatPremium), () -> {
-                            final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
-                            if (lastFragment == null) return;
-                            BaseFragment.BottomSheetParams params = new BaseFragment.BottomSheetParams();
-                            params.transitionFromLeft = true;
-                            params.allowNestedScroll = false;
-                            lastFragment.showAsSheet(new PremiumPreviewFragment("schedule_repeat"), params);
-                        }))
-                        .show();
-                    return;
-                }
-
                 final ItemOptions o = ItemOptions.makeOptions(bottomSheet.container, resourcesProvider, repeatContainer);
+                o.add(getString(R.string.LinkiRepeatInMinutes), () ->
+                        app.nimarkogram.messenger.automation.RepeatPicker.show(context, false, value -> {
+                            repeat[0] = value; updateRepeatText.run();
+                        }));
+                o.add(getString(R.string.LinkiRepeatInHours), () ->
+                        app.nimarkogram.messenger.automation.RepeatPicker.show(context, true, value -> {
+                            repeat[0] = value; updateRepeatText.run();
+                        }));
                 for (int i = 0; i < repeatValues.length; ++i) {
                     final int value = repeatValues[i];
                     o.add(repeatLabels[i], () -> {
+                        if (value > 0 && !UserConfig.getInstance(UserConfig.selectedAccount).isPremium()) {
+                            android.widget.Toast.makeText(context, getString(R.string.MessageScheduledRepeatPremium), android.widget.Toast.LENGTH_LONG).show();
+                            return;
+                        }
                         repeat[0] = value;
                         updateRepeatText.run();
                     });

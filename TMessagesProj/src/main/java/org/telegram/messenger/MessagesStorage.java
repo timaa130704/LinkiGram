@@ -16403,15 +16403,14 @@ public class MessagesStorage extends BaseController {
                                     if (oldMessage.out && !message.out) {
                                         message.out = oldMessage.out;
                                     }
-                                    // --- AyuGram hook (edit history saving; exteraless port) ---
-                                    if (message.from_id != null) {
-                                        if (!oldMessage.message.equals(message.message) || !sameMedia) {
-                                            if (app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory) {
-                                                com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(oldMessage, currentAccount);
-                                                prefs.setDialogId(dialogId);
-                                                com.radolyn.ayugram.messages.AyuMessagesController.getInstance().onMessageEdited(prefs, message);
-                                            }
-                                        }
+                                    // Persist the previous version before the database row is overwritten.
+                                    // Channel edits can legitimately have no from_id.
+                                    if (app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory
+                                            && message.edit_date != 0
+                                            && (!android.text.TextUtils.equals(oldMessage.message, message.message) || !sameMedia)) {
+                                        com.radolyn.ayugram.messages.AyuSavePreferences prefs = new com.radolyn.ayugram.messages.AyuSavePreferences(oldMessage, currentAccount);
+                                        prefs.setDialogId(MessageObject.getDialogId(message));
+                                        com.radolyn.ayugram.messages.AyuMessagesController.getInstance().onMessageEdited(prefs, message);
                                     }
                                     // --- AyuGram hook ---
                                     if (!sameMedia) {
