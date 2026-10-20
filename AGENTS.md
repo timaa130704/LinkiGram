@@ -1132,4 +1132,4 @@ Java account slots increased to 15 (native already supports 16); default and max
 slot counts agree. Drawer account picker no longer reserves half the slots;
 account profile info reflects 15 slots. Version code 20260204 (APK 202602049).
 Static Java delimiters/new resource symbols/EN-RU XML/native capacity checked.
-Build, APK install and device UI verification still pending. No release or push.
+Build completed successfully in Actions run 39425808447 for d3bcf78d53d44cbedde01beb4cf3628984f0269e. APK versionCode 202602049 installed on RF8MA188NFZ; signature SHA-256 627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4; APK SHA-256 c0182028fb05a4a42ecfb6fdf1503f4324d55085e6e766ed3638e973af9665f9. Device UI check: normal settings opens, search results for LinkiGram and Local premium appear, and selecting Local premium opens the General page with its local-only description. No post-install Settings crash appeared in logcat. Low-battery Glass behavior and real account sign-ins were not manually exercised. No release or push notification.
