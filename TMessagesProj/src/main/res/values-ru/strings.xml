@@ -1616,4 +1616,5 @@
 
 <string name="LinkiRelativeLastSeen">Относительное время в сети</string>
 <string name="LinkiHidePhone">Скрывать свой номер на этом устройстве</string>
+    <string name="OEAiAsk">Спросить ИИ</string>
 </resources>

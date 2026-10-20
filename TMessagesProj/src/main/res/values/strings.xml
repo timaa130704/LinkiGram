@@ -12975,4 +12975,5 @@
 
 <string name="LinkiRelativeLastSeen">Relative last seen</string>
 <string name="LinkiHidePhone">Hide my phone number locally</string>
+    <string name="OEAiAsk">Ask AI</string>
 </resources>
