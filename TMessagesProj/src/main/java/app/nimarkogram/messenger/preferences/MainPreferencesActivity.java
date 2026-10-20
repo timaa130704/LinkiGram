@@ -68,7 +68,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> arrayList, UniversalAdapter universalAdapter) {
-        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), AndroidUtilities.dp(216)));
+        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), AndroidUtilities.dp(190)));
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.AP_Header_General)));
         arrayList.add(category(ID_GENERAL, IconBackgroundColors.BLUE,
                 R.drawable.msg_settings_solar, R.string.NM_Cat_General, "nimarko_general"));
@@ -129,7 +129,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         header.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
 
         ImageView icon = new ImageView(context);
-        icon.setImageResource(R.mipmap.ic_launcher_round);
+        icon.setImageResource(R.drawable.linkigram_about_icon);
         icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(AndroidUtilities.dp(88), AndroidUtilities.dp(88));
         iconParams.bottomMargin = AndroidUtilities.dp(14);

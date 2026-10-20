@@ -6537,6 +6537,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private static void sendShareText(AccountInstance accountInstance, DialogsActivity dialogsFragment, CharSequence text, long dialogId, MessageObject replyToMsg, long topicId, boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
+        if (app.nimarkogram.messenger.media.NimarkoMediaController.getInstance()
+                .interceptOutgoingShareText(dialogsFragment, text, dialogId,
+                        accountInstance.getCurrentAccount(), notify, scheduleDate,
+                        scheduleRepeatPeriod)) {
+            return;
+        }
         final boolean previewEnabled = dialogsFragment == null || dialogsFragment.isWebPagePreviewEnabled();
         final TLRPC.WebPage webPage = previewEnabled && dialogsFragment != null ? dialogsFragment.getSharedWebPage() : null;
         if (TextUtils.isEmpty(text)) return;

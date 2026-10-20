@@ -184,8 +184,6 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
         if (text == null || chatActivity == null) return INTERCEPT_NONE;
         String trimmed = text.toString().trim();
         if (trimmed.isEmpty()) return INTERCEPT_NONE;
-        if (!trimmed.startsWith("http")) return INTERCEPT_NONE;
-        if (trimmed.contains(" ") || trimmed.contains("\n") || trimmed.contains("\t")) return INTERCEPT_NONE;
         NimarkoMediaDownloader.UrlMatch match = NimarkoMediaDownloader.findUrl(trimmed);
         if (match == null) return INTERCEPT_NONE;
         if (activeRequest.get() != null) {
@@ -200,6 +198,26 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
         }
         showError(chatActivity, LocaleController.getString(R.string.NM_NM_AlreadyDownloading));
         return INTERCEPT_BLOCKED;
+    }
+
+    /** Intercepts links sent through Android's Share sheet, which bypasses the chat composer. */
+    public boolean interceptOutgoingShareText(BaseFragment fragment, CharSequence text,
+                                               long dialogId, int account,
+                                               boolean notify, int scheduleDate,
+                                               int scheduleRepeatPeriod) {
+        if (!NimarkoConfig.nimarkoMediaAuto || fragment == null || text == null
+                || NimarkoMediaDownloader.API_URL == null
+                || NimarkoMediaDownloader.API_URL.trim().isEmpty()) {
+            return false;
+        }
+        NimarkoMediaDownloader.UrlMatch match = NimarkoMediaDownloader.findUrl(text);
+        if (match == null) return false;
+        if (activeRequest.get() != null) {
+            showError(fragment, LocaleController.getString(R.string.NM_NM_AlreadyDownloading));
+            return true;
+        }
+        return kickoff(fragment, dialogId, account, match, null, null,
+                new SendOptions(notify, scheduleDate, scheduleRepeatPeriod));
     }
 
     public void downloadFromUrl(BaseFragment fragment, String url) {
