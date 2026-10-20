@@ -1,7 +1,5 @@
 package app.nimarkogram.messenger.search;
 
-import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -10,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -22,15 +19,6 @@ import org.telegram.ui.ProfileActivity.SearchAdapter.SearchResult;
 /** Static labels only: indexing never instantiates settings screens or reads their values. */
 public final class LinkiSettingsSearch {
     private LinkiSettingsSearch() {}
-    private static Resources englishResources;
-    private static String englishLabel(int resource) {
-        if (englishResources == null) {
-            Configuration config = new Configuration(ApplicationLoader.applicationContext.getResources().getConfiguration());
-            config.setLocale(Locale.ENGLISH);
-            englishResources = ApplicationLoader.applicationContext.createConfigurationContext(config).getResources();
-        }
-        return englishResources.getString(resource);
-    }
     public interface Factory { BaseFragment create(int account); }
     public interface Target { void setSearchTarget(int titleResource); }
     private static class Result extends SearchResult {
@@ -55,7 +43,8 @@ public final class LinkiSettingsSearch {
         String label = LocaleController.getString(title);
         String sectionTitle = LocaleController.getString(section);
         int id = 0x40000000 | (key.hashCode() & 0x3fffffff);
-        Result result = new Result(id, label, sectionTitle, englishLabel(title) + " " + englishLabel(section), () -> {
+        Result result = new Result(id, label, sectionTitle,
+                LinkiSettingsEnglishCatalog.get(title) + " " + LinkiSettingsEnglishCatalog.get(section), () -> {
             BaseFragment target = factory.create(host.getCurrentAccount());
             target.setCurrentAccount(host.getCurrentAccount());
             if (title != section && target instanceof Target) ((Target) target).setSearchTarget(title);
