@@ -3980,6 +3980,11 @@
     <string name="NoPlayerInstalled">You don\'t have a video player, please install one to continue</string>
     <string name="NoMailInstalled">Please send an email describing your problem to sms@telegram.org</string>
     <string name="NoHandleAppInstalled">You don\'t have applications that can handle the file type \'%1$s\', please install one to continue</string>
+    <string name="ExecutableFileWarningTitle">Potentially risky file</string>
+    <string name="ExecutableFileWarning">You are about to open %1$s\nType: %2$s\nSize: %3$s\n\nExecutable files can harm your device. Check the file before opening it. VirusTotal lookup uses the file hash and does not upload the file.</string>
+    <string name="CheckVirusTotal">Check VirusTotal</string>
+    <string name="VirusTotalHashFailed">Could not calculate the file hash for VirusTotal lookup.</string>
+    <string name="OpenAnyway">Open anyway</string>
     <string name="InviteUser">This user does not have Telegram yet, send an invitation?</string>
     <string name="AreYouSure">Are you sure?</string>
     <string name="AddToTheGroupAlertTitle">Add bot</string>

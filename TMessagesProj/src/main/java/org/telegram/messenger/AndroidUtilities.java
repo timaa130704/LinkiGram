@@ -215,6 +215,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -4189,6 +4190,10 @@ public class AndroidUtilities {
     }
 
     public static void openDocument(MessageObject message, Activity activity, BaseFragment parentFragment) {
+        openDocument(message, activity, parentFragment, false);
+    }
+
+    private static void openDocument(MessageObject message, Activity activity, BaseFragment parentFragment, boolean safetyConfirmed) {
         if (message == null) {
             return;
         }
@@ -4205,6 +4210,10 @@ public class AndroidUtilities {
             f = FileLoader.getInstance(UserConfig.selectedAccount).getPathToMessage(message.messageOwner);
         }
         if (f != null && f.exists()) {
+            if (!safetyConfirmed && isRiskyExecutable(fileName, document.mime_type)) {
+                showFileSafetyDialog(activity, f, fileName, document.mime_type, () -> openDocument(message, activity, parentFragment, true));
+                return;
+            }
             if (parentFragment != null && f.getName().toLowerCase().endsWith("attheme")) {
                 Theme.ThemeInfo themeInfo = Theme.applyThemeFile(f, message.getDocumentName(), null, true);
                 if (themeInfo != null) {
@@ -4279,6 +4288,10 @@ public class AndroidUtilities {
     }
 
     public static boolean openForView(File f, String fileName, String mimeType, final Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict) {
+        return openForView(f, fileName, mimeType, activity, resourcesProvider, restrict, false);
+    }
+
+    private static boolean openForView(File f, String fileName, String mimeType, final Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict, boolean safetyConfirmed) {
         if (f != null && f.exists()) {
             String realMimeType = null;
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -4297,6 +4310,10 @@ public class AndroidUtilities {
                         realMimeType = null;
                     }
                 }
+            }
+            if (!safetyConfirmed && isRiskyExecutable(fileName, realMimeType != null ? realMimeType : mimeType)) {
+                showFileSafetyDialog(activity, f, fileName, realMimeType != null ? realMimeType : mimeType, () -> openForView(f, fileName, mimeType, activity, resourcesProvider, restrict, true));
+                return true;
             }
             if (realMimeType != null && realMimeType.equals("application/vnd.android.package-archive")) {
                 if (restrict) return true;
@@ -4327,6 +4344,73 @@ public class AndroidUtilities {
             return true;
         }
         return false;
+    }
+
+    private static boolean isRiskyExecutable(String fileName, String mimeType) {
+        if ("application/vnd.android.package-archive".equalsIgnoreCase(mimeType)
+                || mimeType != null && (mimeType.startsWith("application/x-executable") || mimeType.startsWith("application/x-msdownload"))) {
+            return true;
+        }
+        if (fileName == null) return false;
+        int dot = fileName.lastIndexOf('.');
+        if (dot < 0 || dot == fileName.length() - 1) return false;
+        String extension = fileName.substring(dot + 1).toLowerCase(Locale.US);
+        return "apk".equals(extension) || "exe".equals(extension) || "msi".equals(extension)
+                || "bat".equals(extension) || "cmd".equals(extension) || "sh".equals(extension)
+                || "jar".equals(extension) || "dex".equals(extension);
+    }
+
+    private static void showFileSafetyDialog(Activity activity, File file, String fileName, String mimeType, Runnable openFile) {
+        if (activity == null || activity.isFinishing() || Build.VERSION.SDK_INT >= 17 && activity.isDestroyed()) return;
+        String shownName = TextUtils.isEmpty(fileName) ? file.getName() : fileName;
+        String shownType = TextUtils.isEmpty(mimeType) ? "Unknown" : mimeType;
+        String message = LocaleController.formatString("ExecutableFileWarning", R.string.ExecutableFileWarning,
+                shownName, shownType, AndroidUtilities.formatFileSize(file.length()));
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle(getString(R.string.ExecutableFileWarningTitle));
+        builder.setMessage(message);
+        builder.setPositiveButton(getString(R.string.OpenAnyway), (dialog, which) -> openFile.run());
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        builder.setNeutralButton(getString(R.string.CheckVirusTotal), (dialog, which) -> {
+            Utilities.globalQueue.postRunnable(() -> {
+                String hash = getFileSha256(file);
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (activity.isFinishing() || Build.VERSION.SDK_INT >= 17 && activity.isDestroyed()) return;
+                    if (hash == null) {
+                        new AlertDialog.Builder(activity)
+                                .setMessage(getString(R.string.VirusTotalHashFailed))
+                                .setPositiveButton(getString(R.string.OK), null)
+                                .show();
+                        return;
+                    }
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.virustotal.com/gui/file/" + hash + "/detection"));
+                    try {
+                        activity.startActivity(intent);
+                    } catch (Exception e) {
+                        FileLog.e(e);
+                    }
+                });
+            });
+        });
+        builder.show();
+    }
+
+    private static String getFileSha256(File file) {
+        try (InputStream input = new BufferedInputStream(new FileInputStream(file))) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[32 * 1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] hash = digest.digest();
+            StringBuilder result = new StringBuilder(hash.length * 2);
+            for (byte value : hash) result.append(String.format(Locale.US, "%02x", value & 0xff));
+            return result.toString();
+        } catch (Exception e) {
+            FileLog.e(e);
+            return null;
+        }
     }
 
     public static boolean openForView(MessageObject message, Activity activity, Theme.ResourcesProvider resourcesProvider, boolean restrict) {

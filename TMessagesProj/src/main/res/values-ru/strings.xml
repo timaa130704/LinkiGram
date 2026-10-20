@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="AppName">LinkiGram</string>
+    <string name="ExecutableFileWarningTitle">Потенциально опасный файл</string>
+    <string name="ExecutableFileWarning">Вы собираетесь открыть %1$s\nТип: %2$s\nРазмер: %3$s\n\nИсполняемые файлы могут навредить устройству. Проверка VirusTotal ищет файл по хешу и не загружает его.</string>
+    <string name="CheckVirusTotal">Проверить в VirusTotal</string>
+    <string name="VirusTotalHashFailed">Не удалось вычислить хеш файла для проверки в VirusTotal.</string>
+    <string name="OpenAnyway">Всё равно открыть</string>
     <string name="NM_CP_Header_ChatView">Вид чата</string>
     <string name="NM_CP_Header_Interaction">Взаимодействие</string>
     <string name="NM_CP_Header_Media">Медиа</string>
