@@ -68,7 +68,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> arrayList, UniversalAdapter universalAdapter) {
-        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), AndroidUtilities.dp(190)));
+        // UItem.asCustom accepts height in dp and converts it inside UniversalAdapter.
+        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), 190));
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.AP_Header_General)));
         arrayList.add(category(ID_GENERAL, IconBackgroundColors.BLUE,
                 R.drawable.msg_settings_solar, R.string.NM_Cat_General, "nimarko_general"));
