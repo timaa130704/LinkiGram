@@ -18310,6 +18310,13 @@ public class MessagesStorage extends BaseController {
             if (TextUtils.isEmpty(search1)) {
                 return;
             }
+            long numericSearchId = 0;
+            if (search1.matches("[0-9]+")) {
+                try {
+                    numericSearchId = Long.parseLong(search1);
+                } catch (NumberFormatException ignore) {
+                }
+            }
             String savedMessages = LocaleController.getString(R.string.SavedMessages).toLowerCase();
             String savedMessages2 = "saved messages";
             String replies = LocaleController.getString(R.string.RepliesTitle).toLowerCase();
@@ -18400,9 +18407,10 @@ public class MessagesStorage extends BaseController {
             }
 
             if (!usersToLoad.isEmpty()) {
-                cursor = getDatabase().queryFinalized(String.format(Locale.US, "SELECT data, status, name FROM users WHERE uid IN(%s)", TextUtils.join(",", usersToLoad)));
+                cursor = getDatabase().queryFinalized(String.format(Locale.US, "SELECT data, status, name, uid FROM users WHERE uid IN(%s)", TextUtils.join(",", usersToLoad)));
                 while (cursor.next()) {
                     String name = cursor.stringValue(2);
+                    long userId = cursor.longValue(3);
                     String tName = LocaleController.getInstance().getTranslitString(name);
                     if (name.equals(tName)) {
                         tName = null;
@@ -18412,8 +18420,11 @@ public class MessagesStorage extends BaseController {
                     if (usernamePos != -1) {
                         username = name.substring(usernamePos + 3);
                     }
-                    int found = 0;
+                    int found = numericSearchId > 0 && userId == numericSearchId ? 3 : 0;
                     for (String q : search) {
+                        if (found != 0) {
+                            break;
+                        }
                         if (name.startsWith(q) || name.contains(" " + q) || tName != null && (tName.startsWith(q) || tName.contains(" " + q))) {
                             found = 1;
                         } else if (username != null && username.startsWith(q)) {
@@ -18433,8 +18444,10 @@ public class MessagesStorage extends BaseController {
                                 }
                                 if (found == 1) {
                                     dialogSearchResult.name = AndroidUtilities.generateSearchName(user.first_name, user.last_name, q);
-                                } else {
+                                } else if (found == 2) {
                                     dialogSearchResult.name = AndroidUtilities.generateSearchName("@" + UserObject.getPublicUsername(user), null, "@" + q);
+                                } else {
+                                    dialogSearchResult.name = ContactsController.formatName(user.first_name, user.last_name);
                                 }
                                 dialogSearchResult.object = user;
                                 resultCount++;
@@ -18448,15 +18461,17 @@ public class MessagesStorage extends BaseController {
             }
 
             if (!chatsToLoad.isEmpty()) {
-                cursor = getDatabase().queryFinalized(String.format(Locale.US, "SELECT data, name FROM chats WHERE uid IN(%s)", TextUtils.join(",", chatsToLoad)));
+                cursor = getDatabase().queryFinalized(String.format(Locale.US, "SELECT data, name, uid FROM chats WHERE uid IN(%s)", TextUtils.join(",", chatsToLoad)));
                 while (cursor.next()) {
                     String name = cursor.stringValue(1);
+                    long chatId = cursor.longValue(2);
+                    boolean idMatch = numericSearchId > 0 && chatId == numericSearchId;
                     String tName = LocaleController.getInstance().getTranslitString(name);
                     if (name.equals(tName)) {
                         tName = null;
                     }
                     for (String q : search) {
-                        if (name.startsWith(q) || name.contains(" " + q) || tName != null && (tName.startsWith(q) || tName.contains(" " + q))) {
+                        if (idMatch || name.startsWith(q) || name.contains(" " + q) || tName != null && (tName.startsWith(q) || tName.contains(" " + q))) {
                             NativeByteBuffer data = cursor.byteBufferValue(0);
                             if (data != null) {
                                 TLRPC.Chat chat = TLRPC.Chat.TLdeserialize(data, data.readInt32(false), false);
@@ -18471,7 +18486,7 @@ public class MessagesStorage extends BaseController {
                                     continue;
                                 }
 
-                                if (chat.monoforum) {
+                                if (chat.monoforum && !idMatch) {
                                     name = ForumUtilities.getMonoForumTitle(currentAccount, chat, true);
                                     if (name == null) {
                                         name = "";
@@ -18491,7 +18506,7 @@ public class MessagesStorage extends BaseController {
                                 if (!(chat == null || chat.deactivated || ChatObject.isChannel(chat) && ChatObject.isNotInChat(chat))) {
                                     long dialog_id = -chat.id;
                                     DialogsSearchAdapter.DialogSearchResult dialogSearchResult = dialogsResult.get(dialog_id);
-                                    dialogSearchResult.name = AndroidUtilities.generateSearchName(chat.monoforum ? ForumUtilities.getMonoForumTitle(currentAccount, chat):chat.title, null, q);
+                                    dialogSearchResult.name = idMatch ? chat.title : AndroidUtilities.generateSearchName(chat.monoforum ? ForumUtilities.getMonoForumTitle(currentAccount, chat):chat.title, null, q);
                                     dialogSearchResult.object = chat;
                                     resultCount++;
                                 }
@@ -18625,8 +18640,11 @@ public class MessagesStorage extends BaseController {
                     if (usernamePos != -1) {
                         username = name.substring(usernamePos + 3);
                     }
-                    int found = 0;
+                    int found = numericSearchId > 0 && uid == numericSearchId ? 3 : 0;
                     for (String q : search) {
+                        if (found != 0) {
+                            break;
+                        }
                         if (name.startsWith(q) || name.contains(" " + q) || tName != null && (tName.startsWith(q) || tName.contains(" " + q))) {
                             found = 1;
                         } else if (username != null && username.startsWith(q)) {
@@ -18642,8 +18660,10 @@ public class MessagesStorage extends BaseController {
                                 }
                                 if (found == 1) {
                                     resultArrayNames.add(AndroidUtilities.generateSearchName(user.first_name, user.last_name, q));
-                                } else {
+                                } else if (found == 2) {
                                     resultArrayNames.add(AndroidUtilities.generateSearchName("@" + UserObject.getPublicUsername(user), null, "@" + q));
+                                } else {
+                                    resultArrayNames.add(ContactsController.formatName(user.first_name, user.last_name));
                                 }
                                 resultArray.add(user);
                             }
