@@ -1089,7 +1089,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             emojiStatusDrawable.setColor(Theme.getColor(Theme.key_profile_verifiedBackground, resourcesProvider));
             if (emojiStatusId != null) {
                 emojiStatusDrawable.set(emojiStatusId, false);
-            } else if (user != null && user.premium) {
+            } else if (app.nimarkogram.messenger.local.LocalPremium.showBadge(account, user)) {
                 emojiStatusDrawable.set(getContext().getResources().getDrawable(R.drawable.msg_premium_liststar).mutate(), false);
             } else {
                 emojiStatusDrawable.set((Drawable) null, false);

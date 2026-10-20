@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LC_Premium">Локальный Premium</string>
+    <string name="LC_PremiumInfo">Звезда Premium в своём профиле и меню аккаунтов на этом устройстве. Включает поддержку локальных кастомных эмодзи. Серверные возможности подписки зависят от вашего аккаунта Telegram.</string>
+    <string name="LC_Pins">Локальные закрепы</string>
+    <string name="LC_Pin">Закрепить локально</string>
+    <string name="LC_Unpin">Открепить локально</string>
+    <string name="LC_PinsInfo">Локальные закрепы без лимита хранятся на этом устройстве и идут после закрепов Telegram. Управляйте ими в меню предпросмотра чата или в меню выделенных чатов.</string>
+    <string name="LC_AccountsInfo">LinkiGram поддерживает до 15 аккаунтов на этом устройстве.</string>
+</resources>

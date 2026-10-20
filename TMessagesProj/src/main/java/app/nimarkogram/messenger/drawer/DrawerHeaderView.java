@@ -300,7 +300,7 @@ public class DrawerHeaderView extends FrameLayout {
         }
 
         final long emojiStatusId = DialogObject.getEmojiStatusDocumentId(user.emoji_status);
-        final boolean premium = MessagesController.getInstance(account).isPremiumUser(user);
+        final boolean premium = app.nimarkogram.messenger.local.LocalPremium.showBadge(account, user);
         final int statusColor = Theme.getColor(COLOR_KEY_STATUS);
         if (emojiStatusId != 0) {
             premiumStatusDrawable.set(emojiStatusId, true);

@@ -111,7 +111,7 @@ public class LiteMode {
                 if (!lastPowerSaverApplied) {
                     onPowerSaverApplied(lastPowerSaverApplied = true);
                 }
-                return PRESET_POWER_SAVER;
+                return powerSaverValue();
             }
             if (lastPowerSaverApplied) {
                 onPowerSaverApplied(lastPowerSaverApplied = false);
@@ -322,9 +322,9 @@ public class LiteMode {
 
     private static void onPowerSaverApplied(boolean powerSaverApplied) {
         if (powerSaverApplied) {
-            onFlagsUpdate(getValue(true), PRESET_POWER_SAVER);
+            onFlagsUpdate(getValue(true), powerSaverValue());
         } else {
-            onFlagsUpdate(PRESET_POWER_SAVER, getValue(true));
+            onFlagsUpdate(powerSaverValue(), getValue(true));
         }
         if (onPowerSaverAppliedListeners != null) {
             AndroidUtilities.runOnUIThread(() -> {
@@ -337,6 +337,11 @@ public class LiteMode {
                 }
             });
         }
+    }
+
+    private static int powerSaverValue() {
+        // Glass follows the user's saved switch even when automatic saving starts.
+        return PRESET_POWER_SAVER | (value & FLAG_LIQUID_GLASS);
     }
 
     private static void onFlagsUpdate(int oldValue, int newValue) {

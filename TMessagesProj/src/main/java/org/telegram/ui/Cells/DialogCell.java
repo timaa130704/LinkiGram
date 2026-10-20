@@ -3315,6 +3315,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         } else {
                             drawPin = currentDialogFolderId == 0 && dialog.pinned;
                         }
+                        drawPin |= app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, dialog.id);
                         if (message != null) {
                             lastSendState = message.messageOwner.send_state;
                         }

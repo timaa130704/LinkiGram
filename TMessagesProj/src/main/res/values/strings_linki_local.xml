@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LC_Premium">Local Premium</string>
+    <string name="LC_PremiumInfo">Show a Premium star on your own profile and in the account menu on this device. Enables local custom emoji support. Server subscription features remain tied to your Telegram account.</string>
+    <string name="LC_Pins">Local pins</string>
+    <string name="LC_Pin">Pin locally</string>
+    <string name="LC_Unpin">Unpin locally</string>
+    <string name="LC_PinsInfo">Local pins have no count limit and stay on this device. They appear below synced Telegram pins. Hold a chat preview or select chats and open the menu to manage them.</string>
+    <string name="LC_AccountsInfo">LinkiGram supports up to 15 accounts on this device.</string>
+</resources>

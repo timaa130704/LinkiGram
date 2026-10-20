@@ -2046,9 +2046,15 @@ public final class NimarkoConfig {
     public static int mainTabsTintColor = getPreferences().getInt("mainTabsTintColor", 0);
     public static void setMainTabsTintColor(int color) { mainTabsTintColor = color; getEditor().putInt("mainTabsTintColor", color).apply(); }
 
-    /** Linki Ass — принудительно включает жидкое стекло (шапка чата, панель ввода, кнопки, нижние табы). */
+    /** Legacy plugin API. The actual glass state is now stored exclusively in LiteMode. */
+    @Deprecated
     public static boolean linkiAss = getPreferences().getBoolean("linkiAss", true);
-    public static void toggleLinkiAss() { linkiAss = !linkiAss; getEditor().putBoolean("linkiAss", linkiAss).apply(); }
+    @Deprecated
+    public static void toggleLinkiAss() {
+        org.telegram.messenger.LiteMode.toggleFlag(org.telegram.messenger.LiteMode.FLAG_LIQUID_GLASS);
+        linkiAss = org.telegram.messenger.LiteMode.isEnabledSetting(org.telegram.messenger.LiteMode.FLAG_LIQUID_GLASS);
+        getEditor().putBoolean("linkiAss", linkiAss).apply();
+    }
 
     /** 0 = как в оригинале, 1..5 = всё более прозрачное стекло в чате (шапка + панель ввода). */
     public static int chatGlassLevel = getPreferences().getInt("chatGlassLevel", 0);

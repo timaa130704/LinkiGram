@@ -20,7 +20,7 @@ public final class NimarkoLocalEmoji {
 
     public static boolean canUse(int account) {
         try {
-            return NimarkoConfig.localPremiumEmojis
+            return (NimarkoConfig.localPremiumEmojis || app.nimarkogram.messenger.local.LocalPremium.isEnabled(account))
                     && !UserConfig.getInstance(account).isPremium();
         } catch (Throwable t) {
             return false;

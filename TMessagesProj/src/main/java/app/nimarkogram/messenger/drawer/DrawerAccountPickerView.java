@@ -436,11 +436,7 @@ public class DrawerAccountPickerView extends FrameLayout {
         return getAvailableAccountForAdd() != null;
     }
 
-    /**
-     * exteraGram: {@code freeAccountsForAdd()} — без премиума доступна лишь половина слотов.
-     * У exteraGram {@code MAX_ACCOUNT_COUNT} = 16 и вычитается 8; у нас константа 10,
-     * поэтому вычитается её половина.
-     */
+    /** All local account slots are available in LinkiGram. */
     private int freeAccountsForAdd() {
         int free = 0;
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
@@ -448,7 +444,7 @@ public class DrawerAccountPickerView extends FrameLayout {
                 free++;
             }
         }
-        return UserConfig.hasPremiumOnAccounts() ? free : free - UserConfig.MAX_ACCOUNT_COUNT / 2;
+        return free;
     }
 
     private Integer getAvailableAccountForAdd() {
@@ -557,7 +553,7 @@ public class DrawerAccountPickerView extends FrameLayout {
 
             final int statusColor = Theme.getColor(COLOR_KEY_STATUS);
             final long emojiStatusId = DialogObject.getEmojiStatusDocumentId(user.emoji_status);
-            final boolean premium = MessagesController.getInstance(account).isPremiumUser(user);
+            final boolean premium = app.nimarkogram.messenger.local.LocalPremium.showBadge(account, user);
             Drawable rightDrawable = null;
             if (emojiStatusId != 0) {
                 premiumStatusDrawable.set(emojiStatusId, false);

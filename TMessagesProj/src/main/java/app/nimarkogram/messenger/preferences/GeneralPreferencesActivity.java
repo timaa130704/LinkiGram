@@ -82,6 +82,7 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
     private final int sendOriginalPhotoRow = 31;
     private final int sleepTimerRow = 34;
     private final int aiAutoReplyRow = 35;
+    private final int localPremiumRow = 36;
     private final int lastfmNickRow = 32;
     private final int xcfgTabRow = 33;
 
@@ -218,6 +219,8 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
         items.add(SettingsHelper.asSwitchCG(deletedGiftsRow, getString(R.string.NM_GEN_DeletedGifts), getString(R.string.NM_GEN_DeletedGifts_Desc))
                 .setChecked(NimarkoConfig.deletedGiftsInject)
         );
+        items.add(SettingsHelper.asSwitchCG(localPremiumRow, getString(R.string.LC_Premium), getString(R.string.LC_PremiumInfo))
+                .setChecked(app.nimarkogram.messenger.local.LocalPremium.isEnabled(currentAccount)));
         items.add(SettingsHelper.asSwitchCG(localPremiumEmojisRow, getString(R.string.NM_GEN_LocalPremiumEmoji), getString(R.string.NM_GEN_LocalPremiumEmoji_Desc))
                 .setChecked(NimarkoConfig.localPremiumEmojis)
         );
@@ -440,6 +443,12 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
                             .postNotificationName(org.telegram.messenger.NotificationCenter.starGiftsLoaded);
                 } catch (Throwable ignored) {}
             }
+        } else if (item.id == localPremiumRow) {
+            app.nimarkogram.messenger.local.LocalPremium.toggle(currentAccount);
+            SettingsHelper.updateCheckState(view, app.nimarkogram.messenger.local.LocalPremium.isEnabled(currentAccount));
+            getNotificationCenter().postNotificationName(org.telegram.messenger.NotificationCenter.updateInterfaces,
+                    org.telegram.messenger.MessagesController.UPDATE_MASK_EMOJI_STATUS);
+            if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
         } else if (item.id == localPremiumEmojisRow) {
             NimarkoConfig.toggleLocalPremiumEmojis();
             SettingsHelper.updateCheckState(view, NimarkoConfig.localPremiumEmojis);

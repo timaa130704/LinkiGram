@@ -65,7 +65,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
 
     private final int notificationSoundRow = 70, vibrateInChatsRow = 71;
 
-    private final int messageMenuRow = 80, messageFilterRow = 81;
+    private final int messageMenuRow = 80, messageFilterRow = 81, localPinsInfoRow = 82;
 
     @Override
     protected CharSequence getTitle() {
@@ -183,6 +183,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asButton(directShareRow, R.drawable.msg_share, getString(R.string.DirectShare)));
+        items.add(UItem.asButton(localPinsInfoRow, R.drawable.msg_pin, getString(R.string.LC_Pins)));
         items.add(UItem.asButton(messageMenuRow, R.drawable.msg_list, getString(R.string.CP_MessageMenu)));
         items.add(UItem.asButton(messageFilterRow, R.drawable.msg_notspam, getString(R.string.CP_Message_Filtering)));
         items.add(UItem.asShadow(null));
@@ -192,7 +193,11 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
     public void onClick(UItem item, View view, int position, float x, float y) {
         final int id = item.id;
         
-        if (id == sortByUnreadRow) {
+        if (id == localPinsInfoRow) {
+            showDialog(new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity())
+                    .setTitle(getString(R.string.LC_Pins)).setMessage(getString(R.string.LC_PinsInfo))
+                    .setPositiveButton(getString(R.string.OK), null).create());
+        } else if (id == sortByUnreadRow) {
             NimarkoConfig.toggleSortByUnread();
             updateCheckState(view, NimarkoConfig.sortByUnread);
             MessagesController.getInstance(currentAccount).sortDialogs(null);

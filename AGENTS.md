@@ -1102,3 +1102,34 @@ the removed duplicate launcher icon picker.
 Install attempt is pending: adb did not list RF8MA188NFZ after starting the
 server. The device was authorized earlier; retry adb install -r when it reconnects.
 No UI smoke check yet. No release or push notification sent.
+
+### Settings crash, Glass and local features — 2026-10-20
+
+Search APK 202602039 installed on RF8MA188NFZ, then Settings entry reproduced a
+Resources.NotFoundException from LinkiSettingsSearch.englishLabel (alternate EN
+resource context cannot resolve the synthetic string IDs). English labels are now
+generated into Java from default XML resources. First fix build 39424202650 failed
+because R IDs are non-final and cannot be Java switch cases; replaced that switch
+with a SparseArray table. Generator includes 402 entries in 29 sections now.
+
+Glass toggles now use the stored setting even during power saving. Automatic
+power saving preserves the saved Glass bit. Appearance and Background screens
+share LiteMode.FLAG_LIQUID_GLASS; the legacy linkiAss flag no longer independently
+forces the message menu style. Legacy toggleLinkiAss plugin API delegates to it.
+
+User clarified local Premium means device-only. LocalPremium stores a per-user,
+per-backend cosmetic badge flag and enables the existing local emoji encoding;
+it never edits TLRPC.User.premium or server entitlement checks. Toggle under
+LinkiGram General. Badge wired to own profile/settings/drawer account displays.
+
+LocalChatPins stores unlimited pin IDs/order per Telegram user and backend,
+independent of account slot reuse. Both native comparators sort these AFTER cloud
+pins, preserving the contiguous cloud pin block used by sync/reorder algorithms.
+No protocol pinned fields or cloud filter lists are mutated. Separate local
+pin/unpin commands in preview and selected-chat menus. Pin icon displayed in list.
+
+Java account slots increased to 15 (native already supports 16); default and max
+slot counts agree. Drawer account picker no longer reserves half the slots;
+account profile info reflects 15 slots. Version code 20260204 (APK 202602049).
+Static Java delimiters/new resource symbols/EN-RU XML/native capacity checked.
+Build, APK install and device UI verification still pending. No release or push.

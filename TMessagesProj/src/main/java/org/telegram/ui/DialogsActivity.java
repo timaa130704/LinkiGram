@@ -719,6 +719,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private final static int add_to_folder = 109;
     private final static int remove_from_folder = 110;
     private final static int community_ungroup = 111;
+    private final static int local_pin = 112;
+    private final static int local_unpin = 113;
 
     private final static int ARCHIVE_ITEM_STATE_PINNED = 0;
     private final static int ARCHIVE_ITEM_STATE_SHOWED = 1;
@@ -4059,6 +4061,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         undoView.showWithAction(did, UndoView.ACTION_REMOVED_FROM_FOLDER, neverShow.size(), filter, null, null);
                     }
                     hideActionMode(false);
+                } else if (id == local_pin || id == local_unpin) {
+                    setLocalChatPins(new ArrayList<>(selectedDialogs), id == local_pin);
+                    hideActionMode(true);
                 } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2) {
                     performSelectedDialogsAction(selectedDialogs, id, true, false);
                 }
@@ -6808,6 +6813,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         actionMode.addView(new View(getContext()), LayoutHelper.createLinear(5, LayoutHelper.MATCH_PARENT));
         archiveItem = otherItem.addSubItem(archive, R.drawable.msg_archive, LocaleController.getString(R.string.Archive));
         pin2Item = otherItem.addSubItem(pin2, R.drawable.msg_pin, LocaleController.getString(R.string.DialogPin));
+        otherItem.addSubItem(local_pin, R.drawable.msg_pin, LocaleController.getString(R.string.LC_Pin));
+        otherItem.addSubItem(local_unpin, R.drawable.msg_unpin, LocaleController.getString(R.string.LC_Unpin));
         addToFolderItem = otherItem.addSubItem(add_to_folder, R.drawable.msg_addfolder, LocaleController.getString(R.string.FilterAddTo));
         removeFromFolderItem = otherItem.addSubItem(remove_from_folder, R.drawable.msg_removefolder, LocaleController.getString(R.string.FilterRemoveFrom));
         readItem = otherItem.addSubItem(read, R.drawable.msg_markread, LocaleController.getString(R.string.MarkAsRead));
@@ -8786,6 +8793,23 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             hasPinAction[0] = !(newPinnedSecretCount + pinnedSecretCount > maxPinnedCount || newPinnedCount + pinnedCount - alreadyAdded > maxPinnedCount);
         }
 
+        if (dialog != null && !(dialog instanceof TLRPC.TL_dialogFolder)) {
+            final boolean locallyPinned = app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, dialogId);
+            ActionBarMenuSubItem localPinItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
+            localPinItem.setTextAndIcon(LocaleController.getString(locallyPinned ? R.string.LC_Unpin : R.string.LC_Pin),
+                    locallyPinned ? R.drawable.msg_unpin : R.drawable.msg_pin);
+            localPinItem.setMinimumWidth(160);
+            localPinItem.setOnClickListener(v -> {
+                finishPreviewFragment();
+                AndroidUtilities.runOnUIThread(() -> {
+                    ArrayList<Long> ids = new ArrayList<>();
+                    ids.add(dialogId);
+                    setLocalChatPins(ids, !locallyPinned);
+                }, 100);
+            });
+            previewMenu[0].addView(localPinItem);
+        }
+
         if (hasPinAction[0]) {
             ActionBarMenuSubItem unpinItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
             if (isDialogPinned(dialog)) {
@@ -9218,6 +9242,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return filter.pinnedDialogs.indexOfKey(dialog.id) >= 0;
         }
         return dialog.pinned;
+    }
+
+    private void setLocalChatPins(ArrayList<Long> ids, boolean pinned) {
+        for (Long id : ids) {
+            TLRPC.Dialog dialog = getMessagesController().dialogs_dict.get(id);
+            if (dialog != null && !(dialog instanceof TLRPC.TL_dialogFolder)) {
+                app.nimarkogram.messenger.local.LocalChatPins.setPinned(currentAccount, id, pinned);
+            }
+        }
+        getMessagesController().sortDialogs(null);
+        getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+        updateVisibleRows(MessagesController.UPDATE_MASK_REORDER);
     }
 
     private void performSelectedDialogsAction(ArrayList<Long> selectedDialogs, int action, boolean alert, boolean longPress) {

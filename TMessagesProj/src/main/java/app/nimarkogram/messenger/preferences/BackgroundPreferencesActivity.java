@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.LiteMode;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -60,7 +62,7 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
 
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_GLASS_Header)));
         arrayList.add(UItem.asCheck(ID_LIQUID_GLASS, LocaleController.getString(R.string.NM_GLASS_Liquid))
-                .setChecked(NimarkoConfig.linkiAss));
+                .setChecked(LiteMode.isEnabledSetting(LiteMode.FLAG_LIQUID_GLASS)));
         arrayList.add(UItem.asShadow(LocaleController.getString(R.string.NM_GLASS_Liquid_Desc)));
         arrayList.add(UItem.asButton(ID_CHAT_GLASS, LocaleController.getString(R.string.NM_GLASS_ChatLevel)
                 + " · " + (NimarkoConfig.chatGlassLevel == 0
@@ -84,9 +86,10 @@ public class BackgroundPreferencesActivity extends BasePreferencesActivity {
                 listView.adapter.update(true);
             }
         } else if (id == ID_LIQUID_GLASS) {
-            NimarkoConfig.toggleLinkiAss();
-            applyCheck(item, view, NimarkoConfig.linkiAss);
+            LiteMode.toggleFlag(LiteMode.FLAG_LIQUID_GLASS);
+            applyCheck(item, view, LiteMode.isEnabledSetting(LiteMode.FLAG_LIQUID_GLASS));
             rebuildAll();
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
         } else if (id == ID_CHAT_GLASS) {
             NimarkoConfig.cycleChatGlassLevel();
             if (listView != null && listView.adapter != null) {
