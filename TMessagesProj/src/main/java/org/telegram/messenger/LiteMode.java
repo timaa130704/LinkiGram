@@ -162,7 +162,9 @@ public class LiteMode {
     }
 
     public static void toggleFlag(int flag) {
-        toggleFlag(flag, !isEnabled(flag));
+        // User settings must toggle the persisted value, not the temporary value
+        // returned while battery saver is forcing every flag off.
+        toggleFlag(flag, !isEnabledSetting(flag));
     }
 
     public static void toggleFlag(int flag, boolean enabled) {
