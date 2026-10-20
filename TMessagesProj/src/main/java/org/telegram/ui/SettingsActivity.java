@@ -537,12 +537,12 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         avatarView.setForUserOrChat(user, avatarDrawable);
         titleView.setText(UserObject.getUserName(user));
         final StringBuilder sb = new StringBuilder();
-        if (user != null) {
+        if (user != null && !app.nimarkogram.messenger.LinkiPrivacy.hidePhone()) {
             sb.append(PhoneFormat.getInstance().format("+" + user.phone));
         }
         final String username = UserObject.getPublicUsername(user);
         if (username != null) {
-            sb.append(" • @").append(username);
+            sb.append(sb.length() == 0 ? "@" : " • @").append(username);
         }
         subtitleView.setText(sb);
 

@@ -18146,7 +18146,6 @@ public class MessagesController extends BaseController implements NotificationCe
                                 getNotificationCenter().postNotificationName(NotificationCenter.updateInterfaces, UPDATE_MASK_USER_PRINT);
                             }
                             updateInterfaceWithMessages(userId, objArr, 0);
-                            app.nimarkogram.messenger.ai.AutoReplyController.get(currentAccount).onLive(userId, objArr);
                             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
                         });
                     } else {
@@ -18160,7 +18159,6 @@ public class MessagesController extends BaseController implements NotificationCe
                             }
 
                             updateInterfaceWithMessages(-updates.chat_id, objArr, 0);
-                            app.nimarkogram.messenger.ai.AutoReplyController.get(currentAccount).onLive(-updates.chat_id, objArr);
                             getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
                         });
                     }
@@ -21059,7 +21057,6 @@ public class MessagesController extends BaseController implements NotificationCe
                 for (int a = 0, size = messagesFinal.size(); a < size; a++) {
                     long key = messagesFinal.keyAt(a);
                     ArrayList<MessageObject> value = messagesFinal.valueAt(a);
-                    if (!fromGetDifference) app.nimarkogram.messenger.ai.AutoReplyController.get(currentAccount).onLive(key, value);
                     if (updateInterfaceWithMessages(key, value, 0)) {
                         sorted = true;
                     }
@@ -22105,7 +22102,6 @@ public class MessagesController extends BaseController implements NotificationCe
         if (mode == ChatActivity.MODE_DEFAULT) {
             for (MessageObject message : messages) {
                 if (message.isOut()) {
-                    app.nimarkogram.messenger.ai.AutoReplyController.get(currentAccount).onLocalOutgoing(dialogId);
                     break;
                 }
             }

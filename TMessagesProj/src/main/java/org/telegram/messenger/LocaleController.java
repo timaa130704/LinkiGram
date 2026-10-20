@@ -2599,6 +2599,13 @@ public class LocaleController {
 
     public static String formatDateOnline(long date, boolean[] madeShorter) {
         try {
+            // Relative last seen display, following exteraless (GPL-2.0).
+            if (app.nimarkogram.messenger.LinkiPrivacy.relativeLastSeen()) {
+                long elapsed = Math.max(0, System.currentTimeMillis() / 1000 - date);
+                if (elapsed < 60) return getString(R.string.LastSeenNow);
+                if (elapsed < 3600) return formatPluralString("CG_LastSeenMinutes", (int) (elapsed / 60));
+                if (elapsed < 86400) return formatPluralString("CG_LastSeenHours", (int) (elapsed / 3600));
+            }
             date *= 1000;
             Calendar rightNow = Calendar.getInstance();
             int day = rightNow.get(Calendar.DAY_OF_YEAR);

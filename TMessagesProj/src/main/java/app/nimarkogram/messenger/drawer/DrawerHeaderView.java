@@ -293,6 +293,8 @@ public class DrawerHeaderView extends FrameLayout {
         final String username = DialogObject.getPublicUsername(user);
         if (username != null && !username.isEmpty()) {
             subtitleView.setText("@".concat(username));
+        } else if (app.nimarkogram.messenger.LinkiPrivacy.hidePhone()) {
+            subtitleView.setText("");
         } else if (user.phone == null || user.phone.isEmpty()) {
             subtitleView.setText(LocaleController.getString(R.string.NumberUnknown));
         } else {

@@ -14,7 +14,7 @@ names=['Main','General','Appearance','Chats','Camera','Privacy','AyuMoments','Me
        'Experimental','NimarkoTextAnim','Background','MessageMenuItems','Drawer']
 specs=[(PREF+n+'PreferencesActivity.java',None,None) for n in names]
 specs += [(PREF+'ScreenAppearanceActivity.java','LF_DrawerStyle','new ScreenAppearanceActivity("drawer")'),
-          (PREF+'AutoReplyPreferencesActivity.java','AR_Title','new AutoReplyPreferencesActivity(account, 0)'),
+          ('app/exteraless/ai/ui/AiSettingsActivity.java','OEAiTitle','new app.exteraless.ai.ui.AiSettingsActivity()'),
           ('app/nimarkogram/messenger/infocards/preferences/InfoCardsPreferencesActivity.java',None,None),
           ('app/nimarkogram/messenger/wsbypass/preferences/WsBypassPreferencesActivity.java',None,None)]
 # Non-universal settings pages are indexed as sections; these use their own list adapters.
@@ -61,6 +61,10 @@ for file,title,factory in specs:
  factory=factory or 'new '+fullcls+'()'
  emit(cls,title,title,factory)
  if cls=='MainPreferencesActivity':continue
+ if cls=='AiSettingsActivity':
+  for key in dict.fromkeys(re.findall(r'R\.string\.(OEAi\w+)',s)):
+   emit(cls,title,key,factory)
+  continue
  fill=body(s,r'\bvoid\s+fillItems\s*\(')
  if cls=='AutoReplyPreferencesActivity':fill=fill[fill.index('items.add(UItem.asButton(1,'):]
  for key in calls(fill):emit(cls,title,key,factory)

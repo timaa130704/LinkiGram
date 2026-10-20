@@ -132,6 +132,12 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         ImageView icon = new ImageView(context);
         icon.setImageResource(R.drawable.linkigram_about_icon);
         icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        icon.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setOval(0, 0, view.getWidth(), view.getHeight());
+            }
+        });
+        icon.setClipToOutline(true);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(AndroidUtilities.dp(88), AndroidUtilities.dp(88));
         iconParams.bottomMargin = AndroidUtilities.dp(14);
         header.addView(icon, iconParams);

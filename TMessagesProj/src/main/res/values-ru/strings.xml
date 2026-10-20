@@ -1524,4 +1524,96 @@
     <string name="NM_GhostSettings">Настройки призрака</string>
     <string name="NM_GhostNothingHidden">Скрытые действия не включены</string>
     <string name="NM_GhostChatScope">Исключение разрешает отметки прочтения, набор текста, запись и просмотры историй. Онлайн скрывается для всего аккаунта. Сеанс скрытого просмотра историй остаётся скрытым.</string>
+<string name="OEAiTitle">ИИ-ассистент</string>
+
+<string name="OEAiServiceHeader">Сервис</string>
+
+<string name="OEAiProvider">Провайдер</string>
+
+<string name="OEAiProviderCustom">Свой</string>
+
+<string name="OEAiUrl">Адрес</string>
+
+<string name="OEAiModel">Модель</string>
+
+<string name="OEAiKey">Ключ API</string>
+
+<string name="OEAiKeyNotSet">не задан</string>
+
+<string name="OEAiReasoning">Рассуждение</string>
+
+<string name="OEAiServiceInfo">Подойдёт любой OpenAI-совместимый адрес. Ключ хранится только на этом устройстве и уходит на тот адрес, который вы указали.</string>
+
+<string name="OEAiGetKey">Получить ключ</string>
+
+<string name="OEAiTest">Проверить соединение</string>
+
+<string name="OEAiTestOk">работает</string>
+
+<string name="OEAiTemperatureExact">Точнее</string>
+
+<string name="OEAiTemperatureVaried">Разнообразнее</string>
+
+<string name="OEAiModelsEmpty">Провайдер не отдал список моделей</string>
+
+<string name="OEAiModelSearchOrEnter">Поиск или имя модели</string>
+
+<string name="OEAiModelUseCustom">Использовать эту модель</string>
+
+<string name="OEAiReasoningOff">Выключено</string>
+
+<string name="OEAiReasoningLow">Слабое</string>
+
+<string name="OEAiReasoningMedium">Среднее</string>
+
+<string name="OEAiReasoningHigh">Сильное</string>
+
+<string name="OEAiGenerationHeader">Генерация</string>
+
+<string name="OEAiRole">Роль</string>
+
+<string name="OEAiTemperature">Температура</string>
+
+<string name="OEAiStreaming">Показывать ответ по мере генерации</string>
+
+<string name="OEAiSaveHistory">Хранить историю переписки</string>
+
+<string name="OEAiClearHistory">Очистить историю</string>
+
+<string name="OEAiHistoryCleared">История очищена</string>
+
+<string name="OEAiGenerationInfo">Чем ниже температура, тем ровнее ответы; чем выше — тем разнообразнее.</string>
+
+<string name="OEAiThinking">Думает…</string>
+
+<string name="OEAiNotConfigured">Сначала укажите адрес, модель и ключ API</string>
+
+<string name="OEAiStop">Остановить</string>
+
+<string name="OEAiInsert">Вставить</string>
+
+<string name="OEAiFailed">Запрос не прошёл</string>
+
+<string name="OEAiPresets">Эндпоинт и модель</string>
+
+<string name="OEAiPresetSave">Сохранить текущую пару</string>
+
+<string name="OEAiPresetName">Название пары</string>
+
+<string name="OEAiRoleAdd">Добавить свою</string>
+
+<string name="OEAiRoleName">Название</string>
+
+<string name="OEAiRolePrompt">Указание для модели</string>
+
+<string name="OEAiThoughtTime">Думал %1$d с</string>
+
+<string name="OEAiDetails">Подробности</string>
+
+<string name="OEAiDisableTools">Отключить инструменты</string>
+
+<string name="OEAiDisableToolsInfo">Проверка плагина уходит одним запросом, как раньше: только первые 48 КБ кода, встроенные данные не расшифровываются</string>
+
+<string name="LinkiRelativeLastSeen">Относительное время в сети</string>
+<string name="LinkiHidePhone">Скрывать свой номер на этом устройстве</string>
 </resources>

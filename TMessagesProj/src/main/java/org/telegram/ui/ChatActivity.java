@@ -4467,7 +4467,7 @@ public class ChatActivity extends BaseFragment implements
             }
             headerItem = menu.addItem(chat_menu_options, otherIcon);
             if (currentEncryptedChat == null && (currentUser != null && !currentUser.bot && !currentUser.self || currentChat != null && (!ChatObject.isChannel(currentChat) || currentChat.megagroup) && !currentChat.monoforum)) {
-                headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.AR_Title));
+                headerItem.lazilyAddSubItem(9876, R.drawable.msg_settings, getString(R.string.OEAiTitle));
             }
             headerItem.setSubMenuDelegate(new ActionBarMenuItem.ActionBarSubMenuItemDelegate() {
                 @Override
@@ -33706,6 +33706,17 @@ public class ChatActivity extends BaseFragment implements
     }
 
     public void processSelectedOption(int option) {
+        if (option == 9877) {
+            if (selectedObject != null && getParentActivity() != null) {
+                app.exteraless.ai.ui.AiResponseSheet.show(getParentActivity(), themeDelegate,
+                        getMessageContent(selectedObject, 0, false).toString(), true, text -> {
+                            if (chatActivityEnterView != null) chatActivityEnterView.setFieldText(text);
+                        });
+            }
+            closeMenu();
+            return;
+        }
+
         if (selectedObject == null || getParentActivity() == null) {
             return;
         }
@@ -46219,6 +46230,12 @@ public class ChatActivity extends BaseFragment implements
         ArrayList<Integer> options
     ) {
         final MessageObject message = selectedObject;
+        if (message != null && app.exteraless.ai.AiController.canUseAI()
+                && !TextUtils.isEmpty(message.messageText)) {
+            items.add(getString(R.string.OEAiAsk));
+            options.add(9877);
+            icons.add(R.drawable.msg_discussion);
+        }
         final MessageObject.GroupedMessages groupedMessages = selectedObjectGroup;
         final int type = getMessageType(message);
         final boolean isEphemeral = message.isEphemeral();

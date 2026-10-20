@@ -146,7 +146,11 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
-        items.add(UItem.asButton(aiAutoReplyRow, getString(R.string.AR_Title), ""));
+        items.add(UItem.asButton(aiAutoReplyRow, getString(R.string.OEAiTitle), ""));
+        items.add(SettingsHelper.asSwitchCG(91001, getString(R.string.LinkiRelativeLastSeen))
+                .setChecked(app.nimarkogram.messenger.LinkiPrivacy.relativeLastSeen()));
+        items.add(SettingsHelper.asSwitchCG(91002, getString(R.string.LinkiHidePhone))
+                .setChecked(app.nimarkogram.messenger.LinkiPrivacy.hidePhone()));
         items.add(UItem.asHeader(getString(R.string.LiteMode)));
         items.add(UItem.asButton(springAnimationRow, getString(R.string.EP_NavigationAnimation), getSpringValue()));
         if (NimarkoConfig.springAnimation == NimarkoConfig.SPRING_SPRING) {
@@ -278,6 +282,11 @@ public class GeneralPreferencesActivity extends NimarkoUniversalPreferencesActiv
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == 91001 || item.id == 91002) {
+            app.nimarkogram.messenger.LinkiPrivacy.toggle(item.id == 91001 ? "linkiRelativeLastSeen" : "linkiHidePhone");
+            listView.adapter.update(true);
+            return;
+        }
         if (item.id == aiAutoReplyRow) {
             presentFragment(new AutoReplyPreferencesActivity(currentAccount, 0));
         } else if (item.id == sleepTimerRow) {
