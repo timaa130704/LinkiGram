@@ -361,7 +361,12 @@ public final class NimarkoMediaDownloader {
     }
 
     public static String download(String fileUrl, String suggestedName) {
+        return download(fileUrl, suggestedName, TELEGRAM_UPLOAD_LIMIT_BYTES);
+    }
+
+    public static String download(String fileUrl, String suggestedName, long maxBytes) {
         if (fileUrl == null || fileUrl.isEmpty()) return null;
+        if (maxBytes <= 0) return null;
         File out = null;
         boolean complete = false;
         try {
@@ -386,7 +391,7 @@ public final class NimarkoMediaDownloader {
                     return null;
                 }
                 long declaredLength = resp.body().contentLength();
-                if (declaredLength > TELEGRAM_UPLOAD_LIMIT_BYTES) {
+                if (declaredLength > maxBytes) {
                     FileLog.e("nimarko-media: response exceeds upload limit: " + declaredLength);
                     return null;
                 }
@@ -398,7 +403,7 @@ public final class NimarkoMediaDownloader {
                     while ((n = in.read(buf)) > 0) {
                         fos.write(buf, 0, n);
                         total += n;
-                        if (total > TELEGRAM_UPLOAD_LIMIT_BYTES) {
+                        if (total > maxBytes) {
                             
                             fos.flush();
                             return null;

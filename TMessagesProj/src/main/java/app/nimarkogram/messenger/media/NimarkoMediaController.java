@@ -15,6 +15,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
@@ -177,6 +178,9 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
 
     public int interceptOutgoingMessage(CharSequence text, ChatActivity chatActivity, SendOptions options) {
         if (!NimarkoConfig.nimarkoMediaAuto) return INTERCEPT_NONE;
+        if (NimarkoMediaDownloader.API_URL == null || NimarkoMediaDownloader.API_URL.trim().isEmpty()) {
+            return INTERCEPT_NONE;
+        }
         if (text == null || chatActivity == null) return INTERCEPT_NONE;
         String trimmed = text.toString().trim();
         if (trimmed.isEmpty()) return INTERCEPT_NONE;
@@ -419,8 +423,8 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
                              NimarkoMediaDownloader.Result result, String platform,
                              boolean isShorts, MessageObject replyTo) {
         String title = ("youtube".equals(platform) && !isShorts) ? result.title : null;
-        sendHyperlinkedMessage(request, account, dialogId, result.fileUrl, result.originalUrl,
-                title, false, replyTo, () -> successBulletin(fragmentForBulletins, result.fromCache));
+        sendDownloadedFile(request, fragmentForBulletins, account, dialogId, result,
+                title, false, replyTo);
     }
 
     private void handleAudio(RequestContext request, BaseFragment fragmentForBulletins, int account, long dialogId,
@@ -432,8 +436,78 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
         } else {
             caption = result.title != null ? result.title : "";
         }
-        sendHyperlinkedMessage(request, account, dialogId, result.fileUrl, result.originalUrl,
-                caption, true, replyTo, () -> successBulletin(fragmentForBulletins, result.fromCache));
+        sendDownloadedFile(request, fragmentForBulletins, account, dialogId, result,
+                caption, true, replyTo);
+    }
+
+    private void sendDownloadedFile(RequestContext request, BaseFragment fragmentForBulletins,
+                                   int account, long dialogId, NimarkoMediaDownloader.Result result,
+                                   String caption, boolean audio, MessageObject replyTo) {
+        if (!isRequestIdentityValid(request, account)) {
+            clearInflight(request);
+            return;
+        }
+        long maxBytes = AccountInstance.getInstance(account).getUserConfig().isPremium()
+                ? FileLoader.DEFAULT_MAX_FILE_SIZE_PREMIUM : FileLoader.DEFAULT_MAX_FILE_SIZE;
+        String suggestedName = NimarkoMediaDownloader.suggestFileName(
+                null, audio ? "audio" : "video", caption);
+        String path = NimarkoMediaDownloader.download(result.fileUrl, suggestedName, maxBytes);
+        if (path == null) {
+            finishWithError(request, fragmentForBulletins,
+                    LocaleController.getString(R.string.NM_NM_GenericError));
+            return;
+        }
+        File downloaded = new File(path);
+        if (!FileLoader.checkUploadFileSize(account, downloaded.length())) {
+            NimarkoMediaDownloader.deleteIfUnowned(path);
+            finishWithError(request, fragmentForBulletins,
+                    LocaleController.getString(R.string.FileTooLarge));
+            return;
+        }
+        if (!isRequestIdentityValid(request, account)) {
+            NimarkoMediaDownloader.deleteIfUnowned(path);
+            clearInflight(request);
+            return;
+        }
+
+        AndroidUtilities.runOnUIThread(() -> {
+            if (!isRequestIdentityValid(request, account)) {
+                NimarkoMediaDownloader.deleteIfUnowned(path);
+                clearInflight(request);
+                return;
+            }
+            try {
+                SendMessagesHelper.SendingMediaInfo info = new SendMessagesHelper.SendingMediaInfo();
+                info.path = path;
+                info.isVideo = !audio;
+                info.caption = caption;
+                ArrayList<SendMessagesHelper.SendingMediaInfo> media = new ArrayList<>(1);
+                media.add(info);
+
+                ensureUploadObserver(account);
+                NimarkoMediaDownloader.markUploadOwned(path);
+                SendOptions options = request.options;
+                org.telegram.messenger.SendMessageChatArguments chatArguments =
+                        fragmentForBulletins instanceof ChatActivity
+                                ? ((ChatActivity) fragmentForBulletins).getMessageChatSendParams() : null;
+                int mode = fragmentForBulletins instanceof ChatActivity
+                        ? ((ChatActivity) fragmentForBulletins).getChatMode() : 0;
+                SendMessagesHelper.prepareSendingMedia(
+                        AccountInstance.getInstance(account), media, dialogId, replyTo,
+                        request.replyToTop, options.replyToStoryItem, options.replyQuote,
+                        audio, false, null, options.notify, options.scheduleDate,
+                        options.scheduleRepeatPeriod, mode, false, null, chatArguments,
+                        options.effectId, options.invertMedia, options.payStars,
+                        options.monoForumPeerId, options.suggestionParams);
+                successBulletin(fragmentForBulletins, result.fromCache);
+                clearInflight(request);
+            } catch (Throwable t) {
+                FileLog.e("nimarko-media: sendDownloadedFile failed", t);
+                NimarkoMediaDownloader.finishUploadOwnership(path);
+                finishWithError(request, fragmentForBulletins,
+                        LocaleController.getString(R.string.NM_NM_GenericError));
+            }
+        });
     }
 
     private void handleAlbum(RequestContext request, BaseFragment fragmentForBulletins, int account, long dialogId,
@@ -660,17 +734,6 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
         
         final int CHUNK = 10;
         int totalChunks = (photos.size() + CHUNK - 1) / CHUNK;
-        String sourceLabel = LocaleController.getString(R.string.NM_NM_Source);
-        String sourceCaption = "🔗 " + sourceLabel;
-        ArrayList<TLRPC.MessageEntity> sourceEntities = new ArrayList<>();
-        if (originalUrl != null && !originalUrl.isEmpty()) {
-            TLRPC.TL_messageEntityTextUrl e = new TLRPC.TL_messageEntityTextUrl();
-            e.offset = 3; 
-            e.length = sourceLabel.length();
-            e.url = originalUrl;
-            sourceEntities.add(e);
-        }
-
         SendMessagesHelper helper = SendMessagesHelper.getInstance(account);
         ensureUploadObserver(account);
         SendOptions options = request.options;
@@ -693,9 +756,8 @@ public final class NimarkoMediaController implements NotificationCenter.Notifica
                 sendParams.put("groupId", Long.toString(groupId));
                 if (isFinal) sendParams.put("final", "1");
 
-                String captionForThis = (isLast && isFinal) ? sourceCaption : null;
-                ArrayList<TLRPC.MessageEntity> entsForThis = (isLast && isFinal)
-                        ? sourceEntities : null;
+                String captionForThis = null;
+                ArrayList<TLRPC.MessageEntity> entsForThis = null;
                 MessageObject replyForThis = (chunkIdx == 0 && i == from) ? replyTo : null;
 
                 SendMessagesHelper.SendMessageParams params =

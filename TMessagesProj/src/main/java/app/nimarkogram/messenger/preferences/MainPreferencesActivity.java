@@ -1,9 +1,15 @@
 package app.nimarkogram.messenger.preferences;
 
 import android.os.Build;
+import android.content.Context;
 import android.text.Html;
 import android.text.SpannableString;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.Gravity;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import app.nimarkogram.messenger.plugins.PluginsController;
 import app.nimarkogram.messenger.plugins.ui.PluginsActivity;
@@ -19,6 +25,9 @@ import org.telegram.ui.SettingsActivity;
 import org.telegram.ui.Components.IconBackgroundColors;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.messenger.AndroidUtilities;
 
 public class MainPreferencesActivity extends BasePreferencesActivity {
 
@@ -59,7 +68,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> arrayList, UniversalAdapter universalAdapter) {
-        
+        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), AndroidUtilities.dp(216)));
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.AP_Header_General)));
         arrayList.add(category(ID_GENERAL, IconBackgroundColors.BLUE,
                 R.drawable.msg_settings_solar, R.string.NM_Cat_General, "nimarko_general"));
@@ -111,6 +120,47 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         String forkedSubRaw = LocaleController.getString(R.string.NM_HUB_ForkedFromCherrygramSub);
         arrayList.add(UItem.asButton(ID_EASTER, forkedSubRaw));
 
+    }
+
+    private View createAboutHeader(Context context) {
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER_HORIZONTAL);
+        header.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(R.mipmap.ic_launcher_round);
+        icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(AndroidUtilities.dp(88), AndroidUtilities.dp(88));
+        iconParams.bottomMargin = AndroidUtilities.dp(14);
+        header.addView(icon, iconParams);
+
+        TextView name = new TextView(context);
+        name.setText("LinkiGram");
+        name.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 23);
+        name.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        name.setGravity(Gravity.CENTER);
+        header.addView(name, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView version = new TextView(context);
+        String versionText = org.telegram.messenger.BuildVars.BUILD_VERSION_STRING;
+        try {
+            android.content.pm.PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            int buildCode = info.versionCode / 10;
+            versionText += " (" + buildCode + ")";
+        } catch (Exception ignore) {
+            // Keep the configured version visible if package metadata is unavailable.
+        }
+        version.setText(versionText);
+        version.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
+        version.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        version.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams versionParams = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        versionParams.topMargin = AndroidUtilities.dp(6);
+        header.addView(version, versionParams);
+
+        return header;
     }
 
     @Override

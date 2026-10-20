@@ -2188,6 +2188,20 @@ public class ChatActivity extends BaseFragment implements
         }
 
         @Override
+        public boolean onInterceptOutgoingMessage(CharSequence message, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars) {
+            app.nimarkogram.messenger.media.NimarkoMediaController.SendOptions options =
+                    new app.nimarkogram.messenger.media.NimarkoMediaController.SendOptions(
+                            notify, scheduleDate, scheduleRepeatPeriod, payStars, 0, 0,
+                            null, 0, getSendMonoForumPeerId(), getSendMessageSuggestionParams(),
+                            getReplyToStory(), getReplyQuote(),
+                            messagePreviewParams != null && messagePreviewParams.webpageTop
+                    );
+            return app.nimarkogram.messenger.media.NimarkoMediaController.getInstance()
+                    .interceptOutgoingMessage(message, ChatActivity.this, options)
+                    != app.nimarkogram.messenger.media.NimarkoMediaController.INTERCEPT_NONE;
+        }
+
+        @Override
         public void didPressStreamingStop() {
             BotForumHelper.getInstance(currentAccount).stopStreaming(dialog_id, (int) getTopicId());
             checkSendButtonBlockedByTyping(true);
@@ -33697,6 +33711,11 @@ public class ChatActivity extends BaseFragment implements
         }
         boolean preserveDim = false;
         switch (option) {
+            case app.nimarkogram.messenger.utils.chats.NimarkoChatActivityHelper.OPTION_NIMARKO_MEDIA_DOWNLOAD: {
+                app.nimarkogram.messenger.media.NimarkoMediaController.getInstance()
+                        .tryHandle(selectedObject, this);
+                break;
+            }
             case OPTION_RETRY: {
                 final MessageObject object = selectedObject;
                 final MessageObject.GroupedMessages group = selectedObjectGroup;
@@ -46845,6 +46864,9 @@ public class ChatActivity extends BaseFragment implements
             options.add(OPTION_WELCOME_REVERT);
             icons.add(R.drawable.outline_revert_24);
         }
+
+        app.nimarkogram.messenger.NimarkoMessageMenuInjector.injectNimarkoMediaDownload(
+                message, items, options, icons);
     }
 
     private boolean showWelcomeMessageRevertOption(MessageObject messageObject) {

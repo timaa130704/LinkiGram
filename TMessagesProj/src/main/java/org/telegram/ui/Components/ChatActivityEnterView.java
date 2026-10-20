@@ -296,6 +296,10 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         void onMessageSend(CharSequence message, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars);
 
+        default boolean onInterceptOutgoingMessage(CharSequence message, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars) {
+            return false;
+        }
+
         void needSendTyping();
 
         void onTextChanged(CharSequence text, boolean bigChange, boolean fromDraft);
@@ -7405,6 +7409,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
             if (checkPremiumAnimatedEmoji(currentAccount, dialog_id, parentFragment, null, message)) {
+                return;
+            }
+            if (!TextUtils.isEmpty(message) && delegate != null
+                    && delegate.onInterceptOutgoingMessage(message, notify, scheduleDate, scheduleRepeatPeriod, payStars)) {
+                if (messageEditText != null) {
+                    messageEditText.setText("");
+                }
+                delegate.onMessageSend(message, notify, scheduleDate, scheduleRepeatPeriod, payStars);
+                lastTypingTimeSend = 0;
                 return;
             }
             if (processSendingText(message, notify, scheduleDate, scheduleRepeatPeriod, payStars)) {
