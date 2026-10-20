@@ -98,6 +98,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.LF_Menu, "Side menu settings");
         labels.put(R.string.LinkiHidePhone, "Hide my phone number locally");
         labels.put(R.string.LinkiRelativeLastSeen, "Relative last seen");
+        labels.put(R.string.LinkiSettingsIconColors, "Settings icon colors");
         labels.put(R.string.LiteMode, "Animations");
         labels.put(R.string.LocalMiscellaneousCache, "Miscellaneous");
         labels.put(R.string.MessagesSettings, "Messages");

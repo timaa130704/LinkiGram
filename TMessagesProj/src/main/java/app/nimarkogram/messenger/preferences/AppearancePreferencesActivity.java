@@ -43,6 +43,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int hideSearchBar = 2;
     private final int snowflakesRow = 3;
 
+    private static final int SETTINGS_ICON_COLORS = 21001;
     private final int iconPackRow = 4;
     private final int oneUISwitchesRow = 5;
     private final int disableDividersRow = 6;
@@ -114,6 +115,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(UItem.asButton(2002, getString(R.string.LF_Menu)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
+        items.add(UItem.asButton(SETTINGS_ICON_COLORS, getString(R.string.LinkiSettingsIconColors), getSettingsIconColorValue()));
         items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
         items.add(UItem.asButton(MATERIAL_GROUP, getString(R.string.NM_Style_Material),
                 styleCount(AppearanceConfig.MATERIAL_KEYS) + "/" + AppearanceConfig.MATERIAL_KEYS.length));
@@ -249,6 +251,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == SETTINGS_ICON_COLORS) { showSettingsIconColors(); return; }
         if (item.id == 2002) { presentFragment(new DrawerPreferencesActivity()); return; }
         if (item.id == MATERIAL_ALL) {
             boolean enable = Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) != AppearanceConfig.MATERIAL_KEYS.length;
@@ -518,6 +521,71 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private String getCustomTitleValueText() {
         return NimarkoConfig.customTitleEnabled && !NimarkoConfig.customTitleText.trim().isEmpty()
                 ? NimarkoConfig.customTitleText : getString(R.string.Default);
+    }
+
+    private String[] settingsIconColorLabels() {
+        return new String[] {getString(R.string.LinkiIconsNeutral), getString(R.string.LinkiIconsAccent),
+                getString(R.string.LinkiIconsOriginal), getString(R.string.LinkiIconsCustom)};
+    }
+
+    private String getSettingsIconColorValue() {
+        int mode = app.nimarkogram.messenger.appearance.SettingsIconColors.mode();
+        return mode == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM
+                ? String.format(java.util.Locale.ROOT, "#%06X",
+                    app.nimarkogram.messenger.appearance.SettingsIconColors.customColor() & 0xFFFFFF)
+                : settingsIconColorLabels()[mode];
+    }
+
+    private void refreshSettingsIconColors() {
+        listView.adapter.update(true);
+        if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+    }
+
+    private void showSettingsIconColors() {
+        if (getParentActivity() == null) return;
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(getString(R.string.LinkiSettingsIconColors));
+        builder.setItems(settingsIconColorLabels(), (dialog, which) -> {
+            if (which == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM) {
+                showSettingsIconCustomColor();
+            } else {
+                app.nimarkogram.messenger.appearance.SettingsIconColors.setMode(which);
+                refreshSettingsIconColors();
+            }
+        });
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
+    private void showSettingsIconCustomColor() {
+        if (getParentActivity() == null) return;
+        EditText input = new EditText(getParentActivity());
+        input.setSingleLine(true);
+        input.setText(String.format(java.util.Locale.ROOT, "#%06X",
+                app.nimarkogram.messenger.appearance.SettingsIconColors.customColor() & 0xFFFFFF));
+        input.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        input.setHint("#RRGGBB");
+        FrameLayout container = new FrameLayout(getParentActivity());
+        container.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(4), AndroidUtilities.dp(22), AndroidUtilities.dp(4));
+        container.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(getString(R.string.LinkiIconsCustom));
+        builder.setView(container);
+        builder.setPositiveButton(getString(R.string.OK), null);
+        builder.setNegativeButton(getString(R.string.Cancel), null);
+        AlertDialog dialog = builder.create();
+        showDialog(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String value = input.getText().toString().trim();
+            if (!value.startsWith("#")) value = "#" + value;
+            if (!value.matches("#[0-9a-fA-F]{6}")) {
+                input.setError(getString(R.string.LinkiIconsInvalidColor));
+                return;
+            }
+            app.nimarkogram.messenger.appearance.SettingsIconColors.setCustomColor(android.graphics.Color.parseColor(value));
+            dialog.dismiss();
+            refreshSettingsIconColors();
+        });
     }
 
     private void showCustomTitleDialog(View view) {

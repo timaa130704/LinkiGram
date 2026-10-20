@@ -1212,21 +1212,34 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
             subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourcesProvider));
             valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider));
-            applyNeutralIconStyle();
+            applySettingsIconStyle();
         }
 
-        /**
-         * LinkiGram: settings rows share one neutral plate and one neutral glyph instead of
-         * the per-row gradient palette. The call sites still pass the stock colours; they are
-         * ignored here, so the palette stays in the tree for anything that reads it back.
-         */
-        private void applyNeutralIconStyle() {
+        private int originalIconColorTop;
+        private int originalIconColorBottom;
+
+        private void applySettingsIconStyle() {
             final boolean dark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
-            final int plate = dark ? 0xFF2E2E33 : 0xFFE6E6EB;
-            final int glyph = dark ? 0xFFF2F2F7 : 0xFF17171A;
-            iconBackground.setColor(plate, plate);
+            final int mode = app.nimarkogram.messenger.appearance.SettingsIconColors.mode();
+            int plate = dark ? 0xFF2E2E33 : 0xFFE6E6EB;
+            int glyph = dark ? 0xFFF2F2F7 : 0xFF17171A;
+            if (mode == app.nimarkogram.messenger.appearance.SettingsIconColors.ORIGINAL && hasBackground) {
+                iconBackground.setColor(originalIconColorTop, originalIconColorBottom);
+                glyph = android.graphics.Color.WHITE;
+            } else {
+                if (mode == app.nimarkogram.messenger.appearance.SettingsIconColors.ACCENT
+                        || mode == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM) {
+                    glyph = mode == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM
+                            ? app.nimarkogram.messenger.appearance.SettingsIconColors.customColor()
+                            : Theme.getColor(Theme.key_windowBackgroundWhiteBlueText, resourcesProvider);
+                    plate = androidx.core.graphics.ColorUtils.blendARGB(
+                            Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider), glyph, dark ? 0.22f : 0.12f);
+                }
+                iconBackground.setColor(plate, plate);
+            }
             iconView.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.SRC_IN));
-            iconBackground.setDrawBorder(hasBackground && (resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark()));
+            iconBackground.setDrawBorder(hasBackground && dark
+                    && mode == app.nimarkogram.messenger.appearance.SettingsIconColors.NEUTRAL);
         }
 
         private boolean twoLines;
@@ -1237,12 +1250,14 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
             CharSequence subtitle,
             CharSequence value
         ) {
+            originalIconColorTop = iconColorTop;
+            originalIconColorBottom = iconColorBottom;
             hasBackground = iconColorTop != 0 || iconColorBottom != 0;
             iconLayout.setVisibility(icon != 0 ? View.VISIBLE : View.GONE);
             titleView.setTranslationX(icon == 0 ? dp(2) : 0);
             subtitleView.setTranslationX(icon == 0 ? dp(2) : 0);
 
-            applyNeutralIconStyle();
+            applySettingsIconStyle();
             int iconSize = dp(!mini && app.nimarkogram.messenger.appearance.MaterialStyle.listItems() ? 36 : 28);
             android.view.ViewGroup.LayoutParams iconParams = iconLayout.getLayoutParams();
             if (iconParams != null && iconParams.width != iconSize) {

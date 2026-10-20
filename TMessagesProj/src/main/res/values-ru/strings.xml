@@ -1617,4 +1617,10 @@
 <string name="LinkiRelativeLastSeen">Относительное время в сети</string>
 <string name="LinkiHidePhone">Скрывать свой номер на этом устройстве</string>
     <string name="OEAiAsk">Спросить ИИ</string>
+    <string name="LinkiSettingsIconColors">Цвет значков в настройках</string>
+    <string name="LinkiIconsNeutral">Нейтральные</string>
+    <string name="LinkiIconsAccent">Акцент темы</string>
+    <string name="LinkiIconsOriginal">Исходные цвета</string>
+    <string name="LinkiIconsCustom">Свой цвет</string>
+    <string name="LinkiIconsInvalidColor">Введите цвет в формате #RRGGBB</string>
 </resources>
