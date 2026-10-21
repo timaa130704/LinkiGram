@@ -22,6 +22,7 @@ public class ChatAssistantPreferencesActivity extends NimarkoUniversalPreference
     private final long dialog;
     public ChatAssistantPreferencesActivity(int account, long dialog) { this.currentAccount = account; this.dialog = dialog; }
     @Override protected CharSequence getTitle() { return getString(R.string.LinkiChatAssistant); }
+    @Override public boolean onLongClick(UItem item, View view, int position, float x, float y) { return false; }
     @Override public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         items.add(SettingsHelper.asSwitchCG(1, getString(R.string.LinkiChatAssistantEnabled)).setChecked(ChatAssistant.enabled(currentAccount, dialog)));
         items.add(UItem.asShadow(getString(R.string.LinkiChatAssistantInfo)));

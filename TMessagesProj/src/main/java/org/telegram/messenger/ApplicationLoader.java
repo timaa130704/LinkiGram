@@ -448,8 +448,8 @@ public class ApplicationLoader extends Application {
             }
         } catch (Throwable ignored) {}
 
-        ApplicationLoader app = (ApplicationLoader) ApplicationLoader.applicationContext;
-        app.initPushServices();
+        ApplicationLoader loader = (ApplicationLoader) ApplicationLoader.applicationContext;
+        loader.initPushServices();
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("app initied");
         }
