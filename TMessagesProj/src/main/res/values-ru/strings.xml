@@ -894,7 +894,7 @@
     <string name="NM_IconPack_ImportSvgHint">В ZIP нужен manifest.json с картой иконок, например: {"icons":{"msg_settings":"icons/settings.svg"}}. Поддерживаются только безопасные локальные SVG.</string>
     <string name="NM_IconPack_Imported">Набор SVG-иконок импортирован</string>
     <string name="NM_IconPack_ImportError">Не удалось импортировать SVG-набор</string>
-    <string name="NM_BAN_PickFile">Выберите файл</string>
+    <string name="NM_BAN_PickFile">Выбрать из галереи</string>
     <string name="NM_BAN_IdError">Не удалось получить ID</string>
     <string name="NM_BAN_LocalNa">Локальный баннер недоступен при глобальном</string>
     <string name="NM_BAN_HideAvatar">Скрыть аватар</string>

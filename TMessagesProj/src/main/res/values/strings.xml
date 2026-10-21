@@ -11564,7 +11564,7 @@
 <string name="NM_IconPack_ImportSvgHint">ZIP needs manifest.json with an icons map, for example: {"icons":{"msg_settings":"icons/settings.svg"}}. Only safe, local SVG files are accepted.</string>
 <string name="NM_IconPack_Imported">SVG icon pack imported</string>
 <string name="NM_IconPack_ImportError">Could not import this SVG pack</string>
-<string name="NM_BAN_PickFile">Select file</string>
+<string name="NM_BAN_PickFile">Choose from gallery</string>
 <string name="NM_BAN_IdError">Failed to get ID</string>
 <string name="NM_BAN_LocalNa">Local banner not available with global</string>
 <string name="NM_BAN_HideAvatar">Hide avatar</string>
