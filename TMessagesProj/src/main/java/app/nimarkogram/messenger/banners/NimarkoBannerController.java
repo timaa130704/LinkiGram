@@ -1104,7 +1104,7 @@ public final class NimarkoBannerController {
         reloadSettings();
     }
 
-    public String storageDir() { return storageDir; }
+    public String storageDir() { ensureStarted(); return storageDir; }
 
     public void handleVideoFail(String path) {
         try {

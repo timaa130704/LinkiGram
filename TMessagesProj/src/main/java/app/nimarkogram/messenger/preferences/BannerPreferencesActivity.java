@@ -53,6 +53,7 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public boolean onFragmentCreate() {
+        ctrl.ensureStarted();
         installSettingsReloader();
         return super.onFragmentCreate();
     }
@@ -240,13 +241,16 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
         try {
             Activity act = getParentActivity();
             if (act == null) return;
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT).setType("*/*");
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
             if (!pickingGlobal) intent.putExtra(Intent.EXTRA_MIME_TYPES,
                     new String[]{"image/jpeg", "image/png", "image/webp", "video/mp4"});
             act.startActivityForResult(
                     Intent.createChooser(intent, LocaleController.getString(R.string.NM_BAN_PickFile)),
                     FILE_PICK_CODE);
         } catch (Throwable t) {
+            android.util.Log.e("LinkiBannerUpload", "Could not open document picker", t);
             err(R.string.NM_BAN_NoAccess);
         }
     }
@@ -256,18 +260,30 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
         if (requestCode != FILE_PICK_CODE) return;
         if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) return;
         final Uri uri = data.getData();
+        if ((data.getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0) {
+            try {
+                ApplicationLoader.applicationContext.getContentResolver().takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException ignored) {
+                // Providers without persistent grants still allow the immediate copy below.
+            }
+        }
         final boolean global = pickingGlobal;
         
         Utilities.globalQueue.postRunnable(() -> processPickedFile(uri, global));
     }
 
     private void processPickedFile(Uri uri, boolean global) {
-        File tmp = new File(ctrl.storageDir(), "temp_upload_" + java.util.UUID.randomUUID());
+        File tmp = null;
         InputStream in = null;
         FileOutputStream out = null;
         try {
+            ctrl.ensureStarted();
+            File folder = new File(ctrl.storageDir());
+            if (!folder.isDirectory() && !folder.mkdirs()) throw new java.io.IOException("Banner directory is unavailable");
+            tmp = File.createTempFile("temp_upload_", ".tmp", folder);
             in = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri);
-            if (in == null) { err(R.string.NM_BAN_NoAccess); return; }
+            if (in == null) throw new java.io.IOException("Document provider returned no stream");
             out = new FileOutputStream(tmp);
             byte[] buf = new byte[8192];
             long total = 0;
@@ -300,12 +316,17 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
                 ctrl.setLocalBanner(tmp, ext);
             }
         } catch (Throwable t) {
+            android.util.Log.e("LinkiBannerUpload", "Could not copy selected banner", t);
             //noinspection ResultOfMethodCallIgnored
-            tmp.delete();
+            if (tmp != null) tmp.delete();
             err(R.string.NM_BAN_NoAccess);
         } finally {
             try { if (in != null) in.close(); } catch (Throwable ignored) {}
             try { if (out != null) out.close(); } catch (Throwable ignored) {}
+            try {
+                ApplicationLoader.applicationContext.getContentResolver().releasePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (Throwable ignored) {}
         }
     }
 
