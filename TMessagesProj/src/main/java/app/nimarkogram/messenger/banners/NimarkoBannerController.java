@@ -44,9 +44,9 @@ public final class NimarkoBannerController {
                                                          
     private static final long STATUS_INT    = 300_000L;  
     private static final long MIN_VID       = 10_000L;   
-    private static final long MIN_IMG       = 1_000L;    
+    private static final long MIN_IMG       = 16L;
 
-    private static final String[] ALLOWED_EXT = {".mp4", ".jpg", ".jpeg", ".png"};
+    private static final String[] ALLOWED_EXT = {".mp4", ".jpg", ".jpeg", ".png", ".webp"};
 
     private static volatile NimarkoBannerController instance;
 
@@ -339,13 +339,21 @@ public final class NimarkoBannerController {
         }
     }
 
+    private boolean hasPublishedBanner() {
+        if ("approved".equals(myStatus)) return true;
+        try {
+            JsonObject status = TextUtils.isEmpty(myStatusRaw) ? null : gson.fromJson(myStatusRaw, JsonObject.class);
+            return status != null && status.has("has_banner") && status.get("has_banner").getAsBoolean();
+        } catch (Throwable ignored) { return false; }
+    }
+
     public Resolved resolve(long eid) {
         long my = myId();
         CacheKey k = key(eid);
         String bf = null;
         boolean isLoading = false;
         if (eid == my) {
-            if ("approved".equals(myStatus)) {
+            if (hasPublishedBanner()) {
                 bf = findCachedBanner(k);
                 if (NimarkoBannerRenderer.DBG) NimarkoBannerRenderer.dbg("resolve OWN approved findCachedBanner=" + bf
                         + " inNoBanner=" + usersNoBanner.contains(k) + " loading=" + loading.contains(k));
@@ -382,7 +390,7 @@ public final class NimarkoBannerController {
     public boolean shouldHideAvatar(long eid) {
         long my = myId();
         
-        if (eid == my && !"approved".equals(myStatus)) return false;
+        if (eid == my && !hasPublishedBanner()) return false;
         
         CacheKey k = key(eid);
         String p = cachedBanners.get(k);
@@ -394,7 +402,7 @@ public final class NimarkoBannerController {
     public boolean hasNoRealBanner(long eid) {
         long my = myId();
         if (eid == my) {
-            if ("approved".equals(myStatus)) return false; 
+            if (hasPublishedBanner()) return false;
             
             if (!statusEverFetched) return false;
             String lp = NimarkoBannerConfig.getLocalBannerPath();
@@ -937,7 +945,7 @@ public final class NimarkoBannerController {
                     }
                     uiErr(R.string.NM_BAN_PendingError);
                 } else {
-                    uiErrText(LocaleController.getString(R.string.NM_BAN_StatusUnknown) + ": " + r.httpCode);
+                    uiErrText(r.error != null ? r.error : LocaleController.getString(R.string.NM_BAN_StatusUnknown) + ": " + r.httpCode);
                 }
             } catch (Throwable t) {
                 safeRemove(tmp);
@@ -954,7 +962,15 @@ public final class NimarkoBannerController {
         executor.submit(() -> {
             long my = operationScope.uid;
             if (my == 0 || operationRevision < 0L) { uiErr(R.string.NM_BAN_IdError); return; }
-            if (NimarkoBannerHttp.setHideAvatar(my, v)) {
+            String token = ensureToken(operationScope);
+            if (TextUtils.isEmpty(token)) { uiErr(R.string.NM_BAN_IdError); return; }
+            int result = NimarkoBannerHttp.setHideAvatar(my, v, token);
+            if (result == 401) {
+                NimarkoBannerConfig.setAuthToken(operationScope.account, operationScope.uid, "");
+                token = ensureToken(operationScope);
+                if (!TextUtils.isEmpty(token)) result = NimarkoBannerHttp.setHideAvatar(my, v, token);
+            }
+            if (result == 200) {
                 synchronized (statusStateLock) {
                     long committedRevision = finishStatusMutationLocked(operationScope, operationRevision);
                     if (committedRevision < 0L) return;
@@ -998,7 +1014,7 @@ public final class NimarkoBannerController {
         executor.submit(() -> {
             fetchStatus(operationScope);
             reloadSettings();
-            if (isCurrentScope(operationScope) && "approved".equals(myStatus)
+            if (isCurrentScope(operationScope) && hasPublishedBanner()
                     && findCachedBanner(ownKey) == null) {
                 loadBannerAsync(ownKey);
             }
@@ -1135,7 +1151,8 @@ public final class NimarkoBannerController {
             if (len < MIN_IMG) return false;
             String actual = detectBannerExtension(f);
             return ("jpg".equals(type) || "jpeg".equals(type)) ? ".jpg".equals(actual)
-                    : "png".equals(type) && ".png".equals(actual);
+                    : "png".equals(type) ? ".png".equals(actual)
+                    : "webp".equals(type) && ".webp".equals(actual);
         } catch (Throwable ignored) {
             return false;
         }
@@ -1156,7 +1173,10 @@ public final class NimarkoBannerController {
                 && header[4] == 0x0d && header[5] == 0x0a && header[6] == 0x1a && header[7] == 0x0a;
         boolean jpeg = headerSize >= 3 && (header[0] & 0xff) == 0xff && (header[1] & 0xff) == 0xd8
                 && (header[2] & 0xff) == 0xff;
-        if (png || jpeg) {
+        boolean webp = headerSize >= 12 && header[0] == 'R' && header[1] == 'I'
+                && header[2] == 'F' && header[3] == 'F' && header[8] == 'W' && header[9] == 'E'
+                && header[10] == 'B' && header[11] == 'P';
+        if (png || jpeg || webp) {
             try {
                 android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
                 bounds.inJustDecodeBounds = true;
@@ -1169,7 +1189,7 @@ public final class NimarkoBannerController {
                 android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeFile(file.getAbsolutePath(), decode);
                 if (bitmap == null) return null;
                 bitmap.recycle();
-                return png ? ".png" : ".jpg";
+                return webp ? ".webp" : png ? ".png" : ".jpg";
             } catch (Throwable ignored) {
                 return null;
             }

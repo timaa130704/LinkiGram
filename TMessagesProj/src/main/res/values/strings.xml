@@ -13005,4 +13005,5 @@
     <string name="LinkiChatAssistantMentions">Only reply to mentions in groups</string>
     <string name="LinkiChatAssistantPrompt">Instructions for this chat</string>
     <string name="LinkiRepeatAllowExact">Allow precise alarms</string>
+    <string name="LinkiBannerModerationHint">Choose an image up to 8 MB. After moderator approval it becomes a static WebP banner. For GIF or multipage images, only the first frame/page is used. Unsupported files are rejected by the server.</string>
 </resources>

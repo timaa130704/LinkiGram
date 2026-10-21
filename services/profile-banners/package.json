@@ -1,0 +1,9 @@
+{
+  "name": "linkigram-profile-banners",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Profile banner API and Telegram moderation bot for LinkiGram",
+  "engines": {"node": ">=22.13.0"},
+  "scripts": {"start": "node server.js", "test": "node --test test/*.test.js", "bot-info": "node bot-info.js"},
+  "dependencies": {"busboy": "1.6.0", "sharp": "0.35.5"}
+}

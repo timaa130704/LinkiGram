@@ -1646,4 +1646,5 @@
     <string name="LinkiChatAssistantMentions">В группах отвечать только на упоминания</string>
     <string name="LinkiChatAssistantPrompt">Инструкции для этого чата</string>
     <string name="LinkiRepeatAllowExact">Разрешить точные будильники</string>
+    <string name="LinkiBannerModerationHint">Выберите изображение до 8 МБ. После одобрения модератором оно станет статичным баннером WebP. Из GIF и многостраничных изображений используется первый кадр/страница. Неподдерживаемые файлы отклоняются сервером.</string>
 </resources>

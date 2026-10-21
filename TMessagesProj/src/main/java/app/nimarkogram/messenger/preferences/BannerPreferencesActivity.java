@@ -98,6 +98,7 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
         String st = ctrl.statusString();
 
         items.add(UItem.asHeader(LocaleController.getString(R.string.NM_BAN_GlobalHeader)));
+        items.add(UItem.asShadow(LocaleController.getString(R.string.LinkiBannerModerationHint)));
         items.add(UItem.asButton(ID_STATUS, R.drawable.msg_info,
                 LocaleController.getString(R.string.NM_BAN_StatusLabel), statusText(st)));
         switch (st) {
@@ -240,7 +241,8 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
             Activity act = getParentActivity();
             if (act == null) return;
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT).setType("*/*");
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/jpeg", "image/png", "video/mp4"});
+            if (!pickingGlobal) intent.putExtra(Intent.EXTRA_MIME_TYPES,
+                    new String[]{"image/jpeg", "image/png", "image/webp", "video/mp4"});
             act.startActivityForResult(
                     Intent.createChooser(intent, LocaleController.getString(R.string.NM_BAN_PickFile)),
                     FILE_PICK_CODE);
@@ -260,7 +262,7 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
     }
 
     private void processPickedFile(Uri uri, boolean global) {
-        File tmp = new File(ctrl.storageDir(), "temp_upload");
+        File tmp = new File(ctrl.storageDir(), "temp_upload_" + java.util.UUID.randomUUID());
         InputStream in = null;
         FileOutputStream out = null;
         try {
@@ -283,7 +285,8 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
             }
             out.flush(); out.close(); out = null;
 
-            String ext = NimarkoBannerController.detectBannerExtension(tmp);
+            // Global submissions are validated by the server so Android need not decode every source format.
+            String ext = global ? ".upload" : NimarkoBannerController.detectBannerExtension(tmp);
             if (ext == null) {
                 //noinspection ResultOfMethodCallIgnored
                 tmp.delete();
