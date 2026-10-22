@@ -13006,4 +13006,9 @@
     <string name="LinkiChatAssistantPrompt">Instructions for this chat</string>
     <string name="LinkiRepeatAllowExact">Allow precise alarms</string>
     <string name="LinkiBannerModerationHint">Choose an image up to 8 MB. After moderator approval it becomes a static WebP banner. For GIF or multipage images, only the first frame/page is used. Unsupported files are rejected by the server.</string>
+    <string name="NM_BAN_CropTitle">Crop banner</string>
+    <string name="NM_BAN_CropHint">Drag to reposition · Pinch to zoom</string>
+    <string name="NM_BAN_CropFailed">Could not crop the image. Try again.</string>
+    <string name="NM_BAN_CropUnsupported">This image format cannot be previewed on your device. Send the original with automatic centre cropping?</string>
+    <string name="NM_BAN_SubmitOriginal">Send original</string>
 </resources>

@@ -1647,4 +1647,9 @@
     <string name="LinkiChatAssistantPrompt">Инструкции для этого чата</string>
     <string name="LinkiRepeatAllowExact">Разрешить точные будильники</string>
     <string name="LinkiBannerModerationHint">Выберите изображение до 8 МБ. После одобрения модератором оно станет статичным баннером WebP. Из GIF и многостраничных изображений используется первый кадр/страница. Неподдерживаемые файлы отклоняются сервером.</string>
+    <string name="NM_BAN_CropTitle">Обрезка баннера</string>
+    <string name="NM_BAN_CropHint">Двигайте картинку · Масштабируйте двумя пальцами</string>
+    <string name="NM_BAN_CropFailed">Не удалось обрезать изображение. Попробуйте ещё раз.</string>
+    <string name="NM_BAN_CropUnsupported">Этот формат нельзя показать на устройстве. Отправить оригинал с автоматической обрезкой по центру?</string>
+    <string name="NM_BAN_SubmitOriginal">Отправить оригинал</string>
 </resources>

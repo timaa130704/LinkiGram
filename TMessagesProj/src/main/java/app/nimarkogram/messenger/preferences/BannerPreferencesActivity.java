@@ -279,11 +279,12 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
             }
         }
         final boolean global = pickingGlobal;
-        
-        Utilities.globalQueue.postRunnable(() -> processPickedFile(uri, global));
+        final int account = currentAccount;
+        final long uid = org.telegram.messenger.UserConfig.getInstance(account).getClientUserId();
+        Utilities.globalQueue.postRunnable(() -> processPickedFile(uri, global, account, uid));
     }
 
-    private void processPickedFile(Uri uri, boolean global) {
+    private void processPickedFile(Uri uri, boolean global, int account, long uid) {
         File tmp = null;
         InputStream in = null;
         FileOutputStream out = null;
@@ -321,7 +322,39 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
             }
 
             if (global) {
-                ctrl.submitModeration(tmp, ext, total);
+                File selected = tmp;
+                android.graphics.Bitmap preview = org.telegram.messenger.ImageLoader.loadBitmap(
+                        selected.getAbsolutePath(), null, 2048, 2048, true);
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (isFinished || getParentActivity() == null) {
+                        selected.delete();
+                        if (preview != null) preview.recycle();
+                        return;
+                    }
+                    if (preview == null) {
+                        // Keep server-supported formats which Android cannot preview (e.g. TIFF).
+                        org.telegram.ui.ActionBar.AlertDialog dialog = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity())
+                                .setTitle(LocaleController.getString(R.string.NM_BAN_CropTitle))
+                                .setMessage(LocaleController.getString(R.string.NM_BAN_CropUnsupported))
+                                .setPositiveButton(LocaleController.getString(R.string.NM_BAN_SubmitOriginal), (d, which) -> {
+                                    if (isBannerAccountCurrent(account, uid)) {
+                                        ctrl.submitModeration(selected, ".upload", selected.length());
+                                    } else selected.delete();
+                                })
+                                .setNegativeButton(LocaleController.getString(R.string.Cancel), (d, which) -> selected.delete())
+                                .create();
+                        dialog.setOnCancelListener(d -> selected.delete());
+                        showDialog(dialog);
+                        return;
+                    }
+                    app.nimarkogram.messenger.banners.BannerCropActivity crop =
+                            new app.nimarkogram.messenger.banners.BannerCropActivity(preview, selected, file -> {
+                                if (isBannerAccountCurrent(account, uid)) {
+                                    ctrl.submitModeration(file, ".png", file.length());
+                                } else file.delete();
+                            });
+                    if (!presentFragment(crop)) crop.release();
+                });
             } else {
                 ctrl.setLocalBanner(tmp, ext);
             }
@@ -338,6 +371,11 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
                         uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } catch (Throwable ignored) {}
         }
+    }
+
+    private boolean isBannerAccountCurrent(int account, long uid) {
+        return uid > 0 && org.telegram.messenger.UserConfig.selectedAccount == account
+                && org.telegram.messenger.UserConfig.getInstance(account).getClientUserId() == uid;
     }
 
     private void err(int res) {
