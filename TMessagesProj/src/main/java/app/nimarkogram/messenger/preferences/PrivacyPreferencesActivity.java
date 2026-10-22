@@ -27,7 +27,7 @@ import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 import app.nimarkogram.messenger.security.NimarkoBiometricPrompt;
 
 public class PrivacyPreferencesActivity extends BasePreferencesActivity {
-    private static final int ID_KEEP_ONCE = 20, ID_ONCE_ARCHIVE = 21;
+    private static final int ID_KEEP_ONCE = 20, ID_ONCE_ARCHIVE = 21, ID_SCREENSHOTS = 22;
     private static final int ID_HIDE_PROXY = 1;
     private static final int ID_DELETE_ACCOUNT = 2;
 
@@ -59,6 +59,9 @@ public class PrivacyPreferencesActivity extends BasePreferencesActivity {
         items.add(deleteAccountBtn);
         items.add(UItem.asShadow(null));
 
+        items.add(UItem.asButtonCheck(ID_SCREENSHOTS,
+                LocaleController.getString(R.string.LinkiAllowProtectedScreenshots),
+                LocaleController.getString(R.string.LinkiAllowProtectedScreenshotsInfo)).setChecked(NimarkoConfig.allowProtectedScreenshots));
         items.add(UItem.asButtonCheck(ID_KEEP_ONCE,
                 LocaleController.getString(R.string.LinkiKeepOnce),
                 LocaleController.getString(R.string.LinkiKeepOnceInfo)).setChecked(NimarkoConfig.keepOpenedOnceMedia));
@@ -121,7 +124,10 @@ public class PrivacyPreferencesActivity extends BasePreferencesActivity {
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
         int id = item.id;
-        if (id == ID_KEEP_ONCE) {
+        if (id == ID_SCREENSHOTS) {
+            NimarkoConfig.toggleAllowProtectedScreenshots();
+            applyCheck(item, view, NimarkoConfig.allowProtectedScreenshots);
+        } else if (id == ID_KEEP_ONCE) {
             NimarkoConfig.toggleKeepOpenedOnceMedia();
             applyCheck(item, view, NimarkoConfig.keepOpenedOnceMedia);
         } else if (id == ID_ONCE_ARCHIVE) {

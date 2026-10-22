@@ -258,6 +258,7 @@ public class MessageObject {
     public StringBuilder botButtonsLayout;
     public boolean isRestrictedMessage;
     public long loadedFileSize;
+    public boolean linkiLocalOnce;
     public boolean forceExpired;
     public long actionDeleteGroupEventId = -1;
     public HashSet<Integer> expandedQuotes;
@@ -1922,6 +1923,7 @@ public class MessageObject {
         this.searchType = searchType;
 
         currentAccount = accountNum;
+        linkiLocalOnce = app.nimarkogram.messenger.media.OnceMediaArchive.restoreMedia(accountNum, message);
         messageOwner = message;
         replyMessageObject = replyToMessage;
         eventId = eid;
@@ -6637,6 +6639,25 @@ public class MessageObject {
     }
 
     public void setType() {
+        if (app.nimarkogram.messenger.media.OnceMediaArchive.restoreMedia(currentAccount, messageOwner)) {
+            linkiLocalOnce = true;
+            forceExpired = false;
+            contentType = 0;
+            attachPathExists = true;
+            mediaExists = true;
+        } else if (linkiLocalOnce) {
+            // Deleting the local copy must not leave a downloadable-looking expired attachment.
+            boolean photo = messageOwner.media instanceof TLRPC.TL_messageMediaPhoto;
+            TLRPC.MessageMedia empty = photo ? new TLRPC.TL_messageMediaPhoto() : new TLRPC.TL_messageMediaDocument();
+            if (photo) empty.photo = new TLRPC.TL_photoEmpty();
+            else empty.document = new TLRPC.TL_documentEmpty();
+            empty.flags = 1 | 4;
+            empty.ttl_seconds = Integer.MAX_VALUE;
+            messageOwner.media = empty;
+            messageOwner.ttl = Integer.MAX_VALUE;
+            messageOwner.attachPath = "";
+            attachPathExists = false; mediaExists = false; forceExpired = true; linkiLocalOnce = false;
+        }
         int oldType = type;
         type = 1000;
         isRoundVideoCached = 0;

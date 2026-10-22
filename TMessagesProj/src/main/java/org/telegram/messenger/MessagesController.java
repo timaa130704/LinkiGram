@@ -6423,10 +6423,16 @@ public class MessagesController extends BaseController implements NotificationCe
             }
         } else if (id == NotificationCenter.updateMessageMedia) {
             TLRPC.Message message = (TLRPC.Message) args[0];
+            boolean restoredOnceMedia = app.nimarkogram.messenger.media.OnceMediaArchive.restoreMedia(currentAccount, message);
             if (message.peer_id.channel_id == 0) {
                 MessageObject existMessageObject = dialogMessagesByIds.get(message.id);
                 if (existMessageObject != null) {
                     existMessageObject.messageOwner.media = MessageObject.getMedia(message);
+                    if (restoredOnceMedia) {
+                        existMessageObject.setType();
+                        existMessageObject.updateMessageText();
+                        getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+                    }
                     if (MessageObject.getMedia(message).ttl_seconds != 0 && (MessageObject.getMedia(message).photo instanceof TLRPC.TL_photoEmpty || MessageObject.getMedia(message).document instanceof TLRPC.TL_documentEmpty)) {
                         existMessageObject.setType();
                         getNotificationCenter().postNotificationName(NotificationCenter.notificationsSettingsUpdated);
@@ -14545,6 +14551,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void doDeleteShowOnceTask(long taskId, long dialogId, int mid) {
+        app.nimarkogram.messenger.media.OnceMediaArchive.markViewed(currentAccount, dialogId, mid);
         getMessagesStorage().removePendingTask(taskId);
         ArrayList<Integer> mids = new ArrayList<>();
         mids.add(mid);

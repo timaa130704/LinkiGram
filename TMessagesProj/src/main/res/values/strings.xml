@@ -13018,7 +13018,7 @@
     <string name="LinkiStickerTimeSide">Beside the sticker</string>
     <string name="LinkiChooseRoundCameraHint">Choose a camera, then hold the recording button again.</string>
     <string name="LinkiKeepOnce">Keep opened view-once media</string>
-    <string name="LinkiKeepOnceInfo">Save a local copy when opening view-once media, if its file has finished downloading. Telegram still expires the original.</string>
+    <string name="LinkiKeepOnceInfo">Save a local copy when opening new view-once media if its file has finished downloading. After viewing, the copy remains available in the chat on this device.</string>
     <string name="LinkiOnceArchive">Saved view-once media</string>
     <string name="LinkiOnceArchiveInfo">Private copies on this device, separated by account and excluded from automatic backup. Turning saving off keeps existing copies. Tap an item to open or delete it.</string>
     <string name="LinkiOnceArchiveEmpty">No saved copies yet. Enable saving and open new view-once media. Already expired media cannot be restored.</string>
@@ -13028,4 +13028,6 @@
     <string name="LinkiOncePhoto">Photo</string>
     <string name="LinkiOnceVideo">Video</string>
     <string name="LinkiOnceAudio">Voice message</string>
+    <string name="LinkiAllowProtectedScreenshots">Allow screenshots in protected chats</string>
+    <string name="LinkiAllowProtectedScreenshotsInfo">Allow screenshots in protected chats and view-once media viewers.</string>
 </resources>

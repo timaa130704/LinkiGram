@@ -8878,8 +8878,7 @@ public class ChatActivity extends BaseFragment implements
         chatScrollHelper.setAnimationCallback(chatScrollHelperCallback);
 
         flagSecure = new FlagSecureReason(getParentActivity().getWindow(), () ->
-            currentEncryptedChat != null ||
-            isPeerNoForwards()
+            !NimarkoConfig.allowProtectedScreenshots && (currentEncryptedChat != null || isPeerNoForwards())
         );
 
         if (oldMessage != null) {
@@ -23598,10 +23597,17 @@ public class ChatActivity extends BaseFragment implements
             }
         } else if (id == NotificationCenter.updateMessageMedia) {
             TLRPC.Message message = (TLRPC.Message) args[0];
+            boolean restoredOnce = app.nimarkogram.messenger.media.OnceMediaArchive.restoreMedia(currentAccount, message);
             MessageObject existMessageObject = messagesDict[0].get(message.id);
-            if (existMessageObject != null) {
+            if (existMessageObject != null && existMessageObject.getDialogId() == MessageObject.getDialogId(message)) {
                 existMessageObject.messageOwner.media = message.media;
                 existMessageObject.messageOwner.attachPath = message.attachPath;
+                if (restoredOnce) {
+                    existMessageObject.setType();
+                    existMessageObject.updateMessageText();
+                    existMessageObject.generateCaption();
+                    if (chatAdapter != null) chatAdapter.updateRowWithMessageObject(existMessageObject, false, false);
+                }
                 existMessageObject.generateThumbs(false);
                 if (existMessageObject.getGroupId() != 0 && (existMessageObject.photoThumbs == null || existMessageObject.photoThumbs.isEmpty())) {
                     MessageObject.GroupedMessages groupedMessages = groupedMessagesMap.get(existMessageObject.getGroupId());
@@ -30183,6 +30189,13 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
+        if (flagSecure != null) flagSecure.invalidate();
+        for (MessageObject message : messages) {
+            if (message.linkiLocalOnce) {
+                message.setType();
+                message.generateThumbs(false);
+            }
+        }
         updateGhostIndicator();
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();

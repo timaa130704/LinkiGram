@@ -30,7 +30,8 @@ public final class OnceMediaArchiveActivity extends BasePreferencesActivity {
         files.clear();
         listedUid = UserConfig.getInstance(currentAccount).getClientUserId();
         File[] found = OnceMediaArchive.directory(currentAccount).listFiles(file -> file.isFile()
-                && !file.getName().endsWith(".part"));
+                && (file.getName().endsWith(".jpg") || file.getName().endsWith(".mp4")
+                || file.getName().endsWith(".ogg") || file.getName().endsWith(".gif")));
         if (found != null) {
             Arrays.sort(found, Comparator.comparingLong(File::lastModified).reversed());
             files.addAll(Arrays.asList(found));
@@ -69,6 +70,7 @@ public final class OnceMediaArchiveActivity extends BasePreferencesActivity {
                                 if (UserConfig.getInstance(currentAccount).getClientUserId() != owner) return;
                                 if (which == 0) open(file, owner);
                                 else Utilities.globalQueue.postRunnable(() -> {
+                                    OnceMediaArchive.forget(currentAccount, file);
                                     file.delete(); AndroidUtilities.runOnUIThread(this::reload);
                                 });
                             }).create());

@@ -252,6 +252,12 @@ public final class NimarkoConfig {
         getEditor().putBoolean("pluginsPySdkBetaVersions", v).apply();
     }
 
+    public static boolean allowProtectedScreenshots = getPreferences().getBoolean("allowProtectedScreenshots", false);
+    public static void toggleAllowProtectedScreenshots() {
+        allowProtectedScreenshots = !allowProtectedScreenshots;
+        getEditor().putBoolean("allowProtectedScreenshots", allowProtectedScreenshots).apply();
+    }
+
     public static boolean keepOpenedOnceMedia = getPreferences().getBoolean("keepOpenedOnceMedia", false);
     public static void toggleKeepOpenedOnceMedia() {
         keepOpenedOnceMedia = !keepOpenedOnceMedia;

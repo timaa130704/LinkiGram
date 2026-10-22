@@ -1659,7 +1659,7 @@
     <string name="LinkiStickerTimeSide">Сбоку от стикера</string>
     <string name="LinkiChooseRoundCameraHint">Выберите камеру, затем снова удерживайте кнопку записи.</string>
     <string name="LinkiKeepOnce">Сохранять открытые одноразовые медиа</string>
-    <string name="LinkiKeepOnceInfo">Локальная копия при открытии одноразового медиа, если файл успел загрузиться. Оригинал в Telegram исчезает как обычно.</string>
+    <string name="LinkiKeepOnceInfo">Сохранять локальную копию новых открытых одноразовых медиа, если файл успел загрузиться. После просмотра копия остаётся доступной в чате на этом устройстве.</string>
     <string name="LinkiOnceArchive">Сохранённые одноразовые медиа</string>
     <string name="LinkiOnceArchiveInfo">Копии только на этом устройстве, отдельно для каждого аккаунта и без автоматического резервного копирования. Отключение сохранения не удаляет копии. Нажмите на запись, чтобы открыть или удалить её.</string>
     <string name="LinkiOnceArchiveEmpty">Копий пока нет. Включите сохранение и откройте новое одноразовое медиа. Уже исчезнувшие медиа восстановить нельзя.</string>
@@ -1669,4 +1669,6 @@
     <string name="LinkiOncePhoto">Фото</string>
     <string name="LinkiOnceVideo">Видео</string>
     <string name="LinkiOnceAudio">Голосовое сообщение</string>
+    <string name="LinkiAllowProtectedScreenshots">Разрешить скриншоты в защищённых чатах</string>
+    <string name="LinkiAllowProtectedScreenshotsInfo">Скриншоты в защищённых чатах и при просмотре одноразовых медиа.</string>
 </resources>
