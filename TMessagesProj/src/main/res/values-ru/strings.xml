@@ -1658,4 +1658,15 @@
     <string name="LinkiStickerTimeDefault">На стикере</string>
     <string name="LinkiStickerTimeSide">Сбоку от стикера</string>
     <string name="LinkiChooseRoundCameraHint">Выберите камеру, затем снова удерживайте кнопку записи.</string>
+    <string name="LinkiKeepOnce">Сохранять открытые одноразовые медиа</string>
+    <string name="LinkiKeepOnceInfo">Локальная копия при открытии одноразового медиа, если файл успел загрузиться. Оригинал в Telegram исчезает как обычно.</string>
+    <string name="LinkiOnceArchive">Сохранённые одноразовые медиа</string>
+    <string name="LinkiOnceArchiveInfo">Копии только на этом устройстве, отдельно для каждого аккаунта и без автоматического резервного копирования. Отключение сохранения не удаляет копии. Нажмите на запись, чтобы открыть или удалить её.</string>
+    <string name="LinkiOnceArchiveEmpty">Копий пока нет. Включите сохранение и откройте новое одноразовое медиа. Уже исчезнувшие медиа восстановить нельзя.</string>
+    <string name="LinkiOnceArchiveClear">Удалить все копии</string>
+    <string name="LinkiOnceArchiveClearConfirm">Удалить все локальные копии одноразовых медиа этого аккаунта?</string>
+    <string name="LinkiOnceArchiveOpenError">Не удалось открыть копию.</string>
+    <string name="LinkiOncePhoto">Фото</string>
+    <string name="LinkiOnceVideo">Видео</string>
+    <string name="LinkiOnceAudio">Голосовое сообщение</string>
 </resources>

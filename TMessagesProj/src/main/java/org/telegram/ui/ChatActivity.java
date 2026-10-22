@@ -15823,6 +15823,7 @@ public class ChatActivity extends BaseFragment implements
         if (messageObject == null || messageObject.isOut() || !messageObject.isSecretMedia() || messageObject.messageOwner.destroyTime != 0 || messageObject.messageOwner.ttl <= 0) {
             return null;
         }
+        app.nimarkogram.messenger.media.OnceMediaArchive.capture(messageObject);
         if (readNow) {
             final boolean delete = messageObject.messageOwner.ttl != 0x7FFFFFFF;
             final int ttl = messageObject.messageOwner.ttl == 0x7FFFFFFF ? 0 : messageObject.messageOwner.ttl;
@@ -15852,6 +15853,7 @@ public class ChatActivity extends BaseFragment implements
         if (messageObject == null || messageObject.isOut() || !messageObject.isSecretMedia() || messageObject.messageOwner.ttl != 0x7FFFFFFF) {
             return null;
         }
+        app.nimarkogram.messenger.media.OnceMediaArchive.capture(messageObject);
         final long taskId = getMessagesController().createDeleteShowOnceTask(dialog_id, messageObject.getId());
         messageObject.forceExpired = true;
         if (messageObject.isOutOwner() || !messageObject.isRoundOnce() && !messageObject.isVoiceOnce()) {

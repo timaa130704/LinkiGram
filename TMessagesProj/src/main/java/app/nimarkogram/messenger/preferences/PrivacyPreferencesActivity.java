@@ -27,6 +27,7 @@ import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 import app.nimarkogram.messenger.security.NimarkoBiometricPrompt;
 
 public class PrivacyPreferencesActivity extends BasePreferencesActivity {
+    private static final int ID_KEEP_ONCE = 20, ID_ONCE_ARCHIVE = 21;
     private static final int ID_HIDE_PROXY = 1;
     private static final int ID_DELETE_ACCOUNT = 2;
 
@@ -56,6 +57,13 @@ public class PrivacyPreferencesActivity extends BasePreferencesActivity {
                 LocaleController.getString(R.string.NM_PR_DeleteAccount));
         deleteAccountBtn.red = true;
         items.add(deleteAccountBtn);
+        items.add(UItem.asShadow(null));
+
+        items.add(UItem.asButtonCheck(ID_KEEP_ONCE,
+                LocaleController.getString(R.string.LinkiKeepOnce),
+                LocaleController.getString(R.string.LinkiKeepOnceInfo)).setChecked(NimarkoConfig.keepOpenedOnceMedia));
+        items.add(UItem.asButton(ID_ONCE_ARCHIVE, R.drawable.msg_saved,
+                LocaleController.getString(R.string.LinkiOnceArchive)));
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(LocaleController.getString(R.string.FilterChats)));
@@ -113,7 +121,12 @@ public class PrivacyPreferencesActivity extends BasePreferencesActivity {
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
         int id = item.id;
-        if (id == ID_HIDE_PROXY) {
+        if (id == ID_KEEP_ONCE) {
+            NimarkoConfig.toggleKeepOpenedOnceMedia();
+            applyCheck(item, view, NimarkoConfig.keepOpenedOnceMedia);
+        } else if (id == ID_ONCE_ARCHIVE) {
+            presentFragment(new OnceMediaArchiveActivity());
+        } else if (id == ID_HIDE_PROXY) {
             NimarkoConfig.toggleHideProxySponsor();
             applyCheck(item, view, NimarkoConfig.hideProxySponsor);
             

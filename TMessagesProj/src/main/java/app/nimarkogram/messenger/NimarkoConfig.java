@@ -252,6 +252,12 @@ public final class NimarkoConfig {
         getEditor().putBoolean("pluginsPySdkBetaVersions", v).apply();
     }
 
+    public static boolean keepOpenedOnceMedia = getPreferences().getBoolean("keepOpenedOnceMedia", false);
+    public static void toggleKeepOpenedOnceMedia() {
+        keepOpenedOnceMedia = !keepOpenedOnceMedia;
+        getEditor().putBoolean("keepOpenedOnceMedia", keepOpenedOnceMedia).apply();
+    }
+
     public static boolean hideProxySponsor = getPreferences().getBoolean("hideProxySponsor", true);
     public static void toggleHideProxySponsor() {
         hideProxySponsor = !hideProxySponsor;

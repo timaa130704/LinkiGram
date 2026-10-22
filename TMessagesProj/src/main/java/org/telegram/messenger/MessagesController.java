@@ -14469,6 +14469,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void markMessageContentAsRead(MessageObject messageObject) {
+        app.nimarkogram.messenger.media.OnceMediaArchive.capture(messageObject);
         if (messageObject.scheduled) {
             return;
         }
