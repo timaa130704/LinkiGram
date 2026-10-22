@@ -845,7 +845,12 @@ public final class NimarkoBannerController {
             while (Thread.currentThread() == statusLoopThread && NimarkoBannerConfig.enabled) {
                 fetchStatus();
                 reloadSettings();
-                try { Thread.sleep(STATUS_INT); } catch (InterruptedException ie) { return; }
+                long waited = 0;
+                while (waited < ("pending".equals(myStatus) ? 10_000L : STATUS_INT)) {
+                    try { Thread.sleep(2000); } catch (InterruptedException ie) { return; }
+                    waited += 2000;
+                    if (Thread.currentThread() != statusLoopThread || !NimarkoBannerConfig.enabled) return;
+                }
             }
         }, "nimarko-banner-status");
         t.setDaemon(true);
@@ -987,14 +992,20 @@ public final class NimarkoBannerController {
     }
 
     public void refreshStatus() {
+        refreshStatus(true);
+    }
+
+    public void refreshStatus(boolean notify) {
         Scope operationScope = scope();
         CacheKey ownKey = key(operationScope, operationScope.uid);
         usersNoBanner.remove(ownKey);
         executor.submit(() -> {
             boolean refreshed = fetchStatus(operationScope);
             reloadSettings();
-            if (refreshed) uiOk(R.string.NM_BAN_StatusUpdated);
-            else uiErr(R.string.NM_BAN_StatusRefreshFailed);
+            if (notify) {
+                if (refreshed) uiOk(R.string.NM_BAN_StatusUpdated);
+                else uiErr(R.string.NM_BAN_StatusRefreshFailed);
+            }
         });
     }
 

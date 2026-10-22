@@ -32,10 +32,64 @@ public final class NimarkoBannerHttp {
     private static final long MAX_JSON_SIZE = 256L << 10;
 
     private static final OkHttpClient HTTP = new OkHttpClient.Builder()
+            .dns(new BannerDns())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build();
+
+    // Resolve only our API through HTTPS; retain TLS hostname/certificate validation.
+    private static final class BannerDns implements okhttp3.Dns {
+        private final OkHttpClient resolver = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
+                .callTimeout(8, TimeUnit.SECONDS).build();
+        private java.util.List<java.net.InetAddress> cached;
+        private long expires;
+
+        @Override
+        public synchronized java.util.List<java.net.InetAddress> lookup(String hostname)
+                throws java.net.UnknownHostException {
+            String apiHost = null;
+            try { apiHost = java.net.URI.create(API).getHost(); } catch (Exception ignored) { }
+            if (!hostname.equalsIgnoreCase(apiHost)) return okhttp3.Dns.SYSTEM.lookup(hostname);
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (cached != null && now < expires) return cached;
+            try {
+                okhttp3.HttpUrl url = okhttp3.HttpUrl.parse("https://dns.google/resolve")
+                        .newBuilder().addQueryParameter("name", hostname)
+                        .addQueryParameter("type", "A").build();
+                try (Response response = resolver.newCall(new Request.Builder().url(url).build()).execute()) {
+                    if (!response.isSuccessful() || response.body() == null) throw new IOException("DNS HTTP failure");
+                    String body = readBodyLimited(response.body(), 64L << 10);
+                    JsonObject json = body == null ? null : parse(body);
+                    if (json == null || !json.has("Status") || json.get("Status").getAsInt() != 0
+                            || !json.has("Answer")) throw new IOException("DNS answer missing");
+                    java.util.List<java.net.InetAddress> addresses = new java.util.ArrayList<>();
+                    for (JsonElement item : json.getAsJsonArray("Answer")) {
+                        JsonObject answer = item.getAsJsonObject();
+                        if (answer.get("type").getAsInt() != 1) continue;
+                        String[] parts = answer.get("data").getAsString().split("\\.", -1);
+                        if (parts.length != 4) continue;
+                        byte[] bytes = new byte[4];
+                        boolean valid = true;
+                        for (int i = 0; i < 4; i++) {
+                            if (!parts[i].matches("[0-9]{1,3}")) { valid = false; break; }
+                            int value = Integer.parseInt(parts[i]);
+                            if (value > 255) { valid = false; break; }
+                            bytes[i] = (byte) value;
+                        }
+                        if (valid) addresses.add(java.net.InetAddress.getByAddress(hostname, bytes));
+                    }
+                    if (addresses.isEmpty()) throw new IOException("DNS has no IPv4 addresses");
+                    cached = java.util.Collections.unmodifiableList(addresses);
+                    expires = now + 60_000L;
+                    return cached;
+                }
+            } catch (Exception ignored) {
+                return okhttp3.Dns.SYSTEM.lookup(hostname);
+            }
+        }
+    }
 
     private static final Gson GSON = new Gson();
     private static final MediaType JSON_TYPE = MediaType.parse("application/json; charset=utf-8");

@@ -62,6 +62,7 @@ public class BannerPreferencesActivity extends BasePreferencesActivity {
     public void onResume() {
         super.onResume();
         installSettingsReloader();
+        ctrl.refreshStatus(false);
     }
 
     @Override

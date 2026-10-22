@@ -80,7 +80,7 @@ public final class NimarkoInlineAuth {
 
             android.util.Log.i("NMWSBYPASS", "auth: waiting up to "
                     + (POLL_ATTEMPTS * POLL_INTERVAL_MS / 1000L) + "s for confirmation in @"
-                    + reg.botUsername + " (code " + reg.code + ") for uid " + uid);
+                    + reg.botUsername + " for uid " + uid);
 
             for (int i = 0; i < POLL_ATTEMPTS; i++) {
                 if (!isEnabledForAccount(enabled, account, uid)) return null;
