@@ -23897,6 +23897,28 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void drawTime(Canvas canvas, float alpha, boolean fromParent) {
+        boolean sticker = currentMessageObject != null && currentMessageObject.isAnyKindOfSticker();
+        if (sticker && NimarkoConfig.stickerTimeMode == 2) return;
+        float offset = 0;
+        if (sticker && NimarkoConfig.stickerTimeMode == 1) {
+            float width = timeWidth + dp(currentMessageObject.isOutOwner() ? 32 : 12);
+            float left = currentMessageObject.isOutOwner() ? photoImage.getImageX() - width - dp(8)
+                    : photoImage.getImageX() + photoImage.getImageWidth() + dp(8);
+            float reserve = drawSideButton != 0 ? dp(40) : 0;
+            if (left >= dp(8) + (currentMessageObject.isOutOwner() ? reserve : 0)
+                    && left + width <= layoutWidth - dp(8) - (!currentMessageObject.isOutOwner() ? reserve : 0)) {
+                offset = left + dp(6 + STICKER_STATUS_OFFSET) - timeX;
+            }
+        }
+        // Move the complete timestamp, including delivery ticks and background, together.
+        int save = canvas.save();
+        canvas.translate(offset, 0);
+        try { drawStickerAwareTime(canvas, alpha, fromParent); }
+        finally { canvas.restoreToCount(save); }
+        drawTimeX += offset;
+    }
+
+    private void drawStickerAwareTime(Canvas canvas, float alpha, boolean fromParent) {
         if (!drawFromPinchToZoom && delegate != null && delegate.getPinchToZoomHelper() != null && delegate.getPinchToZoomHelper().isInOverlayModeFor(this) && shouldDrawTimeOnMedia()) {
             return;
         }

@@ -33,6 +33,7 @@ public class MessageMenuItemsPreferencesActivity extends BasePreferencesActivity
     private static final int ID_GET_CUSTOM_REACTIONS = 17;
     
     private static final int ID_DETAILS = 18;
+    private static final int ID_COPY = 19, ID_REPEAT = 20;
 
     @Override
     public String getTitle() {
@@ -45,6 +46,8 @@ public class MessageMenuItemsPreferencesActivity extends BasePreferencesActivity
         items.add(UItem.asCheck(ID_SAVE_FOR_NOTIFICATIONS, LocaleController.getString(R.string.SaveForNotifications))
                 .setChecked(NimarkoConfig.showSaveForNotifications));
         items.add(UItem.asShadow(null));
+        items.add(UItem.asCheck(ID_COPY, LocaleController.getString(R.string.Copy)).setChecked(NimarkoConfig.showCopyMessage));
+        items.add(UItem.asCheck(ID_REPEAT, LocaleController.getString(R.string.Repeat)).setChecked(NimarkoConfig.showRepeatMessage));
         items.add(UItem.asCheck(ID_REPLY, LocaleController.getString(R.string.Reply))
                 .setChecked(NimarkoConfig.showReply));
         items.add(UItem.asCheck(ID_SAVE_TO_GALLERY, LocaleController.getString(R.string.SaveToGallery))
@@ -87,7 +90,11 @@ public class MessageMenuItemsPreferencesActivity extends BasePreferencesActivity
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
         int id = item.id;
-        if (id == ID_SAVE_FOR_NOTIFICATIONS) {
+        if (id == ID_COPY) {
+            NimarkoConfig.toggleShowCopyMessage(); applyCheck(item, view, NimarkoConfig.showCopyMessage);
+        } else if (id == ID_REPEAT) {
+            NimarkoConfig.toggleShowRepeatMessage(); applyCheck(item, view, NimarkoConfig.showRepeatMessage);
+        } else if (id == ID_SAVE_FOR_NOTIFICATIONS) {
             NimarkoConfig.toggleShowSaveForNotifications();
             applyCheck(item, view, NimarkoConfig.showSaveForNotifications);
         } else if (id == ID_REPLY) {

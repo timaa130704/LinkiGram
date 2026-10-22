@@ -1652,4 +1652,10 @@
     <string name="NM_BAN_CropFailed">Не удалось обрезать изображение. Попробуйте ещё раз.</string>
     <string name="NM_BAN_CropUnsupported">Этот формат нельзя показать на устройстве. Отправить оригинал с автоматической обрезкой по центру?</string>
     <string name="NM_BAN_SubmitOriginal">Отправить оригинал</string>
+    <string name="LinkiDoubleTapIncoming">Двойной тап по чужим сообщениям</string>
+    <string name="LinkiDoubleTapOutgoing">Двойной тап по своим сообщениям</string>
+    <string name="LinkiStickerTime">Время на стикерах</string>
+    <string name="LinkiStickerTimeDefault">На стикере</string>
+    <string name="LinkiStickerTimeSide">Сбоку от стикера</string>
+    <string name="LinkiChooseRoundCameraHint">Выберите камеру, затем снова удерживайте кнопку записи.</string>
 </resources>

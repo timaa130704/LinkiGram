@@ -2022,6 +2022,16 @@ public class ChatActivity extends BaseFragment implements
         @Override
         public boolean hasDoubleTap(View view, int position) {
             if (isQuickRepliesOrWelcomeMessagesMode()) return false;
+            MessageObject tapped = view instanceof ChatMessageCell ? ((ChatMessageCell) view).getPrimaryMessageObject() : null;
+            if (tapped != null) {
+                int action = NimarkoConfig.getDoubleTapAction(tapped.isOutOwner());
+                if (action == NimarkoConfig.DTAP_NONE) return false;
+                if (action != NimarkoConfig.DTAP_REACTION) {
+                    return !actionBar.isActionModeShowed() && !isInScheduleMode() && !isInPreviewMode()
+                            && !tapped.isSponsored() && !tapped.isSending() && !tapped.isEditing()
+                            && app.nimarkogram.messenger.utils.chats.DoubleTapUtils.canHandle(tapped);
+                }
+            }
             String reactionStringSetting = getMediaDataController().getDoubleTapReaction();
             TLRPC.TL_availableReaction reaction = getMediaDataController().getReactionsMap().get(reactionStringSetting);
             if (reaction == null && (reactionStringSetting == null || !reactionStringSetting.startsWith("animated_"))) {
@@ -2060,6 +2070,14 @@ public class ChatActivity extends BaseFragment implements
                 }
             } else {
                 return;
+            }
+            if (messageObject == null) return;
+            int tapAction = NimarkoConfig.getDoubleTapAction(messageObject.isOutOwner());
+            if (tapAction == NimarkoConfig.DTAP_NONE) return;
+            if (tapAction != NimarkoConfig.DTAP_REACTION) {
+                if (app.nimarkogram.messenger.utils.chats.DoubleTapUtils.canHandle(messageObject)
+                        && app.nimarkogram.messenger.utils.chats.DoubleTapUtils.dispatch(ChatActivity.this, view, messageObject)) return;
+                if (tapAction != NimarkoConfig.DTAP_EDIT_OR_REACTION) return;
             }
             if (messageObject.isSecret() || !messageObject.canSetReaction() || messageObject.isExpiredStory() || messageObject.type == MessageObject.TYPE_JOINED_CHANNEL) {
                 return;
@@ -31390,6 +31408,39 @@ public class ChatActivity extends BaseFragment implements
                 icons.add(R.drawable.msg_calendar2);
             }
 
+            if (!suggestEdit && selectedObject != null && selectedObject.messageOwner != null) {
+                boolean protectedMessage = isPeerNoForwards() || selectedObject.messageOwner.noforwards
+                        || selectedObject.isSecret() || selectedObject.hasExtendedMedia() || selectedObject.isSponsored();
+                if (!protectedMessage && !isInScheduleMode() && !selectedObject.isSending()
+                        && selectedObject.getId() > 0 && !selectedObject.isEphemeral()) {
+                    if (NimarkoConfig.showSaveMessage && dialog_id != getUserConfig().getClientUserId()) {
+                        items.add(getString(R.string.NM_MI_SaveToSaved)); options.add(205); icons.add(R.drawable.msg_saved);
+                    }
+                    if (NimarkoConfig.showRepeatMessage && canSendMessage()) {
+                        items.add(getString(R.string.Repeat)); options.add(9882); icons.add(R.drawable.msg_retry);
+                    }
+                }
+                app.nimarkogram.messenger.NimarkoMessageMenuInjector.injectClearFromCache(
+                        selectedObject, currentAccount, items, options, icons);
+                app.nimarkogram.messenger.NimarkoMessageMenuInjector.removeItems(
+                        selectedObject, selectedObjectGroup, protectedMessage, false, items, options, icons);
+                java.util.List<Integer> order = NimarkoConfig.messageMenuOrder;
+                if (order != null) {
+                    ArrayList<Integer> indices = new ArrayList<>();
+                    for (int i = 0; i < options.size(); i++) indices.add(i);
+                    indices.sort((a, b) -> {
+                        int first = order.indexOf(options.get(a)), second = order.indexOf(options.get(b));
+                        return Integer.compare(first < 0 ? Integer.MAX_VALUE : first, second < 0 ? Integer.MAX_VALUE : second);
+                    });
+                    ArrayList<CharSequence> sortedItems = new ArrayList<>(items);
+                    ArrayList<Integer> sortedOptions = new ArrayList<>(options), sortedIcons = new ArrayList<>(icons);
+                    for (int i = 0; i < indices.size(); i++) {
+                        int from = indices.get(i);
+                        items.set(i, sortedItems.get(from)); options.set(i, sortedOptions.get(from)); icons.set(i, sortedIcons.get(from));
+                    }
+                }
+            }
+
             if (options.isEmpty() && optionsView == null) {
                 return false;
             }
@@ -33728,6 +33779,31 @@ public class ChatActivity extends BaseFragment implements
 
         if (selectedObject == null || getParentActivity() == null) {
             return;
+        }
+        if (option == 205 || option == 9882) {
+            MessageObject message = selectedObject;
+            if (!isPeerNoForwards() && !message.messageOwner.noforwards && !message.isSecret()
+                    && !message.isSponsored() && !message.hasExtendedMedia() && !message.isEphemeral()) {
+                long target = option == 205 ? NimarkoConfig.getEffectiveSavedMessagesDialogId(currentAccount,
+                        getUserConfig().getClientUserId()) : dialog_id;
+                ArrayList<MessageObject> messages = new ArrayList<>(); messages.add(message);
+                if (option == 205 || canSendMessage()) {
+                    AlertsCreator.ensurePaidMessageConfirmation(currentAccount, target, 1, stars ->
+                            getSendMessagesHelper().sendMessage(messages, target, option == 9882, false, true,
+                                    0, option == 9882 ? replyingTopMessage : null, -1, stars));
+                }
+            }
+            closeMenu(); return;
+        }
+        if (option == 202) {
+            File file = FileLoader.getInstance(currentAccount).getPathToMessage(selectedObject.messageOwner);
+            if (file != null && file.isFile()) {
+                ArrayList<File> files = new ArrayList<>(); files.add(file);
+                FileLoader.getInstance(currentAccount).deleteFiles(files, 0);
+                selectedObject.mediaExists = false;
+                if (chatAdapter != null) chatAdapter.notifyDataSetChanged();
+            }
+            closeMenu(); return;
         }
         boolean preserveDim = false;
         switch (option) {

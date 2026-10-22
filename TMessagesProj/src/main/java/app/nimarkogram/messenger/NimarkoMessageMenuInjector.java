@@ -339,14 +339,16 @@ public final class NimarkoMessageMenuInjector {
             if (opt == null) continue;
             boolean remove = false;
             int o = opt;
-            if (o == ChatActivity.OPTION_SAVE_TO_GALLERY || o == ChatActivity.OPTION_SAVE_TO_GALLERY2) {
+            if (o == ChatActivity.OPTION_REPLY) {
+                remove = !NimarkoConfig.showReply;
+            } else if (o == ChatActivity.OPTION_SAVE_TO_GALLERY || o == ChatActivity.OPTION_SAVE_TO_GALLERY2) {
                 remove = noforwardsOrPaidMedia || !NimarkoConfig.showSaveToGallery;
             } else if (o == ChatActivity.OPTION_SAVE_TO_DOWNLOADS_OR_MUSIC) {
                 remove = noforwardsOrPaidMedia || !NimarkoConfig.showSaveToDownloads;
             } else if (o == ChatActivity.OPTION_SHARE) {
                 remove = noforwardsOrPaidMedia || !NimarkoConfig.showShare;
             } else if (o == ChatActivity.OPTION_COPY) {
-                remove = noforwardsOrPaidMedia;
+                remove = noforwardsOrPaidMedia || !NimarkoConfig.showCopyMessage;
             } else if (o == OPTION_COPY_PHOTO) {
                 remove = noforwardsOrPaidMedia || !NimarkoConfig.showCopyPhoto;
             } else if (o == OPTION_COPY_PHOTO_AS_STICKER) {

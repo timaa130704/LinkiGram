@@ -53,6 +53,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
             sendAsChannelButtonRow = 17, messageSizeRow = 18, chatMenuShortcutsRow = 19,
             weekdayRow = 20;
 
+    private final int doubleTapOutgoingRow = 41;
     private final int doubleTapRow = 30, slideActionRow = 31, leftBottomBtnRow = 32, autoQuoteRow = 33,
             disableSwipeToNextRow = 34, deleteForAllRow = 35, directShareRow = 36, disableVibrationRow = 37,
             hideKbdSliderRow = 38, preReformRussianRow = 39, latexRenderingRow = 40;
@@ -122,7 +123,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.NM_CP_Header_Interaction)));
-        items.add(UItem.asButton(doubleTapRow, getString(R.string.CP_DoubleTapAction), getDoubleTapActionValue()));
+        items.add(UItem.asButton(doubleTapRow, getString(R.string.LinkiDoubleTapIncoming), getDoubleTapActionValue(false)));
+        items.add(UItem.asButton(doubleTapOutgoingRow, getString(R.string.LinkiDoubleTapOutgoing), getDoubleTapActionValue(true)));
         items.add(UItem.asButton(slideActionRow, getString(R.string.NM_MsgSlideAction), getSlideActionValue()));
         items.add(UItem.asButton(leftBottomBtnRow, getString(R.string.CP_LeftBottomButtonAction), getLeftBottomButtonValue()));
         items.add(SettingsHelper.asSwitchCG(autoQuoteRow, getString(R.string.CP_AutoQuoteReplies), getString(R.string.CP_AutoQuoteReplies_Desc))
@@ -253,8 +255,9 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         } else if (id == chatMenuShortcutsRow) {
             showChatMenuItemsConfigurator(this);
 
-        } else if (id == doubleTapRow) {
-            showDoubleTapSelector(() -> SettingsHelper.updateButtonValue(view, getDoubleTapActionValue()));
+        } else if (id == doubleTapRow || id == doubleTapOutgoingRow) {
+            boolean outgoing = id == doubleTapOutgoingRow;
+            showDoubleTapSelector(outgoing, () -> SettingsHelper.updateButtonValue(view, getDoubleTapActionValue(outgoing)));
         } else if (id == slideActionRow) {
             showSlideActionSelector(() -> SettingsHelper.updateButtonValue(view, getSlideActionValue()));
         } else if (id == leftBottomBtnRow) {
@@ -403,8 +406,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         return userCell;
     }
 
-    private String getDoubleTapActionValue() {
-        return switch (NimarkoConfig.doubletapaction) {
+    private String getDoubleTapActionValue(boolean outgoing) {
+        return switch (NimarkoConfig.getDoubleTapAction(outgoing)) {
             case NimarkoConfig.DOUBLE_TAP_ACTION_REACTION -> getString(R.string.Reactions);
             case NimarkoConfig.DOUBLE_TAP_ACTION_REPLY -> getString(R.string.Reply);
             case NimarkoConfig.DOUBLE_TAP_ACTION_SAVE -> getString(R.string.NM_ToSaved);
@@ -415,7 +418,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         };
     }
 
-    private void showDoubleTapSelector(Runnable runnable) {
+    private void showDoubleTapSelector(boolean outgoing, Runnable runnable) {
         ArrayList<String> keys = new ArrayList<>();
         ArrayList<Integer> values = new ArrayList<>();
         keys.add(getString(R.string.Disable)); values.add(NimarkoConfig.DOUBLE_TAP_ACTION_NONE);
@@ -425,8 +428,9 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         keys.add(getString(R.string.Edit)); values.add(NimarkoConfig.DOUBLE_TAP_ACTION_EDIT);
         keys.add(getString(R.string.TranslateMessage)); values.add(NimarkoConfig.DOUBLE_TAP_ACTION_TRANSLATE);
         keys.add(getString(R.string.NM_DoubleTap_EditOrReact)); values.add(NimarkoConfig.DOUBLE_TAP_ACTION_EDIT_OR_REACTION);
-        PopupHelper.show(keys, getString(R.string.CP_DoubleTapAction), values.indexOf(NimarkoConfig.doubletapaction), getContext(), i -> {
-            NimarkoConfig.setDoubleTapAction(values.get(i));
+        PopupHelper.show(keys, getString(R.string.CP_DoubleTapAction), values.indexOf(NimarkoConfig.getDoubleTapAction(outgoing)), getContext(), i -> {
+            if (outgoing) NimarkoConfig.setDoubleTapOutgoingAction(values.get(i));
+            else NimarkoConfig.setDoubleTapAction(values.get(i));
             if (runnable != null) runnable.run();
         });
     }

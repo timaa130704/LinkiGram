@@ -1547,6 +1547,22 @@ public final class NimarkoConfig {
         getEditor().putInt("doubleTapAction", v).apply();
     }
 
+    public static int doubleTapOutgoingAction = getPreferences().getInt("doubleTapOutgoingAction", doubleTapAction);
+    public static int getDoubleTapAction(boolean outgoing) {
+        return outgoing ? doubleTapOutgoingAction : doubleTapAction;
+    }
+    public static void setDoubleTapOutgoingAction(int value) {
+        doubleTapOutgoingAction = value;
+        getEditor().putInt("doubleTapOutgoingAction", value).apply();
+    }
+    public static int stickerTimeMode = getPreferences().getInt("stickerTimeMode", hideStickerTimeValue() ? 2 : 0);
+    private static boolean hideStickerTimeValue() { return getPreferences().getBoolean("hideStickerTime", false); }
+    public static void setStickerTimeMode(int value) {
+        stickerTimeMode = Math.max(0, Math.min(2, value));
+        hideStickerTime = stickerTimeMode == 2;
+        getEditor().putInt("stickerTimeMode", stickerTimeMode).putBoolean("hideStickerTime", hideStickerTime).apply();
+    }
+
     public static final int SLIDE_REPLY = 0;
     public static final int SLIDE_SAVE = 1;
     public static final int SLIDE_TRANSLATE = 2;
@@ -1812,6 +1828,11 @@ public final class NimarkoConfig {
 
     public static boolean showSaveForNotifications = getPreferences().getBoolean("showSaveForNotifications", true);
     public static void toggleShowSaveForNotifications() { showSaveForNotifications = !showSaveForNotifications; getEditor().putBoolean("showSaveForNotifications", showSaveForNotifications).apply(); }
+
+    public static boolean showCopyMessage = getPreferences().getBoolean("showCopyMessage", true);
+    public static void toggleShowCopyMessage() { showCopyMessage = !showCopyMessage; getEditor().putBoolean("showCopyMessage", showCopyMessage).apply(); }
+    public static boolean showRepeatMessage = getPreferences().getBoolean("showRepeatMessage", false);
+    public static void toggleShowRepeatMessage() { showRepeatMessage = !showRepeatMessage; getEditor().putBoolean("showRepeatMessage", showRepeatMessage).apply(); }
 
     public static boolean showReply = getPreferences().getBoolean("showReply", true);
     public static void toggleShowReply() { showReply = !showReply; getEditor().putBoolean("showReply", showReply).apply(); }

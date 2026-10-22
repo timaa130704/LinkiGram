@@ -148,12 +148,16 @@ public final class DoubleTapUtils {
 
     public static boolean canHandle(MessageObject message) {
         if (message == null) return false;
-        int action = NimarkoConfig.doubleTapAction;
+        int action = NimarkoConfig.getDoubleTapAction(message.isOutOwner());
         switch (action) {
             case NimarkoConfig.DTAP_REPLY:
                 return !message.isSending() && message.getId() > 0 && !message.isSponsored();
             case NimarkoConfig.DTAP_SAVE:
-                return !message.isSending() && !message.isSponsored() && !message.isSecret();
+                return !message.isSending() && !message.isSponsored() && !message.isSecret()
+                        && message.messageOwner != null && !message.messageOwner.noforwards
+                        && !message.hasExtendedMedia() && !message.isEphemeral()
+                        && !org.telegram.messenger.MessagesController.getInstance(message.currentAccount)
+                                .isPeerNoForwards(message.getDialogId());
             case NimarkoConfig.DTAP_EDIT:
                 return message.canEditMessage(null);
             case NimarkoConfig.DTAP_EDIT_OR_REACTION:
@@ -170,7 +174,7 @@ public final class DoubleTapUtils {
     public static boolean dispatch(Object chatActivity, View cell, MessageObject message) {
         if (message == null || chatActivity == null) return false;
         try {
-            switch (NimarkoConfig.doubleTapAction) {
+            switch (NimarkoConfig.getDoubleTapAction(message.isOutOwner())) {
                 case NimarkoConfig.DTAP_REPLY: {
                     chatActivity.getClass()
                             .getMethod("showFieldPanelForReply", MessageObject.class)

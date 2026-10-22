@@ -59,6 +59,7 @@ public class MessageMenuOrderPreferencesActivity extends BaseFragment {
             ChatActivity.OPTION_SHARE,
             ChatActivity.OPTION_TRANSLATE,
             ChatActivity.OPTION_DELETE,
+            205, 9882, 202,
     };
 
     private static Map<Integer, Integer> labelByOption() {
@@ -73,6 +74,9 @@ public class MessageMenuOrderPreferencesActivity extends BaseFragment {
         m.put(ChatActivity.OPTION_SHARE, R.string.ShareFile);
         m.put(ChatActivity.OPTION_TRANSLATE, R.string.TranslateMessage);
         m.put(ChatActivity.OPTION_DELETE, R.string.Delete);
+        m.put(205, R.string.NM_MI_SaveToSaved);
+        m.put(9882, R.string.Repeat);
+        m.put(202, R.string.NM_MI_ClearFromCache);
         return m;
     }
 
@@ -89,6 +93,9 @@ public class MessageMenuOrderPreferencesActivity extends BaseFragment {
         m.put(ChatActivity.OPTION_SHARE, R.drawable.msg_share);
         m.put(ChatActivity.OPTION_TRANSLATE, R.drawable.msg_translate);
         m.put(ChatActivity.OPTION_DELETE, R.drawable.msg_delete);
+        m.put(205, R.drawable.msg_saved);
+        m.put(9882, R.drawable.msg_retry);
+        m.put(202, R.drawable.msg_clear);
         return m;
     }
 

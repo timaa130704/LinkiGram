@@ -8,6 +8,8 @@
 
 package org.telegram.ui.Components;
 
+import app.nimarkogram.messenger.NimarkoConfig;
+
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
 import static org.telegram.messenger.AndroidUtilities.lerp;
@@ -892,6 +894,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
     };
 
+    private boolean roundCameraChosen;
+    private boolean roundCameraDialogOpen;
     private boolean recordAudioVideoRunnableStarted;
     private boolean calledRecordRunnable;
     private Runnable recordAudioVideoRunnable = new Runnable() {
@@ -899,6 +903,28 @@ public class ChatActivityEnterView extends FrameLayout implements
         public void run() {
             if (delegate == null || parentActivity == null) {
                 return;
+            }
+            if (isInVideoMode()) {
+                if (NimarkoConfig.videoMessagesCamera == 2 && !roundCameraChosen) {
+                    recordAudioVideoRunnableStarted = false;
+                    if (roundCameraDialogOpen) return;
+                    roundCameraDialogOpen = true;
+                    new AlertDialog.Builder(parentActivity)
+                            .setTitle(LocaleController.getString(R.string.NM_CAM_RoundCamera))
+                            .setMessage(LocaleController.getString(R.string.LinkiChooseRoundCameraHint))
+                            .setPositiveButton(LocaleController.getString(R.string.NM_CAM_FrontCamera), (dialog, which) -> {
+                                NimarkoConfig.pendingRoundFront = true; roundCameraChosen = true;
+                            })
+                            .setNegativeButton(LocaleController.getString(R.string.NM_CAM_RearCamera), (dialog, which) -> {
+                                NimarkoConfig.pendingRoundFront = false; roundCameraChosen = true;
+                            })
+                            .setOnDismissListener(dialog -> roundCameraDialogOpen = false).show();
+                    return;
+                }
+                if (NimarkoConfig.videoMessagesCamera != 2) {
+                    NimarkoConfig.pendingRoundFront = NimarkoConfig.videoMessagesCamera != 1;
+                }
+                roundCameraChosen = false;
             }
             delegate.onPreAudioVideoRecord();
             calledRecordRunnable = true;

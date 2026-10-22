@@ -13011,4 +13011,10 @@
     <string name="NM_BAN_CropFailed">Could not crop the image. Try again.</string>
     <string name="NM_BAN_CropUnsupported">This image format cannot be previewed on your device. Send the original with automatic centre cropping?</string>
     <string name="NM_BAN_SubmitOriginal">Send original</string>
+    <string name="LinkiDoubleTapIncoming">Double tap incoming messages</string>
+    <string name="LinkiDoubleTapOutgoing">Double tap outgoing messages</string>
+    <string name="LinkiStickerTime">Sticker timestamp</string>
+    <string name="LinkiStickerTimeDefault">Over the sticker</string>
+    <string name="LinkiStickerTimeSide">Beside the sticker</string>
+    <string name="LinkiChooseRoundCameraHint">Choose a camera, then hold the recording button again.</string>
 </resources>

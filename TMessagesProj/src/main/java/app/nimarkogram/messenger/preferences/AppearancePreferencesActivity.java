@@ -97,6 +97,11 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private app.nimarkogram.messenger.preferences.components.AvatarCornersPreviewCell avatarCornersCell;
     private app.nimarkogram.messenger.preferences.components.StickerSizeCell stickerSizeCell;
 
+    private String stickerTimeLabel() {
+        return getString(NimarkoConfig.stickerTimeMode == 2 ? R.string.Hide
+                : NimarkoConfig.stickerTimeMode == 1 ? R.string.LinkiStickerTimeSide : R.string.LinkiStickerTimeDefault);
+    }
+
     @Override
     protected CharSequence getTitle() {
          
@@ -237,8 +242,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             stickerSizeCell = new app.nimarkogram.messenger.preferences.components.StickerSizeCell(getContext(), this);
         }
         items.add(UItem.asCustom(stickerSizeCell));
-        items.add(SettingsHelper.asSwitchCG(hideStickerTimeRow, getString(R.string.CP_TimeOnStick))
-                .setChecked(NimarkoConfig.hideStickerTime));
+        items.add(UItem.asButton(hideStickerTimeRow, getString(R.string.LinkiStickerTime), stickerTimeLabel()));
         items.add(UItem.asShadow(null));
 
         items.add(UItem.asHeader(getString(R.string.LocalMiscellaneousCache)));
@@ -444,8 +448,16 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.nmUpdateOnlineIndicator);
         } else if (item.id == hideStickerTimeRow) {
-            NimarkoConfig.toggleHideStickerTime();
-            updateCheckState(view, NimarkoConfig.hideStickerTime);
+            ArrayList<String> options = new ArrayList<>();
+            options.add(getString(R.string.LinkiStickerTimeDefault));
+            options.add(getString(R.string.LinkiStickerTimeSide));
+            options.add(getString(R.string.Hide));
+            app.nimarkogram.messenger.preferences.helpers.PopupHelper.show(options,
+                    getString(R.string.LinkiStickerTime), NimarkoConfig.stickerTimeMode, getContext(), i -> {
+                        NimarkoConfig.setStickerTimeMode(i);
+                        SettingsHelper.updateButtonValue(view, stickerTimeLabel());
+                        if (stickerSizeCell != null) stickerSizeCell.refreshPreview();
+                    });
             
             if (stickerSizeCell != null) stickerSizeCell.refreshPreview();
         } else if (item.id == customTitleRow) {
