@@ -1360,17 +1360,33 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             final float v = height + extraHeight + searchTransitionOffset;
 
             int y1 = (int) (v * (1.0f - mediaHeaderAnimationProgress));
+            boolean drawProfileBanner = app.nimarkogram.messenger.banners.NimarkoBannerConfig.enabled
+                    && getDialogId() > 0 && !searchMode;
+            boolean suppressBannerBackground = false;
+            if (drawProfileBanner) {
+                float bannerExpand = Utilities.clamp01((extraHeight - getHeaderExtraHeight())
+                        / Math.max(1f, getMeasuredWidth() - height - getHeaderOnlyExtraHeight()));
+                suppressBannerBackground = app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance()
+                        .prepareFrame(this, getDialogId(), extraHeight, getMeasuredWidth(), y1,
+                                openAnimationInProgress, transitionAnimationInProress, searchMode,
+                                bannerExpand, playProfileAnimation, hasMainTabs, false,
+                                (int) getHeaderExtraHeight()).suppressBackground;
+            }
 
             if (y1 != 0) {
                 paint.setColor(currentColor);
                 updateBackgroundPaint();
                 final float progressToGradient = (playProfileAnimation == 0 ? 1f : avatarAnimationProgress) * hasColorAnimated.set(hasColorById);
-                if (progressToGradient < 1) {
+                if (!suppressBannerBackground && progressToGradient < 1) {
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, paint);
                 }
-                if (progressToGradient > 0) {
+                if (!suppressBannerBackground && progressToGradient > 0) {
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
+                }
+                if (drawProfileBanner) {
+                    app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance()
+                            .drawImageBanner(canvas, getMeasuredWidth(), y1, extraHeight, getDialogId());
                 }
                 if (hasEmoji) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
@@ -2362,6 +2378,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
+        if (topView != null) {
+            app.nimarkogram.messenger.banners.NimarkoBannerRenderer renderer =
+                    app.nimarkogram.messenger.banners.NimarkoBannerRenderer.peek();
+            if (renderer != null) renderer.onProfileDestroyed(topView, getDialogId());
+        }
         if (sharedMediaLayout != null) {
             sharedMediaLayout.onDestroy();
         }
@@ -9535,6 +9556,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+        if (topView != null && getDialogId() > 0
+                && app.nimarkogram.messenger.banners.NimarkoBannerConfig.enabled) {
+            app.nimarkogram.messenger.banners.NimarkoBannerRenderer renderer =
+                    app.nimarkogram.messenger.banners.NimarkoBannerRenderer.getInstance();
+            renderer.setAvatarViews(avatarImage, avatarContainer, avatarsViewPager, storyView, giftsView, avatarGooey);
+            renderer.onProfileResumed(topView, getDialogId());
+            app.nimarkogram.messenger.banners.NimarkoBannerController.getInstance().refreshStatus(false);
+            topView.invalidate();
+        }
         if (sharedMediaLayout != null) {
             sharedMediaLayout.onResume();
         }
@@ -9584,6 +9614,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onPause() {
         super.onPause();
+        if (topView != null) {
+            app.nimarkogram.messenger.banners.NimarkoBannerRenderer renderer =
+                    app.nimarkogram.messenger.banners.NimarkoBannerRenderer.peek();
+            if (renderer != null) renderer.onProfilePaused(topView);
+        }
         if (undoView != null) {
             undoView.hide(true, 0);
         }
