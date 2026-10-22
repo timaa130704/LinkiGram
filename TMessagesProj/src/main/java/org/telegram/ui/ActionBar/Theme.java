@@ -1647,7 +1647,7 @@ public class Theme {
             if (isDark != UNKNOWN) {
                 return isDark == DARK;
             }
-            if ("Dark Blue".equals(name) || "Night".equals(name)) {
+            if ("Dark Blue".equals(name) || "Night".equals(name) || "AMOLED".equals(name)) {
                 isDark = DARK;
             } else if ("Blue".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name)) {
                 isDark = LIGHT;
@@ -4020,6 +4020,16 @@ public class Theme {
         sortAccents(themeInfo);
         themes.add(themeInfo);
         themesDict.put("Night", themeInfo);
+
+        themeInfo = new ThemeInfo();
+        themeInfo.name = "AMOLED";
+        themeInfo.assetName = "amoled.attheme";
+        themeInfo.previewBackgroundColor = 0xff000000;
+        themeInfo.previewInColor = 0xff181818;
+        themeInfo.previewOutColor = 0xff17436b;
+        themeInfo.sortIndex = 5;
+        themes.add(themeInfo);
+        themesDict.put("AMOLED", themeInfo);
 
         String themesString = themeConfig.getString("themes2", null);
 
