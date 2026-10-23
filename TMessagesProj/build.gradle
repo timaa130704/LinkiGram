@@ -338,6 +338,7 @@ chaquopy {
             options "--find-links", "${project.projectDir}/python-wheels/arm64-v8a"
             install "requests==2.31.0"
             install "certifi"
+            install "httpx[http2]==0.28.1"
             install "urllib3"
             install "mpmath"
             install "tinydb"

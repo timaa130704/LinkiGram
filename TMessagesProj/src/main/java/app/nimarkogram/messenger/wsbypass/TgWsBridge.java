@@ -1,124 +1,76 @@
 package app.nimarkogram.messenger.wsbypass;
 
+import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.FileLog;
 import java.io.File;
 
-/**
- * JNI bridge to the embedded tg-ws-proxy-android core (GPL-3.0).
- *
- * <p>tg-ws-linki is a Rust MTProto proxy that keeps a WebSocket pool to the Telegram
- * datacenters. Unlike the in-house {@link WsBypassCore} route it is a proven upstream
- * implementation whose transport survives networks that throttle the Java one.
- */
+/** Android lifecycle bridge to the original MIT-licensed Flowseal/tg-ws-proxy core. */
 public final class TgWsBridge {
-
-    private static volatile boolean available;
-    private static boolean checked;
-
     private TgWsBridge() {}
 
-    private static native int nativeStart(String host, int port, String dcIps, String secret, boolean verbose);
-    private static native int nativeStop();
-    private static native void nativeSetPoolSize(int size);
-    private static native void nativeSetSecret(String secret);
-    private static native void nativeSetCfProxy(boolean enabled, String domain);
-    private static native String nativeStats();
-    private static native String nativeSecretWithPrefix();
-
-    /** True when the embedded core loaded and the symbols resolved. */
-    public static boolean isAvailable() {
-        if (!checked) {
-            synchronized (TgWsBridge.class) {
-                if (!checked) {
-                    boolean ok;
-                    try {
-                        nativeSetPoolSize(8);
-                        ok = true;
-                    } catch (Throwable t) {
-                        ok = false;
-                    }
-                    available = ok;
-                    checked = true;
-                }
+    private static PyObject module() {
+        synchronized (Python.class) {
+            if (!Python.isStarted()) {
+                Python.start(new AndroidPlatform(ApplicationLoader.applicationContext));
             }
         }
-        return available;
+        return Python.getInstance().getModule("flowseal_tg_ws.android");
     }
 
-    /**
-     * Starts the local proxy.
-     *
-     * @return 0 on success, negative on failure.
-     */
-    public static int start(String host, int port, String dcIps, String secret, boolean verbose) {
-        if (!isAvailable()) return -100;
+    public static boolean isAvailable() {
         try {
-            return nativeStart(host, port, dcIps == null ? "" : dcIps, secret, verbose);
+            module();
+            return true;
         } catch (Throwable t) {
+            FileLog.e("Flowseal proxy initialization failed", t);
+            return false;
+        }
+    }
+
+    public static int start(String host, int port, String dcIps, String secret, boolean verbose) {
+        try {
+            return module().callAttr("start", host, port, secret).toInt();
+        } catch (Throwable t) {
+            FileLog.e("Flowseal proxy start failed", t);
             return -100;
         }
     }
 
     public static void stop() {
-        if (!isAvailable()) return;
-        try {
-            nativeStop();
-        } catch (Throwable ignored) {
-        }
+        if (!Python.isStarted()) return;
+        try { module().callAttr("stop"); }
+        catch (Throwable t) { FileLog.e("Flowseal proxy stop failed", t); }
     }
 
     public static void setPoolSize(int size) {
-        if (!isAvailable()) return;
-        try {
-            nativeSetPoolSize(size);
-        } catch (Throwable ignored) {
-        }
+        module().callAttr("set_pool_size", size);
     }
 
     public static void setSecret(String secret) {
-        if (!isAvailable() || secret == null) return;
-        try {
-            nativeSetSecret(secret);
-        } catch (Throwable ignored) {
-        }
+        if (secret != null) module().callAttr("set_secret", secret);
     }
 
     public static void setCfProxy(boolean enabled, String domain) {
-        if (!isAvailable()) return;
-        try {
-            nativeSetCfProxy(enabled, domain == null ? "" : domain);
-        } catch (Throwable ignored) {
-        }
+        module().callAttr("set_cf_proxy", enabled, domain == null ? "" : domain);
     }
 
     public static String stats() {
-        if (!isAvailable()) return "";
         try {
-            String s = nativeStats();
-            return s == null ? "" : s;
-        } catch (Throwable t) {
-            return "";
-        }
+            PyObject result = module().callAttr("stats");
+            return result == null ? "" : result.toString();
+        } catch (Throwable t) { return ""; }
     }
 
     public static String secretWithPrefix() {
-        if (!isAvailable()) return "";
-        try {
-            String s = nativeSecretWithPrefix();
-            return s == null ? "" : s;
-        } catch (Throwable t) {
-            return "";
-        }
+        return module().callAttr("secret_with_prefix").toString();
     }
 
-    /** Cache dir the core may use for its optional config fetches. */
     public static File cacheDir() {
-        try {
-            File dir = new File(org.telegram.messenger.ApplicationLoader.applicationContext.getCacheDir(), "tgwsproxy");
-            //noinspection ResultOfMethodCallIgnored
-            dir.mkdirs();
-            return dir;
-        } catch (Throwable t) {
-            return null;
-        }
+        File dir = new File(ApplicationLoader.applicationContext.getCacheDir(), "tgwsproxy");
+        dir.mkdirs();
+        return dir;
     }
 }
