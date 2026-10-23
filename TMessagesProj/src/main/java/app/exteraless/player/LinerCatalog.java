@@ -29,8 +29,8 @@ final class LinerCatalog {
 
     static Track resolve(OnlineLyrics.Query query) {
         ArrayList<Track> tracks = new ArrayList<>();
-        // Songs first, then unfiltered results, as in Liner's client catalog.
-        for (String filter : new String[]{"EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D", ""}) {
+        // Liner searches songs, mixed results and music videos.
+        for (String filter : new String[]{"EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D", "", "EgWKAQIQAWoKEAkQBRAKEAMQBA%3D%3D"}) {
             try { collect(search(query.artist + " " + query.originalTitle, filter), tracks, 0); }
             catch (Exception error) { android.util.Log.w("LinkiLyrics", "Liner client catalog search failed: " + error.getClass().getSimpleName()); }
             Track matched = match(tracks, query);
