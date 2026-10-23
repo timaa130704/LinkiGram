@@ -69,7 +69,7 @@ public final class OnlineLyrics {
         }
 
         public String key() {
-            return (artist == null ? "" : artist.toLowerCase(Locale.ROOT)) + "\u0001" + (title == null ? "" : title.toLowerCase(Locale.ROOT)) + "\u0001" + duration;
+            return (artist == null ? "" : artist.toLowerCase(Locale.ROOT)) + "\u0001" + (title == null ? "" : title.toLowerCase(Locale.ROOT)) + "\u0001" + duration + "\u0001liner:" + LinerApi.signedIn();
         }
 
         public boolean valid() {
@@ -98,7 +98,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 5;
+    private static final int CACHE_VERSION = 6;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;

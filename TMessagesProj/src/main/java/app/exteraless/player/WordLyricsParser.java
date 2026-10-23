@@ -31,7 +31,7 @@ final class WordLyricsParser {
                     String value = token.optString("c", "");
                     int start = text.length(); text.append(value);
                     long offset = Math.round(token.optDouble("o", 0) * 1000);
-                    if (!value.isEmpty()) words.add(new Lyrics.Word(Math.max(0, time + offset), start, text.length()));
+                    if (!value.isEmpty()) words.add(new Lyrics.Word(Math.max(0, offset >= time ? offset : time + offset), start, text.length()));
                 }
                 lines.add(new Lyrics.Line(Math.max(0, time), text.toString(), words));
             }

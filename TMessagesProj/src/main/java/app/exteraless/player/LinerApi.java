@@ -95,17 +95,66 @@ public final class LinerApi {
         return session().optString("accessToken");
     }
     private static String enc(String value) throws Exception { return URLEncoder.encode(value, "UTF-8"); }
+    private static String normalized(String value) {
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFKC)
+                .toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+    }
+
+    private static String catalogTrackId(OnlineLyrics.Query query) {
+        try {
+            String path = "/v1/search?type=track&q=" + enc(query.artist + " " + query.title);
+            JSONObject response;
+            try {
+                response = json(path, null, token(false));
+            } catch (IOException error) {
+                if (!"Liner HTTP 401".equals(error.getMessage())) throw error;
+                response = json(path, null, token(true));
+            }
+            JSONArray items = response.optJSONArray("items");
+            if (items == null) return null;
+            String title = normalized(query.title);
+            String artist = normalized(query.artist);
+            String best = null;
+            long bestDifference = Long.MAX_VALUE;
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject track = items.optJSONObject(i);
+                if (track == null || !title.equals(normalized(track.optString("title")))) continue;
+                JSONArray artists = track.optJSONArray("artists");
+                boolean artistMatches = false;
+                StringBuilder allArtists = new StringBuilder();
+                if (artists != null) for (int j = 0; j < artists.length(); j++) {
+                    JSONObject item = artists.optJSONObject(j);
+                    if (item == null) continue;
+                    String name = normalized(item.optString("name"));
+                    if (artist.equals(name)) artistMatches = true;
+                    if (allArtists.length() > 0) allArtists.append(' ');
+                    allArtists.append(name);
+                }
+                if (!artistMatches && !artist.equals(allArtists.toString())) continue;
+                long duration = track.optLong("durationMs", 0);
+                long difference = duration > 0 && query.duration > 0 ? Math.abs(duration - query.duration * 1000L) : 0;
+                if (difference > 8000 || difference >= bestDifference) continue;
+                String id = track.optString("id");
+                if (!id.isEmpty()) { best = id; bestDifference = difference; }
+            }
+            return best;
+        } catch (Exception error) {
+            org.telegram.messenger.FileLog.e("Liner catalog matching failed; using metadata hints", error);
+            return null;
+        }
+    }
+
     public static ArrayList<Lyrics> lyrics(OnlineLyrics.Query query) throws Exception {
         ArrayList<Lyrics> result = new ArrayList<>();
         if (!signedIn() || query.artist == null) return result;
-        // Supply metadata hints as the desktop client does. Local files have
-        // no catalog ID; a stable namespaced key keeps provider caching track-specific.
-        String id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
+        // Catalog-backed providers need the same real track ID used by Liner desktop.
+        String id = catalogTrackId(query);
+        if (id == null) id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
         String path = "/v1/tracks/" + enc(id) + "/lyrics?title=" + enc(query.title) + "&artist=" + enc(query.artist) + "&durationMs=" + query.duration * 1000L;
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = open(path, token(attempt > 0));
             try {
-                connection.setReadTimeout(35000);
+                connection.setReadTimeout(60000);
                 connection.setRequestProperty("x-request-id", java.util.UUID.randomUUID().toString());
                 connection.setRequestProperty("x-client-version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING);
                 connection.setRequestProperty("x-platform", "android");
@@ -114,16 +163,19 @@ public final class LinerApi {
                 if (status == 401 && attempt == 0) continue;
                 if (status != 200) throw new IOException("Liner HTTP " + status);
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line; StringBuilder event = new StringBuilder(); int total = 0; long deadline = System.currentTimeMillis() + 30000;
+                    String line; StringBuilder event = new StringBuilder(); int total = 0; long deadline = System.currentTimeMillis() + 120000;
                     while ((line = reader.readLine()) != null) {
                         total += line.length(); if (total > 4 * 1024 * 1024 || System.currentTimeMillis() > deadline) throw new IOException("Liner stream limit");
                         if (line.isEmpty()) {
                             if (addEvent(event.toString(), result)) return result;
                             event.setLength(0);
                         }
-                        else if (line.startsWith("data:")) event.append(line.substring(5).trim());
+                        else if (line.startsWith("data:")) event.append(line.substring(5).trim()).append("\n");
                     }
                     addEvent(event.toString(), result);
+                } catch (IOException error) {
+                    if (result.isEmpty()) throw error;
+                    org.telegram.messenger.FileLog.e("Liner stream interrupted; keeping completed providers", error);
                 }
                 return result;
             } finally { connection.disconnect(); }
@@ -137,9 +189,19 @@ public final class LinerApi {
             if (!"provider".equals(event.optString("type")) || !"found".equals(event.optString("status"))) return false;
             JSONObject candidate = event.getJSONObject("candidate");
             JSONObject lyrics = candidate.getJSONObject("lyrics");
-            Lyrics parsed = Lyrics.parse(lyrics.getString("content"), Lyrics.SOURCE_ONLINE, "Liner · " + event.optString("provider"));
-            if (parsed != null) out.add(parsed);
-        } catch (Exception ignore) { }
+            Lyrics parsed = Lyrics.parse(lyrics.getString("content"), Lyrics.SOURCE_ONLINE, "Liner · " + candidate.optString("provider", event.optString("provider")));
+            if (parsed != null) {
+                for (int i = out.size() - 1; i >= 0; i--) {
+                    if (parsed.provider.equals(out.get(i).provider)) out.remove(i);
+                }
+                out.add(parsed);
+            } else {
+                org.telegram.messenger.FileLog.e("Liner unsupported lyrics format: " + lyrics.optString("format")
+                        + " provider=" + candidate.optString("provider", event.optString("provider")));
+            }
+        } catch (Exception error) {
+            if (!raw.trim().isEmpty()) org.telegram.messenger.FileLog.e("Liner lyrics event could not be parsed", error);
+        }
         return false;
     }
     private LinerApi() { }
