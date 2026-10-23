@@ -60,7 +60,7 @@ public final class LinerApi {
     }
     private static JSONObject json(String path, JSONObject body, String token) throws Exception {
         HttpURLConnection connection = open(path, token);
-        if (path.startsWith("/v1/me/")) {
+        if (path.startsWith("/v1/me/") || path.startsWith("/v1/search")) {
             connection.setConnectTimeout(4000); connection.setReadTimeout(5000);
         }
         try {
@@ -140,6 +140,28 @@ public final class LinerApi {
         return null;
     }
 
+    /** Search the same Liner catalog used by its desktop client and use its canonical track ID. */
+    private static LinerCatalog.Track searchTrack(OnlineLyrics.Query query) {
+        try {
+            String searchText = (query.artist == null ? "" : query.artist) + " " + query.originalTitle;
+            JSONObject response = authorizedJson("/v1/search?q=" + enc(searchText.trim()) + "&type=track");
+            ArrayList<LinerCatalog.Track> tracks = new ArrayList<>();
+            JSONArray items = response.optJSONArray("items");
+            if (items != null) for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null || (!item.optString("type").isEmpty() && !"track".equals(item.optString("type")))) continue;
+                LinerCatalog.Track track = catalogTrack(item);
+                if (track != null) tracks.add(track);
+            }
+            LinerCatalog.Track matched = LinerCatalog.match(tracks, query);
+            if (matched != null) android.util.Log.i("LinkiLyrics", "Liner catalog search returned a track ID");
+            return matched;
+        } catch (Exception error) {
+            android.util.Log.w("LinkiLyrics", "Liner catalog search unavailable: " + error.getMessage());
+            return null;
+        }
+    }
+
     private static void collectAccountTracks(JSONObject page, ArrayList<LinerCatalog.Track> tracks) {
         JSONArray items = page.optJSONArray("items");
         if (items == null) return;
@@ -147,20 +169,25 @@ public final class LinerApi {
             JSONObject item = items.optJSONObject(i);
             JSONObject track = item == null ? null : item.optJSONObject("track");
             if (track == null) continue;
-            JSONArray artists = track.optJSONArray("artists");
-            String first = ""; StringBuilder all = new StringBuilder();
-            if (artists != null) for (int j = 0; j < artists.length(); j++) {
-                JSONObject artist = artists.optJSONObject(j);
-                String name = artist == null ? "" : artist.optString("name");
-                if (name.isEmpty()) continue;
-                if (first.isEmpty()) first = name;
-                if (all.length() > 0) all.append(' ');
-                all.append(name);
-            }
-            String id = track.optString("id");
-            if (!id.isEmpty()) tracks.add(new LinerCatalog.Track(id, track.optString("title"),
-                    all.toString(), first, track.optLong("durationMs")));
+            LinerCatalog.Track parsed = catalogTrack(track);
+            if (parsed != null) tracks.add(parsed);
         }
+    }
+
+    private static LinerCatalog.Track catalogTrack(JSONObject track) {
+        JSONArray artists = track.optJSONArray("artists");
+        String first = ""; StringBuilder all = new StringBuilder();
+        if (artists != null) for (int j = 0; j < artists.length(); j++) {
+            JSONObject artist = artists.optJSONObject(j);
+            String name = artist == null ? "" : artist.optString("name");
+            if (name.isEmpty()) continue;
+            if (first.isEmpty()) first = name;
+            if (all.length() > 0) all.append(' ');
+            all.append(name);
+        }
+        String id = track.optString("id");
+        if (id.isEmpty() || track.optString("title").isEmpty()) return null;
+        return new LinerCatalog.Track(id, track.optString("title"), all.toString(), first, track.optLong("durationMs"));
     }
 
     interface Listener { void onLyrics(Lyrics lyrics); }
@@ -173,8 +200,9 @@ public final class LinerApi {
         ArrayList<Lyrics> result = new ArrayList<>();
         if (!signedIn() || query.artist == null) return result;
         // Catalog-backed providers need the same real track ID used by Liner desktop.
-        LinerCatalog.Track track = accountTrack(query);
+        LinerCatalog.Track track = searchTrack(query);
         if (track == null) track = LinerCatalog.resolve(query);
+        if (track == null) track = accountTrack(query);
         String id = track == null ? null : track.id;
         if (id == null) id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
         String title = track == null ? query.originalTitle : track.title;

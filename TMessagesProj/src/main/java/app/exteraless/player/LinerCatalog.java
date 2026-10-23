@@ -74,7 +74,7 @@ final class LinerCatalog {
         HttpURLConnection connection = null;
         try {
             connection = LyricsDeadline.track((HttpURLConnection) new URL("https://www.youtube.com/sw.js_data").openConnection());
-            connection.setConnectTimeout(2000); connection.setReadTimeout(2000);
+            connection.setConnectTimeout(4000); connection.setReadTimeout(4000);
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
             try (InputStream in = connection.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 byte[] buffer = new byte[8192]; int n;
@@ -105,13 +105,16 @@ final class LinerCatalog {
                 .put("client", client).put("user", new JSONObject().put("lockedSafetyMode", false)));
         if (!filter.isEmpty()) body.put("params", filter);
         HttpURLConnection connection = LyricsDeadline.track((HttpURLConnection) new URL("https://music.youtube.com/youtubei/v1/search?prettyPrint=false").openConnection());
-        connection.setConnectTimeout(2000); connection.setReadTimeout(2000);
+        // The desktop client lets Innertube use the normal network timeout; two seconds
+        // caused mobile connections to fail before YouTube Music returned search results.
+        connection.setConnectTimeout(8000); connection.setReadTimeout(8000);
         connection.setRequestMethod("POST"); connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestProperty("Accept", "application/json");
         connection.setRequestProperty("x-youtube-client-name", "67");
         if (!visitor.isEmpty()) connection.setRequestProperty("x-goog-visitor-id", visitor);
         connection.setRequestProperty("x-youtube-client-version", version);
-        connection.setRequestProperty("Origin", "https://music.youtube.com");
+        connection.setRequestProperty("x-origin", "https://music.youtube.com");
         connection.setRequestProperty("User-Agent", "Mozilla/5.0");
         try {
             try (java.io.OutputStream out = connection.getOutputStream()) { out.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
