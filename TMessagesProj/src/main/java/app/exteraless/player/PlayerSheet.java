@@ -1358,7 +1358,9 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         });
     }
 
-    private void fetchLyrics() {
+    private void fetchLyrics() { fetchLyrics(false); }
+
+    private void fetchLyrics(boolean refresh) {
         MessageObject mo = current;
         if (mo == null) {
             return;
@@ -1370,13 +1372,13 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         lyricsQueryKey = q.key();
-        if (OnlineLyrics.knownMissing(q)) {
+        if (!refresh && OnlineLyrics.knownMissing(q)) {
             lyricsView.showState(LyricsView.STATE_NOT_FOUND);
             return;
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
         sourceView.setText(null);
-        OnlineLyrics.fetch(q, (sources, status) -> {
+        OnlineLyrics.Callback callback = (sources, status) -> {
             if (!TextUtils.equals(key, currentKey)) {
                 return;
             }
@@ -1386,7 +1388,9 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             } else {
                 lyricsView.showState(status == OnlineLyrics.ERROR ? LyricsView.STATE_ERROR : LyricsView.STATE_NOT_FOUND);
             }
-        });
+        };
+        if (refresh) OnlineLyrics.refresh(q, callback);
+        else OnlineLyrics.fetch(q, callback);
     }
 
     private void showLyrics(Lyrics lyrics) {
@@ -1400,7 +1404,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         lyricsView.setLyrics(lyrics, positionMs());
         if (lyrics.source == Lyrics.SOURCE_ONLINE) {
             sourceView.setText(LocaleController.formatString(lyrics.synced ? R.string.OEPlayerSourceSynced : R.string.OEPlayerSourcePlain, lyrics.provider));
-            applySourceViewPicker(lyricsSources != null && lyricsSources.size() > 1);
+            applySourceViewPicker(lyricsSources != null && !lyricsSources.isEmpty());
         } else {
             sourceView.setText(getString(lyrics.synced ? R.string.OEPlayerSourceSyncedFile : R.string.OEPlayerSourcePlainFile));
             applySourceViewPicker(false);
@@ -1427,10 +1431,10 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
 
     private void showSourcePicker() {
         ArrayList<Lyrics> sources = lyricsSources;
-        if (sources == null || sources.size() < 2) {
+        if (sources == null || sources.isEmpty()) {
             return;
         }
-        CharSequence[] names = new CharSequence[sources.size()];
+        CharSequence[] names = new CharSequence[sources.size() + 1];
         for (int i = 0; i < sources.size(); i++) {
             Lyrics l = sources.get(i);
             CharSequence label;
@@ -1441,10 +1445,13 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             }
             names[i] = l == shownLyrics ? "✓  " + label : label;
         }
+        names[sources.size()] = getString(R.string.LX_LyricsRefreshSources);
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle(getString(R.string.OEPlayerSourcesTitle));
         builder.setItems(names, (dialog, which) -> {
-            if (which >= 0 && which < sources.size()) {
+            if (which == sources.size()) {
+                fetchLyrics(true);
+            } else if (which >= 0 && which < sources.size()) {
                 Lyrics chosen = sources.get(which);
                 rememberSourceChoice(chosen.provider);
                 showLyrics(chosen);

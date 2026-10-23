@@ -43,6 +43,9 @@ public final class Lyrics {
     public final boolean instrumental;
     public final int source;
     public final String provider;
+    public boolean providerTopPriority;
+    public double providerQuality;
+    public int providerSyncRank = -1;
 
     private Lyrics(ArrayList<Line> lines, boolean synced, boolean instrumental, int source, String provider) {
         this.lines = lines;

@@ -1,0 +1,18 @@
+const fs = require('fs'), vm = require('vm'), assert = require('assert/strict');
+const context = {console, TextDecoder, TextEncoder};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(process.argv[2] || require('path').join(__dirname, '../../TMessagesProj/src/main/assets/liner-lyrics/engine.js'), 'utf8'), context);
+const parse = (text,format) => context.LinkiLinerLyrics.parse(text,format,60000);
+let result = parse('[00:01.000]<00:01.000>Hello <00:01.500>world\n[00:03.000]Next','lrc');
+assert(result.synced); assert(result.lines.some(l=>l.words.length === 2));
+result = parse('<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" end="3s"><span begin="1s" end="2s">Hello </span><span begin="2s" end="3s">world</span></p></div></body></tt>','ttml');
+let line = result.lines.find(l=>l.text.includes('Hello')); assert(line); assert.equal(line.words.length,2); assert.equal(line.words[1].time,2000);
+result = parse('[1000,2000]Hello(1000,500) world(1500,1500)','qrc');
+assert(result.lines.some(l=>l.words.length === 2));
+result = parse(JSON.stringify([{ts:1,te:3,l:[{c:'Hello',o:0},{c:' ',o:.3},{c:'world',o:.5}]}]),'richsync');
+line=result.lines[0];assert.equal(line.text,'Hello world');assert.equal(line.words.length,2);assert.equal(line.words[1].time,1500);
+result = parse(JSON.stringify([{ts:10,te:13,l:[{c:'word',o:10.5}]}]),'richsync');assert.equal(result.lines[0].words[0].time,10500);
+result = parse(JSON.stringify([{time:{total:1.5},text:'Hello world'}]),'lrc');assert.equal(result.lines[0].time,1500);
+result = parse('Hello world\nNext line','plain');assert.equal(result.synced,false);
+result = parse('1\n00:00:01,000 --> 00:00:03,000\nHello world\n','srt');assert(result.synced);assert(result.lines.some(l=>l.text.includes('Hello')));
+console.log('Parser checks passed: enhanced LRC, TTML word timing, QRC, richsync relative/absolute offsets, MXM subtitles, plain, SRT');

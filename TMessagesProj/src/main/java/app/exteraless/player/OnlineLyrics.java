@@ -46,6 +46,7 @@ public final class OnlineLyrics {
     public static final class Query {
         public final String artist;
         public final String title;
+        public final String originalTitle;
         public final String album;
         public final int duration;
 
@@ -63,6 +64,7 @@ public final class OnlineLyrics {
                 }
             }
             this.artist = a;
+            this.originalTitle = t;
             this.title = stripDecorations(t);
             this.album = clean(album);
             this.duration = duration;
@@ -98,7 +100,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 6;
+    private static final int CACHE_VERSION = 8;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;
@@ -107,16 +109,33 @@ public final class OnlineLyrics {
     private static final Pattern AUDIO_EXT = Pattern.compile("\\.(mp3|m4a|flac|ogg|oga|opus|wav|aac|alac|wma)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern DECORATION = Pattern.compile("\\s*[(\\[][^)\\]]*(official|lyric|video|audio|visualizer|remaster|hq|hd)[^)\\]]*[)\\]]", Pattern.CASE_INSENSITIVE);
     private static final DispatchQueue queue = new DispatchQueue("lyrics");
+    private static final long CACHE_TTL_MS = 15 * 60 * 1000L;
     private static final LruCache<String, ArrayList<Lyrics>> memory = new LruCache<>(24);
+    private static final LruCache<String, Long> memoryTime = new LruCache<>(24);
+
+    private static ArrayList<Lyrics> freshMemory(String key) {
+        Long saved = memoryTime.get(key);
+        long age = saved == null ? CACHE_TTL_MS : android.os.SystemClock.elapsedRealtime() - saved;
+        if (age < 0 || age >= CACHE_TTL_MS) {
+            memory.remove(key); memoryTime.remove(key);
+            return null;
+        }
+        return memory.get(key);
+    }
+
+    private static void rememberMemory(String key, ArrayList<Lyrics> sources) {
+        memory.put(key, sources);
+        memoryTime.put(key, android.os.SystemClock.elapsedRealtime());
+    }
     private static final HashSet<String> missing = new HashSet<>();
-    private static final ExecutorService pool = Executors.newFixedThreadPool(4);
+    private static final ExecutorService pool = Executors.newFixedThreadPool(6);
 
     public static void clearSourceCache() {
         queue.postRunnable(() -> {
             File dir = new File(ApplicationLoader.applicationContext.getCacheDir(), "lrclib");
             File[] files = dir.listFiles();
             if (files != null) for (File file : files) if (file.isFile()) file.delete();
-            AndroidUtilities.runOnUIThread(() -> { memory.evictAll(); missing.clear(); });
+            AndroidUtilities.runOnUIThread(() -> { memory.evictAll(); memoryTime.evictAll(); missing.clear(); });
         });
     }
 
@@ -140,16 +159,16 @@ public final class OnlineLyrics {
     }
 
     public static ArrayList<Lyrics> cached(Query query) {
-        return memory.get(query.key());
+        return freshMemory(query.key());
     }
 
     public static boolean knownMissing(Query query) {
-        return missing.contains(query.key());
+        return !LinerApi.signedIn() && missing.contains(query.key());
     }
 
     public static void loadCached(Query query, Callback callback) {
         String key = query.key();
-        ArrayList<Lyrics> hit = memory.get(key);
+        ArrayList<Lyrics> hit = freshMemory(key);
         if (hit != null) {
             callback.onResult(hit, OK);
             return;
@@ -158,16 +177,38 @@ public final class OnlineLyrics {
             ArrayList<Lyrics> disk = readDisk(key);
             AndroidUtilities.runOnUIThread(() -> {
                 if (disk != null) {
-                    memory.put(key, disk);
+                    rememberMemory(key, disk);
                 }
                 callback.onResult(disk, disk != null ? OK : NOT_FOUND);
             });
         });
     }
 
+    public static void refresh(Query query, Callback callback) {
+        String key = query.key();
+        memory.remove(key);
+        missing.remove(key);
+        queue.postRunnable(() -> {
+            File file = cacheFile(key);
+            if (file != null && file.exists()) file.delete();
+            AndroidUtilities.runOnUIThread(() -> fetchUncached(query, callback));
+        });
+    }
+
+    private static void fetchUncached(Query query, Callback callback) {
+        queue.postRunnable(() -> {
+            FetchOutcome outcome = fetchAllSources(query, callback);
+            if (outcome.sources != null) writeDisk(query.key(), outcome.sources);
+            AndroidUtilities.runOnUIThread(() -> {
+                if (outcome.sources != null) rememberMemory(query.key(), outcome.sources);
+                callback.onResult(outcome.sources, outcome.sources != null ? OK : outcome.networkFailed ? ERROR : NOT_FOUND);
+            });
+        });
+    }
+
     public static void fetch(Query query, Callback callback) {
         String key = query.key();
-        ArrayList<Lyrics> hit = memory.get(key);
+        ArrayList<Lyrics> hit = freshMemory(key);
         if (hit != null) {
             callback.onResult(hit, OK);
             return;
@@ -176,7 +217,7 @@ public final class OnlineLyrics {
             ArrayList<Lyrics> result = readDisk(key);
             int status = OK;
             if (result == null) {
-                FetchOutcome outcome = fetchAllSources(query);
+                FetchOutcome outcome = fetchAllSources(query, callback);
                 result = outcome.sources;
                 if (result == null) {
                     status = outcome.networkFailed ? ERROR : NOT_FOUND;
@@ -188,7 +229,7 @@ public final class OnlineLyrics {
             final int finalStatus = status;
             AndroidUtilities.runOnUIThread(() -> {
                 if (sources != null) {
-                    memory.put(key, sources);
+                    rememberMemory(key, sources);
                     missing.remove(key);
                 } else if (finalStatus == NOT_FOUND) {
                     missing.add(key);
@@ -208,22 +249,29 @@ public final class OnlineLyrics {
         }
     }
 
-    private static FetchOutcome fetchAllSources(Query query) {
+    private static FetchOutcome fetchAllSources(Query query, Callback callback) {
         ArrayList<Lyrics> list = new ArrayList<>();
         AtomicInteger failures = new AtomicInteger(0);
         boolean linerEnabled = LinerApi.signedIn();
         CountDownLatch latch = new CountDownLatch(linerEnabled ? 6 : 5);
-        collectProvider(() -> requestLrclib(query), list, failures, latch);
-        collectProvider(() -> requestLrcmux(query), list, failures, latch);
-        collectProvider(() -> requestNetease(query), list, failures, latch);
-        collectProvider(() -> requestQq(query), list, failures, latch);
-        collectProvider(() -> requestKugou(query), list, failures, latch);
+        collectProvider(() -> requestLrclib(query), list, failures, latch, callback);
+        collectProvider(() -> requestLrcmux(query), list, failures, latch, callback);
+        collectProvider(() -> requestNetease(query), list, failures, latch, callback);
+        collectProvider(() -> requestQq(query), list, failures, latch, callback);
+        collectProvider(() -> requestKugou(query), list, failures, latch, callback);
         if (linerEnabled) collectProvider(() -> {
-            for (Lyrics lyrics : LinerApi.lyrics(query)) {
-                synchronized (list) { list.add(lyrics); }
-            }
+            LinerApi.lyrics(query, lyrics -> {
+                ArrayList<Lyrics> snapshot;
+                synchronized (list) {
+                    list.removeIf(previous -> lyrics.provider.equals(previous.provider));
+                    list.add(lyrics);
+                    snapshot = new ArrayList<>(list);
+                }
+                sortSources(snapshot);
+                AndroidUtilities.runOnUIThread(() -> callback.onResult(snapshot, OK));
+            });
             return null;
-        }, list, failures, latch);
+        }, list, failures, latch, callback);
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -237,14 +285,18 @@ public final class OnlineLyrics {
         return new FetchOutcome(list, false);
     }
 
-    private static void collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch) {
+    private static void collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback) {
         pool.execute(() -> {
             try {
                 Found found = provider.call();
                 if (found != null && found.lyrics != null) {
+                    ArrayList<Lyrics> snapshot;
                     synchronized (list) {
                         list.add(found.lyrics);
+                        snapshot = new ArrayList<>(list);
                     }
+                    sortSources(snapshot);
+                    AndroidUtilities.runOnUIThread(() -> callback.onResult(snapshot, OK));
                 }
             } catch (Throwable e) {
                 failures.incrementAndGet();
@@ -282,10 +334,21 @@ public final class OnlineLyrics {
 
     private static void sortSources(ArrayList<Lyrics> list) {
         Collections.sort(list, (a, b) -> {
+            if (a.providerTopPriority != b.providerTopPriority) return a.providerTopPriority ? -1 : 1;
             int rankA = a.lines.stream().anyMatch(line -> !line.words.isEmpty()) ? 3 : a.instrumental ? 1 : (a.synced ? 2 : 0);
             int rankB = b.lines.stream().anyMatch(line -> !line.words.isEmpty()) ? 3 : b.instrumental ? 1 : (b.synced ? 2 : 0);
             if (rankA != rankB) {
                 return rankB - rankA;
+            }
+            if (a.providerSyncRank >= 0 && b.providerSyncRank >= 0) {
+                if (a.providerSyncRank != b.providerSyncRank) return b.providerSyncRank - a.providerSyncRank;
+                int quality = Double.compare(b.providerQuality, a.providerQuality);
+                if (quality != 0) return quality;
+                String pa = a.provider.toLowerCase(Locale.ROOT).replace('_', ' ').replace('-', ' ');
+                String pb = b.provider.toLowerCase(Locale.ROOT).replace('_', ' ').replace('-', ' ');
+                boolean preferredA = pa.endsWith("polaris mono") || pa.endsWith("binimum");
+                boolean preferredB = pb.endsWith("polaris mono") || pb.endsWith("binimum");
+                if (preferredA != preferredB) return preferredA ? -1 : 1;
             }
             return providerPriority(a) - providerPriority(b);
         });
@@ -745,6 +808,8 @@ public final class OnlineLyrics {
             try (FileInputStream in = new FileInputStream(f)) {
                 o = new JSONObject(readAll(in));
             }
+            long age = System.currentTimeMillis() - o.optLong("savedAt", 0);
+            if (age < 0 || age >= CACHE_TTL_MS) return null;
             int version = o.optInt("v", 1);
             if (version < CACHE_VERSION) {
                 // pre-multi-source caches hold a single result and would hide other providers
@@ -770,6 +835,9 @@ public final class OnlineLyrics {
                 }
                 Lyrics lyrics = Lyrics.parse(optString(e, "text"), Lyrics.SOURCE_ONLINE, provider);
                 if (lyrics != null) {
+                    lyrics.providerTopPriority = e.optBoolean("topPriority");
+                    lyrics.providerQuality = e.optDouble("quality", 0);
+                    lyrics.providerSyncRank = e.optInt("syncRank", -1);
                     out.add(lyrics);
                 }
             }
@@ -788,12 +856,16 @@ public final class OnlineLyrics {
             }
             JSONObject o = new JSONObject();
             o.put("v", CACHE_VERSION);
+            o.put("savedAt", System.currentTimeMillis());
             JSONArray arr = new JSONArray();
             for (int i = 0; i < sources.size(); i++) {
                 Lyrics lyrics = sources.get(i);
                 JSONObject e = new JSONObject();
                 e.put("provider", lyrics.provider);
                 e.put("instrumental", lyrics.instrumental);
+                e.put("topPriority", lyrics.providerTopPriority);
+                e.put("quality", lyrics.providerQuality);
+                e.put("syncRank", lyrics.providerSyncRank);
                 e.put("text", lyrics.toText());
                 arr.put(e);
             }
