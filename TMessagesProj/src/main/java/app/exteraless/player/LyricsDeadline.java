@@ -15,6 +15,9 @@ final class LyricsDeadline implements AutoCloseable {
     private static final ScheduledExecutorService TIMER = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "lyrics-deadline"); thread.setDaemon(true); return thread;
     });
+    private static final java.util.concurrent.ExecutorService SOCKET_CLOSER = Executors.newCachedThreadPool(r -> {
+        Thread thread = new Thread(r, "lyrics-socket-close"); thread.setDaemon(true); return thread;
+    });
     private final java.util.concurrent.ConcurrentLinkedQueue<java.util.concurrent.Future<?>> tasks = new java.util.concurrent.ConcurrentLinkedQueue<>();
     private final Set<HttpURLConnection> connections = ConcurrentHashMap.newKeySet();
     volatile boolean active = true;
@@ -49,7 +52,11 @@ final class LyricsDeadline implements AutoCloseable {
         active = false;
         for (java.util.concurrent.Future<?> task : tasks) task.cancel(true);
         for (HttpURLConnection connection : connections) {
-            try { connection.disconnect(); } catch (RuntimeException ignored) { }
+            // Android disconnect() can wait on a blocked TLS/socket operation. Never
+            // block the deadline timer or the coordinator delivering the final UI result.
+            SOCKET_CLOSER.execute(() -> {
+                try { connection.disconnect(); } catch (RuntimeException ignored) { }
+            });
         }
         connections.clear();
         // A timer callback can run before construction completes only for zero timeouts.
