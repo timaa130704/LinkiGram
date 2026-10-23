@@ -457,7 +457,35 @@ public class LyricsView extends FrameLayout {
         private int layoutWidth;
         private StaticLayout wordLayout;
         private int wordLayoutIndex = -1, wordLayoutFilled, wordLayoutUnfilled, wordLayoutWidth;
-        private int wordLayoutProgress = -1;
+        private long wordPosition;
+
+        /** Draw-only span: word timing changes color without reshaping the line. */
+        private final class WordHighlightSpan extends android.text.style.CharacterStyle {
+            private final long start;
+            private final long fadeMs;
+            private final int filled, unfilled;
+
+            WordHighlightSpan(long start, long fadeMs, int filled, int unfilled) {
+                this.start = start;
+                this.fadeMs = fadeMs;
+                this.filled = filled;
+                this.unfilled = unfilled;
+            }
+
+            @Override
+            public void updateDrawState(TextPaint target) {
+                float t = Math.max(0f, Math.min(1f, (wordPosition - start) / (float) fadeMs));
+                // Smoothstep softly lights each word, including after seeking.
+                float eased = t * t * (3f - 2f * t);
+                target.setColor(ColorUtils.blendARGB(unfilled, filled, eased));
+                target.clearShadowLayer();
+                float halo = (float) Math.sin(Math.PI * t);
+                if (halo > 0.01f) {
+                    target.setShadowLayer(dp(4), 0, 0,
+                            ColorUtils.setAlphaComponent(filled, (int) ((filled >>> 24) * 0.3f * halo)));
+                }
+            }
+        }
         private int role = ROLE_FUTURE;
         private long lastFrame;
         private float blur = -1f;
@@ -581,24 +609,26 @@ public class LyricsView extends FrameLayout {
                 int filled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha));
                 int unfilled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha * UNFILLED_ALPHA));
                 paint.setColor(unfilled);
-                long position = currentMs();
-                int progressWord = -1;
-                for (int i = 0; i < line.words.size(); i++) if (position >= line.words.get(i).time) progressWord = i;
-                if (wordLayout == null || wordLayoutIndex != index || wordLayoutProgress != progressWord
+                wordPosition = currentMs();
+                if (wordLayout == null || wordLayoutIndex != index
                         || wordLayoutFilled != filled || wordLayoutUnfilled != unfilled || wordLayoutWidth != getWidth()) {
                     android.text.SpannableString styled = new android.text.SpannableString(text);
-                    for (Lyrics.Word word : line.words) {
-                        if (position < word.time || word.start < 0 || word.end > styled.length()) continue;
-                        styled.setSpan(new android.text.style.ForegroundColorSpan(filled), word.start, word.end,
+                    for (int i = 0; i < line.words.size(); i++) {
+                        Lyrics.Word word = line.words.get(i);
+                        if (word.start < 0 || word.end <= word.start || word.end > styled.length()) continue;
+                        long gap = i + 1 < line.words.size() ? line.words.get(i + 1).time - word.time : 250L;
+                        long fadeMs = Math.max(1L, Math.min(180L, gap > 0 ? gap * 3L / 4L : 180L));
+                        styled.setSpan(new WordHighlightSpan(word.time, fadeMs, filled, unfilled), word.start, word.end,
                                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     wordLayout = StaticLayout.Builder.obtain(styled, 0, styled.length(), paint,
                                     Math.max(1, (int) (getWidth() / ACTIVE_SCALE)))
                             .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0, 1.18f).setIncludePad(false).build();
-                    wordLayoutIndex = index; wordLayoutProgress = progressWord;
+                    wordLayoutIndex = index;
                     wordLayoutFilled = filled; wordLayoutUnfilled = unfilled; wordLayoutWidth = getWidth();
                 }
                 wordLayout.draw(canvas);
+                paint.clearShadowLayer();
             } else if (live) {
                 int filled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha));
                 int unfilled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha * UNFILLED_ALPHA));
