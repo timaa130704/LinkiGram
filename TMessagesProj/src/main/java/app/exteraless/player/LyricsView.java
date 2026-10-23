@@ -268,6 +268,9 @@ public class LyricsView extends FrameLayout {
         positionAt = SystemClock.elapsedRealtime();
         int index = lyrics.indexAt(ms);
         if (index == active) {
+            for (int i = 0; i < list.getChildCount(); i++) {
+                if (list.getChildAdapterPosition(list.getChildAt(i)) == active) list.getChildAt(i).invalidate();
+            }
             return;
         }
         int old = active;
@@ -452,6 +455,9 @@ public class LyricsView extends FrameLayout {
         private boolean plain;
         private StaticLayout layout;
         private int layoutWidth;
+        private StaticLayout wordLayout;
+        private int wordLayoutIndex = -1, wordLayoutFilled, wordLayoutUnfilled, wordLayoutWidth;
+        private int wordLayoutProgress = -1;
         private int role = ROLE_FUTURE;
         private long lastFrame;
         private float blur = -1f;
@@ -466,6 +472,7 @@ public class LyricsView extends FrameLayout {
                 text = value;
                 plain = isPlain;
                 layout = null;
+                wordLayout = null;
                 requestLayout();
             }
         }
@@ -565,6 +572,33 @@ public class LyricsView extends FrameLayout {
             canvas.scale(scale.value, scale.value, 0, pivotY);
             if (isInterlude()) {
                 drawInterlude(canvas, live, progress, alpha, now);
+            } else if (live && lyrics != null && index >= 0 && index < lyrics.lines.size()
+                    && !lyrics.lines.get(index).words.isEmpty()) {
+                // Use real word timestamps, never estimate word timing from line length.
+                Lyrics.Line line = lyrics.lines.get(index);
+                paint.setShader(null);
+                paint.clearShadowLayer();
+                int filled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha));
+                int unfilled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha * UNFILLED_ALPHA));
+                paint.setColor(unfilled);
+                long position = currentMs();
+                int progressWord = -1;
+                for (int i = 0; i < line.words.size(); i++) if (position >= line.words.get(i).time) progressWord = i;
+                if (wordLayout == null || wordLayoutIndex != index || wordLayoutProgress != progressWord
+                        || wordLayoutFilled != filled || wordLayoutUnfilled != unfilled || wordLayoutWidth != getWidth()) {
+                    android.text.SpannableString styled = new android.text.SpannableString(text);
+                    for (Lyrics.Word word : line.words) {
+                        if (position < word.time || word.start < 0 || word.end > styled.length()) continue;
+                        styled.setSpan(new android.text.style.ForegroundColorSpan(filled), word.start, word.end,
+                                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    wordLayout = StaticLayout.Builder.obtain(styled, 0, styled.length(), paint,
+                                    Math.max(1, (int) (getWidth() / ACTIVE_SCALE)))
+                            .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0, 1.18f).setIncludePad(false).build();
+                    wordLayoutIndex = index; wordLayoutProgress = progressWord;
+                    wordLayoutFilled = filled; wordLayoutUnfilled = unfilled; wordLayoutWidth = getWidth();
+                }
+                wordLayout.draw(canvas);
             } else if (live) {
                 int filled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha));
                 int unfilled = ColorUtils.setAlphaComponent(colorActive, (int) (alpha * baseAlpha * UNFILLED_ALPHA));

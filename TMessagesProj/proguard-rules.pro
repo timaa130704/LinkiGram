@@ -98,3 +98,8 @@
 # Use -keep to explicitly keep any other classes shrinking would remove
 #-dontoptimize
 #-dontobfuscate
+
+# Offline Vosk recognizer uses JNA bindings by name.
+-keep class org.vosk.** { *; }
+-keep class com.sun.jna.** { *; }
+-dontwarn com.sun.jna.**

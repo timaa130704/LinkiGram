@@ -513,7 +513,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         public Boolean highQuality;
         public boolean isHighQuality() {
             if (highQuality == null)
-                return SharedConfig.photoHighQualityDefault;
+                return app.nimarkogram.messenger.features.ChatExtras.enabled("hdPhotos") || SharedConfig.photoHighQualityDefault;
             return highQuality;
         }
 

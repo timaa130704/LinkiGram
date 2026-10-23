@@ -50,6 +50,7 @@ configurations.all {
 }
 
 dependencies {
+    implementation 'com.alphacephei:vosk-android:0.3.75'
     implementation 'androidx.core:core:1.16.0'
     implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.palette:palette:1.0.0'

@@ -33820,6 +33820,15 @@ public class ChatActivity extends BaseFragment implements
             }
             closeMenu(); return;
         }
+        if (option == 9891 || option == 9892) {
+            final MessageObject object = selectedObject;
+            closeMenu();
+            if (object != null) {
+                if (option == 9891) app.nimarkogram.messenger.features.MessageTools.transcribe(this, object);
+                else app.nimarkogram.messenger.features.MessageTools.showTimes(this, object);
+            }
+            return;
+        }
         boolean preserveDim = false;
         switch (option) {
             case app.nimarkogram.messenger.utils.chats.NimarkoChatActivityHelper.OPTION_NIMARKO_MEDIA_DOWNLOAD: {
@@ -46330,6 +46339,12 @@ public class ChatActivity extends BaseFragment implements
         ArrayList<Integer> options
     ) {
         final MessageObject message = selectedObject;
+        if (message != null && message.isVoice() && !message.isEphemeral() && !message.isVoiceOnce()) {
+            items.add(getString(R.string.LX_Transcribe)); options.add(9891); icons.add(R.drawable.msg_info_solar);
+        }
+        if (message != null && message.isOutOwner() && NimarkoConfig.saveReadDate) {
+            items.add(getString(R.string.LX_LocalTimes)); options.add(9892); icons.add(R.drawable.msg_recent);
+        }
         if (message != null && (message.messageOwner.edit_date > 0 || app.nimarkogram.messenger.NimarkoConfig.enableSaveEditsHistory)) {
             items.add(getString(R.string.LinkiEditHistory)); options.add(9879); icons.add(R.drawable.msg_recent);
         }

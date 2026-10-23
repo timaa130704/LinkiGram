@@ -4417,6 +4417,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public void sendMessage(SendMessageParams sendMessageParams) {
+        app.nimarkogram.messenger.features.DeletedReplyQuote.rewrite(currentAccount, sendMessageParams);
         if (app.nimarkogram.messenger.automation.RepeatingMessages.capture(currentAccount, sendMessageParams)) return;
         final SendMessageChatArguments sendMessageChatArguments = sendMessageParams.sendMessageChatArguments != null ?
                 sendMessageParams.sendMessageChatArguments : SendMessageChatArguments.EMPTY;

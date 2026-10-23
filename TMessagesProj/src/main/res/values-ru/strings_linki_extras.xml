@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LX_Title">Инструменты чата</string>
+    <string name="LX_CleanOpen">Очищать метки слежки при открытии ссылок</string>
+    <string name="LX_CleanPaste">Очищать метки слежки при вставке ссылок</string>
+    <string name="LX_Math">Калькулятор в строке сообщения</string>
+    <string name="LX_ConfirmCall">Подтверждать начало звонка</string>
+    <string name="LX_ConfirmRecording">Просмотр и подтверждение голосовых и кружков</string>
+    <string name="LX_HD">Отправлять фото в HD по умолчанию</string>
+    <string name="LX_DeletedQuote">Отвечать на удалённые сообщения цитатой</string>
+    <string name="LX_ReadDates">Сохранять время прочтения и прослушивания</string>
+    <string name="LX_Offline">Офлайн-расшифровка голосовых</string>
+    <string name="LX_Info">Калькулятор: введите выражение со знаком = и нажмите на результат. Время прочтения сохраняется только при получении отметки клиентом. Для офлайн-расшифровки скачайте языковую модель.</string>
+    <string name="LX_ConfirmSend">Отправить эту запись?</string>
+    <string name="LX_CallQuestion">Начать звонок?</string>
+    <string name="LX_ModelReady">Установлена</string>
+    <string name="LX_ModelDownload">Скачать</string>
+    <string name="LX_Transcribe">Расшифровать офлайн</string>
+    <string name="LX_Transcribing">Распознавание речи…</string>
+    <string name="LX_NoModel">Скачайте языковую модель: настройки LinkiGram → Чаты → Инструменты чата.</string>
+    <string name="LX_RecognitionError">Не удалось распознать речь. Проверьте, что файл скачан, а язык модели соответствует записи.</string>
+    <string name="LX_LocalTimes">Сохранённое время прочтения</string>
+    <string name="LX_Read">Прочитано: %1$s</string>
+    <string name="LX_Played">Прослушано: %1$s</string>
+    <string name="LX_NoTimes">Для этого сообщения нет сохранённых отметок.</string>
+    <string name="LX_ModelInfo">Скачайте модель и нажмите для выбора. Удерживайте для удаления. Аудио остаётся на устройстве.</string>
+    <string name="LX_Liner">Аккаунт Liner для текстов песен</string>
+    <string name="LX_LinerLogin">Войти в Liner</string>
+    <string name="LX_LinerLogout">Выйти из Liner</string>
+    <string name="LX_LinerReady">Вход выполнен. Откройте плеер → Текст песни и перезагрузите трек для поиска источников Liner.</string>
+    <string name="LX_LinerInfo">Войдите по почте и паролю Liner. Данные отправляются только на api.tryliner.fun по HTTPS. Пароль не сохраняется. Токены сессии хранятся зашифрованными на устройстве. При поиске текстов отправляются название и исполнитель трека.</string>
+    <string name="LX_LinerError">Не удалось войти. Проверьте почту, пароль и соединение.</string>
+</resources>

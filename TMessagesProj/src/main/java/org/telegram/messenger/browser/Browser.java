@@ -292,7 +292,8 @@ public class Browser {
         if (context == null || uri == null) {
             return;
         }
-        uri = app.nimarkogram.messenger.utils.LinkTrackingCleaner.clean(uri);
+        if (app.nimarkogram.messenger.features.ChatExtras.enabled("cleanOpen"))
+            uri = app.nimarkogram.messenger.utils.LinkTrackingCleaner.clean(uri);
         final int currentAccount = UserConfig.selectedAccount;
         boolean[] forceBrowser = new boolean[]{false};
         boolean internalUri = isInternalUri(uri, forceBrowser);

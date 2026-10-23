@@ -759,6 +759,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     private ChatActivityEnterViewDelegate delegate;
     private TrendingStickersAlert trendingStickersAlert;
 
+    private String linkiMathSnapshot;
     private TLRPC.TL_document audioToSend;
     private String audioToSendPath;
     private MessageObject audioToSendMessageObject;
@@ -3038,7 +3039,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     });
                                     return true;
                                 }
-                                delegate.needStartRecordVideo(1, true, 0, 0, voiceOnce ? 0x7FFFFFFF : 0, effectId, 0);
+                                delegate.needStartRecordVideo(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 3 : 1, true, 0, 0, voiceOnce ? 0x7FFFFFFF : 0, effectId, 0);
                                 sendButton.setEffect(effectId = 0);
                             } else {
                                 if (recordingAudioVideo && isInScheduleMode()) {
@@ -3065,7 +3066,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     });
                                     return true;
                                 }
-                                MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                MediaController.getInstance().stopRecording(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 2 : isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
                                 delegate.needStartRecordAudio(0);
                             }
                             recordingAudioVideo = false;
@@ -3161,7 +3162,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     return true;
                                 }
                                 CameraController.getInstance().cancelOnInitRunnable(onFinishInitCameraRunnable);
-                                delegate.needStartRecordVideo(1, true, 0, 0, voiceOnce ? 0x7FFFFFFF : 0, effectId, 0);
+                                delegate.needStartRecordVideo(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 3 : 1, true, 0, 0, voiceOnce ? 0x7FFFFFFF : 0, effectId, 0);
                                 sendButton.setEffect(effectId = 0);
                             } else if (!sendVoiceEnabled) {
                                 delegate.needShowMediaBanHint();
@@ -3184,7 +3185,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate, scheduleRepeatPeriod) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate, false, 0), () -> MediaController.getInstance().stopRecording(0, false, 0, false, 0), resourcesProvider);
                                 }
                                 delegate.needStartRecordAudio(0);
-                                MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
+                                MediaController.getInstance().stopRecording(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 2 : isInScheduleMode() ? 3 : 1, true, 0, voiceOnce, 0);
                             }
                             recordingAudioVideo = false;
                             messageTransitionIsRunning = false;
@@ -3298,7 +3299,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 //                            if (recordingAudioVideo && isInScheduleMode()) {
 //                                AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate), () -> MediaController.getInstance().stopRecording(0, false, 0), resourcesProvider);
 //                            }
-//                            MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0);
+//                            MediaController.getInstance().stopRecording(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 2 : isInScheduleMode() ? 3 : 1, true, 0);
 //                            delegate.needStartRecordAudio(0);
 //                        }
 //                        recordingAudioVideo = false;
@@ -3388,7 +3389,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 //                                AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate), () -> MediaController.getInstance().stopRecording(0, false, 0), resourcesProvider);
 //                            }
 //                            delegate.needStartRecordAudio(0);
-//                            MediaController.getInstance().stopRecording(isInScheduleMode() ? 3 : 1, true, 0);
+//                            MediaController.getInstance().stopRecording(app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording") ? 2 : isInScheduleMode() ? 3 : 1, true, 0);
 //                        }
 //                        recordingAudioVideo = false;
 //                        messageTransitionIsRunning = false;
@@ -5567,7 +5568,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                     if (clipData.getItemCount() == 1 && clipData.getItemAt(0).getText() != null) {
                         CharSequence copiedText = clipData.getItemAt(0).getText();
-                        String cleanedText = app.nimarkogram.messenger.utils.LinkTrackingCleaner.cleanText(copiedText.toString());
+                        String cleanedText = app.nimarkogram.messenger.features.ChatExtras.enabled("cleanPaste")
+                                ? app.nimarkogram.messenger.utils.LinkTrackingCleaner.cleanText(copiedText.toString()) : copiedText.toString();
                         if (!cleanedText.contentEquals(copiedText)) {
                             int start = Math.max(0, getSelectionStart());
                             int end = Math.max(0, getSelectionEnd());
@@ -6022,6 +6024,22 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             @Override
             public void afterTextChanged(Editable editable) {
+                if (app.nimarkogram.messenger.features.ChatExtras.enabled("inlineMath") && parentFragment != null
+                        && editable.length() < 512 && innerTextChange == 0 && !ignorePrevTextChange) {
+                    String snapshot = editable.toString();
+                    if (!snapshot.equals(linkiMathSnapshot)) {
+                        linkiMathSnapshot = snapshot;
+                        app.exteraless.math.MathExpression.Suggestion suggestion = app.exteraless.math.MathExpression.suggestionAt(
+                                snapshot, messageEditText.getSelectionStart(), java.text.DecimalFormatSymbols.getInstance().getDecimalSeparator());
+                        if (suggestion != null) BulletinFactory.of(parentFragment).createSimpleBulletin(R.raw.copy, "= " + suggestion.value,
+                                LocaleController.getString(R.string.Paste), () -> {
+                                    if (messageEditText != null && snapshot.contentEquals(messageEditText.getText())) {
+                                        messageEditText.getText().insert(suggestion.insertAt, suggestion.insertText);
+                                        messageEditText.setSelection(suggestion.insertAt + suggestion.insertText.length());
+                                    }
+                                }).show();
+                    }
+                }
                 if (ignorePrevTextChange) {
                     return;
                 }
@@ -7506,6 +7524,14 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     protected boolean showConfirmAlert(Runnable onConfirmed) {
+        if (app.nimarkogram.messenger.features.ChatExtras.enabled("confirmRecording")
+                && (audioToSend != null || videoToSendMessageObject != null)) {
+            new AlertDialog.Builder(getContext(), resourcesProvider)
+                    .setTitle(LocaleController.getString(R.string.LX_ConfirmSend))
+                    .setPositiveButton(LocaleController.getString(R.string.Send), (dialog, which) -> onConfirmed.run())
+                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null).show();
+            return true;
+        }
         return false;
     }
 

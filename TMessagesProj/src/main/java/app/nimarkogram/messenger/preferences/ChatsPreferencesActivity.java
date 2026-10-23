@@ -82,6 +82,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         
+        items.add(UItem.asButton(8901, R.drawable.msg_settings_solar, getString(R.string.LX_Title)));
         items.add(UItem.asHeader(getString(R.string.CP_Header_DialogList)));
         items.add(SettingsHelper.asSwitchCG(sortByUnreadRow, getString(R.string.CP_SortByUnread))
                 .setChecked(NimarkoConfig.sortByUnread));
@@ -193,6 +194,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == 8901) { presentFragment(new ChatExtrasPreferencesActivity()); return; }
+
         final int id = item.id;
         
         if (id == localPinsInfoRow) {

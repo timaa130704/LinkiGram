@@ -867,9 +867,15 @@ public class FileLoadOperation {
                         !isPreloadVideoOperation && !supportsPreloading && preloadPrefixSize == 0;
                 if (useDownloadByteBudget) {
                     boolean premium = UserConfig.getInstance(currentAccount).isPremium();
-                    downloadConnectionsCount = premium ? ConnectionsManager.DownloadConnectionsCount : 2;
+                    boolean boosted = !forceSmallChunk && app.nimarkogram.messenger.NimarkoConfig.downloadSpeedBoost
+                            != app.nimarkogram.messenger.DownloadSpeedPolicy.BOOST_NONE;
+                    downloadConnectionsCount = premium || boosted ? ConnectionsManager.DownloadConnectionsCount : 2;
                     int byteBudget = (premium ? 16 : 2) * 1024 * 1024;
-                    currentMaxDownloadRequests = byteBudget / currentDownloadChunkSize;
+                    // Preserve the selected client profile instead of silently reducing
+                    // it to two requests for a non-Premium account. Server limits still apply.
+                    currentMaxDownloadRequests = boosted
+                            ? Math.max(1, maxDownloadRequestsBig)
+                            : Math.max(1, byteBudget / currentDownloadChunkSize);
                 }
             }
         }

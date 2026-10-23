@@ -16,11 +16,21 @@ public final class Lyrics {
     public static final class Line {
         public final long time;
         public final String text;
+        public final ArrayList<Word> words;
 
-        Line(long time, String text) {
+        Line(long time, String text) { this(time, text, new ArrayList<>()); }
+        Line(long time, String text, ArrayList<Word> words) {
             this.time = time;
             this.text = text;
+            this.words = words;
         }
+    }
+
+    public static final class Word {
+        public final long time;
+        public final int start, end;
+        Word(long time, int start, int end) { this.time = time; this.start = start; this.end = end; }
+
     }
 
     private static final Pattern TIME = Pattern.compile("\\[(\\d{1,3}):(\\d{1,2})(?:[.:](\\d{1,3}))?]");
@@ -57,7 +67,18 @@ public final class Lyrics {
                 long t = Math.max(0, line.time);
                 sb.append(String.format(Locale.US, "[%02d:%02d.%02d]", t / 60000, t / 1000 % 60, t % 1000 / 10));
             }
-            sb.append(line.text).append('\n');
+            if (!line.words.isEmpty()) {
+                int cursor = 0;
+                for (Word word : line.words) {
+                    sb.append(line.text, cursor, word.start);
+                    long t = Math.max(0, word.time);
+                    sb.append(String.format(Locale.US, "<%02d:%02d.%03d>", t / 60000, t / 1000 % 60, t % 1000));
+                    sb.append(line.text, word.start, word.end);
+                    cursor = word.end;
+                }
+                sb.append(line.text, cursor, line.text.length());
+            } else sb.append(line.text);
+            sb.append('\n');
         }
         return sb.toString();
     }
@@ -74,6 +95,9 @@ public final class Lyrics {
         if (TextUtils.isEmpty(text)) {
             return null;
         }
+        Lyrics rich = WordLyricsParser.parseStructured(text, source, provider);
+        if (rich != null) return rich;
+        if (text.trim().startsWith("<") || text.trim().matches("(?s)^\\[\\s*\\{.*")) return null;
         String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
         String[] raw = normalized.split("\n");
         long offset = 0;
@@ -101,9 +125,24 @@ public final class Lyrics {
             if (times == null) {
                 continue;
             }
-            String content = WORD_TIME.matcher(line.substring(end)).replaceAll("").trim();
+            String rawContent = line.substring(end);
+            Matcher wm = Pattern.compile("<(\\d{1,3}):(\\d{1,2})(?:[.:](\\d{1,3}))?>").matcher(rawContent);
+            StringBuilder content = new StringBuilder();
+            ArrayList<Word> words = new ArrayList<>();
+            long wordTime = -1;
+            int previous = 0;
+            while (wm.find()) {
+                int start = content.length();
+                content.append(rawContent, previous, wm.start());
+                if (wordTime >= 0 && content.length() > start) words.add(new Word(Math.max(0, wordTime - offset), start, content.length()));
+                wordTime = toMillis(wm.group(1), wm.group(2), wm.group(3));
+                previous = wm.end();
+            }
+            int start = content.length();
+            content.append(rawContent.substring(previous));
+            if (wordTime >= 0 && content.length() > start) words.add(new Word(Math.max(0, wordTime - offset), start, content.length()));
             for (long t : times) {
-                timed.add(new Line(Math.max(0, t - offset), content));
+                timed.add(new Line(Math.max(0, t - offset), content.toString(), new ArrayList<>(words)));
             }
         }
         if (!timed.isEmpty()) {

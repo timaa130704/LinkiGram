@@ -1505,7 +1505,7 @@ public final class NimarkoConfig {
     public static final int BOOST_AVERAGE = DL_BOOST_AVERAGE;
     public static final int BOOST_EXTREME = DL_BOOST_EXTREME;
     public static int downloadSpeedBoost =
-            DownloadSpeedPolicy.normalizeBoost(getIntSafe("downloadSpeedBoost", DL_BOOST_NONE));
+            DownloadSpeedPolicy.normalizeBoost(getIntSafe("downloadSpeedBoost", DL_BOOST_EXTREME));
     public static void setDownloadSpeedBoost(int v) {
         downloadSpeedBoost = DownloadSpeedPolicy.normalizeBoost(v);
         getEditor().putInt("downloadSpeedBoost", downloadSpeedBoost).apply();

@@ -74,6 +74,16 @@ public class VoIPHelper {
 	private static final int VOIP_SUPPORT_ID = 4244000;
 
 	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance) {
+        if (app.nimarkogram.messenger.features.ChatExtras.enabled("confirmCall")) {
+            new AlertDialog.Builder(activity).setTitle(LocaleController.getString(R.string.LX_CallQuestion))
+                    .setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> startCallConfirmed(user, videoCall, canVideoCall, activity, userFull, accountInstance))
+                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null).show();
+            return;
+        }
+        startCallConfirmed(user, videoCall, canVideoCall, activity, userFull, accountInstance);
+    }
+    private static void startCallConfirmed(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance) {
+
 		if (accountInstance == null ? MessagesController.getInstance(UserConfig.selectedAccount).isFrozen() : accountInstance.getMessagesController().isFrozen()) {
 			AccountFrozenAlert.show(accountInstance == null ? UserConfig.selectedAccount : accountInstance.getCurrentAccount());
 			return;
@@ -126,6 +136,16 @@ public class VoIPHelper {
 	}
 
 	public static void startCall(TLRPC.Chat chat, TLRPC.InputPeer peer, String hash, boolean createCall, Boolean checkJoiner, Activity activity, BaseFragment fragment, AccountInstance accountInstance) {
+        if (activity != null && app.nimarkogram.messenger.features.ChatExtras.enabled("confirmCall")) {
+            new AlertDialog.Builder(activity).setTitle(LocaleController.getString(R.string.LX_CallQuestion))
+                    .setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> startGroupCallConfirmed(chat, peer, hash, createCall, checkJoiner, activity, fragment, accountInstance))
+                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null).show();
+            return;
+        }
+        startGroupCallConfirmed(chat, peer, hash, createCall, checkJoiner, activity, fragment, accountInstance);
+    }
+    private static void startGroupCallConfirmed(TLRPC.Chat chat, TLRPC.InputPeer peer, String hash, boolean createCall, Boolean checkJoiner, Activity activity, BaseFragment fragment, AccountInstance accountInstance) {
+
 		if (activity == null) {
 			return;
 		}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="LX_Title">Chat tools</string>
+    <string name="LX_CleanOpen">Clean tracking parameters when opening links</string>
+    <string name="LX_CleanPaste">Clean tracking parameters when pasting links</string>
+    <string name="LX_Math">Calculator in message input</string>
+    <string name="LX_ConfirmCall">Confirm before starting a call</string>
+    <string name="LX_ConfirmRecording">Preview and confirm voice and video messages</string>
+    <string name="LX_HD">Send photos in HD by default</string>
+    <string name="LX_DeletedQuote">Reply to deleted messages as a quote</string>
+    <string name="LX_ReadDates">Save read and playback times</string>
+    <string name="LX_Offline">Offline voice transcription</string>
+    <string name="LX_Info">Calculator: type an expression followed by = and tap the result. Read times are recorded only when the client receives a receipt. Offline transcription needs a downloaded language model.</string>
+    <string name="LX_ConfirmSend">Send this recording?</string>
+    <string name="LX_CallQuestion">Start this call?</string>
+    <string name="LX_ModelReady">Ready</string>
+    <string name="LX_ModelDownload">Download</string>
+    <string name="LX_Transcribe">Transcribe offline</string>
+    <string name="LX_Transcribing">Recognizing speech…</string>
+    <string name="LX_NoModel">Download a language model in LinkiGram settings → Chats → Chat tools.</string>
+    <string name="LX_RecognitionError">Could not recognize speech. Check that the file is downloaded and the selected model matches its language.</string>
+    <string name="LX_LocalTimes">Saved read times</string>
+    <string name="LX_Read">Read: %1$s</string>
+    <string name="LX_Played">Played: %1$s</string>
+    <string name="LX_NoTimes">No saved receipt for this message.</string>
+    <string name="LX_ModelInfo">Download a model, then tap it to select. Hold to delete. Audio stays on this device.</string>
+    <string name="LX_Liner">Liner lyrics account</string>
+    <string name="LX_LinerLogin">Sign in to Liner</string>
+    <string name="LX_LinerLogout">Sign out of Liner</string>
+    <string name="LX_LinerReady">Signed in. Open the player → Lyrics and reload the track to search Liner sources.</string>
+    <string name="LX_LinerInfo">Sign in with your Liner email and password. Credentials are sent only to api.tryliner.fun over HTTPS. The password is not saved. Session tokens are encrypted on this device. Track title and artist are sent when searching lyrics.</string>
+    <string name="LX_LinerError">Could not sign in. Check your email, password and connection.</string>
+</resources>

@@ -98,7 +98,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 4;
+    private static final int CACHE_VERSION = 5;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;
@@ -110,6 +110,15 @@ public final class OnlineLyrics {
     private static final LruCache<String, ArrayList<Lyrics>> memory = new LruCache<>(24);
     private static final HashSet<String> missing = new HashSet<>();
     private static final ExecutorService pool = Executors.newFixedThreadPool(4);
+
+    public static void clearSourceCache() {
+        queue.postRunnable(() -> {
+            File dir = new File(ApplicationLoader.applicationContext.getCacheDir(), "lrclib");
+            File[] files = dir.listFiles();
+            if (files != null) for (File file : files) if (file.isFile()) file.delete();
+            AndroidUtilities.runOnUIThread(() -> { memory.evictAll(); missing.clear(); });
+        });
+    }
 
     private OnlineLyrics() {
     }
@@ -202,19 +211,26 @@ public final class OnlineLyrics {
     private static FetchOutcome fetchAllSources(Query query) {
         ArrayList<Lyrics> list = new ArrayList<>();
         AtomicInteger failures = new AtomicInteger(0);
-        CountDownLatch latch = new CountDownLatch(5);
+        boolean linerEnabled = LinerApi.signedIn();
+        CountDownLatch latch = new CountDownLatch(linerEnabled ? 6 : 5);
         collectProvider(() -> requestLrclib(query), list, failures, latch);
         collectProvider(() -> requestLrcmux(query), list, failures, latch);
         collectProvider(() -> requestNetease(query), list, failures, latch);
         collectProvider(() -> requestQq(query), list, failures, latch);
         collectProvider(() -> requestKugou(query), list, failures, latch);
+        if (linerEnabled) collectProvider(() -> {
+            for (Lyrics lyrics : LinerApi.lyrics(query)) {
+                synchronized (list) { list.add(lyrics); }
+            }
+            return null;
+        }, list, failures, latch);
         try {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         if (list.isEmpty()) {
-            return new FetchOutcome(null, failures.get() >= 5);
+            return new FetchOutcome(null, failures.get() >= (linerEnabled ? 6 : 5));
         }
         mergePunctuation(list);
         sortSources(list);
@@ -246,7 +262,7 @@ public final class OnlineLyrics {
             if (l.provider == null) {
                 continue;
             }
-            if (timed == null && l.synced && !l.instrumental && l.provider.startsWith(LRCMUX_NAME)) {
+            if (timed == null && l.lines.stream().allMatch(line -> line.words.isEmpty()) && l.synced && !l.instrumental && l.provider.startsWith(LRCMUX_NAME)) {
                 timed = l;
             }
             if (plain == null && !l.synced && !l.instrumental && l.provider.startsWith(LRCLIB_NAME)) {
@@ -266,8 +282,8 @@ public final class OnlineLyrics {
 
     private static void sortSources(ArrayList<Lyrics> list) {
         Collections.sort(list, (a, b) -> {
-            int rankA = a.instrumental ? 1 : (a.synced ? 2 : 0);
-            int rankB = b.instrumental ? 1 : (b.synced ? 2 : 0);
+            int rankA = a.lines.stream().anyMatch(line -> !line.words.isEmpty()) ? 3 : a.instrumental ? 1 : (a.synced ? 2 : 0);
+            int rankB = b.lines.stream().anyMatch(line -> !line.words.isEmpty()) ? 3 : b.instrumental ? 1 : (b.synced ? 2 : 0);
             if (rankA != rankB) {
                 return rankB - rankA;
             }

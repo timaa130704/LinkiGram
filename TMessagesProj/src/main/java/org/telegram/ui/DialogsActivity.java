@@ -8810,9 +8810,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             previewMenu[0].addView(localPinItem);
         }
 
-        if (hasPinAction[0]) {
+        final boolean cloudPinLimitReached = !hasPinAction[0];
+        if (hasPinAction[0] || dialog != null && !(dialog instanceof TLRPC.TL_dialogFolder)) {
             ActionBarMenuSubItem unpinItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
-            if (isDialogPinned(dialog)) {
+            if (isDialogPinned(dialog) || app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, dialogId)) {
                 unpinItem.setTextAndIcon(LocaleController.getString(R.string.UnpinMessage), R.drawable.msg_unpin);
             } else {
                 unpinItem.setTextAndIcon(LocaleController.getString(R.string.PinMessage), R.drawable.msg_pin);
@@ -8821,6 +8822,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             unpinItem.setOnClickListener(e -> {
                 finishPreviewFragment();
                 AndroidUtilities.runOnUIThread(() -> {
+                    boolean localPin = app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, dialogId);
+                    if (localPin || cloudPinLimitReached && !isDialogPinned(dialog)) {
+                        ArrayList<Long> ids = new ArrayList<>();
+                        ids.add(dialogId);
+                        setLocalChatPins(ids, !localPin);
+                        return;
+                    }
                     int minPinnedNum = Integer.MAX_VALUE;
                     if (filter != null && isDialogPinned(dialog)) {
                         for (int c = 0, N = filter.pinnedDialogs.size(); c < N; c++) {
@@ -9272,6 +9280,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             filter = null;
         }
         int count = selectedDialogs.size();
+        if ((action == pin || action == pin2) && count > 0) {
+            boolean allLocal = true;
+            for (long id : selectedDialogs) {
+                if (!app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, id)) {
+                    allLocal = false;
+                    break;
+                }
+            }
+            if (allLocal) {
+                setLocalChatPins(new ArrayList<>(selectedDialogs), false);
+                hideActionMode(false);
+                return;
+            }
+        }
         int pinnedActionCount = 0;
         if (action == archive || action == archive2) {
             ArrayList<Long> copy = new ArrayList<>(selectedDialogs);
@@ -9352,12 +9374,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 maxPinnedCount = getUserConfig().isPremium() ? getMessagesController().dialogFiltersPinnedLimitPremium : getMessagesController().dialogFiltersPinnedLimitDefault;
             }
             if (newPinnedSecretCount + pinnedSecretCount > maxPinnedCount || newPinnedCount + pinnedCount - alreadyAdded > maxPinnedCount) {
-                if (folderId != 0 || filter != null) {
-                    AlertsCreator.showSimpleAlert(DialogsActivity.this, LocaleController.formatString("PinFolderLimitReached", R.string.PinFolderLimitReached, LocaleController.formatPluralString("Chats", maxPinnedCount)));
-                } else {
-                    LimitReachedBottomSheet limitReachedBottomSheet = new LimitReachedBottomSheet(this, getParentActivity(), LimitReachedBottomSheet.TYPE_PIN_DIALOGS, currentAccount, null);
-                    showDialog(limitReachedBottomSheet);
-                }
+                // Cloud quotas stay intact; overflow pins are persisted on this device.
+                setLocalChatPins(new ArrayList<>(selectedDialogs), true);
+                hideActionMode(false);
                 return;
             }
         } else if (action == community_ungroup) {
@@ -9490,6 +9509,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
             boolean isBot = user != null && user.bot && !MessagesController.isSupportUser(user);
             if (action == pin || action == pin2) {
+                if (app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, selectedDialog)) {
+                    if (canPinCount == 0) {
+                        app.nimarkogram.messenger.local.LocalChatPins.setPinned(currentAccount, selectedDialog, false);
+                        getMessagesController().sortDialogs(null);
+                        getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+                        pinnedActionCount++;
+                    }
+                    continue;
+                }
                 if (canPinCount != 0) {
                     if (isDialogPinned(dialog)) {
                         continue;
@@ -9881,7 +9909,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
 
             long selectedDialog = dialog.id;
-            boolean pinned = isDialogPinned(dialog);
+            boolean pinned = isDialogPinned(dialog)
+                    || app.nimarkogram.messenger.local.LocalChatPins.isPinned(currentAccount, selectedDialog);
             boolean hasUnread = dialog.unread_count != 0 || dialog.unread_mark;
 
             if (getMessagesController().isForum(selectedDialog)) {
