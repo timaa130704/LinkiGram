@@ -168,6 +168,18 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private ArrayList<Lyrics> lyricsSources;
     private Lyrics shownLyrics;
     private String lyricsQueryKey;
+    private int lyricsRequestGeneration;
+
+    private int beginLyricsRequest(String key) {
+        final int generation = ++lyricsRequestGeneration;
+        AndroidUtilities.runOnUIThread(() -> {
+            if (generation == lyricsRequestGeneration && TextUtils.equals(key, currentKey)
+                    && lyricsView.getState() == LyricsView.STATE_LOADING) {
+                lyricsView.showState(LyricsView.STATE_ERROR);
+            }
+        }, 25000);
+        return generation;
+    }
     private boolean seeking;
     private float seekProgress;
     private Boolean lightBars;
@@ -1343,8 +1355,9 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
         sourceView.setText(null);
+        final int generation = beginLyricsRequest(key);
         OnlineLyrics.loadCached(q, (sources, status) -> {
-            if (!TextUtils.equals(key, currentKey)) {
+            if (generation != lyricsRequestGeneration || !TextUtils.equals(key, currentKey)) {
                 return;
             }
             if (sources != null) {
@@ -1377,12 +1390,13 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         final Lyrics previous = refresh ? shownLyrics : null;
+        final int generation = beginLyricsRequest(key);
         if (previous == null) {
             lyricsView.showState(LyricsView.STATE_LOADING);
             sourceView.setText(null);
         }
         OnlineLyrics.Callback callback = (sources, status) -> {
-            if (!TextUtils.equals(key, currentKey)) {
+            if (generation != lyricsRequestGeneration || !TextUtils.equals(key, currentKey)) {
                 return;
             }
             if (sources != null && !sources.isEmpty()) {
