@@ -107,39 +107,60 @@ public final class LinerApi {
     }
 
     private static LinerCatalog.Track accountTrack(OnlineLyrics.Query query) {
-        for (String path : new String[]{"/v1/me/history?limit=100", "/v1/me/library/tracks?limit=100"}) {
+        ArrayList<LinerCatalog.Track> tracks = new ArrayList<>();
+        String cursor = null;
+        for (int pageNumber = 0; pageNumber < 3; pageNumber++) {
             try {
+                String path = "/v1/me/history?limit=30" + (cursor == null ? "" : "&cursor=" + enc(cursor));
                 JSONObject page = authorizedJson(path);
-                ArrayList<LinerCatalog.Track> tracks = new ArrayList<>();
-                JSONArray items = page.optJSONArray("items");
-                if (items != null) for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.optJSONObject(i);
-                    JSONObject track = item == null ? null : item.optJSONObject("track");
-                    if (track == null) continue;
-                    JSONArray artists = track.optJSONArray("artists");
-                    String first = ""; StringBuilder all = new StringBuilder();
-                    if (artists != null) for (int j = 0; j < artists.length(); j++) {
-                        JSONObject artist = artists.optJSONObject(j);
-                        String name = artist == null ? "" : artist.optString("name");
-                        if (name.isEmpty()) continue;
-                        if (first.isEmpty()) first = name;
-                        if (all.length() > 0) all.append(' ');
-                        all.append(name);
-                    }
-                    String id = track.optString("id");
-                    if (!id.isEmpty()) tracks.add(new LinerCatalog.Track(id, track.optString("title"),
-                            all.toString(), first, track.optLong("durationMs")));
-                }
+                collectAccountTracks(page, tracks);
                 LinerCatalog.Track matched = LinerCatalog.match(tracks, query);
                 if (matched != null) {
-                    android.util.Log.i("LinkiLyrics", "Liner account track matched");
+                    android.util.Log.i("LinkiLyrics", "Liner account history track matched");
                     return matched;
                 }
+                cursor = page.optString("nextCursor", "");
+                if (cursor.isEmpty() || "null".equals(cursor)) break;
             } catch (Exception error) {
-                android.util.Log.w("LinkiLyrics", "Liner account lookup failed: " + error.getMessage());
+                android.util.Log.w("LinkiLyrics", "Liner account history lookup failed: " + error.getMessage());
+                break;
             }
         }
+        try {
+            JSONObject page = authorizedJson("/v1/me/library/tracks?limit=100");
+            collectAccountTracks(page, tracks);
+            LinerCatalog.Track matched = LinerCatalog.match(tracks, query);
+            if (matched != null) {
+                android.util.Log.i("LinkiLyrics", "Liner account library track matched");
+                return matched;
+            }
+        } catch (Exception error) {
+            android.util.Log.w("LinkiLyrics", "Liner account library lookup failed: " + error.getMessage());
+        }
         return null;
+    }
+
+    private static void collectAccountTracks(JSONObject page, ArrayList<LinerCatalog.Track> tracks) {
+        JSONArray items = page.optJSONArray("items");
+        if (items == null) return;
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            JSONObject track = item == null ? null : item.optJSONObject("track");
+            if (track == null) continue;
+            JSONArray artists = track.optJSONArray("artists");
+            String first = ""; StringBuilder all = new StringBuilder();
+            if (artists != null) for (int j = 0; j < artists.length(); j++) {
+                JSONObject artist = artists.optJSONObject(j);
+                String name = artist == null ? "" : artist.optString("name");
+                if (name.isEmpty()) continue;
+                if (first.isEmpty()) first = name;
+                if (all.length() > 0) all.append(' ');
+                all.append(name);
+            }
+            String id = track.optString("id");
+            if (!id.isEmpty()) tracks.add(new LinerCatalog.Track(id, track.optString("title"),
+                    all.toString(), first, track.optLong("durationMs")));
+        }
     }
 
     interface Listener { void onLyrics(Lyrics lyrics); }
@@ -165,7 +186,8 @@ public final class LinerApi {
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = open(path, token(attempt > 0));
             try {
-                connection.setReadTimeout(20000);
+                // Liner streams provider results independently; slow providers can arrive well after the first candidate.
+                connection.setReadTimeout(55000);
                 connection.setRequestProperty("x-request-id", java.util.UUID.randomUUID().toString());
                 connection.setRequestProperty("x-client-version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING);
                 connection.setRequestProperty("x-platform", "android");

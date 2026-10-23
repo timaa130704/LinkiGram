@@ -46,16 +46,20 @@ final class LinerCatalog {
     static Track match(ArrayList<Track> tracks, OnlineLyrics.Query query) {
         String title = normalize(query.title), original = normalize(query.originalTitle), artist = normalize(query.artist);
         if (title.isEmpty() || artist.isEmpty()) return null;
+        java.util.HashSet<String> requestedArtists = new java.util.HashSet<>(java.util.Arrays.asList(artist.split(" ")));
         Track best = null;
         long difference = Long.MAX_VALUE;
         for (Track track : tracks) {
             String candidateTitle = normalize(track.title), candidateArtist = normalize(track.artist);
             if (!title.equals(candidateTitle) && !original.equals(candidateTitle)) continue;
-            if (!(" " + candidateArtist + " ").contains(" " + artist + " ")
-                    && !(" " + artist + " ").contains(" " + candidateArtist + " ")) continue;
             if (candidateArtist.isEmpty()) continue;
             long delta = track.durationMs > 0 && query.duration > 0 ? Math.abs(track.durationMs - query.duration * 1000L) : 0;
             if (delta > 8000 || delta >= difference) continue;
+            java.util.HashSet<String> candidateArtists = new java.util.HashSet<>(java.util.Arrays.asList(candidateArtist.split(" ")));
+            int overlap = 0;
+            for (String token : requestedArtists) if (candidateArtists.contains(token)) overlap++;
+            int requiredOverlap = Math.min(2, Math.min(requestedArtists.size(), candidateArtists.size()));
+            if (overlap < requiredOverlap) continue;
             best = track; difference = delta;
         }
         return best;
