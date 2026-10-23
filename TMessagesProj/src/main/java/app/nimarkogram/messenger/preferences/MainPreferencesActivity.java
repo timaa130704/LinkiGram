@@ -130,7 +130,58 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         header.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
 
         ImageView icon = new ImageView(context);
-        icon.setImageResource(R.drawable.linkigram_about_icon);
+        // Draw the plate and plane separately so the logo follows the same
+        // palette as the settings badges, including live theme changes.
+        final android.graphics.drawable.Drawable plane = context.getDrawable(R.drawable.icon_plane).mutate();
+        icon.setImageDrawable(new android.graphics.drawable.Drawable() {
+            private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            private int lastGlyph;
+
+            @Override
+            public void draw(android.graphics.Canvas canvas) {
+                final boolean dark = Theme.isCurrentThemeDark();
+                final int mode = app.nimarkogram.messenger.appearance.SettingsIconColors.mode();
+                int plate = dark ? 0xFF2E2E33 : 0xFFE6E6EB;
+                int glyph = dark ? 0xFFF2F2F7 : 0xFF17171A;
+                if (mode == app.nimarkogram.messenger.appearance.SettingsIconColors.ACCENT
+                        || mode == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM) {
+                    glyph = mode == app.nimarkogram.messenger.appearance.SettingsIconColors.CUSTOM
+                            ? app.nimarkogram.messenger.appearance.SettingsIconColors.customColor()
+                            : Theme.getColor(Theme.key_windowBackgroundWhiteBlueText);
+                    plate = androidx.core.graphics.ColorUtils.blendARGB(
+                            Theme.getColor(Theme.key_windowBackgroundWhite), glyph, dark ? 0.22f : 0.12f);
+                } else if (mode == app.nimarkogram.messenger.appearance.SettingsIconColors.ORIGINAL) {
+                    plate = 0xFF424242;
+                    glyph = android.graphics.Color.WHITE;
+                }
+                android.graphics.Rect bounds = getBounds();
+                float cx = bounds.exactCenterX();
+                float cy = bounds.exactCenterY();
+                float radius = Math.min(bounds.width(), bounds.height()) / 2f;
+                paint.setStyle(android.graphics.Paint.Style.FILL);
+                paint.setColor(plate);
+                canvas.drawCircle(cx, cy, radius, paint);
+                if (dark && mode == app.nimarkogram.messenger.appearance.SettingsIconColors.NEUTRAL) {
+                    paint.setStyle(android.graphics.Paint.Style.STROKE);
+                    paint.setStrokeWidth(AndroidUtilities.dp(1));
+                    paint.setColor(0x1FFFFFFF);
+                    canvas.drawCircle(cx, cy, radius - AndroidUtilities.dp(0.5f), paint);
+                }
+                if (lastGlyph != glyph) {
+                    plane.setColorFilter(new android.graphics.PorterDuffColorFilter(glyph, android.graphics.PorterDuff.Mode.SRC_IN));
+                    lastGlyph = glyph;
+                }
+                plane.setBounds(bounds);
+                int save = canvas.save();
+                canvas.scale(1.8f, 1.8f, cx, cy);
+                plane.draw(canvas);
+                canvas.restoreToCount(save);
+            }
+
+            @Override public void setAlpha(int alpha) { }
+            @Override public void setColorFilter(android.graphics.ColorFilter filter) { }
+            @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+        });
         icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
         icon.setOutlineProvider(new android.view.ViewOutlineProvider() {
             @Override public void getOutline(View view, android.graphics.Outline outline) {
