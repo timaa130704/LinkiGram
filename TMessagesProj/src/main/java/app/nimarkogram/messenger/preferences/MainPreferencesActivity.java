@@ -132,10 +132,34 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         ImageView icon = new ImageView(context);
         // Draw the plate and plane separately so the logo follows the same
         // palette as the settings badges, including live theme changes.
-        final android.graphics.drawable.Drawable plane = context.getDrawable(R.drawable.icon_plane).mutate();
+        final android.graphics.Bitmap source = android.graphics.BitmapFactory.decodeResource(context.getResources(), R.drawable.linkigram_about_icon);
+        final int width = source.getWidth(), height = source.getHeight();
+        final int[] pixels = new int[width * height];
+        source.getPixels(pixels, 0, width, 0, 0, width, height);
+        // Remove only the flat background connected to the image border.
+        // The cat artwork inside the LinkiGram mark remains unchanged.
+        final int background = pixels[0];
+        final int[] queue = new int[pixels.length];
+        int tail = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (x != 0 && y != 0 && x != width - 1 && y != height - 1) continue;
+                int index = y * width + x;
+                if (pixels[index] == background) { pixels[index] = 0; queue[tail++] = index; }
+            }
+        }
+        for (int head = 0; head < tail; head++) {
+            int index = queue[head];
+            int x = index % width;
+            if (x > 0 && pixels[index - 1] == background) { pixels[index - 1] = 0; queue[tail++] = index - 1; }
+            if (x + 1 < width && pixels[index + 1] == background) { pixels[index + 1] = 0; queue[tail++] = index + 1; }
+            if (index >= width && pixels[index - width] == background) { pixels[index - width] = 0; queue[tail++] = index - width; }
+            if (index + width < pixels.length && pixels[index + width] == background) { pixels[index + width] = 0; queue[tail++] = index + width; }
+        }
+        final android.graphics.Bitmap artwork = android.graphics.Bitmap.createBitmap(pixels, width, height, android.graphics.Bitmap.Config.ARGB_8888);
+        final android.graphics.drawable.Drawable plane = new android.graphics.drawable.BitmapDrawable(context.getResources(), artwork);
         icon.setImageDrawable(new android.graphics.drawable.Drawable() {
             private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-            private int lastGlyph;
 
             @Override
             public void draw(android.graphics.Canvas canvas) {
@@ -167,15 +191,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                     paint.setColor(0x1FFFFFFF);
                     canvas.drawCircle(cx, cy, radius - AndroidUtilities.dp(0.5f), paint);
                 }
-                if (lastGlyph != glyph) {
-                    plane.setColorFilter(new android.graphics.PorterDuffColorFilter(glyph, android.graphics.PorterDuff.Mode.SRC_IN));
-                    lastGlyph = glyph;
-                }
                 plane.setBounds(bounds);
-                int save = canvas.save();
-                canvas.scale(1.8f, 1.8f, cx, cy);
                 plane.draw(canvas);
-                canvas.restoreToCount(save);
             }
 
             @Override public void setAlpha(int alpha) { }
