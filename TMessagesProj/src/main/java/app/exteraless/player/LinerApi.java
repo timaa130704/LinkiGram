@@ -60,6 +60,9 @@ public final class LinerApi {
     }
     private static JSONObject json(String path, JSONObject body, String token) throws Exception {
         HttpURLConnection connection = open(path, token);
+        if (path.startsWith("/v1/me/")) {
+            connection.setConnectTimeout(4000); connection.setReadTimeout(5000);
+        }
         try {
             if (body != null) {
                 connection.setRequestMethod("POST"); connection.setDoOutput(true);
@@ -72,7 +75,7 @@ public final class LinerApi {
         } finally { connection.disconnect(); }
     }
     private static HttpURLConnection open(String path, String token) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(ORIGIN + path).openConnection();
+        HttpURLConnection connection = LyricsDeadline.track((HttpURLConnection) new URL(ORIGIN + path).openConnection());
         connection.setConnectTimeout(12000); connection.setReadTimeout(15000); connection.setInstanceFollowRedirects(false);
         connection.setRequestProperty("Accept", "application/json, text/event-stream");
         if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
@@ -95,6 +98,50 @@ public final class LinerApi {
         return session().optString("accessToken");
     }
     private static String enc(String value) throws Exception { return URLEncoder.encode(value, "UTF-8"); }
+    private static JSONObject authorizedJson(String path) throws Exception {
+        try { return json(path, null, token(false)); }
+        catch (IOException error) {
+            if (!"Liner HTTP 401".equals(error.getMessage())) throw error;
+            return json(path, null, token(true));
+        }
+    }
+
+    private static LinerCatalog.Track accountTrack(OnlineLyrics.Query query) {
+        for (String path : new String[]{"/v1/me/history?limit=100", "/v1/me/library/tracks?limit=100"}) {
+            try {
+                JSONObject page = authorizedJson(path);
+                ArrayList<LinerCatalog.Track> tracks = new ArrayList<>();
+                JSONArray items = page.optJSONArray("items");
+                if (items != null) for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.optJSONObject(i);
+                    JSONObject track = item == null ? null : item.optJSONObject("track");
+                    if (track == null) continue;
+                    JSONArray artists = track.optJSONArray("artists");
+                    String first = ""; StringBuilder all = new StringBuilder();
+                    if (artists != null) for (int j = 0; j < artists.length(); j++) {
+                        JSONObject artist = artists.optJSONObject(j);
+                        String name = artist == null ? "" : artist.optString("name");
+                        if (name.isEmpty()) continue;
+                        if (first.isEmpty()) first = name;
+                        if (all.length() > 0) all.append(' ');
+                        all.append(name);
+                    }
+                    String id = track.optString("id");
+                    if (!id.isEmpty()) tracks.add(new LinerCatalog.Track(id, track.optString("title"),
+                            all.toString(), first, track.optLong("durationMs")));
+                }
+                LinerCatalog.Track matched = LinerCatalog.match(tracks, query);
+                if (matched != null) {
+                    android.util.Log.i("LinkiLyrics", "Liner account track matched");
+                    return matched;
+                }
+            } catch (Exception error) {
+                android.util.Log.w("LinkiLyrics", "Liner account lookup failed: " + error.getMessage());
+            }
+        }
+        return null;
+    }
+
     interface Listener { void onLyrics(Lyrics lyrics); }
 
     public static ArrayList<Lyrics> lyrics(OnlineLyrics.Query query) throws Exception {
@@ -105,7 +152,8 @@ public final class LinerApi {
         ArrayList<Lyrics> result = new ArrayList<>();
         if (!signedIn() || query.artist == null) return result;
         // Catalog-backed providers need the same real track ID used by Liner desktop.
-        LinerCatalog.Track track = LinerCatalog.resolve(query);
+        LinerCatalog.Track track = accountTrack(query);
+        if (track == null) track = LinerCatalog.resolve(query);
         String id = track == null ? null : track.id;
         if (id == null) id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
         String title = track == null ? query.originalTitle : track.title;
@@ -117,7 +165,7 @@ public final class LinerApi {
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = open(path, token(attempt > 0));
             try {
-                connection.setReadTimeout(90000);
+                connection.setReadTimeout(20000);
                 connection.setRequestProperty("x-request-id", java.util.UUID.randomUUID().toString());
                 connection.setRequestProperty("x-client-version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING);
                 connection.setRequestProperty("x-platform", "android");

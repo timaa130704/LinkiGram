@@ -103,6 +103,10 @@ final class LinerLyricsParser {
             engine.getSettings().setBlockNetworkLoads(true);
             engine.setWebViewClient(new WebViewClient() {
                 private boolean initialized;
+                @Override public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                    failPending();
+                    return true;
+                }
                 @Override public void onPageFinished(WebView view, String url) {
                     if (initialized) return;
                     initialized = true;

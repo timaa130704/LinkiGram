@@ -38,6 +38,7 @@ public final class OnlineLyrics {
     public static final int OK = 0;
     public static final int NOT_FOUND = 1;
     public static final int ERROR = 2;
+    public static final int PARTIAL = 3;
 
     public interface Callback {
         void onResult(ArrayList<Lyrics> sources, int status);
@@ -100,7 +101,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 8;
+    private static final int CACHE_VERSION = 9;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;
@@ -127,6 +128,8 @@ public final class OnlineLyrics {
         memory.put(key, sources);
         memoryTime.put(key, android.os.SystemClock.elapsedRealtime());
     }
+    private static final java.util.concurrent.ConcurrentHashMap<String, LyricsDeadline> activeBatches = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<String> refreshing = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final HashSet<String> missing = new HashSet<>();
     private static final ExecutorService pool = Executors.newFixedThreadPool(6);
 
@@ -186,6 +189,9 @@ public final class OnlineLyrics {
 
     public static void refresh(Query query, Callback callback) {
         String key = query.key();
+        if (!refreshing.add(key)) return;
+        LyricsDeadline previous = activeBatches.get(key);
+        if (previous != null) previous.cancelAsync();
         memory.remove(key);
         missing.remove(key);
         queue.postRunnable(() -> {
@@ -198,10 +204,11 @@ public final class OnlineLyrics {
     private static void fetchUncached(Query query, Callback callback) {
         queue.postRunnable(() -> {
             FetchOutcome outcome = fetchAllSources(query, callback);
-            if (outcome.sources != null) writeDisk(query.key(), outcome.sources);
+            if (outcome.sources != null && !outcome.networkFailed) writeDisk(query.key(), outcome.sources);
             AndroidUtilities.runOnUIThread(() -> {
-                if (outcome.sources != null) rememberMemory(query.key(), outcome.sources);
-                callback.onResult(outcome.sources, outcome.sources != null ? OK : outcome.networkFailed ? ERROR : NOT_FOUND);
+                if (outcome.sources != null && !outcome.networkFailed) rememberMemory(query.key(), outcome.sources);
+                refreshing.remove(query.key());
+                callback.onResult(outcome.sources, outcome.sources != null ? (outcome.networkFailed ? PARTIAL : OK) : outcome.networkFailed ? ERROR : NOT_FOUND);
             });
         });
     }
@@ -216,20 +223,24 @@ public final class OnlineLyrics {
         queue.postRunnable(() -> {
             ArrayList<Lyrics> result = readDisk(key);
             int status = OK;
+            boolean cacheable = true;
             if (result == null) {
                 FetchOutcome outcome = fetchAllSources(query, callback);
                 result = outcome.sources;
+                cacheable = !outcome.networkFailed;
+                if (result != null && outcome.networkFailed) status = PARTIAL;
                 if (result == null) {
                     status = outcome.networkFailed ? ERROR : NOT_FOUND;
-                } else {
+                } else if (cacheable) {
                     writeDisk(key, result);
                 }
             }
+            final boolean saveMemory = cacheable;
             final ArrayList<Lyrics> sources = result;
             final int finalStatus = status;
             AndroidUtilities.runOnUIThread(() -> {
                 if (sources != null) {
-                    rememberMemory(key, sources);
+                    if (saveMemory) rememberMemory(key, sources);
                     missing.remove(key);
                 } else if (finalStatus == NOT_FOUND) {
                     missing.add(key);
@@ -254,54 +265,78 @@ public final class OnlineLyrics {
         AtomicInteger failures = new AtomicInteger(0);
         boolean linerEnabled = LinerApi.signedIn();
         CountDownLatch latch = new CountDownLatch(linerEnabled ? 6 : 5);
-        collectProvider(() -> requestLrclib(query), list, failures, latch, callback);
-        collectProvider(() -> requestLrcmux(query), list, failures, latch, callback);
-        collectProvider(() -> requestNetease(query), list, failures, latch, callback);
-        collectProvider(() -> requestQq(query), list, failures, latch, callback);
-        collectProvider(() -> requestKugou(query), list, failures, latch, callback);
-        if (linerEnabled) collectProvider(() -> {
+        LyricsDeadline deadline = new LyricsDeadline(60);
+        String batchKey = query.key();
+        activeBatches.put(batchKey, deadline);
+        java.util.concurrent.atomic.AtomicBoolean linerFailed = new java.util.concurrent.atomic.AtomicBoolean(false);
+        ArrayList<java.util.concurrent.Future<?>> tasks = new ArrayList<>();
+        tasks.add(collectProvider(() -> requestLrclib(query), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestNetease(query), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestQq(query), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestKugou(query), list, failures, latch, callback, deadline));
+        if (linerEnabled) tasks.add(collectProvider(() -> {
+            try {
             LinerApi.lyrics(query, lyrics -> {
                 ArrayList<Lyrics> snapshot;
                 synchronized (list) {
+                    if (!deadline.active) return;
                     list.removeIf(previous -> lyrics.provider.equals(previous.provider));
                     list.add(lyrics);
                     snapshot = new ArrayList<>(list);
                 }
                 sortSources(snapshot);
-                AndroidUtilities.runOnUIThread(() -> callback.onResult(snapshot, OK));
+                AndroidUtilities.runOnUIThread(() -> { if (deadline.active) callback.onResult(snapshot, OK); });
             });
             return null;
-        }, list, failures, latch, callback);
+            } catch (Exception error) { linerFailed.set(true); throw error; }
+        }, list, failures, latch, callback, deadline));
+        for (java.util.concurrent.Future<?> task : tasks) deadline.add(task);
+        boolean completed = false;
         try {
-            latch.await();
+            long until = android.os.SystemClock.elapsedRealtime() + 60000;
+            while (deadline.active && latch.getCount() > 0 && android.os.SystemClock.elapsedRealtime() < until) {
+                latch.await(200, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+            completed = deadline.active && latch.getCount() == 0;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            deadline.close();
+            activeBatches.remove(batchKey, deadline);
         }
-        if (list.isEmpty()) {
-            return new FetchOutcome(null, failures.get() >= (linerEnabled ? 6 : 5));
+        ArrayList<Lyrics> finished;
+        synchronized (list) { finished = new ArrayList<>(list); }
+        boolean failed = !completed || linerFailed.get();
+        if (finished.isEmpty()) {
+            return new FetchOutcome(null, failed || failures.get() >= (linerEnabled ? 6 : 5));
         }
-        mergePunctuation(list);
-        sortSources(list);
-        return new FetchOutcome(list, false);
+        mergePunctuation(finished);
+        sortSources(finished);
+        return new FetchOutcome(finished, failed);
     }
 
-    private static void collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback) {
-        pool.execute(() -> {
+    private static java.util.concurrent.Future<?> collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback, LyricsDeadline deadline) {
+        return pool.submit(() -> {
+            LyricsDeadline.CURRENT.set(deadline);
             try {
+                if (!deadline.active) return;
                 Found found = provider.call();
                 if (found != null && found.lyrics != null) {
                     ArrayList<Lyrics> snapshot;
                     synchronized (list) {
+                        if (!deadline.active) return;
                         list.add(found.lyrics);
                         snapshot = new ArrayList<>(list);
                     }
                     sortSources(snapshot);
-                    AndroidUtilities.runOnUIThread(() -> callback.onResult(snapshot, OK));
+                    AndroidUtilities.runOnUIThread(() -> { if (deadline.active) callback.onResult(snapshot, OK); });
                 }
             } catch (Throwable e) {
                 failures.incrementAndGet();
                 FileLog.e(e);
             } finally {
+                LyricsDeadline.CURRENT.remove();
                 latch.countDown();
             }
         });
@@ -756,7 +791,7 @@ public final class OnlineLyrics {
     }
 
     private static String get(String url, String referer, String userAgent) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        HttpURLConnection connection = LyricsDeadline.track((HttpURLConnection) new URL(url).openConnection());
         try {
             connection.setConnectTimeout(10_000);
             connection.setReadTimeout(15_000);

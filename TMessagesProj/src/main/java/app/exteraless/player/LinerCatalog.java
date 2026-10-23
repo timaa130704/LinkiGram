@@ -32,7 +32,11 @@ final class LinerCatalog {
         // Liner searches songs, mixed results and music videos.
         for (String filter : new String[]{"EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D", "", "EgWKAQIQAWoKEAkQBRAKEAMQBA%3D%3D"}) {
             try { collect(search(query.artist + " " + query.originalTitle, filter), tracks, 0); }
-            catch (Exception error) { android.util.Log.w("LinkiLyrics", "Liner client catalog search failed: " + error.getClass().getSimpleName()); }
+            catch (Exception error) {
+                android.util.Log.w("LinkiLyrics", "Liner client catalog search failed: " + error.getClass().getSimpleName());
+                // Repeating three searches cannot fix an unreachable catalog host.
+                if (error instanceof java.net.SocketTimeoutException || error instanceof java.net.UnknownHostException) break;
+            }
             Track matched = match(tracks, query);
             if (matched != null) return matched;
         }
@@ -65,8 +69,8 @@ final class LinerCatalog {
         if (now < visitorExpires) return visitor;
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL("https://www.youtube.com/sw.js_data").openConnection();
-            connection.setConnectTimeout(8000); connection.setReadTimeout(8000);
+            connection = LyricsDeadline.track((HttpURLConnection) new URL("https://www.youtube.com/sw.js_data").openConnection());
+            connection.setConnectTimeout(2000); connection.setReadTimeout(2000);
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
             try (InputStream in = connection.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 byte[] buffer = new byte[8192]; int n;
@@ -96,8 +100,8 @@ final class LinerCatalog {
         JSONObject body = new JSONObject().put("query", query).put("context", new JSONObject()
                 .put("client", client).put("user", new JSONObject().put("lockedSafetyMode", false)));
         if (!filter.isEmpty()) body.put("params", filter);
-        HttpURLConnection connection = (HttpURLConnection) new URL("https://music.youtube.com/youtubei/v1/search?prettyPrint=false").openConnection();
-        connection.setConnectTimeout(8000); connection.setReadTimeout(10000);
+        HttpURLConnection connection = LyricsDeadline.track((HttpURLConnection) new URL("https://music.youtube.com/youtubei/v1/search?prettyPrint=false").openConnection());
+        connection.setConnectTimeout(2000); connection.setReadTimeout(2000);
         connection.setRequestMethod("POST"); connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setRequestProperty("x-youtube-client-name", "67");

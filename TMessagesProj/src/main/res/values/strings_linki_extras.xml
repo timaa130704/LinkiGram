@@ -32,4 +32,6 @@
     <string name="LX_LinerInfo">Sign in with your Liner email and password. Credentials are sent only to api.tryliner.fun over HTTPS. The password is not saved. Session tokens are encrypted on this device. Track title and artist are sent when searching lyrics.</string>
     <string name="LX_LinerError">Could not sign in. Check your email, password and connection.</string>
     <string name="LX_LyricsRefreshSources">Refresh sources</string>
+    <string name="LX_LyricsRefreshFailed">Sources could not be refreshed. The current lyrics have been kept.</string>
+    <string name="LX_LyricsPartialSources">Some sources did not respond</string>
 </resources>

@@ -1376,8 +1376,11 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             lyricsView.showState(LyricsView.STATE_NOT_FOUND);
             return;
         }
-        lyricsView.showState(LyricsView.STATE_LOADING);
-        sourceView.setText(null);
+        final Lyrics previous = refresh ? shownLyrics : null;
+        if (previous == null) {
+            lyricsView.showState(LyricsView.STATE_LOADING);
+            sourceView.setText(null);
+        }
         OnlineLyrics.Callback callback = (sources, status) -> {
             if (!TextUtils.equals(key, currentKey)) {
                 return;
@@ -1385,6 +1388,11 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             if (sources != null && !sources.isEmpty()) {
                 lyricsSources = sources;
                 showLyrics(pickDefaultSource(sources));
+                if (status == OnlineLyrics.PARTIAL) sourceView.append(" · " + getString(R.string.LX_LyricsPartialSources));
+            } else if (previous != null) {
+                showLyrics(previous);
+                BulletinFactory.of(root, colors.provider(resourcesProvider))
+                        .createSimpleBulletin(R.raw.info, getString(R.string.LX_LyricsRefreshFailed)).show();
             } else {
                 lyricsView.showState(status == OnlineLyrics.ERROR ? LyricsView.STATE_ERROR : LyricsView.STATE_NOT_FOUND);
             }

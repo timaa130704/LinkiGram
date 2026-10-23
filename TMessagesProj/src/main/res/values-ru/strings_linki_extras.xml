@@ -32,4 +32,6 @@
     <string name="LX_LinerInfo">Войдите по почте и паролю Liner. Данные отправляются только на api.tryliner.fun по HTTPS. Пароль не сохраняется. Токены сессии хранятся зашифрованными на устройстве. При поиске текстов отправляются название и исполнитель трека.</string>
     <string name="LX_LinerError">Не удалось войти. Проверьте почту, пароль и соединение.</string>
     <string name="LX_LyricsRefreshSources">Обновить источники</string>
+    <string name="LX_LyricsRefreshFailed">Не удалось обновить источники. Текущий текст сохранён.</string>
+    <string name="LX_LyricsPartialSources">Не все источники ответили</string>
 </resources>
