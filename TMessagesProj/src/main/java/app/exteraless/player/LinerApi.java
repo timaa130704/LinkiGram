@@ -105,6 +105,11 @@ public final class LinerApi {
         for (int attempt = 0; attempt < 2; attempt++) {
             HttpURLConnection connection = open(path, token(attempt > 0));
             try {
+                connection.setReadTimeout(35000);
+                connection.setRequestProperty("x-request-id", java.util.UUID.randomUUID().toString());
+                connection.setRequestProperty("x-client-version", org.telegram.messenger.BuildVars.BUILD_VERSION_STRING);
+                connection.setRequestProperty("x-platform", "android");
+                connection.setRequestProperty("x-session-id", id);
                 int status = connection.getResponseCode();
                 if (status == 401 && attempt == 0) continue;
                 if (status != 200) throw new IOException("Liner HTTP " + status);
@@ -112,7 +117,10 @@ public final class LinerApi {
                     String line; StringBuilder event = new StringBuilder(); int total = 0; long deadline = System.currentTimeMillis() + 30000;
                     while ((line = reader.readLine()) != null) {
                         total += line.length(); if (total > 4 * 1024 * 1024 || System.currentTimeMillis() > deadline) throw new IOException("Liner stream limit");
-                        if (line.isEmpty()) { addEvent(event.toString(), result); event.setLength(0); }
+                        if (line.isEmpty()) {
+                            if (addEvent(event.toString(), result)) return result;
+                            event.setLength(0);
+                        }
                         else if (line.startsWith("data:")) event.append(line.substring(5).trim());
                     }
                     addEvent(event.toString(), result);
@@ -122,15 +130,17 @@ public final class LinerApi {
         }
         return result;
     }
-    private static void addEvent(String raw, ArrayList<Lyrics> out) {
+    private static boolean addEvent(String raw, ArrayList<Lyrics> out) {
         try {
             JSONObject event = new JSONObject(raw);
-            if (!"provider".equals(event.optString("type")) || !"found".equals(event.optString("status"))) return;
+            if ("done".equals(event.optString("type"))) return true;
+            if (!"provider".equals(event.optString("type")) || !"found".equals(event.optString("status"))) return false;
             JSONObject candidate = event.getJSONObject("candidate");
             JSONObject lyrics = candidate.getJSONObject("lyrics");
             Lyrics parsed = Lyrics.parse(lyrics.getString("content"), Lyrics.SOURCE_ONLINE, "Liner · " + event.optString("provider"));
             if (parsed != null) out.add(parsed);
         } catch (Exception ignore) { }
+        return false;
     }
     private LinerApi() { }
 }

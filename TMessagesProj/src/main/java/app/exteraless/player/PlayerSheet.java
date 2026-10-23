@@ -385,7 +385,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         linerAccountView = new TextView(context);
         linerAccountView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         linerAccountView.setGravity(Gravity.CENTER_VERTICAL);
-        linerAccountView.setText(getString(R.string.LX_LinerLogin));
+        linerAccountView.setText(getString(LinerApi.signedIn() ? R.string.LX_LinerConnected : R.string.LX_LinerLogin));
         linerAccountView.setOnClickListener(v -> {
             org.telegram.ui.ActionBar.BaseFragment fragment = org.telegram.ui.LaunchActivity.getLastFragment();
             if (fragment != null) {

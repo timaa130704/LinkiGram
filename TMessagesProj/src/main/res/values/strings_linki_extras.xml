@@ -26,6 +26,7 @@
     <string name="LX_ModelInfo">Download a model, then tap it to select. Hold to delete. Audio stays on this device.</string>
     <string name="LX_Liner">Liner lyrics account</string>
     <string name="LX_LinerLogin">Sign in to Liner</string>
+    <string name="LX_LinerConnected">Liner account connected · settings</string>
     <string name="LX_LinerLogout">Sign out of Liner</string>
     <string name="LX_LinerReady">Signed in. Open the player → Lyrics and reload the track to search Liner sources.</string>
     <string name="LX_LinerInfo">Sign in with your Liner email and password. Credentials are sent only to api.tryliner.fun over HTTPS. The password is not saved. Session tokens are encrypted on this device. Track title and artist are sent when searching lyrics.</string>

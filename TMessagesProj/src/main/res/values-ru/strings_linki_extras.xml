@@ -26,6 +26,7 @@
     <string name="LX_ModelInfo">Скачайте модель и нажмите для выбора. Удерживайте для удаления. Аудио остаётся на устройстве.</string>
     <string name="LX_Liner">Аккаунт Liner для текстов песен</string>
     <string name="LX_LinerLogin">Войти в Liner</string>
+    <string name="LX_LinerConnected">Аккаунт Liner подключён · настройки</string>
     <string name="LX_LinerLogout">Выйти из Liner</string>
     <string name="LX_LinerReady">Вход выполнен. Откройте плеер → Текст песни и перезагрузите трек для поиска источников Liner.</string>
     <string name="LX_LinerInfo">Войдите по почте и паролю Liner. Данные отправляются только на api.tryliner.fun по HTTPS. Пароль не сохраняется. Токены сессии хранятся зашифрованными на устройстве. При поиске текстов отправляются название и исполнитель трека.</string>
