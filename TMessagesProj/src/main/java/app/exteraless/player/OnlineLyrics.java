@@ -110,6 +110,7 @@ public final class OnlineLyrics {
     private static final Pattern AUDIO_EXT = Pattern.compile("\\.(mp3|m4a|flac|ogg|oga|opus|wav|aac|alac|wma)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern DECORATION = Pattern.compile("\\s*[(\\[][^)\\]]*(official|lyric|video|audio|visualizer|remaster|hq|hd)[^)\\]]*[)\\]]", Pattern.CASE_INSENSITIVE);
     private static final DispatchQueue queue = new DispatchQueue("lyrics");
+    private static final ExecutorService coordinators = Executors.newCachedThreadPool();
     private static final long CACHE_TTL_MS = 15 * 60 * 1000L;
     private static final LruCache<String, ArrayList<Lyrics>> memory = new LruCache<>(24);
     private static final LruCache<String, Long> memoryTime = new LruCache<>(24);
@@ -201,8 +202,15 @@ public final class OnlineLyrics {
         });
     }
 
+    public static void cancel(String key) {
+        if (key == null) return;
+        LyricsDeadline batch = activeBatches.get(key);
+        if (batch != null) batch.cancelAsync();
+        refreshing.remove(key);
+    }
+
     private static void fetchUncached(Query query, Callback callback) {
-        queue.postRunnable(() -> {
+        coordinators.execute(() -> {
             FetchOutcome outcome = fetchAllSources(query, callback);
             if (outcome.sources != null && !outcome.networkFailed) writeDisk(query.key(), outcome.sources);
             AndroidUtilities.runOnUIThread(() -> {
@@ -220,7 +228,7 @@ public final class OnlineLyrics {
             callback.onResult(hit, OK);
             return;
         }
-        queue.postRunnable(() -> {
+        coordinators.execute(() -> {
             ArrayList<Lyrics> result = readDisk(key);
             int status = OK;
             boolean cacheable = true;

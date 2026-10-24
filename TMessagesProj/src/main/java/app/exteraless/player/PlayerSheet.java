@@ -995,7 +995,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             if (mo != null && PlayerArt.isPlaying(mo)) {
                 cover.setMessage(mo);
                 smallCover.setMessage(mo);
-                if (lyricsMode && lyricsView.getState() != LyricsView.STATE_LYRICS) {
+                if (lyricsMode && lyricsView.getState() != LyricsView.STATE_LYRICS
+                        && lyricsView.getState() != LyricsView.STATE_LOADING) {
                     lyricsKey = null;
                     loadLyrics();
                 }
@@ -1005,7 +1006,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             if (mo != null && mo.getDocument() != null && TextUtils.equals((String) args[0], FileLoader.getAttachFileName(mo.getDocument()))) {
                 cover.setMessage(mo);
                 smallCover.setMessage(mo);
-                if (lyricsMode && (lyricsView.getState() != LyricsView.STATE_LYRICS)) {
+                if (lyricsMode && lyricsView.getState() != LyricsView.STATE_LYRICS
+                        && lyricsView.getState() != LyricsView.STATE_LOADING) {
                     lyricsKey = null;
                     loadLyrics();
                 }
@@ -1023,6 +1025,10 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
         String key = PlayerArt.key(mo);
         boolean changed = !TextUtils.equals(key, currentKey);
+        if (changed) {
+            OnlineLyrics.cancel(lyricsQueryKey);
+            ++lyricsRequestGeneration;
+        }
         current = mo;
         currentKey = key;
         titleView.setText(mo.getMusicTitle());
