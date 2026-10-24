@@ -37,5 +37,5 @@ relay/.wrangler/
 .release-bot.env
 .release-bot.offset
 
-# Local agent instructions and personal handoffs stay off GitHub.
-/AGENTS.md
+# Personal agent notes stay local; AGENTS.md contains public project instructions.
+/AGENTS.local.md
