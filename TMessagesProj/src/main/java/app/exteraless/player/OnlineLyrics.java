@@ -39,6 +39,7 @@ public final class OnlineLyrics {
     public static final int NOT_FOUND = 1;
     public static final int ERROR = 2;
     public static final int PARTIAL = 3;
+    static final long REQUEST_TIMEOUT_MS = 60000;
 
     public interface Callback {
         void onResult(ArrayList<Lyrics> sources, int status);
@@ -101,7 +102,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 9;
+    private static final int CACHE_VERSION = 10;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;
@@ -132,7 +133,6 @@ public final class OnlineLyrics {
     private static final java.util.concurrent.ConcurrentHashMap<String, LyricsDeadline> activeBatches = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Set<String> refreshing = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final HashSet<String> missing = new HashSet<>();
-    private static final ExecutorService pool = Executors.newFixedThreadPool(6);
 
     public static void clearSourceCache() {
         queue.postRunnable(() -> {
@@ -273,7 +273,7 @@ public final class OnlineLyrics {
         AtomicInteger failures = new AtomicInteger(0);
         boolean linerEnabled = LinerApi.signedIn();
         CountDownLatch latch = new CountDownLatch(linerEnabled ? 6 : 5);
-        LyricsDeadline deadline = new LyricsDeadline(60);
+        LyricsDeadline deadline = new LyricsDeadline(REQUEST_TIMEOUT_MS / 1000);
         String batchKey = query.key();
         activeBatches.put(batchKey, deadline);
         java.util.concurrent.atomic.AtomicBoolean linerFailed = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -298,11 +298,11 @@ public final class OnlineLyrics {
             });
             return null;
             } catch (Exception error) { linerFailed.set(true); throw error; }
-        }, list, failures, latch, callback, deadline));
+        }, list, failures, latch, callback, deadline, true));
         for (java.util.concurrent.Future<?> task : tasks) deadline.add(task);
         boolean completed = false;
         try {
-            long until = android.os.SystemClock.elapsedRealtime() + 60000;
+            long until = android.os.SystemClock.elapsedRealtime() + REQUEST_TIMEOUT_MS;
             while (deadline.active && latch.getCount() > 0 && android.os.SystemClock.elapsedRealtime() < until) {
                 latch.await(200, java.util.concurrent.TimeUnit.MILLISECONDS);
             }
@@ -315,7 +315,7 @@ public final class OnlineLyrics {
         }
         ArrayList<Lyrics> finished;
         synchronized (list) { finished = new ArrayList<>(list); }
-        boolean failed = !completed || linerFailed.get();
+        boolean failed = !completed || linerFailed.get() || failures.get() > 0;
         if (finished.isEmpty()) {
             return new FetchOutcome(null, failed || failures.get() >= (linerEnabled ? 6 : 5));
         }
@@ -325,7 +325,12 @@ public final class OnlineLyrics {
     }
 
     private static java.util.concurrent.Future<?> collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback, LyricsDeadline deadline) {
-        return pool.submit(() -> {
+        return collectProvider(provider, list, failures, latch, callback, deadline, false);
+    }
+
+    private static java.util.concurrent.Future<?> collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback, LyricsDeadline deadline, boolean liner) {
+        try {
+        return LyricsWorkers.submit(liner, () -> {
             LyricsDeadline.CURRENT.set(deadline);
             try {
                 if (!deadline.active) return;
@@ -348,6 +353,14 @@ public final class OnlineLyrics {
                 latch.countDown();
             }
         });
+        } catch (java.util.concurrent.RejectedExecutionException error) {
+            failures.incrementAndGet();
+            latch.countDown();
+            FileLog.e(error);
+            java.util.concurrent.FutureTask<Void> rejected = new java.util.concurrent.FutureTask<>(() -> null);
+            rejected.cancel(false);
+            return rejected;
+        }
     }
 
     private static void mergePunctuation(ArrayList<Lyrics> list) {

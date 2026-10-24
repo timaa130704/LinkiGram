@@ -46,7 +46,10 @@ final class LyricsDeadline implements AutoCloseable {
         if (!active) task.cancel(true);
     }
 
-    void cancelAsync() { TIMER.execute(this::close); }
+    void cancelAsync() {
+        active = false;
+        TIMER.execute(this::close);
+    }
 
     @Override public void close() {
         active = false;

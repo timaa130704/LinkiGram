@@ -1133,3 +1133,44 @@ slot counts agree. Drawer account picker no longer reserves half the slots;
 account profile info reflects 15 slots. Version code 20260204 (APK 202602049).
 Static Java delimiters/new resource symbols/EN-RU XML/native capacity checked.
 Build completed successfully in Actions run 39425808447 for d3bcf78d53d44cbedde01beb4cf3628984f0269e. APK versionCode 202602049 installed on RF8MA188NFZ; signature SHA-256 627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4; APK SHA-256 c0182028fb05a4a42ecfb6fdf1503f4324d55085e6e766ed3638e973af9665f9. Device UI check: normal settings opens, search results for LinkiGram and Local premium appear, and selecting Local premium opens the General page with its local-only description. No post-install Settings crash appeared in logcat. Low-battery Glass behavior and real account sign-ins were not manually exercised. No release or push notification.
+
+### Liner follow-up — 2026-10-24 (cloud task)
+
+Current base is main commit db404747, version 2.6.5beta. The user reports no
+Liner providers for `9mice, Егор Крид, тёмный принц, madk1d - Jealous` despite
+being signed in, plus lyrics loading until timeout after switching tracks.
+
+Local changes separate Liner workers from public providers and allow two track
+generations to overlap. Pools have bounded thread counts and reject overload
+immediately instead of queueing behind sockets which ignore cancellation.
+Cancellation immediately disables intermediate callbacks; detaching the player
+invalidates callbacks and cancels its search. The UI watchdog now allows the
+same 60-second network budget as the coordinator (+5 seconds delivery margin),
+with a separate 5-second disk-cache watchdog, and rejects callbacks after timeout.
+
+Provider errors, malformed data and SSE EOF without `done` are incomplete
+searches. Already emitted Liner providers remain visible, but incomplete results
+are reported as partial/error and are not cached as a complete provider list.
+`Tools/test_liner.py --json-jar /path/to/org-json.jar` compiles the production
+Liner API/catalog/OnlineLyrics/deadline/worker code with platform/network fakes.
+22 offline checks passed, including the Jealous multi-artist match, SSE provider
+delivery, incomplete-cache retry and cancelled sockets ignoring interruption.
+WebView and encrypted session storage are intentionally outside this harness.
+
+Liner API and GitHub API became reachable during this task. Live /v1/search
+returns 404 Route not found, so that obsolete search step was removed. Catalog
+resolution now starts with the client YouTube Music catalog, then account history.
+Unauthenticated lyrics requests return 401 Sign in to Liner; the user's encrypted
+phone session is not available in the cloud. The CONNECT proxy still rejects
+music.youtube.com and www.youtube.com with 403, preventing a live catalog check.
+Added api.tryliner.fun, music.youtube.com, www.youtube.com and api.github.com to
+the environment draft's custom allowlist, preserving presets. Official source at
+tryliner/desktop uses signed API requests; LinkiGram currently sends bearer
+tokens without that signature. Whether signatures are enforced on the user's
+lyrics request is unverified. No signer keys or code were copied.
+
+No APK build, installation or live provider recovery has been verified in this
+cloud task. Next: inspect actual LinkiLyrics logs for Jealous on Android, build
+through CI and validate
+provider selection plus rapid track switching. Do not claim fixed on-device
+behavior based on the offline harness. X-CFG, wsbypass and landing unchanged.

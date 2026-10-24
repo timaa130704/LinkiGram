@@ -12,6 +12,19 @@ shapes. The compiled asset is checked in; normal Android builds need no Node.
 No Liner account token, provider credential, or private server code is embedded.
 Provider availability is controlled by Liner's server and account access.
 
+The API/SSE and request lifecycle regression tests run without Android or a
+Liner account. With JDK 17 on `PATH`, from the repository root:
+
+```
+python3 Tools/test_liner.py --json-jar /path/to/org-json.jar
+```
+
+These compile the production API, catalog, provider aggregation, cache and worker
+code against platform fakes. They cover the multi-artist `Jealous` query, streamed
+provider updates, interrupted/error responses, incomplete-cache retries, and a
+track switch while cancelled sockets ignore interruption. WebView parsing,
+encrypted token storage and real authorization need Android/live checks.
+
 Rebuild with Node and pnpm from this directory:
 
 ```
