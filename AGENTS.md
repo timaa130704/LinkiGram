@@ -1,5 +1,35 @@
 # LinkiGram — Agent Notes
 
+## Current working environment — 2026-10-24
+
+The user wants to continue development on their own PC, in the existing local
+checkout, directly on `main`. Do not create feature branches, draft PRs or move
+work to a cloud environment unless the user explicitly requests it. This
+instruction supersedes historical cloud/worktree/branch handoffs below.
+
+At the start of a local session, discover the actual checkout path, read its
+status and recent commits, and preserve all existing user changes. Do not assume
+that `/workspace` paths or installed tools from the cloud task exist on the PC.
+Fetch origin and fast-forward `main` only when doing so preserves local work;
+never reset or overwrite local changes to match the remote.
+
+Android APK builds continue through GitHub Actions as documented below; working
+on the PC does not require running the broken local Gradle build. Download and
+verify the CI APK on the PC, then use local ADB to install it with `adb install -r`
+when installation is requested. Check the actual device connection and package
+metadata; a cloud task's empty device list says nothing about USB access on the PC.
+
+The Liner fixes are already on origin/main at d974a5b0, and PR #19 is merged.
+The verified source build is Actions run 40085356687 at 1d5dbb09; its artifact
+linkigram-apk (id 12557427588) contains the 2.6.5beta ARM64 APK described below.
+Fetch this artifact from GitHub on the PC rather than relying on a cloud-only
+filesystem path. Installation and real-account checks for Jealous and rapid
+track switching are still pending. Do not claim device behavior was verified.
+
+AGENTS.md is tracked repository content with the repository's visibility. Keep
+credentials, personal machine paths and other private information out of new
+handoff entries.
+
 Unofficial Telegram Android fork. Upstream base: **Telegram Android 12.10.5**.
 Published as `app.linkigram.messenger`. Version in `gradle.properties`
 (`APP_VERSION_CODE`, `APP_VERSION_NAME`).
