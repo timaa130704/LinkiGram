@@ -60,7 +60,7 @@ public final class LinerApi {
     }
     private static JSONObject json(String path, JSONObject body, String token) throws Exception {
         HttpURLConnection connection = open(path, token);
-        if (path.startsWith("/v1/me/") || path.startsWith("/v1/search")) {
+        if (path.startsWith("/v1/me/")) {
             connection.setConnectTimeout(4000); connection.setReadTimeout(5000);
         }
         try {
@@ -140,28 +140,6 @@ public final class LinerApi {
         return null;
     }
 
-    /** Search the same Liner catalog used by its desktop client and use its canonical track ID. */
-    private static LinerCatalog.Track searchTrack(OnlineLyrics.Query query) {
-        try {
-            String searchText = (query.artist == null ? "" : query.artist) + " " + query.originalTitle;
-            JSONObject response = authorizedJson("/v1/search?q=" + enc(searchText.trim()) + "&type=track");
-            ArrayList<LinerCatalog.Track> tracks = new ArrayList<>();
-            JSONArray items = response.optJSONArray("items");
-            if (items != null) for (int i = 0; i < items.length(); i++) {
-                JSONObject item = items.optJSONObject(i);
-                if (item == null || (!item.optString("type").isEmpty() && !"track".equals(item.optString("type")))) continue;
-                LinerCatalog.Track track = catalogTrack(item);
-                if (track != null) tracks.add(track);
-            }
-            LinerCatalog.Track matched = LinerCatalog.match(tracks, query);
-            if (matched != null) android.util.Log.i("LinkiLyrics", "Liner catalog search returned a track ID");
-            return matched;
-        } catch (Exception error) {
-            android.util.Log.w("LinkiLyrics", "Liner catalog search unavailable: " + error.getMessage());
-            return null;
-        }
-    }
-
     private static void collectAccountTracks(JSONObject page, ArrayList<LinerCatalog.Track> tracks) {
         JSONArray items = page.optJSONArray("items");
         if (items == null) return;
@@ -192,6 +170,11 @@ public final class LinerApi {
 
     interface Listener { void onLyrics(Lyrics lyrics); }
 
+    private static final class StreamState {
+        boolean done;
+        boolean failed;
+    }
+
     public static ArrayList<Lyrics> lyrics(OnlineLyrics.Query query) throws Exception {
         return lyrics(query, null);
     }
@@ -200,8 +183,7 @@ public final class LinerApi {
         ArrayList<Lyrics> result = new ArrayList<>();
         if (!signedIn() || query.artist == null) return result;
         // Catalog-backed providers need the same real track ID used by Liner desktop.
-        LinerCatalog.Track track = searchTrack(query);
-        if (track == null) track = LinerCatalog.resolve(query);
+        LinerCatalog.Track track = LinerCatalog.resolve(query);
         if (track == null) track = accountTrack(query);
         String id = track == null ? null : track.id;
         if (id == null) id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
@@ -223,32 +205,36 @@ public final class LinerApi {
                 int status = connection.getResponseCode();
                 if (status == 401 && attempt == 0) continue;
                 if (status != 200) throw new IOException("Liner HTTP " + status);
+                StreamState stream = new StreamState();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                     String line; StringBuilder event = new StringBuilder(); int total = 0; long deadline = System.currentTimeMillis() + 300000;
                     while ((line = reader.readLine()) != null) {
                         total += line.length(); if (total > 4 * 1024 * 1024 || System.currentTimeMillis() > deadline) throw new IOException("Liner stream limit");
                         if (line.isEmpty()) {
-                            if (addEvent(event.toString(), result, durationMs, listener)) return result;
+                            if (addEvent(event.toString(), result, durationMs, listener, stream)) break;
                             event.setLength(0);
                         }
                         else if (line.startsWith("data:")) event.append(line.substring(5).trim()).append("\n");
                     }
-                    addEvent(event.toString(), result, durationMs, listener);
-                } catch (IOException error) {
-                    if (result.isEmpty()) throw error;
-                    org.telegram.messenger.FileLog.e("Liner stream interrupted; keeping completed providers", error);
+                    if (!stream.done) addEvent(event.toString(), result, durationMs, listener, stream);
                 }
+                // Providers already emitted through the listener remain usable, but an
+                // incomplete/failed stream must not turn into a complete cached search
+                // with all Liner providers silently missing for the next fifteen minutes.
+                if (!stream.done || stream.failed) throw new IOException("Liner lyrics providers did not complete successfully");
                 return result;
             } finally { connection.disconnect(); }
         }
         return result;
     }
-    private static boolean addEvent(String raw, ArrayList<Lyrics> out, long durationMs, Listener listener) {
+    private static boolean addEvent(String raw, ArrayList<Lyrics> out, long durationMs, Listener listener, StreamState stream) {
         try {
+            if (raw.trim().isEmpty()) return false;
             JSONObject event = new JSONObject(raw);
-            if ("done".equals(event.optString("type"))) return true;
+            if ("done".equals(event.optString("type"))) { stream.done = true; return true; }
             if (!"provider".equals(event.optString("type"))) return false;
             android.util.Log.i("LinkiLyrics", "Liner provider=" + event.optString("provider") + " status=" + event.optString("status"));
+            if ("error".equals(event.optString("status"))) stream.failed = true;
             if (!"found".equals(event.optString("status"))) return false;
             JSONObject candidate = event.getJSONObject("candidate");
             JSONObject lyrics = candidate.getJSONObject("lyrics");
@@ -268,10 +254,12 @@ public final class LinerApi {
                 out.add(parsed);
                 if (listener != null) listener.onLyrics(parsed);
             } else {
+                stream.failed = true;
                 android.util.Log.w("LinkiLyrics", "Liner unsupported lyrics format: " + lyrics.optString("format")
                         + " provider=" + candidate.optString("provider", event.optString("provider")));
             }
         } catch (Exception error) {
+            stream.failed = true;
             if (!raw.trim().isEmpty()) org.telegram.messenger.FileLog.e("Liner lyrics event could not be parsed", error);
         }
         return false;

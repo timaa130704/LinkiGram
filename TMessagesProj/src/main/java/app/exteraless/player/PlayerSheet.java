@@ -170,14 +170,16 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private String lyricsQueryKey;
     private int lyricsRequestGeneration;
 
-    private int beginLyricsRequest(String key) {
+    private int beginLyricsRequest(String key, long timeoutMs) {
         final int generation = ++lyricsRequestGeneration;
         AndroidUtilities.runOnUIThread(() -> {
             if (generation == lyricsRequestGeneration && TextUtils.equals(key, currentKey)
                     && lyricsView.getState() == LyricsView.STATE_LOADING) {
+                OnlineLyrics.cancel(lyricsQueryKey);
+                ++lyricsRequestGeneration;
                 lyricsView.showState(LyricsView.STATE_ERROR);
             }
-        }, 25000);
+        }, timeoutMs);
         return generation;
     }
     private boolean seeking;
@@ -946,6 +948,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         detached = true;
+        ++lyricsRequestGeneration;
+        OnlineLyrics.cancel(lyricsQueryKey);
         if (instance == this) {
             instance = null;
         }
@@ -1361,7 +1365,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
         lyricsView.showState(LyricsView.STATE_LOADING);
         sourceView.setText(null);
-        final int generation = beginLyricsRequest(key);
+        final int generation = beginLyricsRequest(key, 5000);
         OnlineLyrics.loadCached(q, (sources, status) -> {
             if (generation != lyricsRequestGeneration || !TextUtils.equals(key, currentKey)) {
                 return;
@@ -1396,7 +1400,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         final Lyrics previous = refresh ? shownLyrics : null;
-        final int generation = beginLyricsRequest(key);
+        final int generation = beginLyricsRequest(key, OnlineLyrics.REQUEST_TIMEOUT_MS + 5000);
         if (previous == null) {
             lyricsView.showState(LyricsView.STATE_LOADING);
             sourceView.setText(null);
