@@ -59,6 +59,9 @@ public class LinerCheck {
  static int checks;
  static String stream;
  static int lyricsStatus=200;
+ static volatile boolean stallVisitor;
+ static final java.util.concurrent.atomic.AtomicBoolean visitorBlocked=new java.util.concurrent.atomic.AtomicBoolean();
+ static final CountDownLatch visitorStarted=new CountDownLatch(1),visitorRelease=new CountDownLatch(1);
  static final List<String> requests=Collections.synchronizedList(new ArrayList<>());
  static void check(boolean value,String label){checks++;if(!value)throw new AssertionError(label);}
  static void setup()throws Exception {
@@ -68,6 +71,7 @@ public class LinerCheck {
     public OutputStream getOutputStream(){return new ByteArrayOutputStream();}
     public int getResponseCode(){requests.add(url.toString());return url.getPath().endsWith("/lyrics")?lyricsStatus:200;}
     public InputStream getInputStream(){
+     if(url.getHost().equals("www.youtube.com")&&stallVisitor&&visitorBlocked.compareAndSet(false,true))stall(visitorStarted,visitorRelease);
      String body=url.getPath().endsWith("/lyrics")?stream:
       "{\"items\":[{\"type\":\"track\",\"id\":\"jealous-id\",\"title\":\"Jealous\",\"durationMs\":180000,\"artists\":[{\"name\":\"9mice\"},{\"name\":\"Егор Крид\"},{\"name\":\"тёмный принц\"},{\"name\":\"madk1d\"}]}]}";
      if(!url.getHost().equals("api.tryliner.fun"))body=url.getHost().equals("lrclib.net")&&url.getPath().endsWith("/search")?"[]":"{}";
@@ -166,8 +170,20 @@ public class LinerCheck {
    check(!deadline.active,"track switch immediately invalidates provider callbacks");
   } finally {release.countDown();for(Future<?> task:old)task.cancel(true);}
  }
+ static void visitorIsolation()throws Exception {
+  Field expires=LinerCatalog.class.getDeclaredField("visitorExpires");expires.setAccessible(true);expires.setLong(null,0);
+  java.lang.reflect.Method visitor=LinerCatalog.class.getDeclaredMethod("visitorData");visitor.setAccessible(true);
+  ExecutorService executor=Executors.newFixedThreadPool(2);stallVisitor=true;
+  try {
+   Future<?> old=executor.submit(()->{try{return visitor.invoke(null);}catch(Exception e){throw new RuntimeException(e);}});
+   check(visitorStarted.await(2,TimeUnit.SECONDS),"old visitor lookup is stalled");old.cancel(true);
+   Future<?> next=executor.submit(()->{try{return visitor.invoke(null);}catch(Exception e){throw new RuntimeException(e);}});
+   next.get(2,TimeUnit.SECONDS);
+   check(true,"new track does not wait on the cancelled visitor lookup monitor");
+  } finally {stallVisitor=false;visitorRelease.countDown();executor.shutdownNow();}
+ }
  public static void main(String[] args)throws Exception {
-  try {setup();streams();cache();workers();System.out.println("Liner: "+checks+" checks passed");System.exit(0);}
+  try {setup();streams();cache();workers();visitorIsolation();System.out.println("Liner: "+checks+" checks passed");System.exit(0);}
   catch(Throwable error){error.printStackTrace();System.exit(1);}
  }
 }''',

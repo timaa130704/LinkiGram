@@ -1153,9 +1153,17 @@ searches. Already emitted Liner providers remain visible, but incomplete results
 are reported as partial/error and are not cached as a complete provider list.
 `Tools/test_liner.py --json-jar /path/to/org-json.jar` compiles the production
 Liner API/catalog/OnlineLyrics/deadline/worker code with platform/network fakes.
-22 offline checks passed, including the Jealous multi-artist match, SSE provider
+24 offline checks passed, including the Jealous multi-artist match, SSE provider
 delivery, incomplete-cache retry and cancelled sockets ignoring interruption.
 WebView and encrypted session storage are intentionally outside this harness.
+
+An additional regression first reproduced a timeout with the existing
+LinerCatalog visitorData monitor: it held the class lock during socket I/O,
+so the next track could block even on its own worker. The cache now locks only
+for reading/updating cached visitor data, never around network I/O. The stalled
+visitor/next-track regression passes after this correction. Initial CI run
+40084746385 compiled Java/Kotlin successfully; a new run is needed for this
+additional catalog correction before delivering an APK.
 
 Liner API and GitHub API became reachable during this task. Live /v1/search
 returns 404 Route not found, so that obsolete search step was removed. Catalog

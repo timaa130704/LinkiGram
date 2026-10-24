@@ -68,9 +68,13 @@ final class LinerCatalog {
     private static String visitor = "";
     private static long visitorExpires;
 
-    private static synchronized String visitorData() {
+    private static String visitorData() {
         long now = android.os.SystemClock.elapsedRealtime();
-        if (now < visitorExpires) return visitor;
+        synchronized (LinerCatalog.class) {
+            if (now < visitorExpires) return visitor;
+        }
+        // Do not hold the cache monitor during I/O: a cancelled Android socket can
+        // ignore interruption and otherwise block every subsequent track lookup.
         HttpURLConnection connection = null;
         try {
             connection = LyricsDeadline.track((HttpURLConnection) new URL("https://www.youtube.com/sw.js_data").openConnection());
@@ -84,16 +88,20 @@ final class LinerCatalog {
                 }
                 java.util.regex.Matcher match = java.util.regex.Pattern.compile("Cg[s-v][A-Za-z0-9_-]{20,}(?:%3D|=){0,2}").matcher(out.toString("UTF-8"));
                 if (match.find()) {
-                    visitor = match.group();
-                    visitorExpires = now + 330 * 60 * 1000L;
-                    return visitor;
+                    synchronized (LinerCatalog.class) {
+                        visitor = match.group();
+                        visitorExpires = now + 330 * 60 * 1000L;
+                        return visitor;
+                    }
                 }
             }
         } catch (Exception ignored) {
             // Search can still work without visitorData, as in the desktop client.
         } finally { if (connection != null) connection.disconnect(); }
-        visitorExpires = now + 60000;
-        return visitor;
+        synchronized (LinerCatalog.class) {
+            visitorExpires = Math.max(visitorExpires, now + 60000);
+            return visitor;
+        }
     }
 
     private static JSONObject search(String query, String filter) throws Exception {
