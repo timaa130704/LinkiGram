@@ -28,6 +28,32 @@ final class LinerCatalog {
     }
 
     static Track resolve(OnlineLyrics.Query query) {
+        // Android catalog sockets can outlive their own connect/read timeouts.
+        // Reserve most of the batch budget for account lookup and lyrics providers.
+        LyricsDeadline parent = LyricsDeadline.CURRENT.get();
+        LyricsDeadline budget = new LyricsDeadline(12);
+        try {
+            java.util.concurrent.Future<Track> task = LyricsWorkers.submitCatalog(() -> {
+                LyricsDeadline.CURRENT.set(budget);
+                try { return resolveDirect(query); }
+                finally { LyricsDeadline.CURRENT.remove(); }
+            });
+            budget.add(task);
+            if (parent != null) parent.add(task);
+            return task.get(12, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+        } catch (java.util.concurrent.TimeoutException | java.util.concurrent.CancellationException
+                | java.util.concurrent.ExecutionException | java.util.concurrent.RejectedExecutionException error) {
+            if (parent == null || parent.active) {
+                android.util.Log.w("LinkiLyrics", "Liner catalog unavailable: " + error.getClass().getSimpleName()
+                        + "; trying account/provider fallback");
+            }
+        } finally { budget.close(); }
+        return null;
+    }
+
+    private static Track resolveDirect(OnlineLyrics.Query query) {
         ArrayList<Track> tracks = new ArrayList<>();
         // Liner searches songs, mixed results and music videos.
         for (String filter : new String[]{"EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D", "", "EgWKAQIQAWoKEAkQBRAKEAMQBA%3D%3D"}) {

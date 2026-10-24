@@ -5,6 +5,7 @@ Pass --json-jar pointing to an org.json JAR. No account, Android SDK or network
 is used; platform storage/WebView are faked, production API/catalog code is compiled.
 """
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -60,6 +61,8 @@ public class LinerCheck {
  static String stream;
  static int lyricsStatus=200;
  static volatile boolean stallVisitor;
+ static volatile boolean stallCatalog;
+ static final CountDownLatch catalogStarted=new CountDownLatch(1),catalogRelease=new CountDownLatch(1);
  static final java.util.concurrent.atomic.AtomicBoolean visitorBlocked=new java.util.concurrent.atomic.AtomicBoolean();
  static final CountDownLatch visitorStarted=new CountDownLatch(1),visitorRelease=new CountDownLatch(1);
  static final List<String> requests=Collections.synchronizedList(new ArrayList<>());
@@ -71,6 +74,7 @@ public class LinerCheck {
     public OutputStream getOutputStream(){return new ByteArrayOutputStream();}
     public int getResponseCode(){requests.add(url.toString());return url.getPath().endsWith("/lyrics")?lyricsStatus:200;}
     public InputStream getInputStream(){
+     if(url.getHost().equals("music.youtube.com")&&stallCatalog)stall(catalogStarted,catalogRelease);
      if(url.getHost().equals("www.youtube.com")&&stallVisitor&&visitorBlocked.compareAndSet(false,true))stall(visitorStarted,visitorRelease);
      String body=url.getPath().endsWith("/lyrics")?stream:
       "{\"items\":[{\"type\":\"track\",\"id\":\"jealous-id\",\"title\":\"Jealous\",\"durationMs\":180000,\"artists\":[{\"name\":\"9mice\"},{\"name\":\"Егор Крид\"},{\"name\":\"тёмный принц\"},{\"name\":\"madk1d\"}]}]}";
@@ -182,8 +186,19 @@ public class LinerCheck {
    check(true,"new track does not wait on the cancelled visitor lookup monitor");
   } finally {stallVisitor=false;visitorRelease.countDown();executor.shutdownNow();}
  }
+ static void catalogBudget()throws Exception {
+  stallCatalog=true;stream=found("fallback")+done();requests.clear();
+  long started=System.nanoTime();
+  try {
+   ArrayList<Lyrics> result=LinerApi.lyrics(query());
+   check(catalogStarted.getCount()==0,"catalog socket really stalled despite interruption");
+   check(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started)<15000,"catalog cannot consume the entire lyrics batch budget");
+   check(requests.stream().anyMatch(s->s.contains("/v1/me/history")),"stalled catalog falls back to account history");
+   check(result.size()==1&&result.get(0).provider.equals("Liner · fallback"),"lyrics providers remain reachable after catalog timeout");
+  } finally {stallCatalog=false;catalogRelease.countDown();}
+ }
  public static void main(String[] args)throws Exception {
-  try {setup();streams();cache();workers();visitorIsolation();System.out.println("Liner: "+checks+" checks passed");System.exit(0);}
+  try {setup();streams();cache();workers();visitorIsolation();catalogBudget();System.out.println("Liner: "+checks+" checks passed");System.exit(0);}
   catch(Throwable error){error.printStackTrace();System.exit(1);}
  }
 }''',
@@ -212,7 +227,7 @@ def main():
         sources += [str(PLAYER / name) for name in ['LinerApi.java', 'LinerCatalog.java', 'Lyrics.java',
                                                    'LyricsDeadline.java', 'LyricsWorkers.java', 'OnlineLyrics.java']]
         subprocess.run(['javac', '-encoding', 'UTF-8', '-cp', str(args.json_jar), '-d', str(temp/'classes'), *sources], check=True)
-        subprocess.run(['java', '-ea', '-Djava.io.tmpdir=' + str(temp), '-cp', str(temp/'classes') + ':' + str(args.json_jar),
+        subprocess.run(['java', '-ea', '-Djava.io.tmpdir=' + str(temp), '-cp', str(temp/'classes') + os.pathsep + str(args.json_jar),
                         'app.exteraless.player.LinerCheck'], check=True, timeout=20)
 
 

@@ -13,6 +13,7 @@ final class LyricsWorkers {
     // generations are still stuck, reject promptly so the caller can report an error.
     private static final ExecutorService PUBLIC = create(10, "lyrics-provider");
     private static final ExecutorService LINER = create(2, "lyrics-liner");
+    private static final ExecutorService CATALOG = create(2, "lyrics-catalog");
 
     private static ExecutorService create(int maximum, String name) {
         return new ThreadPoolExecutor(0, maximum, 30, TimeUnit.SECONDS,
@@ -25,6 +26,10 @@ final class LyricsWorkers {
 
     static Future<?> submit(boolean liner, Runnable task) {
         return (liner ? LINER : PUBLIC).submit(task);
+    }
+
+    static <T> Future<T> submitCatalog(java.util.concurrent.Callable<T> task) {
+        return CATALOG.submit(task);
     }
 
     private LyricsWorkers() { }
