@@ -1182,3 +1182,46 @@ cloud task. Next: inspect actual LinkiLyrics logs for Jealous on Android, build
 through CI and validate
 provider selection plus rapid track switching. Do not claim fixed on-device
 behavior based on the offline harness. X-CFG, wsbypass and landing unchanged.
+
+### Liner APK verified — 2026-10-24
+
+Draft PR: https://github.com/timaa130704/LinkiGram/pull/19, branch
+codex/fix-liner-provider-loading. Source commits 9ad6a922 and 1d5dbb09.
+Final Actions run 40085356687 succeeded at
+1d5dbb09981f8160d0c8e9f821e8323d45c4ba75: Java/Kotlin smoke compile,
+ARM64 APK assembly and artifact upload all passed. Artifact linkigram-apk
+id 12557427588. The artifact storage domain was added to the environment draft
+after a proxy denial; subsequent download succeeded.
+
+Verified APK: /workspace/outputs/linkigram-liner-40085356687/LinkiGram-2.6.5beta-Liner.apk.
+ZIP integrity and apksigner cryptographic verification passed. Package
+app.linkigram.messenger, versionName 2.6.5beta, versionCode 202602089,
+arm64-v8a, 97,324,571 bytes. SHA-256:
+8c97fa17304e230ab84d4d592b7c84783adae5bc629b1d0e35988b4894e26d09.
+Signer SHA-256 matches previous installed builds:
+627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4.
+verification.json, signature.txt and badging.txt are alongside the APK.
+
+No device installation: this cloud machine has no exposed USB bus, and adb
+cannot create its mandatory /home/agent/.android directory on the read-only
+home filesystem. User must install the verified APK manually or reconnect from
+a machine with phone access. Real Liner providers for Jealous and rapid track
+switches remain unverified on Android. No release or notification sent.
+This build-result handoff is recorded locally after CI; application changes in
+the PR remain exactly the source commit tested above.
+
+### Liner installation retry — 2026-10-24
+
+The user explicitly requested installation. Created ADB's mandatory
+/home/agent/.android directory with the supported sandbox escalation, then
+started the verified platform-tools adb server successfully. `adb devices -l`
+returned an empty list. No ADB remote-server/device environment binding is set.
+Installation remains blocked by the phone being unavailable to this cloud
+machine; no APK was installed and no device behavior was checked.
+
+### Working branch instruction — 2026-10-24
+
+The user explicitly instructed that all work be done directly on main. Use main
+for subsequent changes rather than creating feature branches or draft PRs.
+The Liner fixes from PR #19 are authorized for promotion to main, including the
+local build-verification and installation-attempt handoff above.
