@@ -1,0 +1,65 @@
+name: Publish LinkiGram 2.6.5
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release-2.6.5.yml]
+
+concurrency:
+  group: release-2.6.5
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'timaa130704/LinkiGram' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: timaa130704/LinkiGram
+      SOURCE_SHA: 5b2d3c8fbb30ccba1cea2114a916a27be8a1d967
+      TAG: v2.6.5
+      APK_NAME: LinkiGram-2.6.5.apk
+      APK_SHA256: 0ad09690f0d6da0460029a2ea6f22dc0930e0ec6f9d91f78c45108fd809c0a3b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download and verify the tested CI artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/40128969160" |
+            jq -e --arg sha "$SOURCE_SHA" '.status == "completed" and .conclusion == "success" and .head_sha == $sha' >/dev/null
+          gh api "repos/$GH_REPO/actions/artifacts/12574104032/zip" > artifact.zip
+          echo '486c197b3bd478bd87428da8822cc7f74edbc12a6b056be96a7ae6bcf274b69c  artifact.zip' | sha256sum --check
+          unzip -p artifact.zip app.apk > "$APK_NAME"
+          echo "$APK_SHA256  $APK_NAME" | sha256sum --check
+
+      - name: Publish the stable release with the verified APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          if tag_info=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" 2>/dev/null); then
+            echo "$tag_info" | jq -e --arg sha "$SOURCE_SHA" '.object.type == "commit" and .object.sha == $sha' >/dev/null
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$SOURCE_SHA" >/dev/null
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --draft --title 'LinkiGram 2.6.5' --notes-file CHANGELOG-2.6.5.md
+          fi
+          asset=$(gh release view "$TAG" --json assets --jq '.assets[] | select(.name == "LinkiGram-2.6.5.apk") | .name')
+          if [ -z "$asset" ]; then
+            gh release upload "$TAG" "$APK_NAME"
+          fi
+          mkdir -p uploaded
+          gh release download "$TAG" --pattern "$APK_NAME" --dir uploaded
+          echo "$APK_SHA256  uploaded/$APK_NAME" | sha256sum --check
+          gh release edit "$TAG" --title 'LinkiGram 2.6.5' --notes-file CHANGELOG-2.6.5.md --draft=false --prerelease=false --latest
+          gh release view "$TAG" --json isDraft,isPrerelease,url |
+            jq -e '.isDraft == false and .isPrerelease == false'
+          gh release view "$TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
