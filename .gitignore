@@ -36,3 +36,6 @@ TMessagesProj/jni/ffmpeg/build_android
 relay/.wrangler/
 .release-bot.env
 .release-bot.offset
+
+# Local agent instructions and personal handoffs stay off GitHub.
+/AGENTS.md
