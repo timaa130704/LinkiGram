@@ -1280,6 +1280,32 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             }
         }
 
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            if (titleTextView != null) {
+                titleTextView.setGravity(Gravity.CENTER_HORIZONTAL);
+                titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            }
+            if (messageTextView != null) {
+                messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                messageTextView.setTextColor(getThemedColor(Theme.key_dialogTextGray));
+            }
+            if (buttonsLayout != null) {
+                for (int i = 0; i < buttonsLayout.getChildCount(); i++) {
+                    View child = buttonsLayout.getChildAt(i);
+                    if (!(child instanceof TextView)) continue;
+                    TextView button = (TextView) child;
+                    boolean primary = Integer.valueOf(Dialog.BUTTON_POSITIVE).equals(button.getTag());
+                    int fill = primary ? getThemedColor(dialogButtonColorKey)
+                            : app.nimarkogram.messenger.appearance.ColorOs17Theme.controlTrackColor();
+                    button.setTextColor(primary ? (Theme.isCurrentThemeDark() ? 0xFF101010 : 0xFFFFFFFF)
+                            : getThemedColor(Theme.key_dialogTextBlack));
+                    button.setBackground(new android.graphics.drawable.RippleDrawable(
+                            android.content.res.ColorStateList.valueOf(0x18000000),
+                            Theme.createRoundRectDrawable(dp(20), fill), null));
+                }
+            }
+        }
+
         Window window = getWindow();
         WindowManager.LayoutParams params = new WindowManager.LayoutParams();
         params.copyFrom(window.getAttributes());
