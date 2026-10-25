@@ -234,6 +234,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 viewPager != null ? viewPager.getPositionVisibility(0) : 1);
     }
 
+    private int getNavigationBarSurfaceColor() {
+        return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.navigationBarColor(
+                ApplicationLoader.applicationContext,
+                app.nimarkogram.messenger.appearance.LinkiGramYouTheme.NAV_COLOR_SURFACE,
+                getThemedColor(Theme.key_windowBackgroundWhite));
+    }
+
     private boolean tabletLayout;
     public void updateLayout() {
 //        if (tabletLayout == AndroidUtilities.isTablet()) return;
@@ -398,7 +405,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         tabsView.setBackground(app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
-                ? new android.graphics.drawable.ColorDrawable(getThemedColor(Theme.key_windowBackgroundWhite)) : tabsViewBackground);
+                ? new android.graphics.drawable.ColorDrawable(getNavigationBarSurfaceColor()) : tabsViewBackground);
 
         BlurredBackgroundDrawableViewFactory iBlur3FactoryFade = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
         iBlur3FactoryFade.setSourceRootView(viewPositionWatcher, contentView);
@@ -1015,7 +1022,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             int height = dp(64) + navigationBarHeight;
             if (tabsParams.height != height) { tabsParams.height = height; tabsView.setLayoutParams(tabsParams); }
             tabsView.setPadding(0, 0, 0, navigationBarHeight);
-            tabsView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+            tabsView.setBackgroundColor(getNavigationBarSurfaceColor());
         }
 
         final WindowInsetsCompat consumed = isUpdateLayoutVisible ?
