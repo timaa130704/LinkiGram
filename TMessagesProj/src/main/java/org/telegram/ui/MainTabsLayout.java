@@ -337,6 +337,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
     }
 
+    @Override
+    protected boolean shouldAnimateItemLayout() {
+        // Material tab widths already follow the selection animator each frame.
+        return !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+    }
+
     public void setTabSelected(View tab, boolean animated) {
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
@@ -853,4 +859,3 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         return v.getX() + v.getWidth() * 0.5f;
     }
 }
-
