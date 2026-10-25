@@ -1735,7 +1735,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
                         MediaController.getInstance().seekToProgressMs(message, bookmarks.get(which).positionMs);
                     }
                 })
-                .setNegativeButton(R.string.Cancel, null)
+                .setNegativeButton(activity.getString(R.string.Cancel), null)
                 .show();
     }
 
@@ -1975,3 +1975,4 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         }
     }
 }
+
