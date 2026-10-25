@@ -295,8 +295,8 @@ public class MonetHelper {
 
     public static boolean isActiveMonetTheme() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && Theme.getActiveTheme() != null
-                && Theme.getActiveTheme().isMonet();
+                && (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || (Theme.getActiveTheme() != null && Theme.getActiveTheme().isMonet()));
     }
 
     private static int getActiveRoleColor(String lightRole, String darkRole, int original) {

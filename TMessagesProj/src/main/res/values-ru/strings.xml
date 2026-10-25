@@ -544,6 +544,12 @@
     <string name="NM_HUB_ForkedFromCherrygram">Портировано из Cherrygram</string>
     <string name="NM_HUB_ForkedFromCherrygramSub">НЕ НАЖИМАТЬ</string>
     <string name="NM_HUB_Debug">Отладка</string>
+    <string name="NM_Diagnostics">Диагностика соединения</string>
+    <string name="NM_QuickPrivacyModes">Быстрые режимы приватности</string>
+    <string name="NM_QuickPrivacyModesInfo">Переключайте параметры Ghost одним нажатием. Режимы не меняют оформление и настройки уведомлений.</string>
+    <string name="NM_QuickPrivacyModesApplied">Режим приватности включён</string>
+    <string name="NM_LinkiGramYou">LinkiGram You</string>
+    <string name="NM_LinkiGramYou_Desc">Интерфейс Material You с цветами из обоев на Android 12 и новее.</string>
     <string name="NM_HUB_Experimental">Экспериментальные</string>
 
     <string name="NM_RestartRequired">Требуется перезапуск для применения изменений</string>

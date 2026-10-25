@@ -11701,6 +11701,12 @@
 <string name="NM_HUB_ForkedFromCherrygram">Ported from Cherrygram</string>
 <string name="NM_HUB_ForkedFromCherrygramSub">LinkiGram is built on the official Telegram client; features were ported from &lt;a href="https://github.com/arslan4k1390/Cherrygram"&gt;Cherrygram&lt;/a&gt; — thanks to the upstream project.</string>
 <string name="NM_HUB_Debug">Debug</string>
+<string name="NM_Diagnostics">Connection diagnostics</string>
+<string name="NM_QuickPrivacyModes">Quick privacy modes</string>
+<string name="NM_QuickPrivacyModesInfo">Switch Ghost privacy settings in one tap. These modes do not change appearance or notification settings.</string>
+<string name="NM_QuickPrivacyModesApplied">Privacy mode applied</string>
+<string name="NM_LinkiGramYou">LinkiGram You</string>
+<string name="NM_LinkiGramYou_Desc">Material You interface with colors from your wallpaper on Android 12 and newer.</string>
 <string name="NM_HUB_Experimental">Experimental</string>
 <string name="NM_Menu_Reorder">Reorder menu items</string>
 <string name="NM_Menu_Reorder_Desc">Drag-to-reorder the message context menu. Long-press a row to start dragging.</string>

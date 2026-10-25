@@ -176,7 +176,8 @@ public final class NimarkoConfig {
     // Ported from exteraless: the MD3 music player (PlayerSheet) and the MD3 mini
     // player / context bar, replacing the stock AudioPlayerAlert. Both default on.
     public static boolean md3Player() {
-        return getPreferences().getBoolean("OEAppearanceMd3Player", true);
+        return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || getPreferences().getBoolean("OEAppearanceMd3Player", true);
     }
 
     public static void setMd3Player(boolean value) {
@@ -184,7 +185,8 @@ public final class NimarkoConfig {
     }
 
     public static boolean md3MiniPlayer() {
-        return getPreferences().getBoolean("OEAppearanceMd3MiniPlayer", true);
+        return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || getPreferences().getBoolean("OEAppearanceMd3MiniPlayer", true);
     }
 
     public static void setMd3MiniPlayer(boolean value) {
@@ -922,7 +924,8 @@ public final class NimarkoConfig {
 
     /** Material 3: элементы списков карточками (порт exteraless, NM_Style_ListItems). */
     public static boolean m3ListItems() {
-        return getPreferences().getBoolean("m3ListItems", false);
+        return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || getPreferences().getBoolean("m3ListItems", false);
     }
 
     /** Радиус карточек секций, dp. 0 — секции плоские, без скругления. */

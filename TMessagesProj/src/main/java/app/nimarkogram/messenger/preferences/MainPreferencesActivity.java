@@ -36,6 +36,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public static final int ID_CHATS        = 3;
     public static final int ID_CAMERA       = 4;
     public static final int ID_PRIVACY      = 6;
+    public static final int ID_DIAGNOSTICS  = 33;
+    public static final int ID_PRIVACY_MODES = 34;
 
     public static final int ID_RESTART      = 10;
 
@@ -82,6 +84,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         
         arrayList.add(category(ID_PRIVACY, IconBackgroundColors.GREEN,
                 R.drawable.msg_secret_solar, R.string.NM_Cat_Privacy, "nimarko_privacy"));
+        arrayList.add(category(ID_PRIVACY_MODES, IconBackgroundColors.GREEN,
+                R.drawable.ghost_solar, R.string.NM_QuickPrivacyModes, "nimarko_privacy_modes"));
         arrayList.add(category(ID_AYUMOMENTS, IconBackgroundColors.RED,
                 R.drawable.msg_delete_solar, R.string.NM_AyuMoments, "nimarko_ayumoments"));
         arrayList.add(UItem.asShadow(null));
@@ -107,6 +111,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_HUB_Header_Advanced)));
         arrayList.add(category(ID_DEBUG, IconBackgroundColors.GRAY,
                 R.drawable.msg_info_solar, R.string.NM_HUB_Debug, "nimarko_debug"));
+        arrayList.add(category(ID_DIAGNOSTICS, IconBackgroundColors.CYAN,
+                R.drawable.msg_info_solar, R.string.NM_Diagnostics, "nimarko_diagnostics"));
         arrayList.add(category(ID_SOURCE_CODE, IconBackgroundColors.BLUE_DEEP,
                 R.drawable.msg_link_2_solar, R.string.NM_HUB_SourceCode, "nimarko_source_code"));
         arrayList.add(UItem.asShadow(null));
@@ -262,6 +268,9 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
             case ID_PRIVACY:
                 presentFragment(new PrivacyPreferencesActivity());
                 break;
+            case ID_PRIVACY_MODES:
+                presentFragment(new QuickPrivacyModesActivity());
+                break;
             case ID_AYUMOMENTS:
                 presentFragment(new AyuMomentsPreferencesActivity());
                 break;
@@ -288,6 +297,9 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 break;
             case ID_DEBUG:
                 presentFragment(new DebugPreferencesActivity());
+                break;
+            case ID_DIAGNOSTICS:
+                presentFragment(new LinkiDiagnosticsActivity());
                 break;
             case ID_EXPERIMENTAL:
                 presentFragment(new ExperimentalPreferencesActivity());

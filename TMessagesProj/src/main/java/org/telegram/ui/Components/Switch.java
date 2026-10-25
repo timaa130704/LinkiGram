@@ -228,7 +228,8 @@ public class Switch extends View {
 
     /** LinkiGram: MD3-переключатель (порт настроек exteraless, NM_Style_Switches). */
     private static boolean isMd3Style() {
-        return app.nimarkogram.messenger.NimarkoConfig.switchStyle == app.nimarkogram.messenger.NimarkoConfig.SWITCH_STYLE_MD3;
+        return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || app.nimarkogram.messenger.NimarkoConfig.switchStyle == app.nimarkogram.messenger.NimarkoConfig.SWITCH_STYLE_MD3;
     }
 
     public void setColors(int track, int trackChecked, int thumb, int thumbChecked) {

@@ -69,6 +69,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int navigationDrawerRow = 26;
     private final int immersiveDrawerRow = 27;
     private final int liquidGlassRow = 28;
+    private final int linkiYouRow = 29;
     @Override protected void prepareSettingsSearch() {
         materialExpanded = true;
         iosExpanded = true;
@@ -116,20 +117,25 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
-        
+        boolean linkiYou = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
+        items.add(SettingsHelper.asSwitchCG(linkiYouRow, getString(R.string.NM_LinkiGramYou),
+                        getString(R.string.NM_LinkiGramYou_Desc))
+                .setChecked(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()));
         items.add(UItem.asButton(2002, getString(R.string.LF_Menu)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(SETTINGS_ICON_COLORS, getString(R.string.LinkiSettingsIconColors), getSettingsIconColorValue()));
-        items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()));
+        items.add(UItem.asButton(oneUISwitchesRow, getString(R.string.NM_SwitchStyle), getSwitchStyleValueText()).setEnabled(!linkiYou));
         items.add(UItem.asButton(MATERIAL_GROUP, getString(R.string.NM_Style_Material),
                 styleCount(AppearanceConfig.MATERIAL_KEYS) + "/" + AppearanceConfig.MATERIAL_KEYS.length));
         if (materialExpanded) {
             items.add(SettingsHelper.asSwitchCG(MATERIAL_ALL, getString(R.string.NM_Material_All))
-                    .setChecked(Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) == AppearanceConfig.MATERIAL_KEYS.length));
+                    .setChecked(Integer.parseInt(styleCount(AppearanceConfig.MATERIAL_KEYS)) == AppearanceConfig.MATERIAL_KEYS.length)
+                    .setEnabled(!linkiYou));
             for (int i = 0; i < AppearanceConfig.MATERIAL_KEYS.length; i++) {
                 items.add(SettingsHelper.asSwitchCG(STYLE_BASE + i, getString(MATERIAL_LABELS[i]))
-                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.MATERIAL_KEYS[i])));
+                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.MATERIAL_KEYS[i]))
+                        .setEnabled(!linkiYou));
             }
         }
         items.add(UItem.asButton(IOS_GROUP, getString(R.string.NM_Style_IOS),
@@ -142,14 +148,15 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         }
         items.add(UItem.asButton(disableDividersRow, getString(R.string.NM_Material_Dividers),
                 getString(new int[]{R.string.NM_Material_DividerHidden, R.string.NM_Material_DividerLine,
-                        R.string.NM_Material_DividerSegments}[app.nimarkogram.messenger.appearance.MaterialStyle.dividerStyle()])));
+                        R.string.NM_Material_DividerSegments}[app.nimarkogram.messenger.appearance.MaterialStyle.dividerStyle()]))
+                .setEnabled(!linkiYou));
         items.add(SettingsHelper.asSwitchCG(MATERIAL_HEADERS, getString(R.string.NM_Material_Headers))
                 .setChecked(app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders())
-                .setEnabled(!app.nimarkogram.messenger.appearance.MaterialStyle.segments()));
+                .setEnabled(!linkiYou && !app.nimarkogram.messenger.appearance.MaterialStyle.segments()));
         items.add(SettingsHelper.asSwitchCG(materialCardsRow,
                         getString(R.string.AP_MaterialCards),
                         getString(R.string.AP_MaterialCards_Desc))
-                .setChecked(NimarkoConfig.materialCards));
+                .setChecked(NimarkoConfig.materialCards).setEnabled(!linkiYou));
         items.add(UItem.asButton(sectionRadiusRow, getString(R.string.AP_SectionRadius), getSectionRadiusValueText()));
         items.add(SettingsHelper.asSwitchCG(forceBlurRow, getString(R.string.NM_ForceBlur))
                 .setChecked(NimarkoConfig.forceBlur));
@@ -255,6 +262,17 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     @Override
     public void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == linkiYouRow) {
+            boolean enabled = !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
+            app.nimarkogram.messenger.appearance.LinkiGramYouTheme.setEnabled(enabled);
+            updateCheckState(view, enabled);
+            refreshMaterialViews();
+            return;
+        }
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                && (item.id == MATERIAL_ALL || item.id == MATERIAL_HEADERS || item.id == disableDividersRow
+                || item.id == materialCardsRow || item.id == oneUISwitchesRow
+                || (item.id >= STYLE_BASE && item.id < STYLE_BASE + 8))) return;
         if (item.id == SETTINGS_ICON_COLORS) { showSettingsIconColors(); return; }
         if (item.id == 2002) { presentFragment(new DrawerPreferencesActivity()); return; }
         if (item.id == MATERIAL_ALL) {
@@ -489,6 +507,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     }
 
     private String getSwitchStyleValueText() {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) return "Material You";
         return switch (NimarkoConfig.switchStyle) {
             case NimarkoConfig.SWITCH_STYLE_ONEUI -> "One UI";
             case NimarkoConfig.SWITCH_STYLE_MD3 -> "MD3";
