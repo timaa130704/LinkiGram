@@ -1342,7 +1342,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground.setRadius(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         tabsView.setBackground(app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
-                ? new android.graphics.drawable.ColorDrawable(getThemedColor(Theme.key_windowBackgroundWhite)) : tabsViewBackground);
+                ? new android.graphics.drawable.ColorDrawable(getNavigationBarSurfaceColor()) : tabsViewBackground);
         tabsView.invalidate();
     }
 
@@ -1357,7 +1357,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
         if (tabsView != null) {
             if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
-                tabsView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+                tabsView.setBackgroundColor(getNavigationBarSurfaceColor());
             }
             tabsView.invalidate();
         }
