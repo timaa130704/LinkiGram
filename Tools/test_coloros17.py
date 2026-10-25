@@ -23,7 +23,7 @@ def main():
         parser.error("JDK 17 is required")
     root = Path(__file__).resolve().parents[1] / "TMessagesProj/src/main/java"
     production = [root / "app/nimarkogram/messenger/appearance" / name
-                  for name in ("ColorOs17Theme.java", "LinkiGramYouTheme.java")]
+                  for name in ("ColorOs17Theme.java", "LinkiGramYouTheme.java", "MaterialStyle.java")]
     text = "\n".join(p.read_text(encoding="utf-8") for p in production)
     keys = sorted(set(re.findall(r"Theme\.(key_\w+)", text)))
     real_theme = (root / "org/telegram/ui/ActionBar/Theme.java").read_text(encoding="utf-8")
@@ -46,10 +46,13 @@ def main():
         "org/telegram/ui/ActionBar/Theme.java": "package org.telegram.ui.ActionBar; public class Theme {public static boolean dark;public static boolean isCurrentThemeDark(){return dark;}public static int multAlpha(int c,float a){return c;}" + "".join(f"public static final int {k}={i+1};" for i,k in enumerate(keys)) + "}",
         "app/nimarkogram/messenger/NimarkoConfig.java": """package app.nimarkogram.messenger;
 public class NimarkoConfig {
+ public static boolean disableDividers=false;
+ public static boolean m3ListItems(){return false;}
  static Pref p=new Pref(); public static Pref getPreferences(){return p;}
  public static class Pref {
   java.util.Map<String,Boolean> m=new java.util.HashMap<>();
   public boolean getBoolean(String k,boolean d){return m.getOrDefault(k,d);}
+  public int getInt(String k,int d){return d;}
   public Pref edit(){return this;} public Pref putBoolean(String k,boolean v){m.put(k,v);return this;}
   public void apply(){}
  }
@@ -73,6 +76,8 @@ public class Check {
   ColorOs17Theme.setEnabled(false);
   check(LinkiGramYouTheme.isEnabled(),"previous You theme restored after disabling ColorOS");
   ColorOs17Theme.setEnabled(true);
+  check(MaterialStyle.switchWidth()==44&&MaterialStyle.switchHeight()==26,"ColorOS switch fits its track");
+  check(MaterialStyle.rowHeight(50)==60,"ColorOS settings row metrics");
   check(ColorOs17Theme.resolveColor(-500,original)==original,"special colors preserved");
   for(boolean dark:new boolean[]{false,true}){
    Theme.dark=dark;
@@ -95,6 +100,7 @@ public class Check {
   LinkiGramYouTheme.setEnabled(true);
   check(!ColorOs17Theme.isEnabled(),"You disables ColorOS");
   LinkiGramYouTheme.setEnabled(false);
+  check(MaterialStyle.switchWidth()==37&&MaterialStyle.switchHeight()==20,"original switch metrics restored");
   check(LinkiGramYouTheme.resolveColor(Theme.key_dialogBackground,original)==original,"original theme restored");
   check(ColorOs17Theme.surfaceDrawable(base,0,false)==base,"original surface restored");
   System.out.println(checks+" ColorOS theme checks passed");

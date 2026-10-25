@@ -19,4 +19,6 @@ public final class MaterialStyle {
     public static int rowHeight(int height) { return listItems() && height == 50 ? (ColorOs17Theme.isEnabled() ? 60 : 56) : height; }
     public static int detailHeight(int height) { return listItems() && height == 64 ? 72 : height; }
     public static int shadowHeight(boolean beforeHeader) { return listItems() ? (beforeHeader ? 10 : 16) : 12; }
+    public static int switchWidth() { return ColorOs17Theme.isEnabled() ? 44 : 37; }
+    public static int switchHeight() { return ColorOs17Theme.isEnabled() ? 26 : 20; }
 }
