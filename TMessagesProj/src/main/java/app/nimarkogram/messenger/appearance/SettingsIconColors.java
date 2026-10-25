@@ -7,6 +7,7 @@ public final class SettingsIconColors {
     public static final int NEUTRAL = 0, ACCENT = 1, ORIGINAL = 2, CUSTOM = 3;
     private SettingsIconColors() {}
     public static int mode() {
+        if (ColorOs17Theme.isEnabled()) return ORIGINAL;
         int value = NimarkoConfig.getPreferences().getInt("settingsIconColorMode", NEUTRAL);
         return value >= NEUTRAL && value <= CUSTOM ? value : NEUTRAL;
     }

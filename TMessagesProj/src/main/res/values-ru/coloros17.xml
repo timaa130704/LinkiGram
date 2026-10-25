@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="NM_ColorOS17">ColorOS 17</string>
-    <string name="NM_ColorOS17_Desc">Синий акцент, нейтральные поверхности, сгруппированные настройки и компактная навигация. Светлая и тёмная темы.</string>
+    <string name="NM_ColorOS17_Desc">Оформление ColorOS во всём LinkiGram: чаты, профили, настройки, элементы управления, меню, диалоги и плеер. Поддерживает светлую и тёмную темы.</string>
 </resources>

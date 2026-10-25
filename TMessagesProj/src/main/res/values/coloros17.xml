@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="NM_ColorOS17">ColorOS 17</string>
-    <string name="NM_ColorOS17_Desc">Blue accents, neutral surfaces, grouped settings and a compact navigation bar. Light and dark themes.</string>
+    <string name="NM_ColorOS17_Desc">Apply ColorOS styling throughout LinkiGram: chats, profiles, settings, controls, menus, dialogs and music player. Supports light and dark themes.</string>
 </resources>

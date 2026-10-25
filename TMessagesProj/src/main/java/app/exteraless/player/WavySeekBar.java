@@ -164,6 +164,24 @@ public class WavySeekBar extends View {
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            float cy = getHeight() / 2f;
+            float start = left(), end = right();
+            float value = Math.max(0, Math.min(1, dragging ? dragProgress : progress));
+            float x = start + value * (end - start);
+            int oldColor = fillPaint.getColor();
+            fillPaint.setColor(app.nimarkogram.messenger.appearance.ColorOs17Theme.controlTrackColor());
+            rect.set(start, cy - dp(6), end, cy + dp(6));
+            canvas.drawRoundRect(rect, dp(6), dp(6), fillPaint);
+            fillPaint.setColor(app.nimarkogram.messenger.appearance.ColorOs17Theme.accentColor());
+            rect.right = x;
+            canvas.drawRoundRect(rect, dp(6), dp(6), fillPaint);
+            fillPaint.setColor(0xFFFFFFFF);
+            canvas.drawCircle(x, cy, dp(dragging ? 11 : 10), fillPaint);
+            fillPaint.setColor(oldColor);
+            lastFrame = 0;
+            return;
+        }
         long now = SystemClock.elapsedRealtime();
         float dt = lastFrame == 0 ? 0.016f : Math.min(0.05f, (now - lastFrame) / 1000f);
         lastFrame = now;

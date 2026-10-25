@@ -148,7 +148,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         if (iosExpanded) {
             for (int i = 0; i < AppearanceConfig.IOS_KEYS.length; i++) {
                 items.add(SettingsHelper.asSwitchCG(STYLE_BASE + 8 + i, getString(IOS_LABELS[i]))
-                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.IOS_KEYS[i])));
+                        .setChecked(AppearanceConfig.enabled(AppearanceConfig.IOS_KEYS[i]))
+                        .setEnabled(!app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()));
             }
         }
         items.add(UItem.asButton(disableDividersRow, getString(R.string.NM_Material_Dividers),
@@ -286,6 +287,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                 && (item.id == MATERIAL_ALL || item.id == MATERIAL_HEADERS || item.id == disableDividersRow
                 || item.id == materialCardsRow || item.id == oneUISwitchesRow
                 || (item.id >= STYLE_BASE && item.id < STYLE_BASE + 8))) return;
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
+                && item.id >= STYLE_BASE + 8 && item.id < STYLE_BASE + 10) return;
         if (item.id == SETTINGS_ICON_COLORS) { showSettingsIconColors(); return; }
         if (item.id == 2002) { presentFragment(new DrawerPreferencesActivity()); return; }
         if (item.id == MATERIAL_ALL) {
@@ -520,6 +523,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     }
 
     private String getSwitchStyleValueText() {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) return "ColorOS 17";
         if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) return "Material You";
         return switch (NimarkoConfig.switchStyle) {
             case NimarkoConfig.SWITCH_STYLE_ONEUI -> "One UI";

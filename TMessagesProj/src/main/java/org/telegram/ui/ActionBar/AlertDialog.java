@@ -305,6 +305,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
         progressViewStyle = progressStyle;
         backgroundColor = getThemedColor(Theme.key_dialogBackground);
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) dimAlpha = 0.2f;
         final boolean isDark = AndroidUtilities.computePerceivedBrightness(backgroundColor) < 0.721f;
         blurredNativeBackground = supportsNativeBlur() && progressViewStyle == ALERT_TYPE_MESSAGE;
         blurredBackground = (blurredNativeBackground || !supportsNativeBlur() && SharedConfig.getDevicePerformanceClass() >= SharedConfig.PERFORMANCE_CLASS_HIGH && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BLUR)) && isDark;
@@ -312,6 +313,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         backgroundPaddings = new Rect();
         if (progressStyle != ALERT_TYPE_SPINNER || blurredBackground) {
             shadowDrawable = context.getResources().getDrawable(R.drawable.popup_fixed_alert4).mutate();
+            shadowDrawable = app.nimarkogram.messenger.appearance.ColorOs17Theme.surfaceDrawable(shadowDrawable, backgroundColor, false);
             blurOpacity = progressStyle == ALERT_TYPE_SPINNER ? 0.55f : (isDark ? 0.80f : 0.985f);
             shadowDrawable.setColorFilter(new PorterDuffColorFilter(backgroundColor, PorterDuff.Mode.MULTIPLY));
             shadowDrawable.getPadding(backgroundPaddings);
@@ -574,7 +576,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                             (getHeight() + h) / 2f
                     );
                 } else {
-                    r = dp(20);
+                    r = dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : 20);
                     AndroidUtilities.rectTmp.set(getPaddingLeft(), getPaddingTop(), getMeasuredWidth() - getPaddingRight(), getMeasuredHeight() - getPaddingBottom());
                 }
 
@@ -662,7 +664,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 containerView.setPadding(0, 0, 0, 0);
                 containerView.setBackground(shadowDrawable);
 
-                containerView.setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(dp(8), dp(20)));
+                containerView.setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(dp(8), dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : 20)));
                 containerView.setClipToOutline(true);
 
                 drawBackground = false;
@@ -1291,7 +1293,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             params.width = WindowManager.LayoutParams.MATCH_PARENT;
         } else {
             if (dimEnabled && !dimCustom) {
-                params.dimAmount = dimAlpha;
+                params.dimAmount = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 0.2f : dimAlpha;
                 params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
             } else {
                 params.dimAmount = 0f;
@@ -1328,7 +1330,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                 if (progressViewStyle == ALERT_TYPE_MESSAGE) {
                     blurredNativeBackground = true;
                     window.setBackgroundBlurRadius(50);
-                    float rad = dp(12);
+                    float rad = dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : 12);
                     ShapeDrawable shapeDrawable = new ShapeDrawable(new RoundRectShape(new float[]{rad, rad, rad, rad, rad, rad, rad, rad}, null, null));
                     shapeDrawable.getPaint().setColor(ColorUtils.setAlphaComponent(backgroundColor, (int) (blurAlpha * 255)));
                     window.setBackgroundDrawable(shapeDrawable);

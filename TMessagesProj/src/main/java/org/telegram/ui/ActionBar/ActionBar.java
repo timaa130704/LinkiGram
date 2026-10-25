@@ -1467,6 +1467,9 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
                 }
 
                 if (titleTextView[i] != null && titleTextView[i].getVisibility() != GONE) {
+                    if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+                        titleTextView[i].setTextSize(subtitleTextView != null && subtitleTextView.getVisibility() != GONE ? 18 : 22);
+                    }
                     titleTextView[i].measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24) + titleTextView[i].getPaddingTop() + titleTextView[i].getPaddingBottom(), MeasureSpec.AT_MOST));
                     if (centerScale) {
                         CharSequence text = titleTextView[i].getText();

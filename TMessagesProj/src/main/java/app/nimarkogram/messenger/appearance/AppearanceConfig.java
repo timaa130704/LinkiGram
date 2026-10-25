@@ -26,8 +26,11 @@ public final class AppearanceConfig {
 
     public static boolean enabled(String key) {
         if (ColorOs17Theme.isEnabled()) {
-            if ("newNavigationBarStyle".equals(key) || "m3ListItems".equals(key)) return true;
-            if ("iosNavigationBarStyle".equals(key)) return false;
+            if ("newNavigationBarStyle".equals(key) || "m3ListItems".equals(key)
+                    || "newChatHeaderStyle".equals(key) || "md3Player".equals(key)
+                    || "md3MiniPlayer".equals(key)) return true;
+            if ("iosNavigationBarStyle".equals(key) || "iosChatHeader".equals(key)
+                    || "md3Slider".equals(key) || "md3Switch".equals(key)) return false;
         }
         if (LinkiGramYouTheme.isEnabled()) {
             for (String materialKey : MATERIAL_KEYS) if (materialKey.equals(key)) return true;

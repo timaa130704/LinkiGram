@@ -16,7 +16,7 @@ public final class MaterialStyle {
         return segments() || NimarkoConfig.getPreferences().getBoolean("materialSeparateHeaders", false);
     }
     public static boolean hideDividers() { return listItems() || dividerStyle() != 1; }
-    public static int rowHeight(int height) { return listItems() && height == 50 ? 56 : height; }
+    public static int rowHeight(int height) { return listItems() && height == 50 ? (ColorOs17Theme.isEnabled() ? 60 : 56) : height; }
     public static int detailHeight(int height) { return listItems() && height == 64 ? 72 : height; }
     public static int shadowHeight(boolean beforeHeader) { return listItems() ? (beforeHeader ? 10 : 16) : 12; }
 }

@@ -82,6 +82,7 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
 
     /** LinkiGram: MD3-шапка чата (порт exteraless ChatHeaderUiHelper, NM_Style_ChatHeader). */
     public int getAvatarSizeInDp() {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) return 40;
         if (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle()
                 && !app.nimarkogram.messenger.appearance.AppearanceConfig.iosChatHeader()) {
             return 46;

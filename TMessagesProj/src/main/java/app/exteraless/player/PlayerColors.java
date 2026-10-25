@@ -57,6 +57,15 @@ public final class PlayerColors {
     }
 
     public static PlayerColors fromSeed(int seed, boolean dark) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            return new PlayerColors(dark, dark
+                    ? new int[]{0xFF101010, 0xFF1C1C1E, 0xFF28282A, 0xFF363639,
+                        0xFFF2F2F2, 0xFFA6A6AA, 0xFF404045, 0xFF65AEFF,
+                        0xFF101010, 0xFF203E60, 0xFFDCEEFF, 0xFF333336, 0xFFF2F2F2}
+                    : new int[]{0xFFF5F5F5, 0xFFFFFFFF, 0xFFF0F0F0, 0xFFE8E8EB,
+                        0xFF171717, 0xFF737377, 0xFFDEDEE2, 0xFF0080FF,
+                        0xFFFFFFFF, 0xFFDCEEFF, 0xFF0056B3, 0xFFE9E9EC, 0xFF171717});
+        }
         DynamicScheme s = new SchemeTonalSpot(Hct.fromInt(seed), dark, 0.0);
         return new PlayerColors(dark, new int[]{
                 s.getSurface(), s.getSurfaceContainerLow(), s.getSurfaceContainer(), s.getSurfaceContainerHigh(),
