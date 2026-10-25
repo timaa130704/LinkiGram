@@ -18,11 +18,11 @@ public final class Md3Player {
     }
 
     public static boolean enabled() {
-        return NimarkoConfig.md3Player();
+        return NimarkoConfig.md3Player() || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
     }
 
     public static boolean miniEnabled() {
-        return NimarkoConfig.md3MiniPlayer();
+        return NimarkoConfig.md3MiniPlayer() || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
     }
 
     private static boolean handles(MessageObject messageObject) {

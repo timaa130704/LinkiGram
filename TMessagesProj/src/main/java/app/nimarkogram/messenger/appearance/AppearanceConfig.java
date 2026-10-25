@@ -25,6 +25,9 @@ public final class AppearanceConfig {
     public static final String[] IOS_KEYS = {"iosNavigationBarStyle", "iosChatHeader"};
 
     public static boolean enabled(String key) {
+        if (LinkiGramYouTheme.isEnabled()) {
+            for (String materialKey : MATERIAL_KEYS) if (materialKey.equals(key)) return true;
+        }
         switch (key) {
             case "md3Switch": return NimarkoConfig.switchStyle == NimarkoConfig.SWITCH_STYLE_MD3;
             case "md3Player": return NimarkoConfig.md3Player();

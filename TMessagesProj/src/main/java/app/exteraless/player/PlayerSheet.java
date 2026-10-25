@@ -1643,6 +1643,17 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         boolean noForwards = PlayerActions.noForwards(mo);
         Theme.ResourcesProvider rp = colors.provider(resourcesProvider);
         ItemOptions o = ItemOptions.makeOptions(container, rp, anchor, true);
+        o.add(R.drawable.msg_filled_data_music, "Добавить закладку · " + formatTime((int) (positionMs() / 1000L)), () -> {
+            boolean added = AudioBookmarks.add(mo, positionMs());
+            o.dismiss();
+            BulletinFactory.of(root, rp).createSimpleBulletin(R.raw.saved_messages,
+                    added ? "Аудиозакладка сохранена" : "Рядом уже есть закладка или достигнут лимит").show();
+        });
+        List<AudioBookmarks.Bookmark> bookmarks = AudioBookmarks.get(mo);
+        o.addIf(!bookmarks.isEmpty(), R.drawable.msg_list, "Закладки (" + bookmarks.size() + ")", () -> {
+            o.dismiss();
+            showAudioBookmarks(mo, bookmarks);
+        });
         if (!noForwards) {
             ItemOptions sub = o.makeSwipeback();
             sub.add(R.drawable.ic_ab_back, getString(R.string.Back), o::closeSwipeback);
@@ -1709,6 +1720,23 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         });
         o.setGravity(LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT);
         o.show();
+    }
+
+    private void showAudioBookmarks(MessageObject message, List<AudioBookmarks.Bookmark> bookmarks) {
+        if (activity == null || message != current || bookmarks.isEmpty()) return;
+        String[] labels = new String[bookmarks.size()];
+        for (int i = 0; i < bookmarks.size(); i++) {
+            labels[i] = formatTime((int) (bookmarks.get(i).positionMs / 1000L));
+        }
+        new AlertDialog.Builder(activity, resourcesProvider)
+                .setTitle("Аудиозакладки")
+                .setItems(labels, (dialog, which) -> {
+                    if (which >= 0 && which < bookmarks.size() && current == message) {
+                        MediaController.getInstance().seekToProgressMs(message, bookmarks.get(which).positionMs);
+                    }
+                })
+                .setNegativeButton(R.string.Cancel, null)
+                .show();
     }
 
     private boolean onCoverTouch(View v, MotionEvent e) {
