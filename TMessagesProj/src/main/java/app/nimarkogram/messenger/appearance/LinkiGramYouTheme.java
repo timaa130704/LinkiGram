@@ -34,6 +34,7 @@ public final class LinkiGramYouTheme {
     }
 
     public static void setEnabled(boolean enabled) {
+        if (enabled) ColorOs17Theme.setEnabled(false);
         LinkiGramYouTheme.enabled = enabled;
         loaded = true;
         app.nimarkogram.messenger.NimarkoConfig.getPreferences().edit().putBoolean(PREF_ENABLED, enabled).apply();
@@ -41,6 +42,7 @@ public final class LinkiGramYouTheme {
 
     /** Applies Android's wallpaper-derived Material palette to Telegram's semantic color roles. */
     public static int resolveColor(int key, int original) {
+        if (ColorOs17Theme.isEnabled()) return ColorOs17Theme.resolveColor(key, original);
         if (!isEnabled() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return original;
         Context context = ApplicationLoader.applicationContext;
         if (context == null) return original;
@@ -102,6 +104,7 @@ public final class LinkiGramYouTheme {
 
     /** Material 3 color roles used by the main NavigationBar. */
     public static int navigationBarColor(Context context, int role, int fallback) {
+        if (ColorOs17Theme.isEnabled()) return ColorOs17Theme.navigationBarColor(role, fallback);
         if (!isEnabled() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || context == null) return fallback;
         final boolean dark = Theme.isCurrentThemeDark();
         final int colorId;

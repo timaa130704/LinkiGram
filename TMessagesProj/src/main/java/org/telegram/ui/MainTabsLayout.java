@@ -124,7 +124,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             for (int a = 0, N = getChildCount(); a < N; a++) {
                 final View child = getChildAt(a);
                 if (child instanceof Tab) {
-                    ((Tab) child).setTextSizeDp(14f);
+                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 10f : 14f);
                 }
             }
         } else {
@@ -134,8 +134,9 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         if (youNavigationStyle) {
             // Yougram-style Material navigation: compact icon slots, with only the
             // active destination expanding to make room for its label.
-            final int slotWidth = dp(48);
-            final int gap = dp(2);
+            final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+            final int slotWidth = colorOs ? Math.min(dp(70), maxTotalWidthForTabs / Math.max(1, visibleChildCount)) : dp(48);
+            final int gap = colorOs ? 0 : dp(2);
             final int visibleCount = Math.max(1, visibleChildCount);
             final int gapsWidth = gap * (visibleCount - 1);
             final int availableExtraWidth = Math.max(0, maxTotalWidthForTabs - slotWidth * visibleCount - gapsWidth);
@@ -146,7 +147,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                     continue;
                 }
                 final GlassTabView tab = (GlassTabView) child;
-                requestedExtraWidth += Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress();
+                if (!colorOs) requestedExtraWidth += Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress();
             }
             final float extraScale = requestedExtraWidth > availableExtraWidth && requestedExtraWidth > 0
                     ? availableExtraWidth / requestedExtraWidth : 1f;
@@ -162,7 +163,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                     continue;
                 }
                 float extra = 0;
-                if (child instanceof GlassTabView) {
+                if (!colorOs && child instanceof GlassTabView) {
                     final GlassTabView tab = (GlassTabView) child;
                     extra = Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress() * extraScale;
                 }

@@ -317,12 +317,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsView.setClipChildren(false);
         // Material You uses Yougram's floating, expanding destination capsule.
         final boolean md3Nav = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        final boolean colorOsNav = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
         final boolean iosNav = app.nimarkogram.messenger.appearance.AppearanceConfig.iosNavigationBarStyle();
         final boolean dockedTabs = !md3Nav && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
         tabsDocked = dockedTabs;
         final boolean fullWidthTabs = !md3Nav && (dockedTabs || iosNav);
-        final int tabsPad = md3Nav ? 8 : (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
-        tabsView.setPadding(dp(tabsPad), dp(tabsPad), dp(tabsPad), dp(tabsPad));
+        final int tabsPad = md3Nav ? (colorOsNav ? 4 : 8) : (dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN) + 4;
+        tabsView.setPadding(dp(colorOsNav ? 12 : tabsPad), dp(tabsPad), dp(colorOsNav ? 12 : tabsPad), dp(tabsPad));
         tabsView.setMaxWidth(fullWidthTabs ? 0 : dp(md3Nav ? 392 : 328 + DialogsActivity.MAIN_TABS_MARGIN * 2));
 
         tabs = new GlassTabView[5];
@@ -429,7 +430,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewWrapper = new FrameLayout(context);
         tabsViewWrapper.setOnClickListener(v -> {});
         tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(md3Nav ? LayoutHelper.WRAP_CONTENT : LayoutHelper.MATCH_PARENT,
-                md3Nav ? 64 : dockedTabs ? DialogsActivity.MAIN_TABS_HEIGHT : DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
+                md3Nav ? (colorOsNav ? 56 : 64) : dockedTabs ? DialogsActivity.MAIN_TABS_HEIGHT : DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0, 0, md3Nav ? 8 : 0));
         tabsViewWrapper.setClipToPadding(false);
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
@@ -1026,9 +1027,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
         if (materialNavigation) {
             ViewGroup.LayoutParams tabsParams = tabsView.getLayoutParams();
-            int height = dp(64);
+            boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+            int height = dp(colorOs ? 56 : 64);
             if (tabsParams.height != height) { tabsParams.height = height; tabsView.setLayoutParams(tabsParams); }
-            tabsView.setPadding(dp(8), dp(8), dp(8), dp(8));
+            tabsView.setPadding(dp(colorOs ? 12 : 8), dp(colorOs ? 4 : 8), dp(colorOs ? 12 : 8), dp(colorOs ? 4 : 8));
             tabsView.setBackground(Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
         }
 
@@ -1381,4 +1383,3 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         return EdgeToEdgeSupportMode.FULL;
     }
 }
-

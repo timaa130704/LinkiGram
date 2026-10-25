@@ -6,9 +6,9 @@ import app.nimarkogram.messenger.NimarkoConfig;
 public final class MaterialStyle {
     private MaterialStyle() {}
 
-    public static boolean listItems() { return LinkiGramYouTheme.isEnabled() || NimarkoConfig.m3ListItems(); }
+    public static boolean listItems() { return LinkiGramYouTheme.isEnabled() || ColorOs17Theme.isEnabled() || NimarkoConfig.m3ListItems(); }
     public static int dividerStyle() {
-        if (LinkiGramYouTheme.isEnabled()) return 2;
+        if (LinkiGramYouTheme.isEnabled() || ColorOs17Theme.isEnabled()) return 2;
         return Math.max(0, Math.min(2, NimarkoConfig.getPreferences().getInt("materialDividerStyle", NimarkoConfig.disableDividers ? 0 : 1)));
     }
     public static boolean segments() { return listItems() || dividerStyle() == 2; }
