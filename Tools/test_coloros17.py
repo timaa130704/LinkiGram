@@ -38,7 +38,7 @@ def main():
         "android/R.java": "package android; public class R {public static class color {" + "".join(f"public static final int {k}={i+1};" for i,k in enumerate(system_colors)) + "}}",
         "android/graphics/Rect.java": "package android.graphics; public class Rect {public int left,top,right,bottom;}",
         "android/graphics/drawable/Drawable.java": "package android.graphics.drawable; import android.graphics.Rect; public class Drawable {public boolean getPadding(Rect p){p.left=p.top=p.right=p.bottom=4;return true;}}",
-        "android/graphics/drawable/GradientDrawable.java": "package android.graphics.drawable; public class GradientDrawable extends Drawable {public void setColor(int c){} public void setCornerRadius(float r){} public void setCornerRadii(float[] r){} public void setStroke(int w,int c){} }",
+        "android/graphics/drawable/GradientDrawable.java": "package android.graphics.drawable; public class GradientDrawable extends Drawable {public static int baseColor,tintColor;public void setColor(int c){baseColor=c;} public void setTint(int c){tintColor=c;} public void setCornerRadius(float r){} public void setCornerRadii(float[] r){} public void setStroke(int w,int c){} }",
         "android/graphics/drawable/InsetDrawable.java": "package android.graphics.drawable; import android.graphics.Rect; public class InsetDrawable extends Drawable {int l,t,r,b;public InsetDrawable(Drawable d,int l,int t,int r,int b){this.l=l;this.t=t;this.r=r;this.b=b;} public boolean getPadding(Rect p){p.left=l;p.top=t;p.right=r;p.bottom=b;return true;}}",
         "android/util/SparseIntArray.java": "package android.util; public class SparseIntArray {java.util.Map<Integer,Integer> m=new java.util.HashMap<>();public void put(int k,int v){m.put(k,v);}public int get(int k,int d){return m.getOrDefault(k,d);}}",
         "org/telegram/messenger/AndroidUtilities.java": "package org.telegram.messenger; public class AndroidUtilities {public static int dp(float n){return (int)n;}}",
@@ -89,8 +89,9 @@ public class Check {
   }
   android.graphics.drawable.Drawable base=new android.graphics.drawable.Drawable();
   android.graphics.Rect p=new android.graphics.Rect();
-  ColorOs17Theme.surfaceDrawable(base,0xFFFFFFFF,true).getPadding(p);
+  ColorOs17Theme.surfaceDrawable(base,0xFF1C1C1E,true).getPadding(p);
   check(p.left==4&&p.top==4&&p.right==4&&p.bottom==4,"sheet content insets preserved");
+  check(android.graphics.drawable.GradientDrawable.baseColor==0xFFFFFFFF&&android.graphics.drawable.GradientDrawable.tintColor==0xFF1C1C1E,"surface retains a white base for caller tint filters");
   LinkiGramYouTheme.setEnabled(true);
   check(!ColorOs17Theme.isEnabled(),"You disables ColorOS");
   LinkiGramYouTheme.setEnabled(false);

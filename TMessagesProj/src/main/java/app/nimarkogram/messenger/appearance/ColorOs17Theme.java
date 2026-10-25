@@ -122,7 +122,10 @@ public final class ColorOs17Theme {
         Rect padding = new Rect();
         original.getPadding(padding);
         GradientDrawable panel = new GradientDrawable();
-        panel.setColor(color);
+        // Callers recolor their original white nine-patches with MULTIPLY.
+        // Keep the same base so dark panels do not get multiplied twice.
+        panel.setColor(0xFFFFFFFF);
+        panel.setTint(color);
         float radius = AndroidUtilities.dp(topOnly ? 28 : 24);
         if (topOnly) panel.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
         else panel.setCornerRadius(radius);
