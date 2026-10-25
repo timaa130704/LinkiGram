@@ -70,6 +70,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     private int colorSelected;
     private int colorSelectedText;
     private int colorDefault;
+    private int materialIndicatorColor;
     private boolean usePremiumCounter;
 
     private TabAnimation tabAnimation;
@@ -171,7 +172,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             if (materialMainTab) {
                 float width = Math.min(dp(56), Math.max(0, viewWidth - dp(8)));
                 tmpRectF.set((viewWidth - width) / 2f, dp(6), (viewWidth + width) / 2f, dp(38));
-                paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.125f * alpha));
+                paintCounterBackground.setColor(Theme.multAlpha(materialIndicatorColor, alpha));
             } else {
                 tmpRectF.set(0, 0, viewWidth, getHeight());
             }
@@ -284,11 +285,30 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     }
 
     public void updateColorsLottie() {
-        colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
-        colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
-        colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
+        updateNavigationColors();
         updateColors();
         invalidate();
+    }
+
+    private void updateNavigationColors() {
+        final int unselected = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
+        final int selected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
+        final int selectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
+        if (materialMainTab) {
+            colorDefault = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.navigationBarColor(
+                    getContext(), app.nimarkogram.messenger.appearance.LinkiGramYouTheme.NAV_COLOR_UNSELECTED, unselected);
+            colorSelected = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.navigationBarColor(
+                    getContext(), app.nimarkogram.messenger.appearance.LinkiGramYouTheme.NAV_COLOR_SELECTED, selected);
+            colorSelectedText = colorSelected;
+            materialIndicatorColor = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.navigationBarColor(
+                    getContext(), app.nimarkogram.messenger.appearance.LinkiGramYouTheme.NAV_COLOR_INDICATOR,
+                    Theme.multAlpha(selected, 0.125f));
+        } else {
+            colorDefault = unselected;
+            colorSelected = selected;
+            colorSelectedText = selectedText;
+            materialIndicatorColor = selected;
+        }
     }
 
 
@@ -433,10 +453,8 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         tab.textView.setText(LocaleController.getString(stringRes));
         tab.checkPlayAnimation(false);
         tab.imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
-        tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
-        tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
-        tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
         tab.applyMaterialMainTab();
+        tab.updateNavigationColors();
         tab.updateColors();
         return tab;
     }

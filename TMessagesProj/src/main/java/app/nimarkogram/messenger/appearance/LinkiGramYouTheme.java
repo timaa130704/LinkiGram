@@ -9,6 +9,10 @@ import org.telegram.ui.ActionBar.Theme;
 /** Global Material You layer for Telegram's existing native views. */
 public final class LinkiGramYouTheme {
     private static final String PREF_ENABLED = "linkigramYouEnabled";
+    public static final int NAV_COLOR_SURFACE = 0;
+    public static final int NAV_COLOR_INDICATOR = 1;
+    public static final int NAV_COLOR_SELECTED = 2;
+    public static final int NAV_COLOR_UNSELECTED = 3;
     private static volatile boolean enabled;
     private static volatile boolean loaded;
 
@@ -94,6 +98,34 @@ public final class LinkiGramYouTheme {
             // Keep the selected Telegram theme on devices without a usable system palette.
         }
         return original;
+    }
+
+    /** Material 3 color roles used by the main NavigationBar. */
+    public static int navigationBarColor(Context context, int role, int fallback) {
+        if (!isEnabled() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || context == null) return fallback;
+        final boolean dark = Theme.isCurrentThemeDark();
+        final int colorId;
+        switch (role) {
+            case NAV_COLOR_SURFACE:
+                colorId = dark ? android.R.color.system_neutral1_800 : android.R.color.system_neutral1_50;
+                break;
+            case NAV_COLOR_INDICATOR:
+                colorId = dark ? android.R.color.system_accent2_800 : android.R.color.system_accent2_100;
+                break;
+            case NAV_COLOR_SELECTED:
+                colorId = dark ? android.R.color.system_accent2_100 : android.R.color.system_accent2_900;
+                break;
+            case NAV_COLOR_UNSELECTED:
+                colorId = dark ? android.R.color.system_neutral2_200 : android.R.color.system_neutral2_700;
+                break;
+            default:
+                return fallback;
+        }
+        try {
+            return context.getColor(colorId);
+        } catch (Throwable ignore) {
+            return fallback;
+        }
     }
 
     private static int color(Context context, boolean dark, int lightId, int darkId, int fallback) {
