@@ -108,11 +108,15 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     private void applyMaterialMainTab() {
         materialMainTab = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         if (!materialMainTab) return;
-        imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 10, 0, 0));
-        if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 11, 0, 0));
+        imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
+        if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.LEFT | Gravity.CENTER_VERTICAL, 13, 0, 0, 0));
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+        textView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM));
         textView.setIncludeFontPadding(false);
-        textView.setLetterSpacing(1f / 24f);
-        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 16, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 42, 0, 0));
+        textView.setLetterSpacing(0f);
+        textView.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+        textView.setAlpha(0f);
+        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.FILL_VERTICAL, 48, 0, 8, 0));
         isSelectedAnimator.setDuration(500);
         isSelectedAnimator.setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.Emphasized);
     }
@@ -170,8 +174,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
             paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
             if (materialMainTab) {
-                float width = Math.min(dp(56), Math.max(0, viewWidth - dp(8)));
-                tmpRectF.set((viewWidth - width) / 2f, dp(6), (viewWidth + width) / 2f, dp(38));
+                tmpRectF.set(0, 0, viewWidth, getHeight());
                 paintCounterBackground.setColor(Theme.multAlpha(materialIndicatorColor, alpha));
             } else {
                 tmpRectF.set(0, 0, viewWidth, getHeight());
@@ -254,17 +257,31 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         isSelectedAnimator.setValue(selected, animated);
         checkPlayAnimation(animated);
 
-        textView.setTypeface(selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
+        textView.setTypeface(materialMainTab
+                ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM)
+                : selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
+        if (materialMainTab && !animated) {
+            textView.setAlpha(selected ? 1f : 0f);
+            requestLayout();
+        }
     }
 
     public boolean isTabSelected() {
         return isSelectedAnimator.getValue();
     }
 
+    public float getSelectionProgress() {
+        return isSelectedAnimator.getFloatValue();
+    }
+
     @Override
     public void onFactorChanged(int id, float factor, float fraction, FactorAnimator callee) {
         if (id == ANIMATOR_ID_IS_SELECTED) {
             updateColors();
+            if (materialMainTab) {
+                textView.setAlpha(factor);
+                requestLayout();
+            }
         }
         invalidate();
     }
@@ -743,3 +760,4 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     }
 }
+
