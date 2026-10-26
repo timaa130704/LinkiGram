@@ -5,7 +5,6 @@ import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
 import android.view.View;
-import android.widget.FrameLayout;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -45,7 +44,7 @@ public abstract class UniversalFragment extends BaseFragment {
             }
         });
 
-        FrameLayout contentView = new SizeNotifierFrameLayout(context) {
+        SizeNotifierFrameLayout contentView = new SizeNotifierFrameLayout(context) {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(
@@ -55,6 +54,9 @@ public abstract class UniversalFragment extends BaseFragment {
             }
         };
         contentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            actionBar.setDrawBlurBackground(contentView);
+        }
 
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, this::onLongClick) {
             @Override
@@ -119,3 +121,4 @@ public abstract class UniversalFragment extends BaseFragment {
         }
     }
 }
+
