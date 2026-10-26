@@ -148,6 +148,18 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     private BlurredBackgroundColorProviderThemed iBlur3ColorProviderTabs;
 
     public void updateColors() {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            int foreground = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_CONTAINER);
+            int fill = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER);
+            imageView.setColorFilter(foreground, PorterDuff.Mode.SRC_IN);
+            progressView.setProgressColor(foreground);
+            setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(0, dp(16)));
+            setBackground(new android.graphics.drawable.RippleDrawable(
+                    android.content.res.ColorStateList.valueOf(app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SELECTOR)),
+                    Theme.createRoundRectDrawable(dp(16), fill), null));
+            return;
+        }
+        if (!isSubButton) setOutlineProvider(ViewOutlineProviderImpl.BOUNDS_OVAL);
         if (isSubButton) {
             imageView.setColorFilter(Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider), PorterDuff.Mode.SRC_IN);
             progressView.setProgressColor(Theme.getColor(Theme.key_actionBarDefaultIcon, resourcesProvider));
@@ -215,7 +227,7 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     @Override
     public void draw(@NonNull Canvas canvas) {
         if (iBlur3Background != null) {
-            iBlur3Background.draw(canvas);
+            if (!app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) iBlur3Background.draw(canvas);
         }
         super.draw(canvas);
     }
