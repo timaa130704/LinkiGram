@@ -544,7 +544,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private void refreshMaterialViews() {
         Theme.refreshThemeColors(false, true);
         if (listView != null) listView.adapter.update(true);
-        if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
+        if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(true, true);
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);
     }
 

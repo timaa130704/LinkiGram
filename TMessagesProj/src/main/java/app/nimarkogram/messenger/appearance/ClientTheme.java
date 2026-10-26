@@ -147,7 +147,8 @@ public final class ClientTheme {
                 Theme.key_chats_menuTopBackgroundCats, Theme.key_chat_inBubble, Theme.key_chat_inBubbleSelected);
         add(SURFACE_HIGH, Theme.key_actionBarDefaultSubmenuBackground, Theme.key_dialogSearchBackground,
                 Theme.key_dialogInputField, Theme.key_windowBackgroundWhiteInputField,
-                Theme.key_chat_emojiPanelStickerPackSelector);
+                Theme.key_chat_emojiPanelStickerPackSelector, Theme.key_glass_targetMainTabs,
+                Theme.key_glass_targetMainTopPanel);
         add(ON_SURFACE, Theme.key_actionBarDefaultIcon, Theme.key_actionBarDefaultTitle,
                 Theme.key_actionBarDefaultArchivedIcon, Theme.key_actionBarDefaultArchivedTitle,
                 Theme.key_actionBarDefaultSubmenuItem, Theme.key_dialogTextBlack, Theme.key_dialogSearchText,
@@ -157,7 +158,9 @@ public final class ClientTheme {
                 Theme.key_chats_menuName, Theme.key_chat_inAudioTitleText, Theme.key_chat_inFileNameText,
                 Theme.key_chat_inContactNameText, Theme.key_chat_inReplyMessageText,
                 Theme.key_chat_emojiPanelTrendingTitle, Theme.key_chat_emojiPanelStickerSetName,
-                Theme.key_chat_attachPermissionText);
+                Theme.key_chat_attachPermissionText, Theme.key_glass_defaultIcon,
+                Theme.key_glass_defaultText, Theme.key_glass_tabUnselected);
+        add(ON_PRIMARY, Theme.key_glass_tabSelectedText);
         add(SECONDARY, Theme.key_actionBarDefaultSubtitle, Theme.key_actionBarDefaultSearchPlaceholder,
                 Theme.key_actionBarDefaultArchivedSearchPlaceholder, Theme.key_actionBarDefaultSubmenuItemIcon,
                 Theme.key_windowBackgroundWhiteGrayText, Theme.key_windowBackgroundWhiteGrayText2,
@@ -258,6 +261,7 @@ public final class ClientTheme {
                 Theme.key_chat_searchPanelIcons, Theme.key_chat_botButtonText,
                 Theme.key_chat_botSwitchToInlineText, Theme.key_chat_emojiPanelStickerSetNameHighlight,
                 Theme.key_chat_recordedVoicePlayPause, Theme.key_chat_recordedVoiceProgress,
+                Theme.key_glass_tabSelected,
                 Theme.key_chat_recordVoiceCancel, Theme.key_profile_creatorIcon,
                 Theme.key_profile_verifiedBackground, Theme.key_chats_verifiedBackground,
                 Theme.key_chats_sentCheck, Theme.key_chats_sentReadCheck,

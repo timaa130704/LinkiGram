@@ -3735,6 +3735,11 @@ public class ChatActivity extends BaseFragment implements
         blurredBackgroundColorProvider = new BlurredBackgroundColorProviderThemed(themeDelegate, Theme.key_chat_messagePanelBackground) {
             @Override
             public int getBackgroundColor() {
+                if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                    return ColorUtils.setAlphaComponent(
+                            app.nimarkogram.messenger.appearance.ClientTheme.color(
+                                    app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH), 255);
+                }
                 if (!BlurredBackgroundProviderImpl.checkBlurEnabled(currentAccount, themeDelegate)) {
                     return ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_messagePanelBackground), 255);
                 }
@@ -4772,10 +4777,14 @@ public class ChatActivity extends BaseFragment implements
 
         contentView.setOccupyStatusBar(!inBubbleMode && !isInsideContainer && !inPreviewMode);
 
-        actionBar.setupGlass(
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));
+        } else {
+            actionBar.setupGlass(
             glassBackgroundDrawableFactory,
             BlurredBackgroundProviderImpl.topPanelChatActivity(themeDelegate),
             ChatObject.isForum(currentChat));
+        }
         if (app.nimarkogram.messenger.appearance.AppearanceConfig.newChatHeaderStyle()) {
             actionBar.setDrawGlassTitle(false);
             actionBar.setShadowAlpha(0);
@@ -31536,7 +31545,12 @@ public class ChatActivity extends BaseFragment implements
                     && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
             scrimBlur3Factory.setLiquidGlassEffectAllowed(liquidMessageMenu);
             if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
-                popupLayout.setBackground(null);
+                Drawable materialMenuBackground = popupLayout.getContext().getResources()
+                        .getDrawable(R.drawable.popup_fixed_alert4).mutate();
+                popupLayout.setBackground(app.nimarkogram.messenger.appearance.ClientTheme.popupDrawable(
+                        materialMenuBackground,
+                        app.nimarkogram.messenger.appearance.ClientTheme.color(
+                                app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)));
             } else {
                 popupLayout.setBackground(scrimBlur3Factory.create(popupLayout, true)
                     .setColorProvider(BlurredBackgroundProviderImpl.messageMenuBackground(resourceProvider))
