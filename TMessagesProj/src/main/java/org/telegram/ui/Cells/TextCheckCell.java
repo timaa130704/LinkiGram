@@ -123,7 +123,7 @@ public class TextCheckCell extends FrameLayout {
 
         checkBox = new Switch(context, resourcesProvider);
         checkBox.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
-        addView(checkBox, LayoutHelper.createFrame(37, 20, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
+        addView(checkBox, LayoutHelper.createFrame(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth(), app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight(), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
 
         setClipChildren(false);
 
@@ -146,6 +146,14 @@ public class TextCheckCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        checkBox.getLayoutParams().width = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth());
+        checkBox.getLayoutParams().height = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight());
+        int switchInset = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchTextInset());
+        for (TextView label : new TextView[]{textView, valueTextView}) {
+            LayoutParams labelParams = (LayoutParams) label.getLayoutParams();
+            labelParams.leftMargin = LocaleController.isRTL ? switchInset : AndroidUtilities.dp(padding);
+            labelParams.rightMargin = LocaleController.isRTL ? AndroidUtilities.dp(padding) : switchInset;
+        }
         float materialShift = app.nimarkogram.messenger.appearance.MaterialStyle.listItems()
                 && !isMultiline && valueTextView.getVisibility() == VISIBLE ? AndroidUtilities.dp(4) : 0;
         textView.setTranslationY(materialShift);
@@ -198,7 +206,7 @@ public class TextCheckCell extends FrameLayout {
         addView(valueTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 64 : padding, 36, LocaleController.isRTL ? padding : 64, 0));
 
         removeView(checkBox);
-        addView(checkBox, LayoutHelper.createFrame(37, 20, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
+        addView(checkBox, LayoutHelper.createFrame(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth(), app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight(), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
     }
 
     public void setColors(int key, int switchKey, int switchKeyChecked, int switchThumb, int switchThumbChecked) {

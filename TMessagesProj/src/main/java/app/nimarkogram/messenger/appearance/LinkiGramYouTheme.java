@@ -34,101 +34,26 @@ public final class LinkiGramYouTheme {
     }
 
     public static void setEnabled(boolean enabled) {
+        if (enabled) ColorOs17Theme.setEnabled(false);
         LinkiGramYouTheme.enabled = enabled;
         loaded = true;
         app.nimarkogram.messenger.NimarkoConfig.getPreferences().edit().putBoolean(PREF_ENABLED, enabled).apply();
     }
 
-    /** Applies Android's wallpaper-derived Material palette to Telegram's semantic color roles. */
+    /** One role map serves dialogs, chat content, profiles, media and controls. */
     public static int resolveColor(int key, int original) {
-        if (!isEnabled() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return original;
-        Context context = ApplicationLoader.applicationContext;
-        if (context == null) return original;
-        final boolean dark = Theme.isCurrentThemeDark();
-        try {
-            if (key == Theme.key_actionBarDefault || key == Theme.key_actionBarDefaultArchived
-                    || key == Theme.key_windowBackgroundWhite || key == Theme.key_dialogBackground
-                    || key == Theme.key_actionBarDefaultSubmenuBackground) return color(context, dark,
-                    android.R.color.system_neutral1_0, android.R.color.system_neutral1_900, original);
-            if (key == Theme.key_windowBackgroundGray || key == Theme.key_dialogBackgroundGray
-                    || key == Theme.key_dialogInputField || key == Theme.key_windowBackgroundWhiteInputField)
-                return color(context, dark,
-                    android.R.color.system_neutral1_50, android.R.color.system_neutral1_800, original);
-            if (key == Theme.key_actionBarDefaultIcon || key == Theme.key_actionBarDefaultTitle
-                    || key == Theme.key_actionBarDefaultArchivedIcon || key == Theme.key_actionBarDefaultArchivedTitle
-                    || key == Theme.key_actionBarDefaultSubmenuItem || key == Theme.key_dialogTextBlack
-                    || key == Theme.key_dialogButton || key == Theme.key_chats_name
-                    || key == Theme.key_windowBackgroundWhiteBlackText) return color(context, dark,
-                    android.R.color.system_neutral1_900, android.R.color.system_neutral1_100, original);
-            if (key == Theme.key_actionBarDefaultSubtitle || key == Theme.key_windowBackgroundWhiteGrayText
-                    || key == Theme.key_windowBackgroundWhiteGrayText2 || key == Theme.key_windowBackgroundWhiteGrayIcon
-                    || key == Theme.key_dialogTextGray || key == Theme.key_dialogTextGray2
-                    || key == Theme.key_actionBarDefaultArchivedSearchPlaceholder
-                    || key == Theme.key_actionBarDefaultSearchPlaceholder || key == Theme.key_actionBarDefaultSearch
-                    || key == Theme.key_actionBarDefaultSubmenuItemIcon || key == Theme.key_chats_message
-                    || key == Theme.key_chats_actionMessage)
-                return color(context, dark, android.R.color.system_neutral2_700, android.R.color.system_neutral2_200, original);
-            if (key == Theme.key_windowBackgroundWhiteBlueText || key == Theme.key_windowBackgroundWhiteBlueText2
-                    || key == Theme.key_windowBackgroundWhiteBlueText3 || key == Theme.key_windowBackgroundWhiteBlueText4
-                    || key == Theme.key_windowBackgroundWhiteBlueText5 || key == Theme.key_windowBackgroundWhiteBlueText6
-                    || key == Theme.key_windowBackgroundWhiteBlueText7 || key == Theme.key_windowBackgroundWhiteLinkText
-                    || key == Theme.key_windowBackgroundWhiteBlueIcon || key == Theme.key_windowBackgroundWhiteBlueHeader
-                    || key == Theme.key_dialogTextBlue || key == Theme.key_dialogTextBlue2 || key == Theme.key_dialogTextLink
-                    || key == Theme.key_dialogInputFieldActivated || key == Theme.key_dialogCheckboxSquareBackground
-                    || key == Theme.key_dialogRadioBackgroundChecked || key == Theme.key_dialogRoundCheckBoxCheck
-                    || key == Theme.key_dialogButtonSelector || key == Theme.key_actionBarDefaultArchivedSearch
-                    || key == Theme.key_telegram_color || key == Theme.key_telegram_color_text
-                    || key == Theme.key_checkboxSquareBackground || key == Theme.key_checkboxCheck
-                    || key == Theme.key_radioBackgroundChecked || key == Theme.key_chats_unreadCounter
-                    || key == Theme.key_chats_pinnedIcon || key == Theme.key_chats_onlineCircle)
-                return color(context, dark, android.R.color.system_accent1_600, android.R.color.system_accent1_200, original);
-            if (key == Theme.key_windowBackgroundWhiteBlueButton || key == Theme.key_actionBarDefaultSelector)
-                return color(context, dark, android.R.color.system_accent1_100, android.R.color.system_accent1_700, original);
-            if (key == Theme.key_chats_unreadCounterText || key == Theme.key_checkboxSquareCheck)
-                return color(context, dark, android.R.color.system_accent1_0, android.R.color.system_accent1_900, original);
-            if (key == Theme.key_chat_outBubble || key == Theme.key_chat_outBubbleSelected)
-                return color(context, dark, android.R.color.system_accent1_100, android.R.color.system_accent1_800, original);
-            if (key == Theme.key_chat_messageTextOut)
-                return color(context, dark, android.R.color.system_accent1_900, android.R.color.system_accent1_100, original);
-            if (key == Theme.key_chat_inBubble || key == Theme.key_chat_inBubbleSelected)
-                return color(context, dark, android.R.color.system_neutral1_100, android.R.color.system_neutral1_800, original);
-            if (key == Theme.key_chat_messageTextIn)
-                return color(context, dark, android.R.color.system_neutral1_900, android.R.color.system_neutral1_100, original);
-        } catch (Throwable ignore) {
-            // Keep the selected Telegram theme on devices without a usable system palette.
-        }
-        return original;
+        return ClientTheme.resolveColor(key, original);
     }
 
-    /** Material 3 color roles used by the main NavigationBar. */
     public static int navigationBarColor(Context context, int role, int fallback) {
-        if (!isEnabled() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || context == null) return fallback;
-        final boolean dark = Theme.isCurrentThemeDark();
-        final int colorId;
+        if (!ClientTheme.isEnabled()) return fallback;
+        if (ColorOs17Theme.isEnabled()) return ColorOs17Theme.navigationBarColor(role, fallback);
         switch (role) {
-            case NAV_COLOR_SURFACE:
-                colorId = dark ? android.R.color.system_neutral1_800 : android.R.color.system_neutral1_50;
-                break;
-            case NAV_COLOR_INDICATOR:
-                colorId = dark ? android.R.color.system_accent2_800 : android.R.color.system_accent2_100;
-                break;
-            case NAV_COLOR_SELECTED:
-                colorId = dark ? android.R.color.system_accent2_100 : android.R.color.system_accent2_900;
-                break;
-            case NAV_COLOR_UNSELECTED:
-                colorId = dark ? android.R.color.system_neutral2_200 : android.R.color.system_neutral2_700;
-                break;
-            default:
-                return fallback;
+            case NAV_COLOR_SURFACE: return ClientTheme.color(ClientTheme.SURFACE_HIGH);
+            case NAV_COLOR_INDICATOR: return ClientTheme.color(ClientTheme.CONTAINER);
+            case NAV_COLOR_SELECTED: return ClientTheme.color(ClientTheme.ON_CONTAINER);
+            case NAV_COLOR_UNSELECTED: return ClientTheme.color(ClientTheme.SECONDARY);
+            default: return fallback;
         }
-        try {
-            return context.getColor(colorId);
-        } catch (Throwable ignore) {
-            return fallback;
-        }
-    }
-
-    private static int color(Context context, boolean dark, int lightId, int darkId, int fallback) {
-        return context.getColor(dark ? darkId : lightId);
     }
 }

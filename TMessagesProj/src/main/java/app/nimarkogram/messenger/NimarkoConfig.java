@@ -177,6 +177,7 @@ public final class NimarkoConfig {
     // player / context bar, replacing the stock AudioPlayerAlert. Both default on.
     public static boolean md3Player() {
         return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
                 || getPreferences().getBoolean("OEAppearanceMd3Player", true);
     }
 
@@ -186,6 +187,7 @@ public final class NimarkoConfig {
 
     public static boolean md3MiniPlayer() {
         return app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
                 || getPreferences().getBoolean("OEAppearanceMd3MiniPlayer", true);
     }
 

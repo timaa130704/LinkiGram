@@ -443,6 +443,25 @@ public class SeekBarView extends FrameLayout {
         return pressed;
     }
 
+    private void drawColorOsSlider(Canvas canvas, float left, float right, float cy, int position) {
+        float halfHeight = AndroidUtilities.dp(pressed ? 7 : 6);
+        float x = Math.max(left, Math.min(right, left + position));
+        innerPaint1.setColor(app.nimarkogram.messenger.appearance.ColorOs17Theme.controlTrackColor());
+        rect.set(left, cy - halfHeight, right, cy + halfHeight);
+        canvas.drawRoundRect(rect, halfHeight, halfHeight, innerPaint1);
+        if (bufferedProgress > 0) {
+            innerPaint1.setColor(Theme.multAlpha(app.nimarkogram.messenger.appearance.ColorOs17Theme.accentColor(), 0.18f));
+            rect.right = left + Math.max(0, Math.min(1, bufferedProgress)) * (right - left);
+            canvas.drawRoundRect(rect, halfHeight, halfHeight, innerPaint1);
+        }
+        innerPaint1.setColor(app.nimarkogram.messenger.appearance.ColorOs17Theme.accentColor());
+        rect.set(left, cy - halfHeight, x, cy + halfHeight);
+        if (minProgress > 0) rect.left = Math.min(x, left + minProgress * (right - left));
+        canvas.drawRoundRect(rect, halfHeight, halfHeight, innerPaint1);
+        innerPaint1.setColor(Theme.isCurrentThemeDark() ? 0xFFB8D9FF : 0xFFFFFFFF);
+        canvas.drawCircle(x, cy, AndroidUtilities.dp(pressed ? 11 : 10), innerPaint1);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         int thumbX = this.thumbX;
@@ -460,6 +479,11 @@ public class SeekBarView extends FrameLayout {
         float left = selectorWidth / 2f, right = getMeasuredWidth() - selectorWidth / 2;
         float top = centerY - AndroidUtilities.dp(effectiveLineWidthDp()) / 2f, bottom = centerY + AndroidUtilities.dp(effectiveLineWidthDp()) / 2f;
 
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && !twoSided) {
+            drawColorOsSlider(canvas, left, right, centerY, thumbX);
+            drawTimestampLabel(canvas);
+            return;
+        }
         if (isMd3Slider() && !twoSided) {
             drawMaterialSlider(canvas, left, right, centerY, thumbX);
             drawTimestampLabel(canvas);

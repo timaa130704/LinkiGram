@@ -105,16 +105,36 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     }
 
     private boolean materialMainTab;
+    private boolean colorOsMainTab;
     private void applyMaterialMainTab() {
         materialMainTab = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         if (!materialMainTab) return;
-        imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 10, 0, 0));
-        if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 11, 0, 0));
+        colorOsMainTab = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+        imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
+        if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.LEFT | Gravity.CENTER_VERTICAL, 13, 0, 0, 0));
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
+        textView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM));
         textView.setIncludeFontPadding(false);
-        textView.setLetterSpacing(1f / 24f);
-        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 16, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 42, 0, 0));
-        isSelectedAnimator.setDuration(500);
-        isSelectedAnimator.setInterpolator(org.telegram.ui.Components.CubicBezierInterpolator.Emphasized);
+        textView.setLetterSpacing(0f);
+        textView.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
+        textView.setAlpha(0f);
+        textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.FILL_VERTICAL, 48, 0, 8, 0));
+        if (colorOsMainTab) {
+            imageView.setLayoutParams(mainIconLayout(24));
+            if (backupImageView != null) backupImageView.setLayoutParams(mainIconLayout(22));
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10f);
+            textView.setGravity(Gravity.CENTER);
+            textView.setAlpha(1f);
+            textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 14, Gravity.TOP, 3, 31, 3, 0));
+        }
+        isSelectedAnimator.setDuration(280);
+        isSelectedAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+    }
+
+    private FrameLayout.LayoutParams mainIconLayout(float size) {
+        return colorOsMainTab
+                ? LayoutHelper.createFrame(size, size, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, size == 22 ? 5 : 4, 0, 0)
+                : LayoutHelper.createFrame(size, size, Gravity.LEFT | Gravity.CENTER_VERTICAL, (48 - size) / 2, 0, 0, 0);
     }
 
     private boolean hasVisualWidth;
@@ -164,14 +184,14 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
         final float viewWidth = hasVisualWidth ? visualWidth : getWidth();
-        final float selectedFactor = hasGestureSelectedOverride ? gestureSelectedOverride : isSelectedAnimator.getFloatValue();
+        final float selectedFactor = !materialMainTab && hasGestureSelectedOverride
+                ? gestureSelectedOverride : isSelectedAnimator.getFloatValue();
         if (selectedFactor > 0 && !skipDrawSelector) {
             final float alpha = AnimatorUtils.DECELERATE_INTERPOLATOR.getInterpolation(selectedFactor);
 
             paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
             if (materialMainTab) {
-                float width = Math.min(dp(56), Math.max(0, viewWidth - dp(8)));
-                tmpRectF.set((viewWidth - width) / 2f, dp(6), (viewWidth + width) / 2f, dp(38));
+                tmpRectF.set(0, 0, viewWidth, getHeight());
                 paintCounterBackground.setColor(Theme.multAlpha(materialIndicatorColor, alpha));
             } else {
                 tmpRectF.set(0, 0, viewWidth, getHeight());
@@ -179,7 +199,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             final float r = Math.min(tmpRectF.width(), tmpRectF.height()) / 2f;
             final float s = lerp(0.6f, 1, selectedFactor) * MathUtils.clamp(attachScale, 0, 1);
             canvas.save();
-            canvas.scale(materialMainTab ? lerp(0.4f, 1f, selectedFactor) : s, materialMainTab ? 1f : s, tmpRectF.centerX(), tmpRectF.centerY());
+            canvas.scale(materialMainTab ? 1f : s, materialMainTab ? 1f : s, tmpRectF.centerX(), tmpRectF.centerY());
             canvas.drawRoundRect(tmpRectF, r, r, paintCounterBackground);
             canvas.restore();
         }
@@ -196,10 +216,12 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             canvas.save();
 
             final float gap = dpf2(1.33f);
-            final float cx = viewWidth / 2f + dpf2(11);
-            final float cy = dpf2(materialMainTab ? 16 : 10);
+            final float cx = materialMainTab && !colorOsMainTab ? dp(34) : viewWidth / 2f + dpf2(11);
+            final float cy = dpf2(10);
             final float height = dpf2(16);
-            final float width = Math.max(height, counter.getCurrentWidth() + dp(8));
+            final float width = materialMainTab
+                    ? Math.min(dp(26), Math.max(height, counter.getCurrentWidth() + dp(8)))
+                    : Math.max(height, counter.getCurrentWidth() + dp(8));
             final float rOuter = dpf2(9.333f);
             final float rInner = dpf2(8f);
             tmpRectF.set(
@@ -254,17 +276,31 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         isSelectedAnimator.setValue(selected, animated);
         checkPlayAnimation(animated);
 
-        textView.setTypeface(selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
+        textView.setTypeface(materialMainTab
+                ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM)
+                : selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
+        if (materialMainTab && !animated) {
+            textView.setAlpha(colorOsMainTab || selected ? 1f : 0f);
+            requestLayout();
+        }
     }
 
     public boolean isTabSelected() {
         return isSelectedAnimator.getValue();
     }
 
+    public float getSelectionProgress() {
+        return isSelectedAnimator.getFloatValue();
+    }
+
     @Override
     public void onFactorChanged(int id, float factor, float fraction, FactorAnimator callee) {
         if (id == ANIMATOR_ID_IS_SELECTED) {
             updateColors();
+            if (materialMainTab) {
+                textView.setAlpha(colorOsMainTab ? 1f : factor);
+                requestLayout();
+            }
         }
         invalidate();
     }
@@ -691,7 +727,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
                     Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider), PorterDuff.Mode.SRC_IN));
         } catch (Exception ignore) {
         }
-        addView(iv, LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
+        addView(iv, materialMainTab
+                ? mainIconLayout(24)
+                : LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
     }
 
 
@@ -709,7 +747,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
         backupImageView.setRoundRadius(0);
         backupImageView.setSize(dp(24), dp(24));
-        backupImageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
+        backupImageView.setLayoutParams(materialMainTab
+                ? mainIconLayout(24)
+                : LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
         needUpdateBackupViewColor = true;
         checkPlayAnimation(false);
         updateColors();
@@ -733,7 +773,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         backupImageView.setForUserOrChat(user, avatarDrawable);
         backupImageView.setSize(-1, -1);
         backupImageView.setRoundRadius(dp(11.33f));
-        backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 5, 0, 0));
+        backupImageView.setLayoutParams(materialMainTab
+                ? mainIconLayout(22)
+                : LayoutHelper.createFrame(22, 22, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 5, 0, 0));
         backupImageView.setColorFilter(null);
         needUpdateBackupViewColor = false;
         invalidate();

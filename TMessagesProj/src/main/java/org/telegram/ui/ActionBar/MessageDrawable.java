@@ -93,6 +93,23 @@ public class MessageDrawable extends Drawable {
     int transitionDrawableColor;
     private int alpha;
     private boolean drawFullBubble;
+    private final RectF colorOsBounds = new RectF();
+    private final float[] colorOsRadii = new float[8];
+    private int cachedColorOsStyle;
+
+    private void checkColorOsCache() {
+        int enabled = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 2
+                : app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 1 : 0;
+        if (cachedColorOsStyle == enabled) return;
+        cachedColorOsStyle = enabled;
+        for (int[] row : currentBackgroundDrawableRadius) Arrays.fill(row, -1);
+        Arrays.fill(currentShadowDrawableRadius, -1);
+    }
+
+    private static int bubbleRadiusDp() {
+        return app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                ? app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius() : SharedConfig.bubbleRadius;
+    }
 
     public MessageDrawable crossfadeFromDrawable;
     public float crossfadeProgress;
@@ -162,7 +179,7 @@ public class MessageDrawable extends Drawable {
             return Theme.getColor(key);
         }
         if (resourcesProvider != null) {
-            return resourcesProvider.getColor(key);
+            return app.nimarkogram.messenger.appearance.ClientTheme.resolveColor(key, resourcesProvider.getColor(key));
         }
         return Theme.getColor(key);
     }
@@ -171,7 +188,8 @@ public class MessageDrawable extends Drawable {
         if (currentType == TYPE_PREVIEW) {
             return Theme.getColor(key);
         }
-        return resourcesProvider != null ? resourcesProvider.getCurrentColor(key) : Theme.getCurrentColor(key);
+        return app.nimarkogram.messenger.appearance.ClientTheme.resolveColor(key,
+                resourcesProvider != null ? resourcesProvider.getCurrentColor(key) : Theme.getCurrentColor(key));
     }
 
     public void setBotButtonsBottom(boolean botButtonsBottom) {
@@ -326,13 +344,14 @@ public class MessageDrawable extends Drawable {
     }
 
     public Drawable getBackgroundDrawable() {
+        checkColorOsCache();
         int newRad;
         if (overrideRoundRadius != 0) {
             newRad = overrideRoundRadius;
         } else if (overrideRounding > 0) {
             newRad = 0;
         } else {
-            newRad = dp(SharedConfig.bubbleRadius);
+            newRad = dp(bubbleRadiusDp());
         }
         int idx;
         if (isTopNear && isBottomNear) {
@@ -446,13 +465,14 @@ public class MessageDrawable extends Drawable {
     }
 
     public Drawable getShadowDrawable() {
+        checkColorOsCache();
         if (isCrossfadeBackground) {
             return null;
         }
         if (gradientShader == null && !isSelected && crossfadeFromDrawable == null) {
             return null;
         }
-        int newRad = dp(SharedConfig.bubbleRadius);
+        int newRad = dp(bubbleRadiusDp());
         int idx;
         if (isTopNear && isBottomNear) {
             idx = 3;
@@ -575,14 +595,14 @@ public class MessageDrawable extends Drawable {
             rad = overrideRoundRadius;
             nearRad = overrideRoundRadius;
         } else if (overrideRounding > 0) {
-            rad = AndroidUtilities.lerp(dp(SharedConfig.bubbleRadius), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
-            nearRad = AndroidUtilities.lerp(dp(Math.min(6, SharedConfig.bubbleRadius)), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
+            rad = AndroidUtilities.lerp(dp(bubbleRadiusDp()), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
+            nearRad = AndroidUtilities.lerp(dp(Math.min(6, bubbleRadiusDp())), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
         } else if (currentType == TYPE_PREVIEW) {
             rad = dp(6);
             nearRad = dp(6);
         } else {
-            rad = dp(SharedConfig.bubbleRadius);
-            nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+            rad = dp(bubbleRadiusDp());
+            nearRad = dp(Math.min(6, bubbleRadiusDp()));
         }
         int smallRad = dp(6);
 
@@ -638,14 +658,14 @@ public class MessageDrawable extends Drawable {
             rad = overrideRoundRadius;
             nearRad = overrideRoundRadius;
         } else if (overrideRounding > 0) {
-            rad = AndroidUtilities.lerp(dp(SharedConfig.bubbleRadius), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
-            nearRad = AndroidUtilities.lerp(dp(Math.min(6, SharedConfig.bubbleRadius)), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
+            rad = AndroidUtilities.lerp(dp(bubbleRadiusDp()), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
+            nearRad = AndroidUtilities.lerp(dp(Math.min(6, bubbleRadiusDp())), Math.min(bounds.width(), bounds.height()) / 2, overrideRounding);
         } else if (currentType == TYPE_PREVIEW) {
             rad = dp(6);
             nearRad = dp(6);
         } else {
-            rad = dp(SharedConfig.bubbleRadius);
-            nearRad = dp(Math.min(6, SharedConfig.bubbleRadius));
+            rad = dp(bubbleRadiusDp());
+            nearRad = dp(Math.min(6, bubbleRadiusDp()));
         }
         int smallRad = dp(6);
         int top = Math.max(bounds.top, 0);
@@ -674,6 +694,19 @@ public class MessageDrawable extends Drawable {
 
     private void generatePath(Path path, Rect bounds, int padding, int rad, int smallRad, int nearRad, int top, boolean drawFullBottom, boolean drawFullTop, boolean customPaint) {
         path.rewind();
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled() && currentType != TYPE_PREVIEW && overrideRounding <= 0 && overrideRoundRadius == 0) {
+            float radius = Math.min(dp(app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius()), Math.max(0, bounds.height() - padding * 2) / 2f);
+            java.util.Arrays.fill(colorOsRadii, radius);
+            int side = isOut ? 2 : 0;
+            if (isTopNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
+            side = isOut ? 4 : 6;
+            if (isBottomNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
+            colorOsBounds.set(bounds.left + padding, bounds.top + padding,
+                    bounds.right - padding, bounds.bottom - padding);
+            path.addRoundRect(colorOsBounds, colorOsRadii, Path.Direction.CW);
+            path.close();
+            return;
+        }
         int heightHalf = (bounds.height() - padding) >> 1;
         if (rad > heightHalf) {
             rad = heightHalf;

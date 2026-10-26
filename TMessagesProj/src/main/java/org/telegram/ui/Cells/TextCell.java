@@ -139,7 +139,7 @@ public class TextCell extends FrameLayout {
         if (needCheck) {
             checkBox = new Switch(context, resourcesProvider);
             checkBox.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
-            addView(checkBox, LayoutHelper.createFrame(37, 20, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
+            addView(checkBox, LayoutHelper.createFrame(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth(), app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight(), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
         }
 
         setFocusable(true);
@@ -210,7 +210,7 @@ public class TextCell extends FrameLayout {
             valueImageView.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST));
         }
         if (checkBox != null) {
-            checkBox.measure(MeasureSpec.makeMeasureSpec(dp(37), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.EXACTLY));
+            checkBox.measure(MeasureSpec.makeMeasureSpec(dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth()), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight()), MeasureSpec.EXACTLY));
         }
         setMeasuredDimension(width, height + (needDivider ? 1 : 0));
     }
@@ -510,7 +510,7 @@ public class TextCell extends FrameLayout {
         if (checkBox == null) {
             checkBox = new Switch(getContext(), resourcesProvider);
             checkBox.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
-            addView(checkBox, LayoutHelper.createFrame(37, 20, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
+            addView(checkBox, LayoutHelper.createFrame(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth(), app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight(), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL, 22, 0, 22, 0));
         }
         if (checkBox != null) {
             checkBox.setVisibility(VISIBLE);

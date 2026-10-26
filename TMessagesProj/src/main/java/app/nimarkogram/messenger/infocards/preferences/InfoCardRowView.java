@@ -77,7 +77,7 @@ public class InfoCardRowView extends FrameLayout {
         switchView = new Switch(context, rp);
         switchView.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked,
                 Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
-        LayoutParams switchParams = LayoutHelper.createFrame(37, 20, Gravity.CENTER_VERTICAL | Gravity.END);
+        LayoutParams switchParams = LayoutHelper.createFrame(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth(), app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight(), Gravity.CENTER_VERTICAL | Gravity.END);
         switchParams.setMarginEnd(dp(18));
         addView(switchView, switchParams);
         switchView.setOnClickListener(v -> {

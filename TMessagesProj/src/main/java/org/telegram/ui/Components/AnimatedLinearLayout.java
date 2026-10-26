@@ -137,7 +137,7 @@ public class AnimatedLinearLayout extends LinearLayout {
             }
         }
         Collections.sort(visibleHolders, comparator);
-        listAnimator.reset(visibleHolders, !skipNextAnimation);
+        listAnimator.reset(visibleHolders, !skipNextAnimation && shouldAnimateItemLayout());
         for (Holder holder : visibleHolders) {
             holder.hasInAnimator = true;
         }
@@ -203,6 +203,10 @@ public class AnimatedLinearLayout extends LinearLayout {
 
     protected void onItemsChanged() {
 
+    }
+
+    protected boolean shouldAnimateItemLayout() {
+        return true;
     }
 
     protected int getEntriesCount() {

@@ -57,6 +57,22 @@ public final class PlayerColors {
     }
 
     public static PlayerColors fromSeed(int seed, boolean dark) {
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) {
+            return new PlayerColors(dark, new int[]{
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.BACKGROUND),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.TRACK),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_SURFACE),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SECONDARY),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.OUTLINE),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_PRIMARY),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_CONTAINER),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER),
+                    app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_CONTAINER)});
+        }
         DynamicScheme s = new SchemeTonalSpot(Hct.fromInt(seed), dark, 0.0);
         return new PlayerColors(dark, new int[]{
                 s.getSurface(), s.getSurfaceContainerLow(), s.getSurfaceContainer(), s.getSurfaceContainerHigh(),

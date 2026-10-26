@@ -119,7 +119,67 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             }
         }
 
-        applyPassTextSize(chosenPass);
+        final boolean youNavigationStyle = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        if (youNavigationStyle) {
+            for (int a = 0, N = getChildCount(); a < N; a++) {
+                final View child = getChildAt(a);
+                if (child instanceof Tab) {
+                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 10f : 14f);
+                }
+            }
+        } else {
+            applyPassTextSize(chosenPass);
+        }
+
+        if (youNavigationStyle) {
+            // Yougram-style Material navigation: compact icon slots, with only the
+            // active destination expanding to make room for its label.
+            final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+            final int slotWidth = colorOs ? Math.min(dp(70), maxTotalWidthForTabs / Math.max(1, visibleChildCount)) : dp(48);
+            final int gap = colorOs ? 0 : dp(2);
+            final int visibleCount = Math.max(1, visibleChildCount);
+            final int gapsWidth = gap * (visibleCount - 1);
+            final int availableExtraWidth = Math.max(0, maxTotalWidthForTabs - slotWidth * visibleCount - gapsWidth);
+            float requestedExtraWidth = 0;
+            for (int a = 0, N = getChildCount(); a < N; a++) {
+                final View child = getChildAt(a);
+                if (!isViewVisible(child) || !(child instanceof GlassTabView)) {
+                    continue;
+                }
+                final GlassTabView tab = (GlassTabView) child;
+                if (!colorOs) requestedExtraWidth += Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress();
+            }
+            final float extraScale = requestedExtraWidth > availableExtraWidth && requestedExtraWidth > 0
+                    ? availableExtraWidth / requestedExtraWidth : 1f;
+
+            int l = 0;
+            for (int a = 0, N = getChildCount(); a < N; a++) {
+                final View child = getChildAt(a);
+                if (!isViewVisible(child)) {
+                    tabsWidth[a] = 0;
+                    tabsLeftPos[a] = l;
+                    child.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.EXACTLY),
+                            MeasureSpec.makeMeasureSpec(tabHeight, MeasureSpec.EXACTLY));
+                    continue;
+                }
+                float extra = 0;
+                if (!colorOs && child instanceof GlassTabView) {
+                    final GlassTabView tab = (GlassTabView) child;
+                    extra = Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress() * extraScale;
+                }
+                tabsWidth[a] = Math.round(slotWidth + extra);
+                tabsLeftPos[a] = l;
+                l += tabsWidth[a] + gap;
+                child.measure(MeasureSpec.makeMeasureSpec(tabsWidth[a], MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(tabHeight, MeasureSpec.EXACTLY));
+            }
+            if (visibleCount > 0) {
+                l -= gap;
+            }
+            setMeasuredDimension(l + getPaddingLeft() + getPaddingRight(), height);
+            calculateTotalSizesAfterMeasure();
+            return;
+        }
 
         final int tabPadding = dp(PASS_PADDINGS_DP[chosenPass]);
         final int maxTabTextWidthIfEq = (maxTotalWidthForTabs / Math.max(1, visibleChildCount)) - tabPadding * 2;
@@ -159,12 +219,6 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
             for (int a = 0, N = getChildCount(); a < N; a++) {
                 tabsTextWidthWithMargin[a] += growP * tabsWeight[a];
-            }
-        }
-
-        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
-            for (int a = 0; a < getChildCount(); a++) {
-                tabsTextWidthWithMargin[a] = isViewVisible(getChildAt(a)) ? maxTotalWidthForTabs / (float) Math.max(1, visibleChildCount) : 0;
             }
         }
 
@@ -284,6 +338,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
     }
 
+    @Override
+    protected boolean shouldAnimateItemLayout() {
+        // Material tab widths already follow the selection animator each frame.
+        return !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+    }
+
     public void setTabSelected(View tab, boolean animated) {
         for (int a = 0, N = getChildCount(); a < N; a++) {
             final View child = getChildAt(a);
@@ -293,6 +353,9 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             }
         }
         moveSelectorTo(tab, animated);
+        if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
+            requestLayout();
+        }
     }
 
     public void setSelectorToSelectedTab(boolean animated) {

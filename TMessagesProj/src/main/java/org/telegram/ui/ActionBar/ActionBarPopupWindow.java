@@ -170,6 +170,7 @@ public class ActionBarPopupWindow extends PopupWindow {
 
             if (resId != 0) {
                 backgroundDrawable = getResources().getDrawable(resId).mutate();
+                backgroundDrawable = app.nimarkogram.messenger.appearance.ClientTheme.popupDrawable(backgroundDrawable, getThemedColor(Theme.key_actionBarDefaultSubmenuBackground));
                 setPadding(dp(8), dp(8), dp(8), dp(8));
             }
             if (backgroundDrawable != null) {

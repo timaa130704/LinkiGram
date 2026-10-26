@@ -3410,7 +3410,8 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
 
                         if (first) outRect.top = enableTopPadding ? padding : dp(4);
                         if (last) outRect.bottom = padding;
-                        if (!first && this.parent.materialSegments() && this.parent.sectionNeighbor(view, -1)) {
+                        if (!first && this.parent.materialSegments() && this.parent.sectionNeighbor(view, -1)
+                                && !app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
                             outRect.top += dp(2);
                         }
                     }
@@ -3448,6 +3449,13 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     private final float[] materialCorners = new float[8];
     private void materialCorners(View view) {
         boolean above = sectionNeighbor(view, -1), below = sectionNeighbor(view, 1);
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            float top = above ? 0 : dp(20);
+            float bottom = below ? 0 : dp(20);
+            for (int i = 0; i < 4; i++) materialCorners[i] = top;
+            for (int i = 4; i < 8; i++) materialCorners[i] = bottom;
+            return;
+        }
         boolean pill = !above && !below && (Boolean.TRUE.equals(view.getTag(R.id.linki_material_pill))
                 || view instanceof org.telegram.ui.Cells.TextCheckCell);
         float top = pill ? view.getHeight() / 2f : above ? Math.min(sectionRadius, dp(4)) : sectionRadius;
