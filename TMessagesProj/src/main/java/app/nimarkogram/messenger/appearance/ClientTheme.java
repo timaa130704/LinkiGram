@@ -288,6 +288,40 @@ public final class ClientTheme {
         add(SURFACE_SELECTED, Theme.key_chat_inBubbleSelected);
         add(CONTAINER_SELECTED, Theme.key_chat_outBubbleSelected);
         add(DIVIDER, Theme.key_divider, Theme.key_dialogGrayLine, Theme.key_actionBarDefaultSubmenuSeparator);
+        add(SURFACE_HIGH, Theme.key_chats_archivePinBackground, Theme.key_chats_archivePullDownBackground, Theme.key_chat_goDownButton);
+        add(SURFACE, Theme.key_chat_topPanelBackground);
+        add(BACKGROUND, Theme.key_actionBarBrowser);
+        add(CONTAINER, Theme.key_dialogTopBackground, Theme.key_dialogReactionMentionBackground, Theme.key_chats_archiveBackground,
+                Theme.key_chats_archivePullDownBackgroundActive, Theme.key_actionBarActionModeDefault, Theme.key_actionBarActionModeDefaultTop,
+                Theme.key_actionBarActionModeReaction);
+        add(ON_SURFACE, Theme.key_chats_nameArchived, Theme.key_chat_inReplyMediaMessageText, Theme.key_chat_inReplyMediaMessageSelectedText);
+        add(SECONDARY, Theme.key_dialogEmptyImage, Theme.key_dialogGiftsTabText, Theme.key_windowBackgroundWhiteGrayText6,
+                Theme.key_windowBackgroundWhiteGrayText7, Theme.key_windowBackgroundWhiteGrayText8, Theme.key_windowBackgroundWhiteHintText,
+                Theme.key_chats_messageArchived, Theme.key_chats_message_threeLines, Theme.key_chats_date_bold,
+                Theme.key_chats_muteIcon, Theme.key_chat_inContactPhoneSelectedText, Theme.key_chat_inAudioPerformerSelectedText,
+                Theme.key_chat_inAudioDurationSelectedText, Theme.key_chat_inFileInfoSelectedText, Theme.key_chat_inVenueInfoText,
+                Theme.key_chat_inVenueInfoSelectedText, Theme.key_chat_topPanelClose, Theme.key_chat_topPanelMessage);
+        add(PRIMARY, Theme.key_dialogScrollGlow, Theme.key_windowBackgroundChecked, Theme.key_windowBackgroundWhiteInputFieldActivated,
+                Theme.key_windowBackgroundWhiteValueText, Theme.key_chats_nameMessage, Theme.key_chats_nameMessageArchived,
+                Theme.key_chats_nameMessage_threeLines, Theme.key_chats_nameMessageArchived_threeLines, Theme.key_chats_attachMessage,
+                Theme.key_chats_menuItemCheck, Theme.key_actionBarActionModeReactionDot, Theme.key_chat_inPreviewInstantText,
+                Theme.key_chat_inPsaNameText, Theme.key_chat_inAdminText, Theme.key_chat_inAdminSelectedText,
+                Theme.key_chat_inFileProgressSelected, Theme.key_chat_messageLinkIn, Theme.key_chat_messageLinkOut,
+                Theme.key_chat_topPanelLine, Theme.key_chat_topPanelTitle, Theme.key_chat_goDownButtonCounterBackground);
+        add(ON_PRIMARY, Theme.key_windowBackgroundCheckText, Theme.key_chats_mentionIcon, Theme.key_chat_goDownButtonCounter);
+        add(ON_CONTAINER, Theme.key_chats_archiveIcon, Theme.key_chats_archiveText, Theme.key_actionBarActionModeDefaultIcon,
+                Theme.key_actionBarActionModeReactionText, Theme.key_chat_outPreviewInstantText, Theme.key_chat_outReplyLine2,
+                Theme.key_chat_outReplyMediaMessageText, Theme.key_chat_outReplyMediaMessageSelectedText, Theme.key_chat_outContactPhoneSelectedText,
+                Theme.key_chat_outAudioPerformerSelectedText, Theme.key_chat_outAdminText, Theme.key_chat_outAdminSelectedText,
+                Theme.key_chat_outAudioSelectedProgress, Theme.key_chat_outAudioDurationSelectedText, Theme.key_chat_outFileProgressSelected,
+                Theme.key_chat_outFileInfoSelectedText, Theme.key_chat_outVenueInfoText, Theme.key_chat_outVenueInfoSelectedText,
+                Theme.key_chat_outPsaNameText);
+        add(TRACK, Theme.key_windowBackgroundUnchecked, Theme.key_chat_outAudioCacheSeekbar, Theme.key_chat_outAudioSeekbarSelected,
+                Theme.key_chat_outVoiceSeekbarSelected, Theme.key_chat_inAudioCacheSeekbar, Theme.key_chat_inAudioSeekbarSelected,
+                Theme.key_chat_inVoiceSeekbarSelected);
+        add(SELECTOR, Theme.key_windowBackgroundWhiteLinkSelection, Theme.key_chats_pinnedOverlay, Theme.key_actionBarWhiteSelector,
+                Theme.key_actionBarActionModeDefaultSelector, Theme.key_actionBarDefaultArchivedSelector);
+        add(ERROR, Theme.key_dialogSwipeRemove, Theme.key_chats_sentError);
     }
 
     private static void add(int role, int... keys) {
