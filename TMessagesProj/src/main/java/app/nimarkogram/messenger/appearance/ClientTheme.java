@@ -68,28 +68,8 @@ public final class ClientTheme {
                 default: return 0;
             }
         }
-        DynamicScheme s = palette(dark).scheme;
-        switch (role) {
-            case BACKGROUND: return s.getSurface();
-            case SURFACE: return s.getSurfaceContainerLow();
-            case SURFACE_HIGH: return s.getSurfaceContainerHigh();
-            case ON_SURFACE: return s.getOnSurface();
-            case SECONDARY: return s.getOnSurfaceVariant();
-            case PRIMARY: return s.getPrimary();
-            case ON_PRIMARY: return s.getOnPrimary();
-            case CONTAINER: return s.getPrimaryContainer();
-            case ON_CONTAINER: return s.getOnPrimaryContainer();
-            case OUTLINE: return s.getOutline();
-            case TRACK: return s.getSurfaceContainerHighest();
-            case SELECTOR: return Theme.multAlpha(s.getPrimary(), 0.12f);
-            case ERROR: return s.getError();
-            case INVERSE: return s.getInverseSurface();
-            case ON_INVERSE: return s.getInverseOnSurface();
-            case SURFACE_SELECTED: return s.getSurfaceContainerHighest();
-            case CONTAINER_SELECTED: return s.getSecondaryContainer();
-            case DIVIDER: return s.getOutlineVariant();
-            default: return s.getOnSurface();
-        }
+        int[] colors = palette(dark).colors;
+        return colors[role > 0 && role < colors.length ? role : ON_SURFACE];
     }
 
     private static Palette palette(boolean dark) {
@@ -114,11 +94,18 @@ public final class ClientTheme {
     private static final class Palette {
         final int seed;
         final boolean dark;
-        final DynamicScheme scheme;
+        final int[] colors;
         Palette(int seed, boolean dark) {
             this.seed = seed;
             this.dark = dark;
-            scheme = new SchemeTonalSpot(Hct.fromInt(seed), dark, 0.0);
+            DynamicScheme s = new SchemeTonalSpot(Hct.fromInt(seed), dark, 0.0);
+            int primary = s.getPrimary();
+            colors = new int[]{0, s.getSurface(), s.getSurfaceContainerLow(), s.getSurfaceContainerHigh(),
+                    s.getOnSurface(), s.getOnSurfaceVariant(), primary, s.getOnPrimary(),
+                    s.getPrimaryContainer(), s.getOnPrimaryContainer(), s.getOutline(),
+                    s.getSurfaceContainerHighest(), Theme.multAlpha(primary, 0.12f), s.getError(),
+                    s.getInverseSurface(), s.getInverseOnSurface(), s.getSurfaceContainerHighest(),
+                    s.getSecondaryContainer(), s.getOutlineVariant()};
         }
     }
 
