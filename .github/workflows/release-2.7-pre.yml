@@ -1,0 +1,86 @@
+name: Publish LinkiGram 2.7 pre-release
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release-2.7-pre.yml]
+
+concurrency:
+  group: release-2.7-pre
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'timaa130704/LinkiGram' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: timaa130704/LinkiGram
+      SOURCE_SHA: d1ce0f1c5011086ca4acad1b24ee6e501cc9e3c3
+      RUN_ID: '40339772373'
+      ARTIFACT_ID: '12661180172'
+      ARTIFACT_SHA256: 29183a3b6cb4c8ec5719a0df143c787e795ef3a635c001e02acb5f10ef6e27fe
+      APK_NAME: LinkiGram-2.7-pre-release.apk
+      APK_SHA256: 487574b16b410b81144690d5d9fb2215e5715542e1c3dd8bc27fce5e9acc8fad
+      TAG: v2.7.0-pre.1
+      TITLE: LinkiGram 2.7 — предварительная версия
+    steps:
+      - name: Check out release workflow
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download and verify the tested CI artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/$RUN_ID" |
+            jq -e --arg sha "$SOURCE_SHA" '.status == "completed" and .conclusion == "success" and .head_sha == $sha' >/dev/null
+          gh api "repos/$GH_REPO/actions/artifacts/$ARTIFACT_ID" |
+            jq -e --arg digest "sha256:$ARTIFACT_SHA256" '.expired == false and .digest == $digest' >/dev/null
+          gh api "repos/$GH_REPO/actions/artifacts/$ARTIFACT_ID/zip" > artifact.zip
+          echo "$ARTIFACT_SHA256  artifact.zip" | sha256sum --check
+          unzip -p artifact.zip app.apk > "$APK_NAME"
+          echo "$APK_SHA256  $APK_NAME" | sha256sum --check
+          unzip -t "$APK_NAME" >/dev/null
+
+      - name: Publish the verified APK as a pre-release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > RELEASE_NOTES.md <<'NOTES'
+          Предварительный релиз LinkiGram 2.7 для ARM64.
+
+          - Темы Material You и ColorOS 17 применены к основным экранам, элементам управления и меню сообщений.
+          - Контекстное меню сообщения в Material You получило непрозрачную поверхность.
+          - Установка поверх версии 2.7 сохраняет данные приложения.
+
+          Требуется Android 7.0 или новее.
+          NOTES
+
+          if tag_info=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" 2>/dev/null); then
+            echo "$tag_info" | jq -e --arg sha "$SOURCE_SHA" '.object.type == "commit" and .object.sha == $sha' >/dev/null
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$SOURCE_SHA" >/dev/null
+          fi
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --draft --prerelease --title "$TITLE" --notes-file RELEASE_NOTES.md
+          fi
+
+          asset=$(gh release view "$TAG" --json assets --jq ".assets[] | select(.name == \"$APK_NAME\") | .name")
+          if [ -z "$asset" ]; then
+            gh release upload "$TAG" "$APK_NAME"
+          fi
+
+          mkdir -p uploaded
+          gh release download "$TAG" --pattern "$APK_NAME" --dir uploaded
+          echo "$APK_SHA256  uploaded/$APK_NAME" | sha256sum --check
+          gh release edit "$TAG" --title "$TITLE" --notes-file RELEASE_NOTES.md --draft=false --prerelease=true --latest=false
+          gh release view "$TAG" --json isDraft,isPrerelease,url,assets |
+            jq -e --arg asset "$APK_NAME" '.isDraft == false and .isPrerelease == true and any(.assets[]; .name == $asset)' >/dev/null
+          gh release view "$TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
