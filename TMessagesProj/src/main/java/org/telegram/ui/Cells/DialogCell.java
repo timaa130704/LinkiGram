@@ -5320,6 +5320,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 restoreCountTextPaint = true;
             } else {
                 paint = drawCounterMuted || currentDialogFolderId != 0 ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint;
+                if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                        && (drawCounterMuted || currentDialogFolderId != 0)) {
+                    Theme.dialogs_countTextPaint2.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
+                            app.nimarkogram.messenger.appearance.ClientTheme.ON_SURFACE));
+                    restoreCountTextPaint = true;
+                }
             }
 
             if (countOldLayout == null || unreadCount == 0) {

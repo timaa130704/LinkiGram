@@ -618,6 +618,7 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
                 items.add(new Item(dialogId));
             }
         }
+        updateExpandedStoriesPadding(getMeasuredWidth());
         int size = items.size();
         if (!storiesController.hasSelfStories()) {
             size--;
@@ -1037,8 +1038,20 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         titleView.setTextSize(dp(!AndroidUtilities.isTablet() && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 18 : 20));
         currentCellWidth = dp(ITEM_WIDTH);
+        updateExpandedStoriesPadding(MeasureSpec.getSize(widthMeasureSpec));
         AndroidUtilities.rectTmp.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(dp(85 + FAKE_TOP_PADDING), MeasureSpec.EXACTLY));
+    }
+
+    private void updateExpandedStoriesPadding(int width) {
+        if (recyclerListView == null || width <= 0) return;
+        int padding = dp(3);
+        if (type == TYPE_DIALOGS && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            padding = Math.max(padding, (width - items.size() * dp(ITEM_WIDTH)) / 2);
+        }
+        if (recyclerListView.getPaddingLeft() != padding || recyclerListView.getPaddingRight() != padding) {
+            recyclerListView.setPadding(padding, 0, padding, 0);
+        }
     }
 
     @Override
