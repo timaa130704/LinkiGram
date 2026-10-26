@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="NM_ColorOS17">ColorOS 17</string>
-    <string name="NM_ColorOS17_Desc">Apply ColorOS styling throughout LinkiGram: rounded cards, joined lists, a frosted top bar and fluid motion.</string>
+    <string name="NM_ColorOS17_Desc">Rounded panels, grouped cards and smooth transitions.</string>
 </resources>
 

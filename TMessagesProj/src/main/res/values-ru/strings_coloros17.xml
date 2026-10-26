@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="NM_ColorOS17">ColorOS 17</string>
-    <string name="NM_ColorOS17_Desc">Оформление ColorOS во всём LinkiGram: округлые карточки, объединённые списки, размытая верхняя панель и плавные анимации.</string>
+    <string name="NM_ColorOS17_Desc">Скруглённые панели, общие карточки и плавные переходы.</string>
 </resources>
 
