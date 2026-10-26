@@ -1029,12 +1029,19 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
         if (countLayout != null) {
             final int x = countLeft - dp(5.5f);
+            final boolean muted = MessagesController.getInstance(currentAccount).isDialogMuted(dialog_id, 0);
+            final int previousTextColor = Theme.dialogs_countTextPaint.getColor();
+            if (muted && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                Theme.dialogs_countTextPaint.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
+                        app.nimarkogram.messenger.appearance.ClientTheme.ON_SURFACE));
+            }
             rect.set(x, countTop, x + countWidth + dp(11), countTop + dp(23));
-            canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, MessagesController.getInstance(currentAccount).isDialogMuted(dialog_id, 0) ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint);
+            canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, muted ? Theme.dialogs_countGrayPaint : Theme.dialogs_countPaint);
             canvas.save();
             canvas.translate(countLeft, countTop + dp(4));
             countLayout.draw(canvas);
             canvas.restore();
+            Theme.dialogs_countTextPaint.setColor(previousTextColor);
         }
 
         if (actionLayout != null) {
