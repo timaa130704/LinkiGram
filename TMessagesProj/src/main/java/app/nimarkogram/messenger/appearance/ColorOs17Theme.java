@@ -58,11 +58,20 @@ public final class ColorOs17Theme {
     public static int navigationBarColor(int role, int fallback) {
         final boolean dark = Theme.isCurrentThemeDark();
         switch (role) {
-            case LinkiGramYouTheme.NAV_COLOR_SURFACE: return dark ? 0xFF28282A : 0xFFF0F0F0;
-            case LinkiGramYouTheme.NAV_COLOR_INDICATOR: return dark ? 0xFF414144 : 0xFFFFFFFF;
-            case LinkiGramYouTheme.NAV_COLOR_SELECTED: return dark ? 0xFFF2F2F2 : 0xFF171717;
-            case LinkiGramYouTheme.NAV_COLOR_UNSELECTED: return dark ? 0xFFB8B8BA : 0xFF626266;
+            case LinkiGramYouTheme.NAV_COLOR_SURFACE: return dark ? 0xFF17191D : 0xFFFFFFFF;
+            case LinkiGramYouTheme.NAV_COLOR_INDICATOR: return dark ? 0xFF293B50 : 0xFFE6F1FF;
+            case LinkiGramYouTheme.NAV_COLOR_SELECTED: return dark ? 0xFFF1F3F6 : 0xFF1B1D21;
+            case LinkiGramYouTheme.NAV_COLOR_UNSELECTED: return dark ? 0xFFA6ADB8 : 0xFF656B75;
             default: return fallback;
         }
+    }
+
+    /** Full-width ColorOS navigation surface, with the soft raised top corners used by app chrome. */
+    public static Drawable navigationBarBackgroundDrawable() {
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(navigationBarColor(LinkiGramYouTheme.NAV_COLOR_SURFACE, 0xFFFFFFFF));
+        float radius = AndroidUtilities.dp(22);
+        background.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        return background;
     }
 }

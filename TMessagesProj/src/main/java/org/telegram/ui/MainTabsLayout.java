@@ -124,7 +124,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             for (int a = 0, N = getChildCount(); a < N; a++) {
                 final View child = getChildAt(a);
                 if (child instanceof Tab) {
-                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 10f : 14f);
+                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 11f : 14f);
                 }
             }
         } else {
@@ -132,12 +132,12 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
 
         if (youNavigationStyle) {
-            // Yougram-style Material navigation: compact icon slots, with only the
-            // active destination expanding to make room for its label.
+            // Material You uses compact icon slots; ColorOS gets a full-width,
+            // equal-width icon-and-label bar of its own.
             final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
-            final int slotWidth = colorOs ? Math.min(dp(70), maxTotalWidthForTabs / Math.max(1, visibleChildCount)) : dp(48);
-            final int gap = colorOs ? 0 : dp(2);
             final int visibleCount = Math.max(1, visibleChildCount);
+            final int slotWidth = colorOs ? maxTotalWidthForTabs / visibleCount : dp(48);
+            final int gap = colorOs ? 0 : dp(2);
             final int gapsWidth = gap * (visibleCount - 1);
             final int availableExtraWidth = Math.max(0, maxTotalWidthForTabs - slotWidth * visibleCount - gapsWidth);
             float requestedExtraWidth = 0;

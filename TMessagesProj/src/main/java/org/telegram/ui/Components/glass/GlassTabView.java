@@ -122,10 +122,10 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         if (colorOsMainTab) {
             imageView.setLayoutParams(mainIconLayout(24));
             if (backupImageView != null) backupImageView.setLayoutParams(mainIconLayout(22));
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10f);
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f);
             textView.setGravity(Gravity.CENTER);
             textView.setAlpha(1f);
-            textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 14, Gravity.TOP, 3, 31, 3, 0));
+            textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 16, Gravity.TOP, 3, 35, 3, 0));
         }
         isSelectedAnimator.setDuration(280);
         isSelectedAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
@@ -191,7 +191,13 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
             paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
             if (materialMainTab) {
-                tmpRectF.set(0, 0, viewWidth, getHeight());
+                if (colorOsMainTab) {
+                    float indicatorWidth = Math.min(dp(52), Math.max(0, viewWidth - dp(8)));
+                    tmpRectF.set((viewWidth - indicatorWidth) / 2f, dp(2),
+                            (viewWidth + indicatorWidth) / 2f, dp(34));
+                } else {
+                    tmpRectF.set(0, 0, viewWidth, getHeight());
+                }
                 paintCounterBackground.setColor(Theme.multAlpha(materialIndicatorColor, alpha));
             } else {
                 tmpRectF.set(0, 0, viewWidth, getHeight());

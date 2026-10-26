@@ -31544,7 +31544,7 @@ public class ChatActivity extends BaseFragment implements
             final boolean liquidMessageMenu = !app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
                     && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
             scrimBlur3Factory.setLiquidGlassEffectAllowed(liquidMessageMenu);
-            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) {
                 Drawable materialMenuBackground = popupLayout.getContext().getResources()
                         .getDrawable(R.drawable.popup_fixed_alert4).mutate();
                 popupLayout.setBackground(app.nimarkogram.messenger.appearance.ClientTheme.popupDrawable(
