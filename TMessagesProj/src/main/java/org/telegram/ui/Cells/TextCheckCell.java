@@ -148,6 +148,12 @@ public class TextCheckCell extends FrameLayout {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         checkBox.getLayoutParams().width = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchWidth());
         checkBox.getLayoutParams().height = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchHeight());
+        int switchInset = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchTextInset());
+        for (TextView label : new TextView[]{textView, valueTextView}) {
+            LayoutParams labelParams = (LayoutParams) label.getLayoutParams();
+            labelParams.leftMargin = LocaleController.isRTL ? switchInset : AndroidUtilities.dp(padding);
+            labelParams.rightMargin = LocaleController.isRTL ? AndroidUtilities.dp(padding) : switchInset;
+        }
         float materialShift = app.nimarkogram.messenger.appearance.MaterialStyle.listItems()
                 && !isMultiline && valueTextView.getVisibility() == VISIBLE ? AndroidUtilities.dp(4) : 0;
         textView.setTranslationY(materialShift);

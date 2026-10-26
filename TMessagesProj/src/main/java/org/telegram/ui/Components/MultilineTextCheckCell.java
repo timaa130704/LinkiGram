@@ -55,6 +55,10 @@ public class MultilineTextCheckCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        FrameLayout.LayoutParams labels = (FrameLayout.LayoutParams) textLayout.getLayoutParams();
+        int inset = AndroidUtilities.dp(app.nimarkogram.messenger.appearance.MaterialStyle.switchTextInset());
+        labels.leftMargin = LocaleController.isRTL ? inset : AndroidUtilities.dp(22);
+        labels.rightMargin = LocaleController.isRTL ? AndroidUtilities.dp(22) : inset;
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
             MeasureSpec.getSize(heightMeasureSpec) < AndroidUtilities.dp(50) ?

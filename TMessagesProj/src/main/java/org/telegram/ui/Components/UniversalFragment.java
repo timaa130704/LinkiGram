@@ -121,4 +121,3 @@ public abstract class UniversalFragment extends BaseFragment {
         }
     }
 }
-

@@ -95,10 +95,11 @@ public class MessageDrawable extends Drawable {
     private boolean drawFullBubble;
     private final RectF colorOsBounds = new RectF();
     private final float[] colorOsRadii = new float[8];
-    private boolean cachedColorOsStyle;
+    private int cachedColorOsStyle;
 
     private void checkColorOsCache() {
-        boolean enabled = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+        int enabled = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 2
+                : app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 1 : 0;
         if (cachedColorOsStyle == enabled) return;
         cachedColorOsStyle = enabled;
         for (int[] row : currentBackgroundDrawableRadius) Arrays.fill(row, -1);
@@ -106,7 +107,8 @@ public class MessageDrawable extends Drawable {
     }
 
     private static int bubbleRadiusDp() {
-        return app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 20 : SharedConfig.bubbleRadius;
+        return app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                ? app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius() : SharedConfig.bubbleRadius;
     }
 
     public MessageDrawable crossfadeFromDrawable;
@@ -177,7 +179,7 @@ public class MessageDrawable extends Drawable {
             return Theme.getColor(key);
         }
         if (resourcesProvider != null) {
-            return resourcesProvider.getColor(key);
+            return app.nimarkogram.messenger.appearance.ClientTheme.resolveColor(key, resourcesProvider.getColor(key));
         }
         return Theme.getColor(key);
     }
@@ -186,7 +188,8 @@ public class MessageDrawable extends Drawable {
         if (currentType == TYPE_PREVIEW) {
             return Theme.getColor(key);
         }
-        return resourcesProvider != null ? resourcesProvider.getCurrentColor(key) : Theme.getCurrentColor(key);
+        return app.nimarkogram.messenger.appearance.ClientTheme.resolveColor(key,
+                resourcesProvider != null ? resourcesProvider.getCurrentColor(key) : Theme.getCurrentColor(key));
     }
 
     public void setBotButtonsBottom(boolean botButtonsBottom) {
@@ -691,8 +694,8 @@ public class MessageDrawable extends Drawable {
 
     private void generatePath(Path path, Rect bounds, int padding, int rad, int smallRad, int nearRad, int top, boolean drawFullBottom, boolean drawFullTop, boolean customPaint) {
         path.rewind();
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && currentType != TYPE_PREVIEW && overrideRounding <= 0 && overrideRoundRadius == 0) {
-            float radius = Math.min(dp(20), Math.max(0, bounds.height() - padding * 2) / 2f);
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled() && currentType != TYPE_PREVIEW && overrideRounding <= 0 && overrideRoundRadius == 0) {
+            float radius = Math.min(dp(app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius()), Math.max(0, bounds.height() - padding * 2) / 2f);
             java.util.Arrays.fill(colorOsRadii, radius);
             int side = isOut ? 2 : 0;
             if (isTopNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));

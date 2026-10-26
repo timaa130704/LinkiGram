@@ -84,8 +84,10 @@ public class MessageMenuCompactView extends LinearLayout {
         int foreground = Theme.getColor(Theme.key_actionBarDefaultSubmenuItem, resourcesProvider);
         float blend = Theme.isCurrentThemeDark() ? 0.10f : 0.055f;
         setBackground(Theme.createRoundRectDrawable(
-                AndroidUtilities.dp(12),
-                Theme.multAlpha(foreground, blend)
+                AndroidUtilities.dp(app.nimarkogram.messenger.appearance.ClientTheme.isEnabled() ? 16 : 12),
+                app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                        ? app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)
+                        : Theme.multAlpha(foreground, blend)
         ));
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     }

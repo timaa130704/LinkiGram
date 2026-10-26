@@ -437,6 +437,8 @@ public class UniversalRecyclerView extends RecyclerListView {
     }
     /** Материал-3: радиус карточки секции. Если карточки выключены — оставляем значение вызывающего. */
     private static float resolveSectionRadius(float requested) {
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled())
+            return dp(app.nimarkogram.messenger.appearance.ClientTheme.sectionRadius());
         if ((NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) && (NimarkoConfig.sectionRadius > 0 || NimarkoConfig.m3ListItems())) {
             return dp(NimarkoConfig.sectionRadius);
         }
@@ -476,13 +478,15 @@ public class UniversalRecyclerView extends RecyclerListView {
      */
     @Override
     public void drawBackgroundRect(Canvas canvas, RectF rect, float topRadius, float bottomRadius, float alpha) {
-        if (!(NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) || (NimarkoConfig.sectionRadius <= 0 && !NimarkoConfig.m3ListItems())) {
+        if (!app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                && (!(NimarkoConfig.materialCards || NimarkoConfig.m3ListItems()) || (NimarkoConfig.sectionRadius <= 0 && !NimarkoConfig.m3ListItems()))) {
             super.drawBackgroundRect(canvas, rect, topRadius, bottomRadius, alpha);
             return;
         }
         cardStrokePaint.setShadowLayer(dpf2(0.33f), 0, 0, multAlpha(0x0c000000, alpha));
         cardStrokePaint.setColor(0);
-        cardFillPaint.setShadowLayer(dpf2(2), 0, dpf2(0.33f), multAlpha(0x0a000000, alpha));
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) cardFillPaint.clearShadowLayer();
+        else cardFillPaint.setShadowLayer(dpf2(2), 0, dpf2(0.33f), multAlpha(0x0a000000, alpha));
         cardFillPaint.setColor(multAlpha(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider), alpha));
         if (topRadius == bottomRadius) {
             canvas.drawRoundRect(rect, topRadius, topRadius, cardStrokePaint);

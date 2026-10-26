@@ -31532,13 +31532,18 @@ public class ChatActivity extends BaseFragment implements
 
             updateScrimSourceBitmap();
 
-            final boolean liquidMessageMenu = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+            final boolean liquidMessageMenu = !app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                    && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
             scrimBlur3Factory.setLiquidGlassEffectAllowed(liquidMessageMenu);
-            popupLayout.setBackground(scrimBlur3Factory.create(popupLayout, true)
-                .setColorProvider(BlurredBackgroundProviderImpl.messageMenuBackground(resourceProvider))
-                .setThickness(dp(14))
-                .setRadius(dp(liquidMessageMenu ? 20 : 12))
-                .setPadding(dp(8)));
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                popupLayout.setBackground(null);
+            } else {
+                popupLayout.setBackground(scrimBlur3Factory.create(popupLayout, true)
+                    .setColorProvider(BlurredBackgroundProviderImpl.messageMenuBackground(resourceProvider))
+                    .setThickness(dp(14))
+                    .setRadius(dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : liquidMessageMenu ? 20 : 12))
+                    .setPadding(dp(8)));
+            }
 
             boolean addGap = false;
 

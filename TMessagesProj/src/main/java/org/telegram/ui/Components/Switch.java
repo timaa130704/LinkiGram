@@ -395,6 +395,11 @@ public class Switch extends View {
             return;
         }
 
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            drawMaterialYouSwitch(canvas);
+            return;
+        }
+
         int width = AndroidUtilities.dp(31);
         int thumb = AndroidUtilities.dp(20);
         int x = (getMeasuredWidth() - width) / 2;
@@ -585,6 +590,57 @@ public class Switch extends View {
         if (overrideColorProgress != 0) {
             canvas.drawBitmap(overlayBitmap[1], 0, 0, null);
         }
+    }
+
+    private void drawMaterialYouSwitch(Canvas canvas) {
+        float p = Math.max(0f, Math.min(1f, progress));
+        float scale = Math.min(getMeasuredWidth() / AndroidUtilities.dpf2(52), getMeasuredHeight() / AndroidUtilities.dpf2(32));
+        if (scale <= 0) return;
+        int saved = canvas.save();
+        canvas.translate(getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
+        canvas.scale(scale, scale);
+        final float halfWidth = AndroidUtilities.dpf2(26), halfHeight = AndroidUtilities.dpf2(16);
+        int primary = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY);
+        int outline = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.OUTLINE);
+        paint.setColor(processColor(androidx.core.graphics.ColorUtils.blendARGB(
+                app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.TRACK), primary, p)));
+        rectF.set(-halfWidth, -halfHeight, halfWidth, halfHeight);
+        canvas.drawRoundRect(rectF, halfHeight, halfHeight, paint);
+        if (p < 1f) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(AndroidUtilities.dpf2(2));
+            paint.setColor(processColor(Theme.multAlpha(outline, 1 - p)));
+            rectF.inset(AndroidUtilities.dpf2(1), AndroidUtilities.dpf2(1));
+            canvas.drawRoundRect(rectF, halfHeight, halfHeight, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
+        float direction = getLayoutDirection() == LAYOUT_DIRECTION_RTL ? 1 - p : p;
+        float cx = AndroidUtilities.dpf2(-10 + 20 * direction);
+        if (rippleDrawable != null) {
+            int r = AndroidUtilities.dp(20);
+            rippleDrawable.setBounds((int) cx - r, -r, (int) cx + r, r);
+            rippleDrawable.draw(canvas);
+        }
+        float radius = AndroidUtilities.dpf2(8 + 4 * p);
+        paint.setColor(processColor(androidx.core.graphics.ColorUtils.blendARGB(outline,
+                app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_PRIMARY), p)));
+        canvas.drawCircle(cx, 0, radius, paint);
+        if (iconDrawable != null) {
+            int size = AndroidUtilities.dp(16);
+            iconDrawable.setColorFilter(new PorterDuffColorFilter(primary, PorterDuff.Mode.SRC_IN));
+            iconDrawable.setBounds((int) cx - size / 2, -size / 2, (int) cx + size / 2, size / 2);
+            iconDrawable.draw(canvas);
+        } else if (drawIconType != 0 && p > 0) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(AndroidUtilities.dpf2(2));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(processColor(Theme.multAlpha(primary, p)));
+            canvas.drawLine(cx - AndroidUtilities.dp(4), 0, cx - AndroidUtilities.dp(1), AndroidUtilities.dp(3), paint);
+            canvas.drawLine(cx - AndroidUtilities.dp(1), AndroidUtilities.dp(3), cx + AndroidUtilities.dp(5), -AndroidUtilities.dp(3), paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setStrokeCap(Paint.Cap.BUTT);
+        }
+        canvas.restoreToCount(saved);
     }
 
     private void drawColorOsSwitch(Canvas canvas) {

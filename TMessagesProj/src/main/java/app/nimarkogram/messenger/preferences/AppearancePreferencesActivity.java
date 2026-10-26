@@ -122,7 +122,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                 || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(SettingsHelper.asSwitchCG(linkiYouRow, getString(R.string.NM_LinkiGramYou),
-                        getString(R.string.NM_LinkiGramYou_Desc))
+                        getString(R.string.LinkiClientMaterialDescription))
                 .setChecked(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()));
         items.add(SettingsHelper.asSwitchCG(colorOs17Row, getString(R.string.NM_ColorOS17),
                         getString(R.string.NM_ColorOS17_Desc))
@@ -533,7 +533,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     }
 
     private String getSectionRadiusValueText() {
-        return NimarkoConfig.sectionRadius + " dp";
+        return (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+                ? app.nimarkogram.messenger.appearance.ClientTheme.sectionRadius() : NimarkoConfig.sectionRadius) + " dp";
     }
 
     /**
@@ -541,7 +542,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
      * поэтому после его смены секции надо пересобрать, а не просто перерисовать.
      */
     private void refreshMaterialViews() {
-        Theme.applyCommonTheme();
+        Theme.refreshThemeColors(false, true);
         if (listView != null) listView.adapter.update(true);
         if (getParentLayout() != null) getParentLayout().rebuildAllFragmentViews(false, false);
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.cgTabsUpdated);

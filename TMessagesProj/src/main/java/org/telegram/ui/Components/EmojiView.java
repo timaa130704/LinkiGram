@@ -6571,7 +6571,7 @@ public class EmojiView extends FrameLayout implements
 
     private int getThemedColor(int key) {
         if (resourcesProvider != null) {
-            return resourcesProvider.getColor(key);
+            return app.nimarkogram.messenger.appearance.ClientTheme.resolveColor(key, resourcesProvider.getColor(key));
         }
         return Theme.getColor(key);
     }

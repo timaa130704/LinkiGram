@@ -71,6 +71,10 @@ public class ActionBarMenuSubItem extends FrameLayout {
     public ActionBarMenuSubItem(Context context, int needCheck, boolean top, boolean bottom, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
+        if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) {
+            itemHeight = app.nimarkogram.messenger.appearance.ClientTheme.menuHeight();
+            selectorRad = app.nimarkogram.messenger.appearance.ClientTheme.popupRadius() - 4;
+        }
 
         this.top = top;
         this.bottom = bottom;
@@ -94,7 +98,7 @@ public class ActionBarMenuSubItem extends FrameLayout {
         textView.setGravity(Gravity.LEFT);
         textView.setEllipsize(TextUtils.TruncateAt.END);
         textView.setTextColor(textColor);
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 14 : 16);
         addView(textView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL));
 
         checkViewLeft = LocaleController.isRTL;
