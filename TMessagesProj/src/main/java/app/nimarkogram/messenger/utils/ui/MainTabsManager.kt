@@ -5,7 +5,11 @@ import android.content.Context
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import app.nimarkogram.messenger.NimarkoConfig
+import app.nimarkogram.messenger.appearance.LinkiGramYouTheme
+import app.nimarkogram.messenger.xcfg.XcfgController
+import app.nimarkogram.messenger.xcfg.XcfgPrefs
 import org.telegram.messenger.R
+import org.telegram.messenger.UserConfig
 import org.telegram.ui.ActionBar.Theme
 import org.telegram.ui.Components.glass.GlassTabView
 
@@ -15,7 +19,10 @@ object MainTabsManager {
         CHATS,
         SETTINGS,
         PROFILE,
-        SEARCH
+        SEARCH,
+        CONTACTS,
+        CALLS,
+        XCFG
     }
 
     data class Tab(
@@ -46,15 +53,24 @@ object MainTabsManager {
     }
 
     private fun loadTabs(): MutableList<Tab> {
-        val allPossibleTypes = TabType.entries.toMutableList()
-        val value = NimarkoConfig.mainTabsOrder
+        val you = LinkiGramYouTheme.isEnabled()
+        val allPossibleTypes = (if (you) TabType.entries else listOf(
+            TabType.PROFILE, TabType.CHATS, TabType.SETTINGS, TabType.SEARCH)).toMutableList()
+        val value = if (you) NimarkoConfig.getPreferences().getString("youMainTabsOrder", null) else NimarkoConfig.mainTabsOrder
 
         val result = mutableListOf<Tab>()
 
         if (value == null) {
-            result.add(Tab(TabType.PROFILE, true))
-            result.add(Tab(TabType.CHATS, true))
-            result.add(Tab(TabType.SETTINGS, true))
+            if (you) {
+                result.addAll(listOf(Tab(TabType.CONTACTS, true), Tab(TabType.XCFG, XcfgPrefs.getBool("show_tab", true)),
+                    Tab(TabType.CHATS, true), Tab(TabType.SETTINGS, true), Tab(TabType.PROFILE, true),
+                    Tab(TabType.CALLS, UserConfig.getInstance(UserConfig.selectedAccount).showCallsTab),
+                    Tab(TabType.SEARCH, NimarkoConfig.showSearchInTabs)))
+            } else {
+                result.add(Tab(TabType.PROFILE, true))
+                result.add(Tab(TabType.CHATS, true))
+                result.add(Tab(TabType.SETTINGS, true))
+            }
         } else {
             val parts = value.split(",")
 
@@ -72,7 +88,7 @@ object MainTabsManager {
             }
 
             for (newType in allPossibleTypes) {
-                result.add(Tab(newType, true))
+                result.add(Tab(newType, if (you) newType != TabType.CALLS && newType != TabType.SEARCH else true))
             }
         }
 
@@ -135,6 +151,15 @@ object MainTabsManager {
                     }
                 }
             }
+            TabType.CONTACTS -> GlassTabView.createMainTab(context, resourceProvider,
+                GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts)
+            TabType.CALLS -> GlassTabView.createMainTab(context, resourceProvider,
+                GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls)
+            TabType.XCFG -> GlassTabView.createMainTab(context, resourceProvider,
+                GlassTabView.TabAnimation.LINK, R.string.Settings).apply {
+                    setText("X-CFG")
+                    setTabIcon(XcfgController.tabIcon(context))
+                }
         }
     }
 
@@ -157,7 +182,7 @@ object MainTabsManager {
         val normalized = tabs.filter { seen.add(it.type) }.toMutableList()
         if (normalized.none { it.type == TabType.CHATS }) normalized.add(0, Tab(TabType.CHATS, true))
         normalized.first { it.type == TabType.CHATS }.enabled = true
-        normalized.firstOrNull { it.type == TabType.SEARCH }?.let {
+        if (!LinkiGramYouTheme.isEnabled()) normalized.firstOrNull { it.type == TabType.SEARCH }?.let {
             normalized.remove(it)
             normalized.add(it)
         }
@@ -165,7 +190,20 @@ object MainTabsManager {
             val prefix = if (tab.enabled || tab.type == TabType.CHATS) "" else "!"
             "$prefix${tab.type.name}"
         }
-        NimarkoConfig.setMainTabsOrder(order.joinToString(","))
+        if (LinkiGramYouTheme.isEnabled()) {
+            NimarkoConfig.getPreferences().edit().putString("youMainTabsOrder", order.joinToString(",")).apply()
+            normalized.firstOrNull { it.type == TabType.SEARCH }?.let {
+                NimarkoConfig.showSearchInTabs = it.enabled
+                NimarkoConfig.getPreferences().edit().putBoolean("showSearchInTabs", it.enabled).apply()
+            }
+        } else {
+            NimarkoConfig.setMainTabsOrder(order.joinToString(","))
+        }
+    }
+
+    fun resetTabs() {
+        if (LinkiGramYouTheme.isEnabled()) NimarkoConfig.getPreferences().edit().remove("youMainTabsOrder").apply()
+        else NimarkoConfig.setMainTabsOrder(null)
     }
 
 }

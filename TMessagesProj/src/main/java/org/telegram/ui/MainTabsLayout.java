@@ -120,11 +120,13 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         }
 
         final boolean youNavigationStyle = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
+        final boolean youDocked = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                && getBottomNavigationMode() == BOTTOM_NAVIGATION_MODE_SHOW;
         if (youNavigationStyle) {
             for (int a = 0, N = getChildCount(); a < N; a++) {
                 final View child = getChildAt(a);
                 if (child instanceof Tab) {
-                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 11f : 14f);
+                    ((Tab) child).setTextSizeDp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || youDocked ? 11f : 14f);
                 }
             }
         } else {
@@ -136,9 +138,10 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             // equal-width icon-and-label bar of its own.
             final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
             final int visibleCount = Math.max(1, visibleChildCount);
-            final int slotWidth = colorOs ? maxTotalWidthForTabs / visibleCount : dp(48);
-            final int gap = colorOs ? 0 : dp(2);
+            final int gap = colorOs || youDocked ? 0 : dp(2);
             final int gapsWidth = gap * (visibleCount - 1);
+            final int slotWidth = colorOs || youDocked ? maxTotalWidthForTabs / visibleCount
+                    : Math.min(dp(48), Math.max(0, (maxTotalWidthForTabs - gapsWidth) / visibleCount));
             final int availableExtraWidth = Math.max(0, maxTotalWidthForTabs - slotWidth * visibleCount - gapsWidth);
             float requestedExtraWidth = 0;
             for (int a = 0, N = getChildCount(); a < N; a++) {
@@ -147,7 +150,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                     continue;
                 }
                 final GlassTabView tab = (GlassTabView) child;
-                if (!colorOs) requestedExtraWidth += Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress();
+                if (!colorOs && !youDocked && app.nimarkogram.messenger.NimarkoConfig.showMainTabsTitle) requestedExtraWidth += Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress();
             }
             final float extraScale = requestedExtraWidth > availableExtraWidth && requestedExtraWidth > 0
                     ? availableExtraWidth / requestedExtraWidth : 1f;
@@ -163,7 +166,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
                     continue;
                 }
                 float extra = 0;
-                if (!colorOs && child instanceof GlassTabView) {
+                if (!colorOs && !youDocked && app.nimarkogram.messenger.NimarkoConfig.showMainTabsTitle && child instanceof GlassTabView) {
                     final GlassTabView tab = (GlassTabView) child;
                     extra = Math.max(0, tab.measureTextWidth(14f) + dp(8)) * tab.getSelectionProgress() * extraScale;
                 }

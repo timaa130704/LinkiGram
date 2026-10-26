@@ -224,14 +224,15 @@ public class MainTabsPreviewCell extends ViewGroup {
         }
         
         final ArrayList<MainTabsManager.Tab> snapshot = new ArrayList<>();
+        final boolean you = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
         boolean hasSearch = false;
         for (MainTabsManager.Tab t : src) {
-            if (t.getType() == MainTabsManager.TabType.SEARCH && !NimarkoConfig.showSearchInTabs) continue;
+            if (!you && t.getType() == MainTabsManager.TabType.SEARCH && !NimarkoConfig.showSearchInTabs) continue;
             if (t.getType() == MainTabsManager.TabType.SEARCH) hasSearch = true;
             snapshot.add(t);
         }
         
-        if (boundShowSearch && !hasSearch) {
+        if (!you && boundShowSearch && !hasSearch) {
             snapshot.add(new MainTabsManager.Tab(MainTabsManager.TabType.SEARCH, true));
         }
         tabs = new GlassTabView[snapshot.size()];
@@ -243,8 +244,8 @@ public class MainTabsPreviewCell extends ViewGroup {
             final MainTabsManager.TabType type = entry.getType();
             final GlassTabView tab = MainTabsManager.INSTANCE.createTabView(
                     boundContext, boundResourceProvider, boundCurrentAccount,
-                    type, boundFromSettings, boundShowSearch);
-            tab.setTitleVisible(titleVisible);
+                    type, boundFromSettings, you || boundShowSearch);
+            tab.setTitleVisible(!you && titleVisible);
             tab.setEnabledVisual(entry.enabled);
             tab.setClickable(true);
             tab.setLongClickable(true);
@@ -307,7 +308,8 @@ public class MainTabsPreviewCell extends ViewGroup {
 
     private void onTabClicked(int index, MainTabsManager.TabType type, GlassTabView tab) {
         if (sourceTabs == null) return;
-        if (type == MainTabsManager.TabType.SEARCH || type == MainTabsManager.TabType.CHATS) return;
+        if (type == MainTabsManager.TabType.CHATS || (type == MainTabsManager.TabType.SEARCH
+                && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())) return;
         
         MainTabsManager.Tab entry = null;
         for (MainTabsManager.Tab t : sourceTabs) {
@@ -323,7 +325,7 @@ public class MainTabsPreviewCell extends ViewGroup {
 
     private boolean onTabLongClicked(int index, MainTabsManager.TabType type) {
         
-        if (type == MainTabsManager.TabType.SEARCH) return false;
+        if (type == MainTabsManager.TabType.SEARCH && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) return false;
         startDrag(index);
         return true;
     }
@@ -407,11 +409,14 @@ public class MainTabsPreviewCell extends ViewGroup {
             case PROFILE: title = R.string.MainTabsProfile; break;
             case SETTINGS: title = R.string.Settings; break;
             case SEARCH: title = R.string.Search; break;
+            case CONTACTS: title = R.string.MainTabsContacts; break;
+            case CALLS: title = R.string.MainTabsCalls; break;
             default: title = R.string.MainTabsChats; break;
         }
-        boolean fixed = type == MainTabsManager.TabType.CHATS || type == MainTabsManager.TabType.SEARCH;
+        boolean fixed = type == MainTabsManager.TabType.CHATS || (type == MainTabsManager.TabType.SEARCH
+                && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled());
         tab.setSelected(enabled || fixed);
-        tab.setContentDescription(LocaleController.getString(title) + ", "
+        tab.setContentDescription((type == MainTabsManager.TabType.XCFG ? "X-CFG" : LocaleController.getString(title)) + ", "
                 + LocaleController.getString(enabled || fixed ? R.string.NM_BT_TabEnabled : R.string.NM_BT_TabDisabled));
     }
 
@@ -421,11 +426,13 @@ public class MainTabsPreviewCell extends ViewGroup {
 
     private boolean canMoveVisual(int index, int physicalDirection) {
         if (tabTypes == null || index < 0 || index >= tabTypes.length
-                || tabTypes[index] == MainTabsManager.TabType.SEARCH) return false;
+                || (tabTypes[index] == MainTabsManager.TabType.SEARCH
+                && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())) return false;
         int logicalDirection = LocaleController.isRTL ? -physicalDirection : physicalDirection;
         int target = index + logicalDirection;
         return target >= 0 && target < tabTypes.length
-                && tabTypes[target] != MainTabsManager.TabType.SEARCH;
+                && (tabTypes[target] != MainTabsManager.TabType.SEARCH
+                || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled());
     }
 
     private boolean moveVisual(int index, int physicalDirection) {
@@ -443,7 +450,8 @@ public class MainTabsPreviewCell extends ViewGroup {
         }
         if (to < 0) to = 0;
         
-        if (to < tabTypes.length && tabTypes[to] == MainTabsManager.TabType.SEARCH) {
+        if (to < tabTypes.length && tabTypes[to] == MainTabsManager.TabType.SEARCH
+                && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
             to = Math.max(0, to - 1);
         }
         if (from == to) return;

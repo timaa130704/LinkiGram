@@ -106,10 +106,13 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     private boolean materialMainTab;
     private boolean colorOsMainTab;
+    private boolean stackedMainTab;
     private void applyMaterialMainTab() {
         materialMainTab = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         if (!materialMainTab) return;
         colorOsMainTab = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+        stackedMainTab = colorOsMainTab || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                && org.telegram.ui.MainTabsLayout.getBottomNavigationMode() == org.telegram.ui.MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
         imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
         if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.LEFT | Gravity.CENTER_VERTICAL, 13, 0, 0, 0));
         textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
@@ -119,7 +122,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         textView.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL);
         textView.setAlpha(0f);
         textView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.LEFT | Gravity.FILL_VERTICAL, 48, 0, 8, 0));
-        if (colorOsMainTab) {
+        if (stackedMainTab) {
             imageView.setLayoutParams(mainIconLayout(24));
             if (backupImageView != null) backupImageView.setLayoutParams(mainIconLayout(22));
             textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11f);
@@ -132,7 +135,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
     }
 
     private FrameLayout.LayoutParams mainIconLayout(float size) {
-        return colorOsMainTab
+        return stackedMainTab
                 ? LayoutHelper.createFrame(size, size, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, size == 22 ? 5 : 4, 0, 0)
                 : LayoutHelper.createFrame(size, size, Gravity.LEFT | Gravity.CENTER_VERTICAL, (48 - size) / 2, 0, 0, 0);
     }
@@ -191,7 +194,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
             paintCounterBackground.setColor(Theme.multAlpha(colorSelected, 0.09f * alpha));
             if (materialMainTab) {
-                if (colorOsMainTab) {
+                if (stackedMainTab) {
                     float indicatorWidth = Math.min(dp(52), Math.max(0, viewWidth - dp(8)));
                     tmpRectF.set((viewWidth - indicatorWidth) / 2f, dp(2),
                             (viewWidth + indicatorWidth) / 2f, dp(34));
@@ -222,7 +225,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             canvas.save();
 
             final float gap = dpf2(1.33f);
-            final float cx = materialMainTab && !colorOsMainTab ? dp(34) : viewWidth / 2f + dpf2(11);
+            final float cx = materialMainTab && !stackedMainTab ? dp(34) : viewWidth / 2f + dpf2(11);
             final float cy = dpf2(10);
             final float height = dpf2(16);
             final float width = materialMainTab
@@ -286,7 +289,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
                 ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM)
                 : selected ? AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_EXTRA_BOLD) : AndroidUtilities.bold());
         if (materialMainTab && !animated) {
-            textView.setAlpha(colorOsMainTab || selected ? 1f : 0f);
+            textView.setAlpha(stackedMainTab || selected ? 1f : 0f);
             requestLayout();
         }
     }
@@ -304,7 +307,7 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         if (id == ANIMATOR_ID_IS_SELECTED) {
             updateColors();
             if (materialMainTab) {
-                textView.setAlpha(colorOsMainTab ? 1f : factor);
+                textView.setAlpha(stackedMainTab ? 1f : factor);
                 requestLayout();
             }
         }

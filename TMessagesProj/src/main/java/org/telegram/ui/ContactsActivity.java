@@ -118,6 +118,10 @@ import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 
 public class ContactsActivity extends BaseFragment implements FactorAnimator.Target, NotificationCenter.NotificationCenterDelegate, MainTabsActivity.TabFragmentDelegate, WindowAnimatedInsetsProvider.Listener {
+
+    public void openMainTabsSearch() {
+        if (searchItem != null) searchItem.performClick();
+    }
     private final int ADDITIONAL_LIST_HEIGHT_DP = Build.VERSION.SDK_INT >= 31 ? 48 : 0;
 
     private static final int ANIMATOR_ID_SEARCH_FIELD_VISIBLE = 0;

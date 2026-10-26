@@ -170,6 +170,12 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
             rebuildMainTabsFragments();
         } else if (id == ID_SHOW_SEARCH_IN_TABS) {
             NimarkoConfig.toggleShowSearchInTabs();
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && tabs != null) {
+                for (MainTabsManager.Tab tab : tabs) {
+                    if (tab.getType() == MainTabsManager.TabType.SEARCH) tab.enabled = NimarkoConfig.showSearchInTabs;
+                }
+                MainTabsManager.INSTANCE.saveTabs(tabs);
+            }
             applyCheck(item, view, NimarkoConfig.showSearchInTabs);
             if (editorCell != null) {
                 editorCell.refresh();
@@ -195,7 +201,7 @@ public class BottomTabsPreferencesActivity extends BasePreferencesActivity {
             applyCheck(item, view, NimarkoConfig.mainTabsForceOpenChats);
         } else if (id == ID_RESET_ORDER) {
             
-            NimarkoConfig.setMainTabsOrder(null);
+            MainTabsManager.INSTANCE.resetTabs();
             resetToDefaults = true;
             tabs.clear();
             for (MainTabsManager.Tab t : MainTabsManager.INSTANCE.getAllTabs()) {
