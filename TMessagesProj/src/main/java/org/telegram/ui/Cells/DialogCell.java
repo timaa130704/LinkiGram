@@ -3813,8 +3813,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             materialYouCardPaint.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
                     isSelected
                             ? app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_SELECTED
-                            : app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH));
-            float horizontalInset = dp(10);
+                            : getIsPinned()
+                                    ? app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH
+                                    : app.nimarkogram.messenger.appearance.ClientTheme.SURFACE));
+            float horizontalInset = getParent() instanceof DialogsActivity.DialogsRecyclerView ? 0 : dp(10);
             float verticalInset = dp(3);
             rect.set(horizontalInset, verticalInset,
                     getMeasuredWidth() - horizontalInset, getMeasuredHeight() - verticalInset);

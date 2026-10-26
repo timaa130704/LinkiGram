@@ -354,8 +354,8 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         brandTitleView.setTextSize(TypedValue.COMPLEX_UNIT_PX, dp(20));
         brandTitleView.setIncludeFontPadding(false);
         brandTitleView.setSingleLine(true);
-        brandTitleView.setText(app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
-                getString(R.string.AppName)));
+        brandTitleView.setText(type == TYPE_DIALOGS ? org.telegram.ui.DialogsActivity.getMainScreenTitle()
+                : app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(getString(R.string.AppName)));
         brandTitleView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         addView(brandTitleView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
@@ -652,6 +652,9 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
                 LocaleController.formatPluralString("Stories", totalCount);
         }
 
+        if (type == TYPE_DIALOGS && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !hasOverlayText) {
+            currentTitle = null;
+        }
         if (!hasOverlayText) {
             titleView.setText(currentTitle, animated && !LocaleController.isRTL);
         }
@@ -1049,8 +1052,8 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
             // LinkiGram: the collapsed header draws our own title, so a change to the
             // custom-title setting has to reach this view too, not only the ActionBar.
             if (brandTitleView != null) {
-                brandTitleView.setText(app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
-                        getString(R.string.AppName)));
+                brandTitleView.setText(type == TYPE_DIALOGS ? org.telegram.ui.DialogsActivity.getMainScreenTitle()
+                        : app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(getString(R.string.AppName)));
             }
         }
     }

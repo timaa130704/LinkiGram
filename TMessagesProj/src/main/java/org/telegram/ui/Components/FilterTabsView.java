@@ -1175,7 +1175,8 @@ public class FilterTabsView extends FrameLayout {
     BlurredBackgroundDrawable blurredBackgroundDrawable;
 
     public void setBlurredBackground(BlurredBackgroundDrawable drawable) {
-        setBackground(blurredBackgroundDrawable = drawable);
+        blurredBackgroundDrawable = drawable;
+        setBackground(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? null : drawable);
     }
 
     public void scrollToTab(Tab tab, int position) {
@@ -1405,7 +1406,7 @@ public class FilterTabsView extends FrameLayout {
     @Override
     protected boolean drawChild(@NonNull Canvas canvas, View child, long drawingTime) {
         boolean result = super.drawChild(canvas, child, drawingTime);
-        if (child == listView) {
+        if (child == listView && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
             drawSelector(canvas);
         }
         long newTime = SystemClock.elapsedRealtime();
@@ -1542,6 +1543,10 @@ public class FilterTabsView extends FrameLayout {
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            super.dispatchDraw(canvas);
+            return;
+        }
         canvas.save();
         canvas.clipPath(clipPath);
         super.dispatchDraw(canvas);
