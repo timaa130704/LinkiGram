@@ -555,6 +555,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private DialogsActivityStatusLayout dialogsActivityStatusLayout;
     public boolean dialogStoriesCellVisible;
     public float progressToDialogStoriesCell;
+    private boolean youHomeInitialPositionHandled;
     float searchViewPagerTranslationY;
     float panTranslationY;
 
@@ -2155,6 +2156,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             lastTop = t;
             scrollAdditionalOffset = 0;
             parentPage.pageAdditionalOffset = 0;
+            if (!youHomeInitialPositionHandled && useYouHomeLayout() && hasStories
+                    && !searchIsShowed && viewPages != null && parentPage == viewPages[0]
+                    && getMessagesController().dialogsLoaded && getAdapter() != null
+                    && getAdapter().getItemCount() > 0) {
+                youHomeInitialPositionHandled = true;
+                post(() -> {
+                    if (!useYouHomeLayout() || searchIsShowed || !hasStories || getScrollState() != RecyclerView.SCROLL_STATE_IDLE) return;
+                    parentPage.layoutManager.scrollToPositionWithOffset(hasHiddenArchive() ? 1 : 0, 0);
+                    setScrollY(0);
+                    if (fragmentView != null) fragmentView.invalidate();
+                });
+            }
         }
 
         @Override
@@ -3260,6 +3273,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public View createView(final Context context) {
         searching = false;
+        youHomeInitialPositionHandled = false;
         searchWas = false;
         wasDrawn = false;
         pacmanAnimation = null;

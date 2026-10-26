@@ -104,7 +104,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private static final int INDEX_CALLS = 3;
     private static final int INDEX_PROFILE = 4;
 
-    private static int indexToPosition(int index) {
+    // Keep the pager order stable for the lifetime of this activity when a theme changes.
+    private final boolean youPagerOrder = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
+
+    private int chatsPosition() { return youPagerOrder ? POSITION_CONTACTS : POSITION_CHATS; }
+    private int contactsPosition() { return youPagerOrder ? POSITION_CHATS : POSITION_CONTACTS; }
+
+    private int indexToPosition(int index) {
+        if (index == INDEX_CHATS) return chatsPosition();
+        if (index == INDEX_CONTACTS) return contactsPosition();
         return index > 2 ? index - 1 : index;
     }
 
@@ -337,7 +345,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabs[INDEX_CALLS].setOnLongClickListener(this::openCallsSelector);
         tabs[INDEX_PROFILE].setOnLongClickListener(this::openAccountSelector);
 
-        for (int index = 0; index < tabs.length; index++) {
+        final int[] tabOrder = youPagerOrder
+                ? new int[]{INDEX_CONTACTS, INDEX_CHATS, INDEX_SETTINGS, INDEX_CALLS, INDEX_PROFILE}
+                : new int[]{INDEX_CHATS, INDEX_CONTACTS, INDEX_SETTINGS, INDEX_CALLS, INDEX_PROFILE};
+        for (int index : tabOrder) {
             final GlassTabView view = tabs[index];
 
             final int position = indexToPosition(index);
@@ -371,7 +382,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             xcfgTab.setTag(app.nimarkogram.messenger.xcfg.XcfgPrefs.TAB_TAG);
             xcfgTab.setOnClickListener(v -> app.nimarkogram.messenger.xcfg.XcfgController.openMain(currentAccount));
             int xcfgIndex = tabsView.getChildCount();
-            if (tabs[INDEX_SETTINGS].getParent() == tabsView) {
+            if (youPagerOrder && tabs[INDEX_CHATS].getParent() == tabsView) {
+                xcfgIndex = tabsView.indexOfChild(tabs[INDEX_CHATS]);
+            } else if (tabs[INDEX_SETTINGS].getParent() == tabsView) {
                 // после «Контактов» — середина панели (Чаты · Контакты · X-CFG · Настройки · Профиль)
                 xcfgIndex = tabsView.indexOfChild(tabs[INDEX_SETTINGS]);
             }
@@ -648,15 +661,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void openFolder(int folderId) {
-        if (viewPager.getCurrentPosition() == POSITION_CHATS && dialogsActivity != null) {
+        if (viewPager.getCurrentPosition() == chatsPosition() && dialogsActivity != null) {
             dialogsActivity.scrollToFolder(folderId);
         } else {
             if (dialogsActivity == null) {
                 prepareDialogsActivity(null);
             }
             pendingFolderId = folderId;
-            selectTab(POSITION_CHATS, true);
-            viewPager.scrollToPosition(POSITION_CHATS);
+            selectTab(chatsPosition(), true);
+            viewPager.scrollToPosition(chatsPosition());
         }
     }
 
@@ -799,7 +812,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (currentPosition != POSITION_PROFILE) {
                 dropFragmentAtPosition(POSITION_PROFILE);
             }
-            if (pendingFolderId != null && currentPosition == POSITION_CHATS && dialogsActivity != null) {
+            if (pendingFolderId != null && currentPosition == chatsPosition() && dialogsActivity != null) {
                 dialogsActivity.scrollToFolder(pendingFolderId);
                 pendingFolderId = null;
             }
@@ -832,7 +845,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     protected int getStartPosition() {
-        return POSITION_CHATS;
+        return chatsPosition();
     }
 
     private DialogsActivity dialogsActivity;
@@ -860,13 +873,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         bundle.putBoolean("hasMainTabs", true);
         dialogsActivity = new DialogsActivity(bundle);
         dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
-        putFragmentAtPosition(POSITION_CHATS, dialogsActivity);
+        putFragmentAtPosition(chatsPosition(), dialogsActivity);
         return dialogsActivity;
     }
 
     @Override
     protected BaseFragment createBaseFragmentAt(int position) {
-        if (position == POSITION_CONTACTS) {
+        if (position == contactsPosition()) {
             Bundle args = new Bundle();
             args.putBoolean("needPhonebook", true);
             args.putBoolean("needFinishFragment", false);
@@ -882,7 +895,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             return new SettingsActivity(args);
-        } else if (position == POSITION_CHATS) {
+        } else if (position == chatsPosition()) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             dialogsActivity = new DialogsActivity(args);
@@ -1100,8 +1113,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             final boolean callTabsVisible = getUserConfig().showCallsTab;
             checkUi_callTabVisible(callTabsVisible, true);
             if (viewPager != null && viewPager.getCurrentPosition() == POSITION_CALLS_OR_SETTINGS) {
-                viewPager.scrollToPosition(POSITION_CHATS);
-                selectTab(POSITION_CHATS, true);
+                viewPager.scrollToPosition(chatsPosition());
+                selectTab(chatsPosition(), true);
                 dropCallsFragmentAfterPageScroll = true;
             } else {
                 dropFragmentAtPosition(POSITION_CALLS_OR_SETTINGS);
