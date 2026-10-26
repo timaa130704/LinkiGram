@@ -39,6 +39,10 @@ public final class ClientTheme {
         if (key == Theme.key_chat_outBubbleGradient1 || key == Theme.key_chat_outBubbleGradient2
                 || key == Theme.key_chat_outBubbleGradient3 || key == Theme.key_chat_outBubbleGradientAnimated)
             return 0;
+        if (LinkiGramYouTheme.isEnabled()) {
+            if (key == Theme.key_actionBarTabActiveText) return color(ON_CONTAINER);
+            if (key == Theme.key_actionBarTabLine) return color(CONTAINER);
+        }
         int role = ROLES.get(key, 0);
         return role == 0 ? original : color(role);
     }

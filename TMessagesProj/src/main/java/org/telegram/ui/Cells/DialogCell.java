@@ -645,6 +645,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
     private boolean isSelected;
 
+    private final Paint materialYouCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
     private RectF rect = new RectF();
     private DialogsAdapter.DialogsPreloader preloader;
     private Path counterPath;
@@ -3805,6 +3807,19 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
         if (!visibleOnScreen) {
             return;
+        }
+
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            materialYouCardPaint.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
+                    isSelected
+                            ? app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_SELECTED
+                            : app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH));
+            float horizontalInset = dp(10);
+            float verticalInset = dp(3);
+            rect.set(horizontalInset, verticalInset,
+                    getMeasuredWidth() - horizontalInset, getMeasuredHeight() - verticalInset);
+            float radius = dp(18);
+            canvas.drawRoundRect(rect, radius, radius, materialYouCardPaint);
         }
 
         boolean needInvalidate = false;

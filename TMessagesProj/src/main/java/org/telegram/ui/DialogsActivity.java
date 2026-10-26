@@ -3562,8 +3562,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 // language rather than the system one, and honour the custom-title override.
                 // getString(int) resolves against the system locale, which is why the header
                 // could disagree with the launcher label.
-                CharSequence mainTitle = app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
-                        LocaleController.getString(R.string.AppName));
+                CharSequence mainTitle = !app.nimarkogram.messenger.NimarkoConfig.customTitleEnabled
+                        && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                        ? LocaleController.getString(R.string.MainTabsChats)
+                        : app.nimarkogram.messenger.NimarkoConfig.resolveMainTitle(
+                                LocaleController.getString(R.string.AppName));
                 // Keep the title as text: telegram_logo_2 contains the Telegram wordmark
                 // and an ImageSpan over the whole title hides both our brand and custom titles.
                 actionBar.setTitle(mainTitle, statusDrawable);

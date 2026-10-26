@@ -186,6 +186,7 @@ public class FilterTabsView extends FrameLayout {
         private float tabCounterVisible;
         private int currentPosition;
         private final RectF rect = new RectF();
+        private final Paint materialYouChipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence currentText;
         private boolean currentNoanimate;
         private AnimatedEmojiSpan.EmojiGroupedSpans textLayoutEmojis;
@@ -338,6 +339,21 @@ public class FilterTabsView extends FrameLayout {
                 animateToOtherKey = aUnactiveTextColorKey;
                 unreadKey = Theme.key_chats_tabUnreadUnactiveBackground;
                 unreadOtherKey = Theme.key_chats_tabUnreadActiveBackground;
+            }
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                final int container = app.nimarkogram.messenger.appearance.ClientTheme.color(
+                        app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER);
+                final int surface = app.nimarkogram.messenger.appearance.ClientTheme.color(
+                        app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH);
+                int chipColor = currentTab.id == selectedTabId ? container : surface;
+                if ((animatingIndicator || manualScrollingToId != -1) && (currentTab.id == id1 || currentTab.id == id2)) {
+                    chipColor = currentTab.id == id1
+                            ? ColorUtils.blendARGB(surface, container, animatingIndicatorProgress)
+                            : ColorUtils.blendARGB(container, surface, animatingIndicatorProgress);
+                }
+                materialYouChipPaint.setColor(chipColor);
+                rect.set(dp(3), dp(3), getMeasuredWidth() - dp(3), getMeasuredHeight() - dp(3));
+                canvas.drawRoundRect(rect, dp(16), dp(16), materialYouChipPaint);
             }
             if (animateToKey < 0) {
                 if ((animatingIndicator || manualScrollingToId != -1) && (currentTab.id == id1 || currentTab.id == id2)) {
