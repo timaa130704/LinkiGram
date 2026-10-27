@@ -578,7 +578,7 @@ public final class NimarkoTextAnim {
         st.lastSpoilerDrawMs = now;
         int textLen = edit.getText().length();
         int padL = edit.getPaddingLeft();
-        int padT = edit.getPaddingTop();
+        int padT = edit.getTotalPaddingTop();
         int scrollX = edit.getScrollX();
         int paintAlpha = paint.getAlpha();
         float textSize = paint.getTextSize();
@@ -808,7 +808,7 @@ public final class NimarkoTextAnim {
         float x = edit.getPaddingLeft()
                 + layout.getPrimaryHorizontal(Math.min(idx, layout.getText().length()))
                 - edit.getScrollX();
-        float y = edit.getPaddingTop() + layout.getLineBaseline(line);
+        float y = edit.getTotalPaddingTop() + layout.getLineBaseline(line);
         float w = paint.measureText(ch);
         for (int i = 0; i < PARTICLE_COUNT; i++) {
             st.particles.add(new Particle(
@@ -964,7 +964,7 @@ public final class NimarkoTextAnim {
                     / 2.0 * 0.8 + 0.2) * 255.0);
 
             int padL = edit.getPaddingLeft();
-            float padT = edit.getPaddingTop();
+            float padT = edit.getTotalPaddingTop();
             float half = (textSize * 1.25f) / 2f;
             float top = st.cursorY + padT - half;
             float bot = st.cursorY + padT + half;

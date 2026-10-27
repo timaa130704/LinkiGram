@@ -8,15 +8,11 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.graphics.PorterDuff;
-import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.Editable;
 import android.text.InputType;
-import android.text.Layout;
 import android.text.TextWatcher;
 import android.transition.ChangeBounds;
 import android.transition.Transition;
@@ -76,20 +72,6 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         this.resourcesProvider = resourcesProvider;
 
         editText = new EditTextBoldCursor(context) {
-            @Override
-            protected void drawCursor(Canvas canvas, GradientDrawable drawable) {
-                Layout layout = getLayout();
-                int selection = getSelectionStart();
-                if (layout != null && selection >= 0) {
-                    int line = layout.getLineForOffset(Math.min(selection, layout.getText().length()));
-                    Paint.FontMetricsInt metrics = getPaint().getFontMetricsInt();
-                    int baseline = layout.getLineBaseline(line);
-                    Rect bounds = drawable.getBounds();
-                    drawable.setBounds(bounds.left, baseline + metrics.ascent, bounds.right, baseline + metrics.descent);
-                }
-                super.drawCursor(canvas, drawable);
-            }
-
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -233,6 +215,9 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     }
 
     public void setBlurredBackgroundVisibility(float visibility) {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !isSectionBackground) {
+            visibility = 0f;
+        }
         final int alpha = (int) (255 * visibility);
         boolean changed = false;
         if (blurredBackgroundDrawable != null) {
@@ -292,7 +277,8 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     @Override
     public void updateColors() {
         final boolean isDark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
-        bg = isSectionBackground ?
+        final boolean you = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !isSectionBackground;
+        bg = you ? Theme.createRoundRectDrawable(dp(24), app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)) : isSectionBackground ?
             Theme.createRoundRectDrawableShadowed(dp(20), getThemedColor(Theme.key_windowBackgroundWhite)) :
             Theme.createRoundRectDrawable(dp(20), isWhiteBackground ? getThemedColor(Theme.key_windowBackgroundWhite) : getThemedColor(Theme.key_windowBackgroundWhiteBlackText, isDark ? 0.07f : 0.05f));
         searchIcon.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.6f), PorterDuff.Mode.MULTIPLY);
@@ -301,6 +287,15 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         editText.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.5f));
         editText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         editText.setCursorColor(getThemedColor(Theme.key_groupcreate_cursor));
+        if (you) {
+            int onSurface = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_SURFACE);
+            int secondary = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SECONDARY);
+            searchIcon.setColorFilter(secondary, PorterDuff.Mode.SRC_IN);
+            closeIcon.setColorFilter(secondary, PorterDuff.Mode.SRC_IN);
+            editText.setTextColor(onSurface);
+            editText.setHintTextColor(secondary);
+            editText.setCursorColor(app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY));
+        }
         if (blurredBackgroundDrawable != null) {
             blurredBackgroundDrawable.updateColors();
         }
