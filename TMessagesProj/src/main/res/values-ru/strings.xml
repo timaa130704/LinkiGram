@@ -1691,4 +1691,15 @@
     <string name="LinkiChatStatsScope">По доступной истории чата. Служебные сообщения не учитываются, а предпросмотры ссылок не считаются медиа.</string>
     <string name="LinkiTopicStatsScope">По доступной истории этой темы. Служебные сообщения не учитываются, а предпросмотры ссылок не считаются медиа.</string>
     <string name="LinkiRepeatLocalLabel">Локальный повтор</string>
+    <string name="LinkiSmartCenter">Центр чатов</string>
+    <string name="LinkiAISettings">Настройки LinkiGram AI</string>
+    <string name="LinkiSmartCenterInfo">Непрочитанные чаты и упоминания этого аккаунта. Выберите чат, чтобы открыть его или получить сводку последних сообщений.</string>
+    <string name="LinkiSmartMentions">Упоминания</string>
+    <string name="LinkiSmartUnread">Непрочитанные чаты</string>
+    <string name="LinkiSmartEmpty">Здесь пока пусто</string>
+    <string name="LinkiSmartOpen">Открыть чат</string>
+    <string name="LinkiSmartSummarize">Кратко с LinkiGram AI</string>
+    <string name="LinkiSummaryConsent">До 100 последних сообщений (до 24 000 символов) этого чата будут отправлены выбранному ИИ-провайдеру. Продолжить?</string>
+    <string name="LinkiSummaryEmpty">В выбранном фрагменте нет текстовых сообщений.</string>
+    <string name="LinkiSummaryScope">Сводка ограниченного фрагмента последних сообщений. ИИ может ошибаться. Числа в скобках обозначают номера сообщений.</string>
 </resources>

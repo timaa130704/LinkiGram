@@ -13050,4 +13050,15 @@
     <string name="LinkiChatStatsScope">Based on available chat history. Service messages and link previews are not counted as media.</string>
     <string name="LinkiTopicStatsScope">Based on this topic’s available history. Service messages and link previews are not counted as media.</string>
     <string name="LinkiRepeatLocalLabel">Local repeat</string>
+    <string name="LinkiSmartCenter">Chat center</string>
+    <string name="LinkiAISettings">LinkiGram AI settings</string>
+    <string name="LinkiSmartCenterInfo">Unread chats and mentions for this account. Choose a chat to open it or summarize its recent history.</string>
+    <string name="LinkiSmartMentions">Mentions</string>
+    <string name="LinkiSmartUnread">Unread chats</string>
+    <string name="LinkiSmartEmpty">Nothing here</string>
+    <string name="LinkiSmartOpen">Open chat</string>
+    <string name="LinkiSmartSummarize">Summarize with LinkiGram AI</string>
+    <string name="LinkiSummaryConsent">Up to 100 recent messages (up to 24,000 characters) from this chat will be sent to your selected AI provider. Continue?</string>
+    <string name="LinkiSummaryEmpty">No text messages in this excerpt.</string>
+    <string name="LinkiSummaryScope">Summary of a limited recent excerpt. AI may make mistakes. Numbers in brackets refer to message IDs.</string>
 </resources>

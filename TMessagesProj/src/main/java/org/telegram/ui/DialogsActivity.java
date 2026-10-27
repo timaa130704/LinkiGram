@@ -13830,6 +13830,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private void showItemOptions() {
         ItemOptions io = ItemOptions.makeOptions(this, optionsItem);
+        io.add(R.drawable.msg_stats, getString(R.string.LinkiSmartCenter), () -> presentFragment(
+                new app.nimarkogram.messenger.preferences.SmartChatCenterActivity(currentAccount)));
         io.setColors(getThemedColor(Theme.key_actionBarDefaultTitle), getThemedColor(Theme.key_actionBarDefaultTitle));
         io.setDimAlpha(0x08);
 
