@@ -8,11 +8,15 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.Layout;
 import android.text.TextWatcher;
 import android.transition.ChangeBounds;
 import android.transition.Transition;
@@ -72,6 +76,20 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
         this.resourcesProvider = resourcesProvider;
 
         editText = new EditTextBoldCursor(context) {
+            @Override
+            protected void drawCursor(Canvas canvas, GradientDrawable drawable) {
+                Layout layout = getLayout();
+                int selection = getSelectionStart();
+                if (layout != null && selection >= 0) {
+                    int line = layout.getLineForOffset(Math.min(selection, layout.getText().length()));
+                    Paint.FontMetricsInt metrics = getPaint().getFontMetricsInt();
+                    int baseline = layout.getLineBaseline(line);
+                    Rect bounds = drawable.getBounds();
+                    drawable.setBounds(bounds.left, baseline + metrics.ascent, bounds.right, baseline + metrics.descent);
+                }
+                super.drawCursor(canvas, drawable);
+            }
+
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
