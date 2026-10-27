@@ -13049,4 +13049,5 @@
     <string name="LinkiChatStatsError">Could not load all messages. The result may be incomplete.</string>
     <string name="LinkiChatStatsScope">Based on available chat history. Service messages and link previews are not counted as media.</string>
     <string name="LinkiTopicStatsScope">Based on this topic’s available history. Service messages and link previews are not counted as media.</string>
+    <string name="LinkiRepeatLocalLabel">Local repeat</string>
 </resources>

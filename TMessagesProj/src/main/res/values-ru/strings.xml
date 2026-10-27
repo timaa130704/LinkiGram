@@ -1690,4 +1690,5 @@
     <string name="LinkiChatStatsError">Не удалось загрузить все сообщения. Результат может быть неполным.</string>
     <string name="LinkiChatStatsScope">По доступной истории чата. Служебные сообщения не учитываются, а предпросмотры ссылок не считаются медиа.</string>
     <string name="LinkiTopicStatsScope">По доступной истории этой темы. Служебные сообщения не учитываются, а предпросмотры ссылок не считаются медиа.</string>
+    <string name="LinkiRepeatLocalLabel">Локальный повтор</string>
 </resources>

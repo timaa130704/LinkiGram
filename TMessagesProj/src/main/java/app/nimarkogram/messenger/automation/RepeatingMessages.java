@@ -10,6 +10,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.telegram.messenger.*;
@@ -18,6 +20,7 @@ import org.telegram.tgnet.NativeByteBuffer;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -34,6 +37,12 @@ public final class RepeatingMessages {
     }
     private static void save(JSONArray jobs) {
         if (!prefs().edit().putString("jobs", jobs.toString()).commit()) throw new IllegalStateException("Cannot persist repeating messages");
+        AndroidUtilities.runOnUIThread(() -> {
+            for (int i = 0; i < UserConfig.MAX_ACCOUNT_COUNT; i++) {
+                if (UserConfig.getInstance(i).isClientActivated())
+                    NotificationCenter.getInstance(i).postNotificationName(NotificationCenter.linkiRepeatsUpdated);
+            }
+        });
     }
     private static String encode(TLRPC.Message message) throws Exception {
         if (message == null) return "";
@@ -81,6 +90,9 @@ public final class RepeatingMessages {
             job.put("message", encode(template)); job.put("text", params.message);
             job.put("reply", encode(params.replyToMsg == null ? null : params.replyToMsg.messageOwner));
             job.put("topic", encode(params.replyToTopMsg == null ? null : params.replyToTopMsg.messageOwner));
+            job.put("reply_main", params.replyToMsg != null && params.replyToMsg.isTopicMainMessage);
+            job.put("topic_main", params.replyToTopMsg != null && params.replyToTopMsg.isTopicMainMessage);
+            job.put("same_target", params.replyToMsg != null && params.replyToMsg == params.replyToTopMsg);
             job.put("notify", params.notify); job.put("mono", params.monoForumPeer);
             JSONArray jobs = read(); jobs.put(job); save(jobs); arm(job);
             toast(R.string.LinkiRepeatSaved);
@@ -158,9 +170,27 @@ public final class RepeatingMessages {
         }
         try {
             MessageObject template = decode(account, job.getString("message"));
+            MessageObject reply = decode(account, job.optString("reply"));
+            MessageObject topic = decode(account, job.optString("topic"));
+            long dialogId = job.getLong("dialog");
+            TLRPC.Chat chat = dialogId < 0 ? MessagesController.getInstance(account).getChat(-dialogId) : null;
+            // Old jobs did not persist the forum marker. Do not guess while the chat is unavailable.
+            if (topic != null && !job.has("topic_main") && dialogId < 0 && chat == null) return;
+            boolean forum = ChatObject.isForum(chat);
+            if (topic != null) {
+                topic.isTopicMainMessage = forum || job.optBoolean("topic_main");
+            }
+            if (reply == null && topic != null && topic.isTopicMainMessage) reply = topic;
+            if (reply != null) {
+                boolean sameMessage = topic != null && reply.getId() == topic.getId()
+                        && reply.getDialogId() == topic.getDialogId();
+                reply.isTopicMainMessage = job.has("reply_main") ? job.optBoolean("reply_main")
+                        : forum && sameMessage;
+                if (sameMessage && (job.optBoolean("same_target") || !job.has("same_target"))) reply = topic;
+            }
             SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(
                     template.messageOwner.message, job.getLong("dialog"),
-                    decode(account, job.optString("reply")), decode(account, job.optString("topic")),
+                    reply, topic,
                     null, true, template.messageOwner.entities, null, null, job.optBoolean("notify", true), 0, 0, null, false);
             params.monoForumPeer = job.optLong("mono");
             SendMessagesHelper.getInstance(account).sendMessage(params);
@@ -176,30 +206,67 @@ public final class RepeatingMessages {
         }
         save(kept);
     }
-    public static void show(BaseFragment fragment, int account, long dialog) {
-        ArrayList<JSONObject> selected = new ArrayList<>(); ArrayList<CharSequence> labels = new ArrayList<>();
+    private static ArrayList<JSONObject> matching(int account, long dialog, long topicId) {
+        ArrayList<JSONObject> selected = new ArrayList<>();
         JSONArray jobs = read();
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
             if (job != null && job.optLong("dialog") == dialog && account(job) == account) {
+                if (topicId != 0) {
+                    try {
+                        MessageObject topic = decode(account, job.optString("topic"));
+                        if (topic == null || topic.getId() != topicId) continue;
+                    } catch (Exception e) { FileLog.e(e); continue; }
+                }
                 selected.add(job);
-                String text = job.optString("text");
-                labels.add((text.length() > 70 ? text.substring(0, 70) + "…" : text) + "\n"
-                        + LocaleController.formatDateTime(job.optLong("next") / 1000, true)
-                        + " · " + job.optInt("period") / 60 + " " + LocaleController.getString(R.string.LinkiMinutes));
             }
         }
+        selected.sort((a, b) -> Long.compare(a.optLong("next"), b.optLong("next")));
+        return selected;
+    }
+    public static int count(int account, long dialog, long topicId) {
+        return matching(account, dialog, topicId).size();
+    }
+    private static CharSequence label(JSONObject job) {
+        String text = job.optString("text");
+        return (text.length() > 200 ? text.substring(0, 200) + "…" : text) + "\n"
+                + LocaleController.getString(R.string.LinkiRepeatLocalLabel) + " · "
+                + LocaleController.formatDateTime(job.optLong("next") / 1000, true)
+                + " · " + job.optInt("period") / 60 + " " + LocaleController.getString(R.string.LinkiMinutes);
+    }
+    private static void confirmRemove(BaseFragment fragment, JSONObject job) {
+        if (fragment.getParentActivity() == null) return;
+        AlertDialog.Builder confirm = new AlertDialog.Builder(fragment.getParentActivity(), fragment.getResourceProvider());
+        confirm.setTitle(LocaleController.getString(R.string.LinkiRepeatCancel));
+        confirm.setMessage(job.optString("text"));
+        confirm.setPositiveButton(LocaleController.getString(R.string.Delete), (d, w) -> remove(job.optString("id")));
+        confirm.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        fragment.showDialog(confirm.create());
+    }
+    public static void bindScheduled(LinearLayout container, BaseFragment fragment, int account, long dialog, long topicId) {
+        container.removeAllViews();
+        for (JSONObject job : matching(account, dialog, topicId)) {
+            TextView row = new TextView(container.getContext());
+            row.setText(label(job));
+            row.setTextSize(15);
+            row.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, fragment.getResourceProvider()));
+            row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
+            row.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(16),
+                    Theme.getColor(Theme.key_windowBackgroundWhite, fragment.getResourceProvider())));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(AndroidUtilities.dp(12), AndroidUtilities.dp(4), AndroidUtilities.dp(12), AndroidUtilities.dp(4));
+            container.addView(row, lp);
+            row.setOnClickListener(v -> confirmRemove(fragment, job));
+        }
+    }
+    public static void show(BaseFragment fragment, int account, long dialog, long topicId) {
+        ArrayList<JSONObject> selected = matching(account, dialog, topicId);
+        ArrayList<CharSequence> labels = new ArrayList<>();
+        for (JSONObject job : selected) labels.add(label(job));
         AlertDialog.Builder builder = new AlertDialog.Builder(fragment.getParentActivity());
         builder.setTitle(LocaleController.getString(R.string.LinkiRepeatingMessages));
         if (selected.isEmpty()) builder.setMessage(LocaleController.getString(R.string.LinkiRepeatEmpty));
-        else builder.setItems(labels.toArray(new CharSequence[0]), (dialogInterface, which) -> {
-            AlertDialog.Builder confirm = new AlertDialog.Builder(fragment.getParentActivity());
-            confirm.setTitle(LocaleController.getString(R.string.LinkiRepeatCancel));
-            confirm.setMessage(selected.get(which).optString("text"));
-            confirm.setPositiveButton(LocaleController.getString(R.string.Delete), (d, w) -> remove(selected.get(which).optString("id")));
-            confirm.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
-            fragment.showDialog(confirm.create());
-        });
+        else builder.setItems(labels.toArray(new CharSequence[0]), (dialogInterface, which) -> confirmRemove(fragment, selected.get(which)));
         builder.setNegativeButton(LocaleController.getString(R.string.Close), null);
         fragment.showDialog(builder.create());
     }

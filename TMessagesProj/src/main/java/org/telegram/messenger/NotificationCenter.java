@@ -142,6 +142,7 @@ public class NotificationCenter {
     public static final int didUpdateExtendedMedia = totalEvents++;
     public static final int didVerifyMessagesStickers = totalEvents++;
     public static final int scheduledMessagesUpdated = totalEvents++;
+    public static final int linkiRepeatsUpdated = totalEvents++;
     public static final int newSuggestionsAvailable = totalEvents++;
     public static final int didLoadChatInviter = totalEvents++;
     public static final int didLoadChatAdmins = totalEvents++;

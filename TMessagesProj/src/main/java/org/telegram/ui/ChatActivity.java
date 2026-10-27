@@ -2649,7 +2649,8 @@ public class ChatActivity extends BaseFragment implements
             if (getMessagesController().isForum(getDialogId()) && !isTopic || chatMode == MODE_WELCOME_MESSAGES) {
                 return false;
             }
-            return scheduledMessagesCount > 0 && (chatMode == 0 || chatMode == MODE_SAVED && getSavedDialogId() == getUserConfig().getClientUserId());
+            return (scheduledMessagesCount > 0 || app.nimarkogram.messenger.automation.RepeatingMessages.count(currentAccount, dialog_id, isTopic ? getTopicId() : 0) > 0)
+                    && (chatMode == 0 || chatMode == MODE_SAVED && getSavedDialogId() == getUserConfig().getClientUserId());
         }
 
         @Override
@@ -3127,6 +3128,7 @@ public class ChatActivity extends BaseFragment implements
             .add(NotificationCenter.didUpdateExtendedMedia)
             .add(NotificationCenter.videoLoadingStateChanged)
             .add(NotificationCenter.scheduledMessagesUpdated)
+            .add(NotificationCenter.linkiRepeatsUpdated)
             .add(NotificationCenter.diceStickersDidLoad)
             .add(NotificationCenter.dialogDeleted)
             .add(NotificationCenter.chatAvailableReactionsUpdated)
@@ -3860,7 +3862,7 @@ public class ChatActivity extends BaseFragment implements
             @Override
             public void onItemClick(final int id) {
                 if (id == 9878) {
-                    app.nimarkogram.messenger.automation.RepeatingMessages.show(ChatActivity.this, currentAccount, dialog_id);
+                    app.nimarkogram.messenger.automation.RepeatingMessages.show(ChatActivity.this, currentAccount, dialog_id, isTopic ? getTopicId() : 0);
                     return;
                 }
                 if (id == 9876) {
@@ -24525,6 +24527,12 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
             }
+        } else if (id == NotificationCenter.linkiRepeatsUpdated) {
+            updateScheduledInterface(true);
+            if (chatMode == MODE_SCHEDULED && chatAdapter != null) {
+                chatAdapter.updateRowsSafe();
+                chatAdapter.notifyDataSetChanged();
+            }
         } else if (id == NotificationCenter.scheduledMessagesUpdated) {
             long did = (Long) args[0];
             boolean fromCache = (boolean) args[2];
@@ -37420,6 +37428,7 @@ public class ChatActivity extends BaseFragment implements
         private int userNameTimeRow = -5;
 
         private int botForumStartThreadRow = -5;
+        private int localRepeatsRow = -5;
 
         public int messagesStartRow;
         private int messagesEndRow;
@@ -37480,6 +37489,7 @@ public class ChatActivity extends BaseFragment implements
             int prevUserPhotoTimeRow = userPhotoTimeRow;
             int prevUserNameTimeRow = userNameTimeRow;
             int prevBotForumStartThreadRow = botForumStartThreadRow;
+            int prevLocalRepeatsRow = localRepeatsRow;
             updateRowsInternal();
             if (prevRowCount != rowCount || prevBotInfoRow != botInfoRow ||
                 prevLoadingUpRow != loadingUpRow || prevLoadingDownRow != loadingDownRow ||
@@ -37487,7 +37497,7 @@ public class ChatActivity extends BaseFragment implements
                 prevHintRow != hintRow || prevHintRow2 != hintRow2 || prevUserInfoRow != userInfoRow ||
                 prevUserPhotoTimeRow != userPhotoTimeRow ||
                 prevUserNameTimeRow != userNameTimeRow ||
-                prevBotForumStartThreadRow != botForumStartThreadRow
+                prevBotForumStartThreadRow != botForumStartThreadRow || prevLocalRepeatsRow != localRepeatsRow
             ) {
                 notifyDataSetChanged(false);
             }
@@ -37581,6 +37591,8 @@ public class ChatActivity extends BaseFragment implements
                     botInfoRow = rowCount++;
                 }
             }
+            localRepeatsRow = chatMode == MODE_SCHEDULED && app.nimarkogram.messenger.automation.RepeatingMessages.count(
+                    currentAccount, dialog_id, isTopic ? getTopicId() : 0) > 0 ? rowCount++ : -5;
         }
 
         @Override
@@ -37612,7 +37624,9 @@ public class ChatActivity extends BaseFragment implements
                 messages = ChatActivity.this.messages;
             }
 
-            if (position >= messagesStartRow && position < messagesEndRow) {
+            if (position == localRepeatsRow) {
+                return Long.MIN_VALUE + 9878;
+            } else if (position >= messagesStartRow && position < messagesEndRow) {
                 return messages.get(position - messagesStartRow).stableId;
             } else if (position == botInfoRow || position == botInfoEmptyRow) {
                 return 1;
@@ -37639,7 +37653,11 @@ public class ChatActivity extends BaseFragment implements
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = null;
-            if (viewType == 0) {
+            if (viewType == 9878) {
+                LinearLayout localRepeats = new LinearLayout(mContext);
+                localRepeats.setOrientation(LinearLayout.VERTICAL);
+                view = localRepeats;
+            } else if (viewType == 0) {
                 view = new ChatMessageCell(mContext, currentAccount, true, sharedResources, themeDelegate);
                 ChatMessageCell chatMessageCell = (ChatMessageCell) view;
                 chatMessageCell.setResourcesProvider(themeDelegate);
@@ -38032,6 +38050,11 @@ public class ChatActivity extends BaseFragment implements
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+            if (position == localRepeatsRow) {
+                app.nimarkogram.messenger.automation.RepeatingMessages.bindScheduled((LinearLayout) holder.itemView,
+                        ChatActivity.this, currentAccount, dialog_id, isTopic ? getTopicId() : 0);
+                return;
+            }
             if (position == botInfoRow || position == botInfoEmptyRow) {
                 BotHelpCell helpView = (BotHelpCell) holder.itemView;
                 if (UserObject.isReplyUser(currentUser)) {
@@ -38639,6 +38662,7 @@ public class ChatActivity extends BaseFragment implements
 
         @Override
         public int getItemViewType(int position) {
+            if (position == localRepeatsRow) return 9878;
             if (isClearingHistory()) {
                 if (position == botInfoEmptyRow) {
                     return 3;
