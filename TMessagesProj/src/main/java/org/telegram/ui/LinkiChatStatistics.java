@@ -9,6 +9,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
 
@@ -26,14 +27,14 @@ public final class LinkiChatStatistics {
 
     private LinkiChatStatistics() {}
 
-    public static void show(ChatActivity fragment, long dialogId) {
+    public static void show(ChatActivity fragment, long dialogId, long topicId) {
         Context context = fragment.getParentActivity();
         if (context == null) return;
         String[] periods = {text(R.string.LinkiChatStatsWeek), text(R.string.LinkiChatStatsMonth), text(R.string.LinkiChatStatsThreeMonths)};
         int[] days = {7, 30, 90};
         fragment.showDialog(new AlertDialog.Builder(context, fragment.getResourceProvider())
                 .setTitle(text(R.string.LinkiChatStatsTitle))
-                .setItems(periods, (dialog, which) -> new Loader(fragment, dialogId, days[which], periods[which]).start())
+                .setItems(periods, (dialog, which) -> new Loader(fragment, dialogId, topicId, days[which], periods[which]).start())
                 .setNegativeButton(text(R.string.Cancel), null)
                 .create());
     }
@@ -45,6 +46,7 @@ public final class LinkiChatStatistics {
     private static final class Loader {
         private final ChatActivity fragment;
         private final long dialogId;
+        private final long topicId;
         private final String period;
         private final int since;
         private final MessagesController controller;
@@ -57,9 +59,10 @@ public final class LinkiChatStatistics {
         private int media;
         private boolean stopped;
 
-        Loader(ChatActivity fragment, long dialogId, int days, String period) {
+        Loader(ChatActivity fragment, long dialogId, long topicId, int days, String period) {
             this.fragment = fragment;
             this.dialogId = dialogId;
+            this.topicId = topicId;
             this.period = period;
             this.since = (int) (System.currentTimeMillis() / 1000L - days * 86400L);
             this.controller = MessagesController.getInstance(fragment.getCurrentAccount());
@@ -80,10 +83,21 @@ public final class LinkiChatStatistics {
 
         void load(int offset) {
             if (stopped) return;
-            TLRPC.TL_messages_getHistory request = new TLRPC.TL_messages_getHistory();
-            request.peer = controller.getInputPeer(dialogId);
-            request.offset_id = offset;
-            request.limit = PAGE_SIZE;
+            TLObject request;
+            if (topicId != 0) {
+                TLRPC.TL_messages_getReplies replies = new TLRPC.TL_messages_getReplies();
+                replies.peer = controller.getInputPeer(dialogId);
+                replies.msg_id = (int) topicId;
+                replies.offset_id = offset;
+                replies.limit = PAGE_SIZE;
+                request = replies;
+            } else {
+                TLRPC.TL_messages_getHistory history = new TLRPC.TL_messages_getHistory();
+                history.peer = controller.getInputPeer(dialogId);
+                history.offset_id = offset;
+                history.limit = PAGE_SIZE;
+                request = history;
+            }
             requestId = connections.sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                 if (stopped || fragment.getParentActivity() == null) return;
                 requestId = 0;
@@ -136,7 +150,7 @@ public final class LinkiChatStatistics {
                 body.append('\n').append(i + 1).append(". ").append(name).append(" — ").append(entry.getValue());
             }
             if (incomplete) body.append("\n\n").append(text(error ? R.string.LinkiChatStatsError : R.string.LinkiChatStatsLimit));
-            body.append("\n\n").append(text(R.string.LinkiChatStatsScope));
+            body.append("\n\n").append(text(topicId != 0 ? R.string.LinkiTopicStatsScope : R.string.LinkiChatStatsScope));
             fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity(), fragment.getResourceProvider())
                     .setTitle(text(R.string.LinkiChatStatsTitle))
                     .setMessage(body.toString())

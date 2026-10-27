@@ -4004,7 +4004,7 @@ public class ChatActivity extends BaseFragment implements
                     }
                     showAutoCleanDialog();
                 } else if (id == linkigram_chat_statistics) {
-                    LinkiChatStatistics.show(ChatActivity.this, dialog_id);
+                    LinkiChatStatistics.show(ChatActivity.this, dialog_id, isTopic ? getTopicId() : 0);
                 } else if (id == ghost_chat_toggle || id == ghost_chat_status) {
                     if (getParentActivity() == null) {
                         return;
@@ -4514,7 +4514,7 @@ public class ChatActivity extends BaseFragment implements
             otherIcon.addView(headerItem.getIconView());
             headerItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
 
-            if (currentChat != null && currentEncryptedChat == null && chatMode == 0 && !isThreadChat() && !isReport()) {
+            if (currentChat != null && currentEncryptedChat == null && chatMode == 0 && (!isThreadChat() || isTopic) && !isReport()) {
                 headerItem.lazilyAddSubItem(linkigram_chat_statistics, R.drawable.msg_stats, getString(R.string.LinkiChatStatsTitle));
             }
 

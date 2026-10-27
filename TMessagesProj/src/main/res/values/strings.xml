@@ -13036,4 +13036,17 @@
     <string name="LinkiOnceAudio">Voice message</string>
     <string name="LinkiAllowProtectedScreenshots">Allow screenshots in protected chats</string>
     <string name="LinkiAllowProtectedScreenshotsInfo">Allow screenshots in protected chats and view-once media viewers.</string>
+    <string name="LinkiChatStatsTitle">Chat statistics</string>
+    <string name="LinkiChatStatsWeek">Last 7 days</string>
+    <string name="LinkiChatStatsMonth">Last 30 days</string>
+    <string name="LinkiChatStatsThreeMonths">Last 90 days</string>
+    <string name="LinkiChatStatsMessages">Messages: %1$d</string>
+    <string name="LinkiChatStatsMedia">Messages with media: %1$d</string>
+    <string name="LinkiChatStatsAuthors">Active senders: %1$d</string>
+    <string name="LinkiChatStatsTop">Most active senders</string>
+    <string name="LinkiChatStatsUnknown">Unknown sender</string>
+    <string name="LinkiChatStatsLimit">Partial result: only the latest 3,000 available messages were checked.</string>
+    <string name="LinkiChatStatsError">Could not load all messages. The result may be incomplete.</string>
+    <string name="LinkiChatStatsScope">Based on available chat history. Service messages and link previews are not counted as media.</string>
+    <string name="LinkiTopicStatsScope">Based on this topic’s available history. Service messages and link previews are not counted as media.</string>
 </resources>
