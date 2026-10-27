@@ -1743,6 +1743,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int auto_clean_timer = 75;
     private final static int ghost_chat_toggle = 76;
     private final static int ghost_chat_status = 77;
+    private final static int linkigram_chat_statistics = 10081;
 
     private final static int bot_help = 30;
     private final static int bot_settings = 31;
@@ -4002,6 +4003,8 @@ public class ChatActivity extends BaseFragment implements
                         return;
                     }
                     showAutoCleanDialog();
+                } else if (id == linkigram_chat_statistics) {
+                    LinkiChatStatistics.show(ChatActivity.this, dialog_id);
                 } else if (id == ghost_chat_toggle || id == ghost_chat_status) {
                     if (getParentActivity() == null) {
                         return;
@@ -4510,6 +4513,10 @@ public class ChatActivity extends BaseFragment implements
             });
             otherIcon.addView(headerItem.getIconView());
             headerItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
+
+            if (currentChat != null && currentEncryptedChat == null && chatMode == 0 && !isThreadChat() && !isReport()) {
+                headerItem.lazilyAddSubItem(linkigram_chat_statistics, R.drawable.msg_stats, getString(R.string.LinkiChatStatsTitle));
+            }
 
             if (currentUser != null && currentUser.self && chatMode != MODE_SAVED) {
                 savedChatsItem = headerItem.lazilyAddSubItem(view_as_topics, R.drawable.msg_topics, LocaleController.getString(R.string.SavedViewAsChats));
