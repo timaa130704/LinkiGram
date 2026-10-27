@@ -17,6 +17,7 @@ public class SmartChatCenterActivity extends NimarkoUniversalPreferencesActivity
     private final ArrayList<Long> dialogs = new ArrayList<>();
     public SmartChatCenterActivity(int account) { currentAccount = account; }
     @Override public String getTitle() { return LocaleController.getString(R.string.LinkiSmartCenter); }
+    @Override public boolean onLongClick(UItem item, View view, int position, float x, float y) { return false; }
     @Override public void onResume() {
         super.onResume();
         if (listView != null) listView.adapter.update(true);
