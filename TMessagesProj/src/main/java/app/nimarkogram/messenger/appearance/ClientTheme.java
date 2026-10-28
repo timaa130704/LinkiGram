@@ -118,7 +118,7 @@ public final class ClientTheme {
     public static int popupRadius() { return ColorOs17Theme.isEnabled() ? 24 : 16; }
     public static int dialogRadius() { return ColorOs17Theme.isEnabled() ? 24 : 28; }
     public static int sectionRadius() { return ColorOs17Theme.isEnabled() ? 20 : 24; }
-    public static int bubbleRadius() { return ColorOs17Theme.isEnabled() ? 20 : 22; }
+    public static int bubbleRadius() { return ColorOs17Theme.isEnabled() ? 20 : 24; }
     public static int menuHeight() { return ColorOs17Theme.isEnabled() ? 52 : 48; }
 
     /** Retain nine-patch padding; a replacement color filter replaces the fill tint. */
@@ -146,7 +146,7 @@ public final class ClientTheme {
 
     static {
         add(BACKGROUND, Theme.key_windowBackgroundGray, Theme.key_dialogBackgroundGray,
-                Theme.key_actionBarDefault, Theme.key_actionBarDefaultArchived, Theme.key_chat_wallpaper);
+                Theme.key_actionBarDefault, Theme.key_actionBarDefaultArchived);
         add(SURFACE, Theme.key_windowBackgroundWhite, Theme.key_dialogBackground,
                 Theme.key_chat_messagePanelBackground, Theme.key_chat_emojiPanelBackground,
                 Theme.key_player_background, Theme.key_chats_menuBackground, Theme.key_chats_menuTopBackground,
@@ -154,7 +154,7 @@ public final class ClientTheme {
         add(SURFACE_HIGH, Theme.key_actionBarDefaultSubmenuBackground, Theme.key_dialogSearchBackground,
                 Theme.key_dialogInputField, Theme.key_windowBackgroundWhiteInputField,
                 Theme.key_chat_emojiPanelStickerPackSelector, Theme.key_glass_targetMainTabs,
-                Theme.key_glass_targetMainTopPanel);
+                Theme.key_glass_targetMainTopPanel, Theme.key_chat_wallpaper);
         add(ON_SURFACE, Theme.key_actionBarDefaultIcon, Theme.key_actionBarDefaultTitle,
                 Theme.key_actionBarDefaultArchivedIcon, Theme.key_actionBarDefaultArchivedTitle,
                 Theme.key_actionBarDefaultSubmenuItem, Theme.key_dialogTextBlack, Theme.key_dialogSearchText,

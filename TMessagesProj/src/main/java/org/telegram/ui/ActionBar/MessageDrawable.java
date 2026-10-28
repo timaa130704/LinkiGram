@@ -700,7 +700,8 @@ public class MessageDrawable extends Drawable {
             int side = isOut ? 2 : 0;
             if (isTopNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
             side = isOut ? 4 : 6;
-            if (isBottomNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
+            if (isBottomNear || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
+                colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(4));
             colorOsBounds.set(bounds.left + padding, bounds.top + padding,
                     bounds.right - padding, bounds.bottom - padding);
             path.addRoundRect(colorOsBounds, colorOsRadii, Path.Direction.CW);
