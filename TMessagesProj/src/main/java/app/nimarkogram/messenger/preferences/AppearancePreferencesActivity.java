@@ -44,6 +44,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int snowflakesRow = 3;
 
     private static final int SETTINGS_ICON_COLORS = 21001;
+    private static final int YOU_CUSTOMIZE = 21002;
     private final int iconPackRow = 4;
     private final int oneUISwitchesRow = 5;
     private final int disableDividersRow = 6;
@@ -127,6 +128,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(SettingsHelper.asSwitchCG(colorOs17Row, getString(R.string.NM_ColorOS17),
                         getString(R.string.NM_ColorOS17_Desc))
                 .setChecked(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()));
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
+            items.add(UItem.asButton(YOU_CUSTOMIZE, getString(R.string.LinkiYouCustomize)));
         items.add(UItem.asButton(2002, getString(R.string.LF_Menu)));
         items.add(UItem.asButton(iconPackRow, getString(R.string.AP_IconReplacements), getIconPackValueText()));
         items.add(UItem.asButton(SETTINGS_ICON_COLORS, getString(R.string.LinkiSettingsIconColors), getSettingsIconColorValue()));
@@ -289,6 +292,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
                 || (item.id >= STYLE_BASE && item.id < STYLE_BASE + 8))) return;
         if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
                 && item.id >= STYLE_BASE + 8 && item.id < STYLE_BASE + 10) return;
+        if (item.id == YOU_CUSTOMIZE) { presentFragment(new YouCustomizationActivity()); return; }
         if (item.id == SETTINGS_ICON_COLORS) { showSettingsIconColors(); return; }
         if (item.id == 2002) { presentFragment(new DrawerPreferencesActivity()); return; }
         if (item.id == MATERIAL_ALL) {

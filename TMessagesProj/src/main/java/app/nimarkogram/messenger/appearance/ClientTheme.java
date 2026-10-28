@@ -83,6 +83,8 @@ public final class ClientTheme {
             try { seed = context.getColor(android.R.color.system_accent1_500); }
             catch (RuntimeException ignored) { }
         }
+        int customSeed = LinkiGramYouTheme.getSeedColor();
+        if (customSeed != 0) seed = customSeed;
         Palette result = cachedPalette;
         if (result == null || result.dark != dark || result.seed != seed) {
             synchronized (ClientTheme.class) {

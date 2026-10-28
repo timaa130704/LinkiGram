@@ -56,7 +56,9 @@ public class NimarkoConfig {
  public static class Pref {
   java.util.Map<String,Boolean> m=new java.util.HashMap<>();
   public boolean getBoolean(String k,boolean d){return m.getOrDefault(k,d);}
-  public int getInt(String k,int d){return d;}
+  java.util.Map<String,Integer> ints=new java.util.HashMap<>();
+  public int getInt(String k,int d){return ints.getOrDefault(k,d);}
+  public Pref putInt(String k,int v){ints.put(k,v);return this;}
   public Pref edit(){return this;} public Pref putBoolean(String k,boolean v){m.put(k,v);return this;}
   public void apply(){}
  }
@@ -116,6 +118,12 @@ public class Check {
   int before=ClientTheme.color(ClientTheme.PRIMARY);
   android.content.Context.seed=0xFFB24A20;
   check(before!=ClientTheme.color(ClientTheme.PRIMARY),"wallpaper seed invalidates palette");
+  int systemPrimary=ClientTheme.color(ClientTheme.PRIMARY);
+  LinkiGramYouTheme.setSeedColor(0xff008800);
+  check(LinkiGramYouTheme.getSeedColor()==0xff008800,"custom seed persisted");
+  check(ClientTheme.color(ClientTheme.PRIMARY)!=systemPrimary,"custom seed changes Material palette");
+  LinkiGramYouTheme.setSeedColor(0);
+  check(ClientTheme.color(ClientTheme.PRIMARY)==systemPrimary,"reset restores system palette");
   check(ClientTheme.resolveColor(-500,original)==original,"unmapped content colors preserved");
   ColorOs17Theme.setEnabled(true);
   android.graphics.drawable.Drawable base=new android.graphics.drawable.Drawable();

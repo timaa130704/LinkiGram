@@ -1706,4 +1706,10 @@
     <string name="LinkiSummaryProviderError">Выбранный ИИ-провайдер не выполнил запрос. Проверьте его настройки.</string>
     <string name="LinkiSummaryAuthError">Проверьте API-ключ и доступ к выбранной модели.</string>
     <string name="LinkiSummaryRateError">Достигнут лимит запросов провайдера. Повторите позже.</string>
+    <string name="LinkiYouCustomize">Настройка LinkiGram You</string>
+    <string name="LinkiYouColors">Цвета</string>
+    <string name="LinkiYouAccent">Акцентный цвет</string>
+    <string name="LinkiYouSystemColor">Использовать цвета системы</string>
+    <string name="LinkiYouColorsInfo">Из акцентного цвета создаётся палитра Material You для светлой и тёмной темы.</string>
+    <string name="LinkiYouLayout">Расположение</string>
 </resources>

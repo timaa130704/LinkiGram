@@ -15,6 +15,15 @@ public final class LinkiGramYouTheme {
     public static final int NAV_COLOR_UNSELECTED = 3;
     private static volatile boolean enabled;
     private static volatile boolean loaded;
+    private static final String PREF_SEED = "linkigramYouSeedColor";
+
+    public static int getSeedColor() {
+        return app.nimarkogram.messenger.NimarkoConfig.getPreferences().getInt(PREF_SEED, 0);
+    }
+
+    public static void setSeedColor(int color) {
+        app.nimarkogram.messenger.NimarkoConfig.getPreferences().edit().putInt(PREF_SEED, color == 0 ? 0 : color | 0xff000000).apply();
+    }
 
     private LinkiGramYouTheme() { }
 
