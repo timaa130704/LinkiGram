@@ -247,6 +247,7 @@ public class ChatInputViewsContainer extends FrameLayout {
 
     private final Rect tmpRect = new Rect();
     private final RectF tmpRectF = new RectF();
+    private final android.graphics.Paint youComposerPaint = new android.graphics.Paint();
 
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
@@ -269,8 +270,16 @@ public class ChatInputViewsContainer extends FrameLayout {
         tmpRect.offset(0, blurTop + (int) bubbleInputTranlationY);
 
         blurredBackgroundDrawable.setBounds(tmpRect);
-        if (drawInputBackground)
-            blurredBackgroundDrawable.draw(canvas);
+        if (drawInputBackground) {
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                youComposerPaint.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
+                    app.nimarkogram.messenger.appearance.ClientTheme.BACKGROUND));
+                youComposerPaint.setAlpha(blurredBackgroundDrawable.getAlpha());
+                canvas.drawRect(0, tmpRect.top, getWidth(), getHeight(), youComposerPaint);
+            } else {
+                blurredBackgroundDrawable.draw(canvas);
+            }
+        }
 
         if (needDrawInAppKeyboard) {
             underKeyboardBackgroundDrawable.draw(canvas);

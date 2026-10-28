@@ -2867,7 +2867,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
             if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
-                attachButton.setImageResource(R.drawable.menu_add_tab_24);
+                attachButton.setImageResource(R.drawable.linkigram_you_attach);
                 attachButton.setBackground(Theme.createSimpleSelectorCircleDrawable(dp(38), getThemedColor(Theme.key_chat_outBubble), getThemedColor(Theme.key_listSelector)));
             } else {
                 attachButton.setImageResource(R.drawable.msg_input_attach2);
