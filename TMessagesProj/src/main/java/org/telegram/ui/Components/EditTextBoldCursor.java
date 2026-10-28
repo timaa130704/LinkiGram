@@ -1084,10 +1084,6 @@ public class EditTextBoldCursor extends EditTextEffects {
         drawable.draw(canvas);
     }
 
-    protected void drawCursor(Canvas canvas, GradientDrawable drawable) {
-        drawable.draw(canvas);
-    }
-
     public void setWindowView(View view) {
         windowView = view;
     }

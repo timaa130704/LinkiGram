@@ -58805,6 +58805,7 @@ public class TLRPC {
         public int ephemeralAnchorMsgId; // custom
         public long ephemeralReceiverBotId; //custom
         public boolean welcomeTemplateFirst; // custom
+        public boolean ayuDeleted; // local deleted-message archive marker; never serialized
 
         private static Message fromConstructor(int constructor) {
             switch (constructor) {
@@ -63117,6 +63118,7 @@ public class TLRPC {
     }
 
     public static class TL_messageEntityCustomEmoji extends MessageEntity implements TLJsonBuilder.Serializable, TLJsonParser.Deserializable {
+        public boolean local; // local emoji replacement marker; never serialized
         public static final int constructor = 0xc8cf05f8;
         public static final String constructorName = "messageEntityCustomEmoji";
 
