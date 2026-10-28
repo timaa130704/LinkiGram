@@ -49,7 +49,10 @@ public final class ChatSummary {
             request = fragment.getConnectionsManager().sendRequest(history, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                 if (stopped) return;
                 request = 0;
-                if (!(response instanceof TLRPC.messages_Messages)) { finish(LocaleController.getString(R.string.OEAiFailed)); return; }
+                if (!(response instanceof TLRPC.messages_Messages)) {
+                    fail("history", error == null ? 0 : error.code);
+                    return;
+                }
                 ArrayList<TLRPC.Message> messages = ((TLRPC.messages_Messages) response).messages;
                 messages.sort((a,b) -> Integer.compare(a.id, b.id));
                 StringBuilder input = new StringBuilder();
@@ -70,7 +73,7 @@ public final class ChatSummary {
                 client.generate(key, conversation, false, new GenerationCallback() {
                     @Override public void onChunk(String text) {}
                     @Override public void onResponse(String text) { AndroidUtilities.runOnUIThread(() -> finish(text)); }
-                    @Override public void onError(int code, String message) { AndroidUtilities.runOnUIThread(() -> finish(LocaleController.getString(R.string.OEAiFailed))); }
+                    @Override public void onError(int code, String message) { AndroidUtilities.runOnUIThread(() -> fail("provider", code)); }
                 });
             }));
             fragment.getConnectionsManager().bindRequestToGuid(request, fragment.getClassGuid());
@@ -80,13 +83,24 @@ public final class ChatSummary {
             if (request != 0) fragment.getConnectionsManager().cancelRequest(request, true);
             if (client != null) client.cancel(key);
         }
+        void fail(String stage, int code) {
+            if (stopped) return;
+            android.util.Log.w("LinkiSummary", "stage=" + stage + " code=" + code);
+            int resource = "history".equals(stage) ? R.string.LinkiSummaryHistoryError : R.string.LinkiSummaryProviderError;
+            String hint = code == 401 || code == 403 ? LocaleController.getString(R.string.LinkiSummaryAuthError)
+                    : code == 429 ? LocaleController.getString(R.string.LinkiSummaryRateError) : "";
+            finish(LocaleController.getString(resource) + " (" + code + ")\n" + hint, false);
+        }
         void finish(String text) {
+            finish(text, true);
+        }
+        void finish(String text, boolean summary) {
             if (stopped) return;
             progress.dismiss();
             if (fragment.getParentActivity() == null) return;
             fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity(), fragment.getResourceProvider())
                     .setTitle("LinkiGram AI")
-                    .setMessage(LocaleController.getString(R.string.LinkiSummaryScope) + "\n\n" + text)
+                    .setMessage((summary ? LocaleController.getString(R.string.LinkiSummaryScope) + "\n\n" : "") + text)
                     .setPositiveButton(LocaleController.getString(R.string.OK), null).create());
         }
     }

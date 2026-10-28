@@ -13061,4 +13061,8 @@
     <string name="LinkiSummaryConsent">Up to 100 recent messages (up to 24,000 characters) from this chat will be sent to your selected AI provider. Continue?</string>
     <string name="LinkiSummaryEmpty">No text messages in this excerpt.</string>
     <string name="LinkiSummaryScope">Summary of a limited recent excerpt. AI may make mistakes. Numbers in brackets refer to message IDs.</string>
+    <string name="LinkiSummaryHistoryError">Could not load Telegram chat history. Check the connection and access to the chat.</string>
+    <string name="LinkiSummaryProviderError">The selected AI provider could not complete the request. Check its settings.</string>
+    <string name="LinkiSummaryAuthError">Check the API key and access to the selected model.</string>
+    <string name="LinkiSummaryRateError">The provider request limit was reached. Try again later.</string>
 </resources>

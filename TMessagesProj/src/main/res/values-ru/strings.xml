@@ -1702,4 +1702,8 @@
     <string name="LinkiSummaryConsent">До 100 последних сообщений (до 24 000 символов) этого чата будут отправлены выбранному ИИ-провайдеру. Продолжить?</string>
     <string name="LinkiSummaryEmpty">В выбранном фрагменте нет текстовых сообщений.</string>
     <string name="LinkiSummaryScope">Сводка ограниченного фрагмента последних сообщений. ИИ может ошибаться. Числа в скобках обозначают номера сообщений.</string>
+    <string name="LinkiSummaryHistoryError">Не удалось загрузить историю Telegram. Проверьте соединение и доступ к чату.</string>
+    <string name="LinkiSummaryProviderError">Выбранный ИИ-провайдер не выполнил запрос. Проверьте его настройки.</string>
+    <string name="LinkiSummaryAuthError">Проверьте API-ключ и доступ к выбранной модели.</string>
+    <string name="LinkiSummaryRateError">Достигнут лимит запросов провайдера. Повторите позже.</string>
 </resources>
