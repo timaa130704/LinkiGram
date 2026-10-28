@@ -642,56 +642,7 @@ body::after {
   [data-reveal] { opacity: 1; transform: none; }
 }
 
-/* ============ Linki Squad ============ */
-.squad {
-  display: grid;
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(28px, 5vw, 64px);
-  padding: clamp(24px, 4vw, 48px);
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.06);
-}
-.squad__portrait { min-width: 0; }
-.squad__portrait img {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-  object-fit: contain;
-  border: 1px solid var(--surface-border);
-}
-.squad__content { min-width: 0; }
-.squad h2 {
-  margin: 12px 0 24px;
-  font-size: clamp(2rem, 4.5vw, 3.4rem);
-  line-height: 1.15;
-  letter-spacing: -0.04em;
-}
-.squad__lead { font-size: clamp(1rem, 1.5vw, 1.15rem); color: var(--text); }
-.squad__description { margin-top: 14px; color: var(--text-dim); }
-.squad__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 26px;
-  padding: 0;
-  list-style: none;
-}
-.squad__cta { margin-top: 28px; }
-.squad__tags li {
-  padding: 6px 12px;
-  border: 1px solid var(--surface-border);
-  background: rgba(var(--accent-rgb), 0.05);
-  color: var(--accent-bright);
-  font-size: 0.75rem;
-}
-@media (max-width: 640px) {
-  .squad { grid-template-columns: minmax(0, 1fr); gap: 28px; }
-  .squad__portrait { width: 100%; max-width: 320px; justify-self: center; }
-  .squad h2 { margin-bottom: 18px; }
-}
+
 
 /* ============ Адаптив ============ */
 @media (max-width: 980px) {
