@@ -14447,8 +14447,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         final float factor1 = 1f - animatorSearchVisible.getFloatValue();
         final float factor2 = 1f - getRightSlidingProgress();
         final float factor3 = 1f - animatorDoneButtonVisible.getFloatValue();
-        // Со своей шторкой пункты уезжают в неё, «⋮» не нужен.
-        final float factor4 = NimarkoConfig.navigationDrawer ? 0f : 1f;
+        final float factor4 = NimarkoConfig.navigationDrawer
+                && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 0f : 1f;
         final float factor = factor1 * factor2 * factor3 * factor4;
         FragmentFloatingButton.setAnimatedVisibility(optionsItem, factor);
     }

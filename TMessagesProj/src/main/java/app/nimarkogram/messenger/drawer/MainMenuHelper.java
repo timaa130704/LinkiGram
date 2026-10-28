@@ -281,6 +281,9 @@ public final class MainMenuHelper {
             case RECENT_CHATS:
                 return new MenuItemInfo(R.drawable.msg_recent, LocaleController.getString(R.string.RecentChats),
                         () -> showRecentChats(fragment), null);
+            case CHAT_CENTER:
+                return new MenuItemInfo(R.drawable.msg_stats, LocaleController.getString(R.string.LinkiSmartCenter),
+                        () -> fragment.presentFragment(new app.nimarkogram.messenger.preferences.SmartChatCenterActivity(currentAccount)), null);
             default:
                 return null;
         }
@@ -348,6 +351,7 @@ public final class MainMenuHelper {
             case PLUGINS -> new MenuItemInfo(R.drawable.msg_plugins, LocaleController.getString(R.string.NimarkoPlugins), null, null);
             case GHOST_MODE -> new MenuItemInfo(R.drawable.ghost_solar, ghostModeTitle(), null, null);
             case RECENT_CHATS -> new MenuItemInfo(R.drawable.msg_recent, LocaleController.getString(R.string.RecentChats), null, null);
+            case CHAT_CENTER -> new MenuItemInfo(R.drawable.msg_stats, LocaleController.getString(R.string.LinkiSmartCenter), null, null);
             default -> null;
         };
     }
