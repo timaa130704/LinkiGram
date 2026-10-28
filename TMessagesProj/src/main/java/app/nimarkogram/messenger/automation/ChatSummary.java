@@ -70,7 +70,7 @@ public final class ChatSummary {
                         + "Do not claim this excerpt contains all unread messages. User language: " + LocaleController.getInstance().getCurrentLocale().getLanguage())).build();
                 ArrayList<Message> conversation = new ArrayList<>();
                 conversation.add(new Message("user", input.toString()));
-                client.generate(key, conversation, false, new GenerationCallback() {
+                client.generate(key, conversation, new GenerationCallback() {
                     @Override public void onChunk(String text) {}
                     @Override public void onResponse(String text) { AndroidUtilities.runOnUIThread(() -> finish(text)); }
                     @Override public void onError(int code, String message) { AndroidUtilities.runOnUIThread(() -> fail("provider", code)); }
