@@ -579,7 +579,7 @@ public class MessageDrawable extends Drawable {
 
     public void draw(Canvas canvas, Paint paintToUse) {
         Rect bounds = getBounds();
-        if (paintToUse == null && paint.getStyle() == Paint.Style.FILL && gradientShader == null && overrideRoundRadius == 0 && overrideRounding <= 0) {
+        if (!app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && paintToUse == null && paint.getStyle() == Paint.Style.FILL && gradientShader == null && overrideRoundRadius == 0 && overrideRounding <= 0) {
             Drawable background = getBackgroundDrawable();
             if (background != null) {
                 background.setBounds(bounds);
@@ -701,7 +701,7 @@ public class MessageDrawable extends Drawable {
             if (isTopNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
             side = isOut ? 4 : 6;
             if (isBottomNear || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
-                colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(4));
+                colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 4 : 6));
             colorOsBounds.set(bounds.left + padding, bounds.top + padding,
                     bounds.right - padding, bounds.bottom - padding);
             path.addRoundRect(colorOsBounds, colorOsRadii, Path.Direction.CW);

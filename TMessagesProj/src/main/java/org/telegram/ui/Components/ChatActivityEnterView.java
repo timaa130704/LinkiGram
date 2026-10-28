@@ -2866,8 +2866,13 @@ public class ChatActivityEnterView extends FrameLayout implements
             };
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-            attachButton.setImageResource(R.drawable.msg_input_attach2);
-            attachButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                attachButton.setImageResource(R.drawable.menu_add_tab_24);
+                attachButton.setBackground(Theme.createSimpleSelectorCircleDrawable(dp(38), getThemedColor(Theme.key_chat_outBubble), getThemedColor(Theme.key_listSelector)));
+            } else {
+                attachButton.setImageResource(R.drawable.msg_input_attach2);
+                attachButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
+            }
             messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT));
             attachButton.setOnClickListener(v -> {
                 if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress() || attachLayoutPaddingAlpha == 0f) {
@@ -3262,7 +3267,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         }
                     }
 
-                    final float r = dpf2(19);
+                    final float r = dpf2(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 12 : 19);
                     paint.setColor(getThemedColor(Theme.key_chat_messagePanelSend));
                     final float margin = dpf2(3);
                     final float height = dpf2(38);
@@ -8868,6 +8873,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         }
         layoutParams.rightMargin = Math.max(layoutParams.rightMargin, Math.max(0, sendButton.width() - dp(DEFAULT_HEIGHT)));
+        if (isChat && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            layoutParams.rightMargin = Math.max(layoutParams.rightMargin, dp(50));
+        }
         if (doneButton != null && doneButton.getVisibility() == VISIBLE) {
             layoutParams.rightMargin = Math.max(layoutParams.rightMargin, Math.max(0, doneButton.width() - dp(DEFAULT_HEIGHT)));
         }
@@ -14642,6 +14650,24 @@ public class ChatActivityEnterView extends FrameLayout implements
                 ((MarginLayoutParams) richDraftPreview.getLayoutParams()).leftMargin = dp(50);
             }
         }
+        if (isChat && attachButton != null && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                && (botCommandsMenuButton == null || botCommandsMenuButton.getTag() == null)
+                && (senderSelectView == null || senderSelectView.getVisibility() != View.VISIBLE)) {
+            FrameLayout.LayoutParams attachParams = (FrameLayout.LayoutParams) attachButton.getLayoutParams();
+            attachParams.gravity = Gravity.BOTTOM | Gravity.LEFT;
+            attachParams.leftMargin = dp(3);
+            FrameLayout.LayoutParams emojiParams = (FrameLayout.LayoutParams) emojiButton.getLayoutParams();
+            emojiParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+            emojiParams.leftMargin = 0;
+            emojiParams.rightMargin = 0;
+        } else if (attachButton != null) {
+            FrameLayout.LayoutParams attachParams = (FrameLayout.LayoutParams) attachButton.getLayoutParams();
+            attachParams.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+            attachParams.leftMargin = 0;
+            FrameLayout.LayoutParams emojiParams = (FrameLayout.LayoutParams) emojiButton.getLayoutParams();
+            emojiParams.gravity = Gravity.BOTTOM | Gravity.LEFT;
+            emojiParams.rightMargin = 0;
+        }
         updateBotCommandsMenuContainerTopPadding();
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
@@ -15257,7 +15283,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             updateColors();
             checkBackgroundRect();
             if (isNewDesignSendButton) {
-                canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                int radius = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 12 : RADIUS;
+                canvas.drawRoundRect(backgroundRect, dp(radius), dp(radius), backgroundPaint);
             }
 
             final boolean inactive = isInactive();
