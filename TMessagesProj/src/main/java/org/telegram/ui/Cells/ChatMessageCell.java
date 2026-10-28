@@ -22874,6 +22874,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
                 // draw reply background
                 leftRad = bottomRad; // line redesign
+                if (needDrawReplyBackground && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                        && !currentMessageObject.shouldDrawWithoutBackground()) {
+                    int previousColor = Theme.chat_replyLinePaint.getColor();
+                    int base = getThemedColor(currentMessageObject.isOutOwner() ? Theme.key_chat_outBubble : Theme.key_chat_inBubble);
+                    int overlay = Theme.isCurrentThemeDark() ? 0xffffffff : 0xff000000;
+                    int card = ColorUtils.blendARGB(base, overlay, Theme.isCurrentThemeDark() ? 0.16f : 0.07f);
+                    Theme.chat_replyLinePaint.setColor(ColorUtils.setAlphaComponent(card, (int) (255 * alpha)));
+                    canvas.drawRoundRect(replySelectorRect, dp(14), dp(14), Theme.chat_replyLinePaint);
+                    Theme.chat_replyLinePaint.setColor(previousColor);
+                }
                 replyLine.setLoading(loading);
                 replyLine.drawBackground(canvas, replySelectorRect, leftRad, rightRad, bottomRad, alpha, isReplyQuote, currentMessageObject.shouldDrawWithoutBackground());
 
