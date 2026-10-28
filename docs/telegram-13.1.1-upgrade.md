@@ -1,6 +1,6 @@
 # Telegram 13.1.1 integration
 
-Status: preparation only. The application base has not been upgraded yet.
+Status: integration candidate; runtime validation is pending.
 
 ## Source revisions
 
@@ -13,7 +13,14 @@ The fork has a squashed upstream import, so ordinary unrelated-history merging
 does not identify the correct baseline. A non-mutating three-way preview using
 the baseline above produces 266 changed paths and conflicts in protocol,
 controllers, UI, resources, build configuration and two submodules.
-The preview is not a compilable integration and must not be published as one.
+The preview conflicts have been resolved into an integration candidate. The
+custom InstantCameraView implementation is retained for its CameraX and round
+video controls; its compatibility still requires CI and device validation.
+
+Validation of the candidate: Java syntax parsing passed for 140 changed files;
+modified XML parses; 28 Liner checks, lyrics parser checks and 45 appearance
+checks passed. The legacy AI autoreply harness references a deleted controller
+and cannot validate the current ChatAssistant implementation.
 
 ## Integration work
 
