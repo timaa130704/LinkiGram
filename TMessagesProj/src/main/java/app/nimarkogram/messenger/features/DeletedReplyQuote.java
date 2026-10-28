@@ -15,6 +15,7 @@ public final class DeletedReplyQuote {
         if (!reply.isAyuDeleted() && !com.radolyn.ayugram.messages.AyuMessagesController.getInstance()
                 .isAyuDeletedMessageId(uid, reply.getDialogId(), reply.getId())) return;
         String quote = params.replyQuote != null ? params.replyQuote.getText() : reply.messageOwner.message;
+        if ((quote == null || quote.trim().isEmpty()) && reply.messageText != null) quote = reply.messageText.toString();
         if (quote == null || quote.trim().isEmpty()) return;
         // Captions have a much smaller server limit. Keep the body intact and
         // truncate only the quote, with an explicit ellipsis.

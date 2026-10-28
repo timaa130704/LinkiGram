@@ -21912,7 +21912,7 @@ public class ChatActivity extends BaseFragment implements
                         // empty user dialog: restore as much as we can
                         startId = minVal;
                         endId = maxVal;
-                    } else if (dialog != null && dialog.top_message == msg2) {
+                    } else if (load_type == 2 || dialog != null && dialog.top_message == msg2) {
                         // the batch holds the newest message: cover everything newer
                         endId = maxVal;
                     } else if (dialog != null) {
@@ -21939,15 +21939,10 @@ public class ChatActivity extends BaseFragment implements
                     // loading upper messages
                     startId = minVal;
                     endId = com.radolyn.ayugram.AyuUtils.getMinRealId(messages);
-                } else if (DialogObject.isUserDialog(dialog_id)) {
+                } else if (load_type == 2 || DialogObject.isUserDialog(dialog_id)) {
                     startId = minVal;
                     endId = maxVal;
                 }
-                if (isCache) {
-                    startId = minVal;
-                    endId = minVal;
-                }
-
                 android.util.Log.i("AyuDebug", "restore hook: d=" + dialog_id + " range=[" + startId + "," + endId + "] loaded=[" + msgIds.first + "," + msgIds.second
                         + "] topic=" + getTopicId() + " type=" + load_type + " arr=" + messArr.size() + " deferred=" + deferred + " isCache=" + isCache);
 
