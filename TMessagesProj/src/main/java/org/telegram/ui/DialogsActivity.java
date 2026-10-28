@@ -3514,6 +3514,19 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         fragmentSearchFieldWatcher.setDoNotCloseAfterFieldEmpty();
 
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+            if (!onlySelect && communityId == 0) {
+                ActionBarMenuItem readAllItem = menu.addItem(10082, R.drawable.msg_markread);
+                readAllItem.setContentDescription(getString(R.string.MarkAllAsRead));
+                readAllItem.setOnClickListener(v -> {
+                    int type = viewPages != null && viewPages[0] != null ? viewPages[0].dialogsType : initialDialogsType;
+                    ArrayList<TLRPC.Dialog> unread = new ArrayList<>();
+                    for (TLRPC.Dialog dialog : new ArrayList<>(getDialogsArray(currentAccount, type, folderId, false))) {
+                        if (!(dialog instanceof TLRPC.TL_dialogFolder)
+                                && (dialog.unread_count > 0 || dialog.unread_mark || dialog.unread_mentions_count > 0)) unread.add(dialog);
+                    }
+                    if (!unread.isEmpty()) markDialogsAsRead(unread);
+                });
+            }
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
             optionsItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
             optionsItem.setOnClickListener(v -> {
