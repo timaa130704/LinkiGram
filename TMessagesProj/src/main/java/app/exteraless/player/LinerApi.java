@@ -180,11 +180,18 @@ public final class LinerApi {
     }
 
     static ArrayList<Lyrics> lyrics(OnlineLyrics.Query query, Listener listener) throws Exception {
+        final long started = android.os.SystemClock.elapsedRealtime();
         ArrayList<Lyrics> result = new ArrayList<>();
-        if (!signedIn() || query.artist == null) return result;
+        if (!signedIn() || query.artist == null) {
+            android.util.Log.i("LinkiLyrics", "Liner skipped: signedIn=" + signedIn() + " artistPresent=" + (query.artist != null));
+            return result;
+        }
+        android.util.Log.i("LinkiLyrics", "Liner lookup started");
         // Catalog-backed providers need the same real track ID used by Liner desktop.
         LinerCatalog.Track track = LinerCatalog.resolve(query);
+        android.util.Log.i("LinkiLyrics", "Liner catalog elapsedMs=" + (android.os.SystemClock.elapsedRealtime() - started));
         if (track == null) track = accountTrack(query);
+        android.util.Log.i("LinkiLyrics", "Liner track resolution elapsedMs=" + (android.os.SystemClock.elapsedRealtime() - started));
         String id = track == null ? null : track.id;
         if (id == null) id = "linkigram-" + org.telegram.messenger.Utilities.MD5(query.key());
         String title = track == null ? query.originalTitle : track.title;
@@ -203,6 +210,7 @@ public final class LinerApi {
                 connection.setRequestProperty("x-platform", "android");
                 connection.setRequestProperty("x-session-id", id);
                 int status = connection.getResponseCode();
+                android.util.Log.i("LinkiLyrics", "Liner response status=" + status + " elapsedMs=" + (android.os.SystemClock.elapsedRealtime() - started));
                 if (status == 401 && attempt == 0) continue;
                 if (status != 200) throw new IOException("Liner HTTP " + status);
                 StreamState stream = new StreamState();
@@ -211,7 +219,10 @@ public final class LinerApi {
                     while ((line = reader.readLine()) != null) {
                         total += line.length(); if (total > 4 * 1024 * 1024 || System.currentTimeMillis() > deadline) throw new IOException("Liner stream limit");
                         if (line.isEmpty()) {
-                            if (addEvent(event.toString(), result, durationMs, listener, stream)) break;
+                            boolean firstResult = result.isEmpty();
+                            boolean done = addEvent(event.toString(), result, durationMs, listener, stream);
+                            if (firstResult && !result.isEmpty()) android.util.Log.i("LinkiLyrics", "Liner first lyrics elapsedMs=" + (android.os.SystemClock.elapsedRealtime() - started));
+                            if (done) break;
                             event.setLength(0);
                         }
                         else if (line.startsWith("data:")) event.append(line.substring(5).trim()).append("\n");
