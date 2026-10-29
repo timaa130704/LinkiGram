@@ -2326,6 +2326,17 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             long lastGroupedId;
             for (int a = 0; a < messages.size(); a++) {
                 MessageObject msgObj = messages.get(a);
+                boolean savedDeleted = msgObj.isAyuDeleted() || com.radolyn.ayugram.messages.AyuMessagesController.getInstance()
+                        .isAyuDeletedMessageId(myId, msgObj.getDialogId(), msgObj.getId());
+                if (savedDeleted && msgObj.type == MessageObject.TYPE_TEXT && !TextUtils.isEmpty(msgObj.messageOwner.message)) {
+                    SendMessageParams copy = SendMessageParams.of(msgObj.messageOwner.message, peer, null, replyToTopMsg,
+                            null, false, msgObj.messageOwner.entities, null, null, notify, scheduleDate, scheduleRepeatPeriod, null, false);
+                    copy.payStars = payStars;
+                    copy.monoForumPeer = monoForumPeerId;
+                    copy.suggestionParams = suggestionParams;
+                    sendMessage(copy);
+                    continue;
+                }
                 if (msgObj.getId() <= 0 || msgObj.needDrawBluredPreview()) {
                     if (msgObj.type == MessageObject.TYPE_TEXT && !TextUtils.isEmpty(msgObj.messageText)) {
                         TLRPC.WebPage webPage = msgObj.messageOwner.media != null ? msgObj.messageOwner.media.webpage : null;
@@ -2398,6 +2409,48 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     continue;
                 }
 
+                if (savedDeleted && msgObj.messageOwner.media != null) {
+                    SendMessageParams copy = null;
+                    File savedFile = TextUtils.isEmpty(msgObj.messageOwner.attachPath) ? null : new File(msgObj.messageOwner.attachPath);
+                    if (savedFile == null || !savedFile.isFile()) savedFile = FileLoader.getInstance(currentAccount).getPathToMessage(msgObj.messageOwner);
+                    String savedPath = savedFile != null && savedFile.isFile() ? savedFile.getAbsolutePath() : null;
+                    String caption = hideCaption ? "" : msgObj.messageOwner.message;
+                    ArrayList<TLRPC.MessageEntity> entities = hideCaption ? null : msgObj.messageOwner.entities;
+                    if (msgObj.messageOwner.media.document instanceof TLRPC.TL_document) {
+                        TLRPC.TL_document document = (TLRPC.TL_document) msgObj.messageOwner.media.document;
+                        if (savedPath != null) {
+                            SerializedData bytes = new SerializedData();
+                            document.serializeToStream(bytes);
+                            SerializedData input = new SerializedData(bytes.toByteArray());
+                            document = (TLRPC.TL_document) TLRPC.Document.TLdeserialize(input, input.readInt32(false), true);
+                            input.cleanup(); bytes.cleanup();
+                            document.id = 0; document.access_hash = 0; document.file_reference = new byte[0];
+                        }
+                        copy = SendMessageParams.of(document, null, savedPath, peer, null, replyToTopMsg,
+                                caption, entities, null, null, notify, scheduleDate, scheduleRepeatPeriod,
+                                0, msgObj, null, false, msgObj.messageOwner.media.spoiler);
+                    } else if (msgObj.messageOwner.media.photo instanceof TLRPC.TL_photo) {
+                        TLRPC.TL_photo photo = (TLRPC.TL_photo) msgObj.messageOwner.media.photo;
+                        if (savedPath != null) {
+                            SerializedData bytes = new SerializedData();
+                            photo.serializeToStream(bytes);
+                            SerializedData input = new SerializedData(bytes.toByteArray());
+                            photo = (TLRPC.TL_photo) TLRPC.Photo.TLdeserialize(input, input.readInt32(false), true);
+                            input.cleanup(); bytes.cleanup();
+                            photo.id = 0; photo.access_hash = 0; photo.file_reference = new byte[0];
+                        }
+                        copy = SendMessageParams.of(photo, savedPath, peer, null, replyToTopMsg,
+                                caption, entities, null, null, notify, scheduleDate, scheduleRepeatPeriod,
+                                0, msgObj, false, msgObj.messageOwner.media.spoiler);
+                    }
+                    if (copy != null) {
+                        copy.payStars = payStars;
+                        copy.monoForumPeer = monoForumPeerId;
+                        copy.suggestionParams = suggestionParams;
+                        sendMessage(copy);
+                        continue;
+                    }
+                }
                 final TLRPC.Message newMsg = new TLRPC.TL_message();
                 if (!forwardFromMyName) {
                     boolean forwardFromSaved = msgObj.getDialogId() == myId && msgObj.isFromUser() && msgObj.messageOwner.from_id.user_id == myId;
