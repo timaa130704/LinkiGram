@@ -698,7 +698,8 @@ public class MessageDrawable extends Drawable {
             float radius = Math.min(dp(app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius()), Math.max(0, bounds.height() - padding * 2) / 2f);
             java.util.Arrays.fill(colorOsRadii, radius);
             int side = isOut ? 2 : 0;
-            if (isTopNear) colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
+            if (isTopNear && !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
+                colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(6));
             side = isOut ? 4 : 6;
             if (isBottomNear || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
                 colorOsRadii[side] = colorOsRadii[side + 1] = Math.min(radius, dp(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 4 : 6));
