@@ -3422,7 +3422,8 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			final boolean enableNs = !(sysNsAvailable && serverConfig.useSystemNs);
 			final String logFilePath = BuildVars.DEBUG_VERSION ? VoIPHelper.getLogFilePath("voip" + privateCall.id) : VoIPHelper.getLogFilePath("" + privateCall.id, false);
 			final String statsLogFilePath = VoIPHelper.getLogFilePath("" + privateCall.id, true);
-			final Instance.Config config = new Instance.Config(initializationTimeout, receiveTimeout, voipDataSaving, privateCall.p2p_allowed, enableAec, enableNs, true, false, serverConfig.enableStunMarking, logFilePath, statsLogFilePath, privateCall.protocol.max_layer, privateCall.custom_parameters == null ? "" : privateCall.custom_parameters.data);
+			final Instance.Proxy callProxy = app.nimarkogram.messenger.xcfg.XcfgController.getInstance().getCallProxy();
+			final Instance.Config config = new Instance.Config(initializationTimeout, receiveTimeout, voipDataSaving, privateCall.p2p_allowed && callProxy == null, enableAec, enableNs, true, false, serverConfig.enableStunMarking, logFilePath, statsLogFilePath, privateCall.protocol.max_layer, privateCall.custom_parameters == null ? "" : privateCall.custom_parameters.data);
 			lastLogFilePath = logFilePath;
 
 			// persistent state
@@ -3472,7 +3473,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 				}
 			}
 			// init
-			tgVoip[CAPTURE_DEVICE_CAMERA] = Instance.makeInstance(privateCall.protocol.library_versions.get(0), config, persistentStateFilePath, endpoints, null, getNetworkType(), encryptionKey, remoteSink[CAPTURE_DEVICE_CAMERA], captureDevice[CAPTURE_DEVICE_CAMERA], (uids, levels, voice) -> {
+			tgVoip[CAPTURE_DEVICE_CAMERA] = Instance.makeInstance(privateCall.protocol.library_versions.get(0), config, persistentStateFilePath, endpoints, callProxy, getNetworkType(), encryptionKey, remoteSink[CAPTURE_DEVICE_CAMERA], captureDevice[CAPTURE_DEVICE_CAMERA], (uids, levels, voice) -> {
 				if (sharedInstance == null || privateCall == null) {
 					return;
 				}

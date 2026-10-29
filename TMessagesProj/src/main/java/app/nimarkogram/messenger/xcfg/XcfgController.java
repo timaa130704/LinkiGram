@@ -608,6 +608,12 @@ public class XcfgController implements NotificationCenter.NotificationCenterDele
     }
 
     /** Прокси включается только в памяти: без ядра Telegram после перезапуска просто подключится напрямую. */
+    public org.telegram.messenger.voip.Instance.Proxy getCallProxy() {
+        if (!XcfgCore.isRunning()) return null;
+        return new org.telegram.messenger.voip.Instance.Proxy("127.0.0.1", vpnPort(),
+                vpnSecret("tg_user"), vpnSecret("tg_pass"));
+    }
+
     private void applyProxy(boolean on) {
         try {
             if (on) {
