@@ -25,6 +25,12 @@ public class YouCustomizationActivity extends NimarkoUniversalPreferencesActivit
         items.add(UItem.asButton(4, LocaleController.getString(R.string.LF_Menu)));
         items.add(UItem.asButton(5, "Поделиться палитрой You"));
         items.add(UItem.asButton(6, "Импортировать палитру You"));
+        items.add(UItem.asHeader("Форма элементов"));
+        String[] labels = {"Сообщения", "Меню", "Диалоги", "Секции"};
+        String[] keys = {"bubble", "popup", "dialog", "section"};
+        int[] defaults = {24, 16, 28, 24};
+        for (int i = 0; i < keys.length; i++)
+            items.add(UItem.asButton(10 + i, labels[i], LinkiGramYouTheme.radius(keys[i], defaults[i]) + " dp"));
     }
     @Override public void onClick(UItem item, View view, int position, float x, float y) {
         if (item.id == 1) {
@@ -50,13 +56,20 @@ public class YouCustomizationActivity extends NimarkoUniversalPreferencesActivit
                 getParentActivity().startActivity(android.content.Intent.createChooser(send, "Палитра LinkiGram You"));
             } catch (Exception error) { showPresetError(); }
         } else if (item.id == 6) {
-            android.widget.EditText input = new android.widget.EditText(getParentActivity());
+            org.telegram.ui.Components.EditTextBoldCursor input = new org.telegram.ui.Components.EditTextBoldCursor(getParentActivity());
+            input.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+            input.setBackgroundDrawable(null);
+            input.setHintColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_dialogTextHint, getResourceProvider()));
+            input.setCursorColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_dialogTextLink, getResourceProvider()));
+            input.setPadding(0, org.telegram.messenger.AndroidUtilities.dp(12), 0, org.telegram.messenger.AndroidUtilities.dp(12));
+            android.widget.FrameLayout field = new android.widget.FrameLayout(getParentActivity());
+            field.addView(input, org.telegram.ui.Components.LayoutHelper.createFrame(-1, -2, android.view.Gravity.TOP, 24, 8, 24, 8));
             input.setHint("Вставьте код палитры");
             input.setMaxLines(5);
             input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(4096)});
             input.setTextColor(org.telegram.ui.ActionBar.Theme.getColor(org.telegram.ui.ActionBar.Theme.key_dialogTextBlack, getResourceProvider()));
             showDialog(new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity(), getResourceProvider())
-                    .setTitle("Импорт палитры You").setView(input)
+                    .setTitle("Импорт палитры You").setView(field)
                     .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
                     .setPositiveButton(LocaleController.getString(R.string.OK), (dialog, which) -> {
                         try {
@@ -70,6 +83,15 @@ public class YouCustomizationActivity extends NimarkoUniversalPreferencesActivit
                             LinkiGramYouTheme.setSeedColor((int) seed);
                             refresh();
                         } catch (Exception error) { showPresetError(); }
+                    }).create());
+        } else if (item.id >= 10 && item.id <= 13) {
+            String key = new String[]{"bubble", "popup", "dialog", "section"}[item.id - 10];
+            int[] values = {4, 8, 12, 16, 20, 24, 28, 32};
+            String[] labels = new String[values.length];
+            for (int i = 0; i < values.length; i++) labels[i] = values[i] + " dp";
+            showDialog(new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                    .setTitle("Скругление").setItems(labels, (dialog, selected) -> {
+                        LinkiGramYouTheme.setRadius(key, values[selected]); refresh();
                     }).create());
         }
     }

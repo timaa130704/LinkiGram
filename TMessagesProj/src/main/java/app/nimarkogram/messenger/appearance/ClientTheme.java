@@ -115,10 +115,10 @@ public final class ClientTheme {
         }
     }
 
-    public static int popupRadius() { return ColorOs17Theme.isEnabled() ? 24 : 16; }
-    public static int dialogRadius() { return ColorOs17Theme.isEnabled() ? 24 : 28; }
-    public static int sectionRadius() { return ColorOs17Theme.isEnabled() ? 20 : 24; }
-    public static int bubbleRadius() { return ColorOs17Theme.isEnabled() ? 20 : 24; }
+    public static int popupRadius() { return ColorOs17Theme.isEnabled() ? 24 : LinkiGramYouTheme.radius("popup", 16); }
+    public static int dialogRadius() { return ColorOs17Theme.isEnabled() ? 24 : LinkiGramYouTheme.radius("dialog", 28); }
+    public static int sectionRadius() { return ColorOs17Theme.isEnabled() ? 20 : LinkiGramYouTheme.radius("section", 24); }
+    public static int bubbleRadius() { return ColorOs17Theme.isEnabled() ? 20 : LinkiGramYouTheme.radius("bubble", 24); }
     public static int menuHeight() { return ColorOs17Theme.isEnabled() ? 52 : 48; }
 
     /** Retain nine-patch padding; a replacement color filter replaces the fill tint. */

@@ -16,6 +16,15 @@ public final class LinkiGramYouTheme {
     private static volatile boolean enabled;
     private static volatile boolean loaded;
     private static final String PREF_SEED = "linkigramYouSeedColor";
+    public static int radius(String element, int fallback) {
+        return Math.max(4, Math.min(32, app.nimarkogram.messenger.NimarkoConfig.getPreferences()
+                .getInt("linkigramYouRadius_" + element, fallback)));
+    }
+
+    public static void setRadius(String element, int value) {
+        app.nimarkogram.messenger.NimarkoConfig.getPreferences().edit()
+                .putInt("linkigramYouRadius_" + element, Math.max(4, Math.min(32, value))).apply();
+    }
 
     public static int getSeedColor() {
         return app.nimarkogram.messenger.NimarkoConfig.getPreferences().getInt(PREF_SEED, 0);
