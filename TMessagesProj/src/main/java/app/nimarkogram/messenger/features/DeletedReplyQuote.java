@@ -52,6 +52,16 @@ public final class DeletedReplyQuote {
         entity.offset = 0; entity.length = quotedText.length(); entities.add(entity);
         TLRPC.TL_messageEntityBold authorEntity = new TLRPC.TL_messageEntityBold();
         authorEntity.offset = 0; authorEntity.length = author.length(); entities.add(authorEntity);
+        if (sender > 0) {
+            TLRPC.InputUser user = org.telegram.messenger.MessagesController.getInstance(account).getInputUser(sender);
+            if (user != null && !(user instanceof TLRPC.TL_inputUserEmpty)) {
+                TLRPC.TL_inputMessageEntityMentionName mention = new TLRPC.TL_inputMessageEntityMentionName();
+                mention.offset = 0;
+                mention.length = author.length();
+                mention.user_id = user;
+                entities.add(mention);
+            }
+        }
         params.entities = entities;
         if (params.message != null) params.message = prefix + body; else params.caption = prefix + body;
         params.replyToMsg = params.replyToTopMsg;

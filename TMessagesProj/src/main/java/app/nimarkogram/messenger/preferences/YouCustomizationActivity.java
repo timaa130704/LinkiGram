@@ -23,6 +23,8 @@ public class YouCustomizationActivity extends NimarkoUniversalPreferencesActivit
         items.add(UItem.asHeader(LocaleController.getString(R.string.LinkiYouLayout)));
         items.add(UItem.asButton(3, LocaleController.getString(R.string.NM_AP_BottomTabs)));
         items.add(UItem.asButton(4, LocaleController.getString(R.string.LF_Menu)));
+        items.add(UItem.asButton(20, "Пункты меню сообщения"));
+        items.add(UItem.asButton(21, "Порядок действий сообщения"));
         items.add(UItem.asButton(5, "Поделиться палитрой You"));
         items.add(UItem.asButton(6, "Импортировать палитру You"));
         items.add(UItem.asHeader("Форма элементов"));
@@ -46,6 +48,8 @@ public class YouCustomizationActivity extends NimarkoUniversalPreferencesActivit
         } else if (item.id == 2) { LinkiGramYouTheme.setSeedColor(0); refresh(); }
         else if (item.id == 3) presentFragment(new BottomTabsPreferencesActivity());
         else if (item.id == 4) presentFragment(new DrawerPreferencesActivity());
+        else if (item.id == 20) app.nimarkogram.messenger.NimarkoMessageMenuInjector.showMessageMenuItemsConfigurator(this);
+        else if (item.id == 21) presentFragment(new MessageMenuOrderPreferencesActivity());
         else if (item.id == 5) {
             try {
                 String preset = new org.json.JSONObject().put("format", "linkigram-you")
