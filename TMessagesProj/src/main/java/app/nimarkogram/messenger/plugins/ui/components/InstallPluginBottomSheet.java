@@ -342,7 +342,7 @@ public class InstallPluginBottomSheet extends BottomSheet {
         card.setElevation(AndroidUtilities.dp(1));
 
         TextView title = new TextView(context);
-        title.setText(R.string.PluginReviewTitle);
+        title.setText(LocaleController.getString(R.string.PluginReviewTitle));
         title.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         title.setTextSize(1, 14);
         title.setTypeface(AndroidUtilities.bold());
@@ -353,9 +353,9 @@ public class InstallPluginBottomSheet extends BottomSheet {
         findings.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         findings.setPadding(0, AndroidUtilities.dp(6), 0, 0);
         if (result == null || !result.readable) {
-            findings.setText(R.string.PluginReviewUnavailable);
+            findings.setText(LocaleController.getString(R.string.PluginReviewUnavailable));
         } else if (result.getFindings().isEmpty()) {
-            findings.setText(R.string.PluginReviewNoFindings);
+            findings.setText(LocaleController.getString(R.string.PluginReviewNoFindings));
         } else {
             StringBuilder summary = new StringBuilder();
             for (Integer finding : result.getFindings()) {
@@ -367,7 +367,7 @@ public class InstallPluginBottomSheet extends BottomSheet {
         card.addView(findings, LayoutHelper.createLinear(-1, -2));
 
         TextView disclaimer = new TextView(context);
-        disclaimer.setText(R.string.PluginReviewDisclaimer);
+        disclaimer.setText(LocaleController.getString(R.string.PluginReviewDisclaimer));
         disclaimer.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         disclaimer.setTextSize(1, 12);
         disclaimer.setPadding(0, AndroidUtilities.dp(8), 0, 0);
