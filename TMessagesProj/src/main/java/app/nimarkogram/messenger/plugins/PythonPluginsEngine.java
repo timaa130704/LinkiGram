@@ -6582,6 +6582,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     pluginInstallParams.filePath, null);
         } catch (Throwable failure) {
             validationError = installFailureMessage(failure);
+            android.util.Log.e("LinkiPlugins", "Plugin installation validation failed", failure);
         }
         final PluginsController.PluginValidationResult pluginValidationResultValidatePluginFromFile =
                 new PluginsController.PluginValidationResult(
