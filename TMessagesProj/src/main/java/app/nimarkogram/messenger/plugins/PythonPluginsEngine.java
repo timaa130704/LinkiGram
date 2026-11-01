@@ -6625,6 +6625,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             } catch (Throwable failure) {
                 FileLog.e("Could not show authorized plugin install sheet",
                         failure);
+                android.util.Log.e("LinkiPlugins", "Plugin install sheet failed", failure);
             } finally {
                 if (!sheetShown) {
                     if (ticket != null) {
