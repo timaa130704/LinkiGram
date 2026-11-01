@@ -21928,6 +21928,10 @@ public class ChatActivity extends BaseFragment implements
                             if (minMaxRes.second == (int) batchEndId && topMessage <= minMaxRes.second) {
                                 ayuHookDeletedHistory(batchStartId, maxVal, load_type);
                             } else {
+                                // The fallback range covers the gap before this page,
+                                // not the page itself. Restore both ranges so deleted
+                                // messages inside a middle page remain visible.
+                                ayuHookDeletedHistory(batchStartId, batchEndId, load_type);
                                 ayuHookDeletedHistory(otherStartId, otherEndId, load_type);
                             }
                         });
