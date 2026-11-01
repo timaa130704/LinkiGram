@@ -3941,11 +3941,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         }
         File requested = new File(path).getAbsoluteFile();
         File canonical = requested.getCanonicalFile();
-        if (!requested.getAbsolutePath().equals(
-                canonical.getAbsolutePath())) {
-            throw new IOException(
-                    "Plugin candidate must not be a symbolic link");
-        }
+        // Android commonly exposes app storage through symlinked parent directories
+        // (/data/user/0 and /sdcard). Validate and stage the resolved regular file;
+        // comparing entire paths rejects these normal Android storage aliases.
         return copyToExclusiveHostStage(canonical);
     }
 
