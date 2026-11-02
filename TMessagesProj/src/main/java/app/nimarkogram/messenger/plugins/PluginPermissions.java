@@ -51,15 +51,15 @@ public final class PluginPermissions {
                 LocaleController.getString(R.string.PluginPermissionFiles)
         };
         AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle(R.string.PluginPermissionsTitle)
+                .setTitle(LocaleController.getString(R.string.PluginPermissionsTitle))
                 .setMultiChoiceItems(labels, checked,
                         (d, which, value) -> checked[which] = value)
-                .setPositiveButton(R.string.Continue, (d, which) -> {
+                .setPositiveButton(LocaleController.getString(R.string.Continue), (d, which) -> {
                     set(pluginId, TELEGRAM, checked[0]);
                     set(pluginId, FILES, checked[1]);
                     if (onAllowed != null) onAllowed.run();
                 })
-                .setNegativeButton(R.string.Cancel, (d, which) -> {
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), (d, which) -> {
                     if (onCancelled != null) onCancelled.run();
                 })
                 .create();
