@@ -1,4 +1,5 @@
 import os
+import re
 import traceback
 from typing import List, Optional
 from java.io import File
@@ -12,6 +13,35 @@ def get_plugins_dir() -> str:
 
 def get_cache_dir() -> str:
     return FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE).getAbsolutePath()
+
+def _plugin_directory(root, plugin_id):
+    if plugin_id is None:
+        try:
+            token = capture_callback_owner()
+            plugin_id = token.getPluginId() if token is not None else None
+        except Exception:
+            return None
+    plugin_id = str(plugin_id) if plugin_id is not None else ''
+    if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{1,31}', plugin_id):
+        return None
+    try:
+        path = os.path.join(str(root), plugin_id)
+        os.makedirs(path, exist_ok=True)
+        return path
+    except (OSError, TypeError, ValueError):
+        return None
+
+def get_plugin_dir(plugin_id: Optional[str] = None) -> Optional[str]:
+    try:
+        return _plugin_directory(os.path.join(str(get_plugins_dir()), '.data'), plugin_id)
+    except Exception:
+        return None
+
+def get_plugin_cache_dir(plugin_id: Optional[str] = None) -> Optional[str]:
+    try:
+        return _plugin_directory(os.path.join(str(get_cache_dir()), 'plugins'), plugin_id)
+    except Exception:
+        return None
 
 def get_files_dir() -> str:
     return FileLoader.getDirectory(FileLoader.MEDIA_DIR_FILES).getAbsolutePath()

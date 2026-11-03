@@ -83,6 +83,17 @@ def observe_notifications(notification_center, fn: callable, *notification_ids):
 def get_last_fragment():
     return LaunchActivity.getSafeLastFragment()
 
+def get_selected_account() -> int:
+    return int(UserConfig.selectedAccount)
+
+def show_error_bulletin(message, fragment=None):
+    from ui.bulletin import BulletinHelper
+    return BulletinHelper.show_error(message, fragment)
+
+def show_info_bulletin(message, fragment=None):
+    from ui.bulletin import BulletinHelper
+    return BulletinHelper.show_info(message, fragment)
+
 def _resolve_account(account: Optional[int]=None) -> int:
     return UserConfig.selectedAccount if account is None else int(account)
 
