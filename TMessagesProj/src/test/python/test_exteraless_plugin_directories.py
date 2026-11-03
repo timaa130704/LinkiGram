@@ -47,5 +47,11 @@ class PluginDirectoryCompatibilityTest(unittest.TestCase):
         self.assertIsNone(self.sdk['get_plugin_dir']())
         self.assertIsNone(self.sdk['get_plugin_cache_dir']())
 
+    def test_missing_root_returns_none(self):
+        self.sdk['get_plugins_dir'] = lambda: None
+        self.sdk['get_cache_dir'] = lambda: None
+        self.assertIsNone(self.sdk['get_plugin_dir']())
+        self.assertIsNone(self.sdk['get_plugin_cache_dir']())
+
 if __name__ == '__main__':
     unittest.main()

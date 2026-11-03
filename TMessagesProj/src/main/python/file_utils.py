@@ -33,13 +33,15 @@ def _plugin_directory(root, plugin_id):
 
 def get_plugin_dir(plugin_id: Optional[str] = None) -> Optional[str]:
     try:
-        return _plugin_directory(os.path.join(str(get_plugins_dir()), '.data'), plugin_id)
+        root = get_plugins_dir()
+        return _plugin_directory(os.path.join(str(root), '.data'), plugin_id) if root else None
     except Exception:
         return None
 
 def get_plugin_cache_dir(plugin_id: Optional[str] = None) -> Optional[str]:
     try:
-        return _plugin_directory(os.path.join(str(get_cache_dir()), 'plugins'), plugin_id)
+        root = get_cache_dir()
+        return _plugin_directory(os.path.join(str(root), 'plugins'), plugin_id) if root else None
     except Exception:
         return None
 
