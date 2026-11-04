@@ -2008,7 +2008,10 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
 
     @Override
     public boolean isPlugin(File file) {
-        return file != null && file.getName().toLowerCase().endsWith(PluginsConstants.PLUGINS_EXT);
+        if (file == null) return false;
+        String name = file.getName().toLowerCase(java.util.Locale.ROOT);
+        return name.endsWith(PluginsConstants.PLUGINS_EXT)
+                || name.endsWith(".elyx") || name.endsWith(".eaf");
     }
 
     @Override
@@ -3649,6 +3652,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         try {
             Python py = getPython();
             if (py != null) {
+                if (runtimeToken != null) {
+                    py.getModule("plugin_imports").callAttr("remove_plugin", pluginId, runtimeToken);
+                }
                 PyObject modules = py.getModule("sys").get("modules");
                 PyObject module = modules != null
                         ? modules.callAttr("get", pluginId) : null;
@@ -3956,7 +3962,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         try {
             Map<String, String> metadata =
                     parsePluginMetadataBytes(
-                            payload.bytes, displayPath);
+                            payload.bytes, displayPath, payload.file);
             PluginsController.PluginValidationResult validation =
                     validatePluginMetadata(
                             metadata, displayPath);
@@ -3995,7 +4001,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
     }
 
     private Map<String, String> parsePluginMetadataBytes(
-            byte[] payload, String displayPath) throws IOException {
+            byte[] payload, String displayPath, File stagedFile) throws IOException {
         if (payload == null
                 || payload.length == 0
                 || payload.length > MAX_PLUGIN_CANDIDATE_BYTES) {
@@ -4005,6 +4011,13 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         if (getPython() == null) {
             throw new IOException(
                     "Python engine is not initialized");
+        }
+        if (payload.length >= 4 && payload[0] == 'P' && payload[1] == 'K') {
+            try {
+                return readElyxMetadata(stagedFile.getAbsolutePath());
+            } catch (Throwable failure) {
+                throw new IOException("Invalid Elyx archive: " + failure.getMessage(), failure);
+            }
         }
         final String source;
         try {
@@ -6257,6 +6270,24 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         }
     }
 
+    private Map<String, String> readElyxMetadata(String path) {
+        PyObject metadata = getPython().getModule("elyx_runtime.metadata")
+                .callAttr("read_metadata", path);
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<PyObject, PyObject> entry : metadata.asMap().entrySet()) {
+            String key = entry.getKey().toString();
+            PyObject value = entry.getValue();
+            if (value == null || value.toJava(Object.class) == null) continue;
+            if ("requirements".equals(key)) {
+                result.put(key, value.asList().stream().map(Object::toString)
+                        .collect(Collectors.joining("\n")));
+            } else {
+                result.put(key, value.toString());
+            }
+        }
+        return result;
+    }
+
     public java.util.Map<String, String> parsePluginMetadata(String str) {
         HashMap<String, String> map = new HashMap<>();
         if (str != null) {
@@ -6275,6 +6306,11 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     return map;
                 }
                 try {
+                    if (getPython().getModule("zipfile").callAttr("is_zipfile", str).toBoolean()) {
+                        map.putAll(readElyxMetadata(str));
+                        metadataCache.put(cacheKey, new MetadataCacheEntry(file, map));
+                        return map;
+                    }
                     PyObject pyObjectCallAttr = getPython().getModule("utils.metadata_parser").callAttr("get_metadata", str);
                     if (pyObjectCallAttr != null) {
                         for (Map.Entry<PyObject, PyObject> entry : pyObjectCallAttr.asMap().entrySet()) {

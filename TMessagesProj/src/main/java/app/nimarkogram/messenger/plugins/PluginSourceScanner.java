@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /** Heuristic, read-only review of Python plugin source before installation. */
 public final class PluginSourceScanner {
@@ -53,21 +55,49 @@ public final class PluginSourceScanner {
         File source = new File(path);
         if (!source.isFile() || source.length() == 0 || source.length() > MAX_SOURCE_BYTES) return unknown();
         try {
+            try (FileInputStream input = new FileInputStream(source)) {
+                if (input.read() == 'P' && input.read() == 'K') return scanArchive(source);
+            }
             String text = readUtf8(source);
             if (text == null || text.isEmpty()) return unknown();
+            return scanText(text, false);
+        } catch (Throwable ignore) {
+            return unknown();
+        }
+    }
+
+    private static Result scanText(String text, boolean embeddedDex) {
             String lower = text.toLowerCase(java.util.Locale.ROOT);
             boolean network = matches(lower, "\\b(requests|httpx|urllib|urlopen|socket)\\b");
             boolean files = matches(lower, "\\b(pathlib|shutil)\\b|\\bos\\.(path|remove|rename|unlink)\\b|\\bopen\\s*\\(");
             boolean dynamic = matches(lower, "\\b(exec|eval|compile)\\s*\\(|\\b__import__\\s*\\(|\\bimportlib\\b");
             boolean encoded = matches(lower, "\\b(base64\\.b64decode|binascii\\.a2b_base64|marshal\\.loads|zlib\\.decompress|gzip\\.decompress)\\b");
-            boolean dex = matches(lower, "\\b(dexclassloader|inmemorydexclassloader|loaddex)\\b|classes\\.dex");
+            boolean dex = embeddedDex || matches(lower, "\\b(dexclassloader|inmemorydexclassloader|loaddex)\\b|classes\\.dex");
             if (!dex) {
                 dex = containsEncodedDex(text);
             }
             return new Result(true, network, files, dynamic, encoded || dex, dex);
-        } catch (Throwable ignore) {
-            return unknown();
+    }
+
+    private static Result scanArchive(File file) throws Exception {
+        ByteArrayOutputStream source = new ByteArrayOutputStream();
+        boolean dex = false;
+        int total = 0;
+        try (ZipInputStream zip = new ZipInputStream(new FileInputStream(file))) {
+            ZipEntry entry;
+            byte[] buffer = new byte[8192];
+            while ((entry = zip.getNextEntry()) != null) {
+                String name = entry.getName().toLowerCase(java.util.Locale.ROOT);
+                if (name.endsWith(".dex")) dex = true;
+                int read;
+                while ((read = zip.read(buffer)) != -1) {
+                    total += read;
+                    if (total > MAX_SOURCE_BYTES) return unknown();
+                    if (name.endsWith(".py")) source.write(buffer, 0, read);
+                }
+            }
         }
+        return scanText(source.toString("UTF-8"), dex);
     }
 
     private static Result unknown() {

@@ -13,6 +13,7 @@ import importlib.util
 from importlib._bootstrap import _ModuleLockManager
 import os
 import sys
+import zipfile
 
 
 _roots = globals().get('_roots', set())
@@ -95,6 +96,20 @@ def load_plugin(name, path, token):
     # Use Python's per-name import lock: circular self-imports keep working and
     # concurrent normal imports cannot observe a half-published entry module.
     with _ModuleLockManager(name):
+        if zipfile.is_zipfile(path):
+            if name in _owned or name in sys.modules:
+                raise ImportError('Plugin id collides with an existing Python module: ' + name)
+            from elyx_runtime import load_plugin_record, unload_plugin_record
+            record = {'id': name}
+            try:
+                load_plugin_record(record, path, runtime_token=token, instantiate=False)
+                _require_runtime(name, token)
+                module = record['module']
+                _owned[name] = (module, token, path, record)
+                return module
+            except BaseException:
+                unload_plugin_record(record)
+                raise
         existing = sys.modules.get(name)
         owner = _owned.get(name)
         if existing is not None:
@@ -139,6 +154,9 @@ def remove_plugin(name, token):
         owner = _owned.get(name)
         if owner is None or owner[1] != token:
             return
+        if len(owner) > 3:
+            from elyx_runtime import unload_plugin_record
+            unload_plugin_record(owner[3])
         if sys.modules.get(name) is owner[0]:
             del sys.modules[name]
         del _owned[name]
