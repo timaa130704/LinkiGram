@@ -303,6 +303,15 @@ def make_runnable(callback, owner=_UNSET):
     from app.nimarkogram.messenger.plugins.utils import PythonRunnable
     return PythonRunnable(callback, owner)
 
+def make_reusable_runnable(callback, owner=_UNSET):
+    """Create a runtime-owned Runnable which can be posted repeatedly."""
+    if owner is _UNSET:
+        owner = capture_callback_owner(callback)
+    if owner is None:
+        raise RuntimeError("Plugin Runnable requires an exact runtime owner")
+    from app.nimarkogram.messenger.plugins.utils import PythonReusableRunnable
+    return PythonReusableRunnable(callback, owner)
+
 def make_interface_proxy(target, interfaces, owner=_UNSET):
     """Create a Java-owned proxy for one or more callback interfaces.
 

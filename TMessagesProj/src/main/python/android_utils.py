@@ -7,10 +7,11 @@ from plugin_runtime import (
     capture_callback_owner,
     make_interface_proxy,
     make_runnable,
+    make_reusable_runnable,
     _run_owned_callback,
 )
 
-R = make_runnable
+R = make_reusable_runnable
 
 def safe_call(fn, *args, **kwargs):
     """Call an SDK callback without allowing an exception to escape into Java."""
