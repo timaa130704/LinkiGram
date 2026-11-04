@@ -2495,9 +2495,17 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                                 continue;
                             }
 
-                            if (isQuarantineStale(pluginId)
-                                    && getPluginsController().preferences.getBoolean(
-                                    "plugin_crashed_" + pluginId, false)) {
+                            boolean hasCrashMarker = getPluginsController().preferences
+                                    .getBoolean("plugin_crashed_" + pluginId, false);
+                            if (hasCrashMarker && isQuarantineStale(pluginId)) {
+                                // A later successful activation supersedes this marker.
+                                // Preserve the current user-selected enabled state.
+                                getPluginsController().preferences.edit()
+                                        .remove("plugin_crashed_" + pluginId)
+                                        .remove("plugin_crashed_at_" + pluginId)
+                                        .remove("plugin_enabled_before_quarantine_" + pluginId)
+                                        .apply();
+                            } else if (hasCrashMarker) {
                                 if (parsedPlugin == null) {
                                     parsedPlugin =
                                             createBoundedMetadataPlugin(
@@ -3028,14 +3036,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             getPluginsController().endPluginInitialization(str, enableGeneration);
             
             getPluginsController().preferences.edit()
-                    .remove("plugin_crashed_" + str)
-                    .remove("plugin_enabled_before_quarantine_" + str)
                     .remove("crashed_plugin_id")
                     .remove("crashed_plugin_started_at")
-                    // Remember that this plugin loaded cleanly, so an old crash marker
-                    // left over from before the fix cannot disable it again forever.
-                    .putLong("plugin_ok_at_" + str,
-                            System.currentTimeMillis())
                     .commit();
         }
     }
@@ -3340,6 +3342,12 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 boolean committed = getPluginsController().commitPluginRuntime(
                         runtimeToken, committedPlugin);
                 if (!committed) throw new EnableCancelledException(str);
+                getPluginsController().preferences.edit()
+                        .remove("plugin_crashed_" + str)
+                        .remove("plugin_crashed_at_" + str)
+                        .remove("plugin_enabled_before_quarantine_" + str)
+                        .putLong("plugin_ok_at_" + str, System.currentTimeMillis())
+                        .apply();
                 finishLegacyOverlayProbe(runtimeToken);
                 PluginDebugLog.log("PY enable committed plugin=" + str
                         + " generation=" + enableGeneration
