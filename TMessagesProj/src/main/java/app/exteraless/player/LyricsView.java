@@ -369,7 +369,7 @@ public class LyricsView extends FrameLayout {
         if (lyrics != null && !lyrics.synced) {
             list.setPadding(0, dp(8), 0, dp(24));
         } else if (h > 0) {
-            int offset = Math.min(dp(108), (int) (h * 0.3f));
+            int offset = (int) (h * 0.4f);
             list.setPadding(0, offset, 0, Math.max(0, h - offset - dp(72)));
         }
     }

@@ -58,6 +58,20 @@ public final class LinerApi {
     public static void login(String email, String password) throws Exception {
         save(json("/v1/auth/login", new JSONObject().put("email", email).put("password", password), null));
     }
+    public static void register(String email, String password, String username, String displayName) throws Exception {
+        try {
+            JSONObject challenge = json("/v1/auth/challenge", new JSONObject().put("purpose", "register").put("email", email), null);
+            JSONObject turnstile = challenge.optJSONObject("turnstile");
+            if (!"off".equals(challenge.optString("mode", "off")) ||
+                    (turnstile != null && (!"off".equals(turnstile.optString("mode", "off")) || turnstile.optBoolean("edge")))) {
+                throw new IOException("Liner registration requires an unsupported verification challenge");
+            }
+        } catch (IOException error) {
+            if (!"Liner HTTP 404".equals(error.getMessage())) throw error;
+        }
+        save(json("/v1/auth/register", new JSONObject().put("email", email).put("password", password)
+                .put("username", username.toLowerCase(java.util.Locale.ROOT)).put("displayName", displayName), null));
+    }
     private static JSONObject json(String path, JSONObject body, String token) throws Exception {
         HttpURLConnection connection = open(path, token);
         if (path.startsWith("/v1/me/")) {
@@ -70,7 +84,7 @@ public final class LinerApi {
                 try (OutputStream out = connection.getOutputStream()) { out.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
             }
             int status = connection.getResponseCode();
-            if (status != 200) throw new IOException("Liner HTTP " + status);
+            if (status < 200 || status >= 300) throw new IOException("Liner HTTP " + status);
             try (InputStream input = connection.getInputStream()) { return new JSONObject(read(input, 2 * 1024 * 1024)); }
         } finally { connection.disconnect(); }
     }

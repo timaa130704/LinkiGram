@@ -1265,6 +1265,11 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         lyricsMode = value;
+        seekBar.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
+        timeRow.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
+        controls.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
+        bubble.setVisibility(View.GONE);
+        layout.requestLayout();
         lyricsButton.setActive(value, animated);
         lyricsButton.setRadius(dp(value ? 26 : 8), animated);
         if (value) {
@@ -1936,6 +1941,9 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             int titleH = titleRow.getMeasuredHeight();
             coverSize = Math.max(dp(96), Math.min(contentW, available - dp(16) - dp(26) - titleH));
             stageHeight = dp(16) + coverSize + dp(26) + titleH;
+            if (lyricsMode) {
+                stageHeight = Math.max(dp(96), height - top - bottom - dp(56 + 52 + 28 + 8));
+            }
             int coverSpec = MeasureSpec.makeMeasureSpec(coverSize, MeasureSpec.EXACTLY);
             cover.measure(coverSpec, coverSpec);
             lyricsPanel.measure(exactW, MeasureSpec.makeMeasureSpec(stageHeight, MeasureSpec.EXACTLY));

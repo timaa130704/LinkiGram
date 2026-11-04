@@ -26,6 +26,11 @@
     <string name="LX_ModelInfo">Скачайте модель и нажмите для выбора. Удерживайте для удаления. Аудио остаётся на устройстве.</string>
     <string name="LX_Liner">Аккаунт Liner для текстов песен</string>
     <string name="LX_LinerLogin">Войти в Liner</string>
+    <string name="LX_LinerRegister">Создать аккаунт Liner</string>
+    <string name="LX_LinerUsername">Имя пользователя (a–z, 0–9, _)</string>
+    <string name="LX_LinerDisplayName">Отображаемое имя</string>
+    <string name="LX_LinerRegisterInvalid">Введите имя и логин длиной 3–30 символов: строчные латинские буквы, цифры или подчёркивание.</string>
+    <string name="LX_LinerVerificationRequired">Liner требует дополнительную проверку, которая пока не поддерживается.</string>
     <string name="LX_LinerConnected">Аккаунт Liner подключён · настройки</string>
     <string name="LX_LinerLogout">Выйти из Liner</string>
     <string name="LX_LinerReady">Вход выполнен. Откройте плеер → Текст песни и перезагрузите трек для поиска источников Liner.</string>

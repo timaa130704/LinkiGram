@@ -26,6 +26,11 @@
     <string name="LX_ModelInfo">Download a model, then tap it to select. Hold to delete. Audio stays on this device.</string>
     <string name="LX_Liner">Liner lyrics account</string>
     <string name="LX_LinerLogin">Sign in to Liner</string>
+    <string name="LX_LinerRegister">Create a Liner account</string>
+    <string name="LX_LinerUsername">Username (a–z, 0–9, _)</string>
+    <string name="LX_LinerDisplayName">Display name</string>
+    <string name="LX_LinerRegisterInvalid">Enter a display name and a username of 3–30 lowercase letters, digits or underscores.</string>
+    <string name="LX_LinerVerificationRequired">Liner requires an additional verification that is not supported yet.</string>
     <string name="LX_LinerConnected">Liner account connected · settings</string>
     <string name="LX_LinerLogout">Sign out of Liner</string>
     <string name="LX_LinerReady">Signed in. Open the player → Lyrics and reload the track to search Liner sources.</string>
