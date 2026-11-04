@@ -252,6 +252,21 @@ def _runtime_owned(default=None):
     return decorate
 
 class BasePlugin:
+    @property
+    def client(self):
+        if '_exteraless_client_override' in self.__dict__:
+            return self.__dict__['_exteraless_client_override']
+        from account_client import AccountClient
+        return AccountClient()
+
+    @client.setter
+    def client(self, value):
+        self.__dict__['_exteraless_client_override'] = value
+
+    @client.deleter
+    def client(self):
+        self.__dict__.pop('_exteraless_client_override', None)
+
     def __init__(self):
         self.id = ''
         self.name = ''

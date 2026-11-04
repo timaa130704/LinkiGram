@@ -8,6 +8,14 @@ JavaObject = jclass('java.lang.Object')
 _CLASS_CACHE = {}
 
 _HOOK_TARGET_REMAP = {
+    'com.exteragram.messenger.plugins.p019ui.components.InstallPluginBottomSheet':
+        'app.nimarkogram.messenger.plugins.ui.components.InstallPluginBottomSheet',
+    'com.exteragram.messenger.plugins.p027ui.components.InstallPluginBottomSheet':
+        'app.nimarkogram.messenger.plugins.ui.components.InstallPluginBottomSheet',
+    'com.exteragram.messenger.plugins.ui.InstallPluginBottomSheet':
+        'app.nimarkogram.messenger.plugins.ui.components.InstallPluginBottomSheet',
+    'com.exteragram.messenger.plugins.ui.PluginInstallBottomSheet':
+        'app.nimarkogram.messenger.plugins.ui.components.InstallPluginBottomSheet',
     'com.exteragram.messenger.plugins.ui.PluginsActivity':
         'app.nimarkogram.messenger.plugins.ui.PluginsActivity',
     'com.exteragram.messenger.plugins.ui.PluginSettingsActivity':

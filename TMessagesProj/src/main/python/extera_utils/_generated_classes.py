@@ -81,7 +81,7 @@ def _java_class_name(obj):
     """
     if isinstance(obj, str):
         return obj
-    if isinstance(obj, type) and issubclass(obj, Base):
+    if isinstance(obj, type) and getattr(obj, "__extera_proxy_info__", None) is not None:
         info = _info_for(obj)
         key = _ensure_java_class(info)
         return str(PluginServices.getProxyClass(key).getName())
@@ -423,6 +423,7 @@ class _ProxyInfo:
         self.interfaces = list(interfaces)
         self.custom_name = custom_name
         self.class_key = None
+        self.runtime_token = None
         self.lock = threading.Lock()
         self.fields = {}          # attr name -> _JField
         self.method_specs = []    # JSON "methods" entries
@@ -530,6 +531,8 @@ def _ensure_java_class(info):
         if info.class_key is not None:
             return info.class_key
         spec_json = json.dumps(info.build_spec())
+        from plugin_runtime import capture_callback_owner
+        info.runtime_token = capture_callback_owner()
         owner = _owner_plugin_id()
         key = PluginServices.generateProxyClass(owner, spec_json)
         if key is None:
@@ -561,7 +564,17 @@ def __extera_java_preconstruct__(class_key, ctor_sig, *args):
             continue
         if arity is not None and arity != len(args):
             continue
-        result = fn(*args)
+        from plugin_runtime import run_owned_callback
+        token = info.runtime_token
+        if token is None:
+            return None
+        from app.nimarkogram.messenger.plugins import PluginsController
+        controller = PluginsController.getInstance()
+        if (controller.captureCurrentPluginRuntime() == token
+                and controller.isPluginRuntimeCurrent(token)):
+            result = fn(*args)
+        else:
+            result = run_owned_callback(token, fn, *args)
         if result is None:
             return None
         return _object_array(list(result))

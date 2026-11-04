@@ -166,6 +166,10 @@ android {
     buildToolsVersion '36.0.0'
     ndkVersion "27.2.12479018"
 
+    // The Pine JNI binaries are versioned under jni/<abi>; they must be
+    // packaged alongside the Java bridge for plugin hooks to initialize.
+    sourceSets.main.jniLibs.srcDirs += ['jni']
+
 
     // The full LinkiGram port must include its runtime sources. The API
     // migration fixes are applied in source, not hidden by source exclusions.

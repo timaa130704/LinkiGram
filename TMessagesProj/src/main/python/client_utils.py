@@ -13,6 +13,7 @@ from org.telegram.ui import LaunchActivity
 from android_utils import R as Runnable
 from android_utils import log, run_on_ui_thread
 from plugin_runtime import capture_callback_owner, make_interface_proxy
+from account_client import AccountClient, get_client, get_hook_account, hook_scope
 from app.nimarkogram.messenger.plugins.utils import (
     PythonNotificationDelegate,
     PythonRequestDelegate,
@@ -150,9 +151,19 @@ def get_media_controller():
 def get_user_config(account: Optional[int]=None):
     return get_account_instance(account).getUserConfig()
 
-def send_message(params: dict, account: Optional[int]=None):
+def send_message(params: dict, account: Optional[int]=None, parse_mode=None):
     PluginPermissions.require(PluginPermissions.TELEGRAM)
     params = dict(params or {})
+    embedded_parse_mode = params.pop('parse_mode', None)
+    parse_mode = parse_mode or embedded_parse_mode
+    if parse_mode:
+        from extera_utils.text_formatting import parse_text
+        for field in ('message', 'caption'):
+            if params.get(field) is not None:
+                parsed = parse_text(params[field], parse_mode, is_caption=(field == 'caption'))
+                params[field] = parsed[field]
+                if parsed['entities']:
+                    params['entities'] = parsed['entities']
     if account is None:
         account = params.pop('account', None)
     else:
@@ -370,8 +381,18 @@ def edit_message(message_obj: Any, text: Optional[str]=None, file_path: Optional
                         pass
                 send_helper = get_send_messages_helper(account)
                 if text is not None:
-                    message_obj.editingMessage = text
-                    message_obj.editingMessageEntities = None
+                    parse_mode = kwargs.pop('parse_mode', None)
+                    if parse_mode:
+                        from extera_utils.text_formatting import parse_text
+                        parsed = parse_text(text, parse_mode)
+                        message_obj.editingMessage = parsed['message']
+                        entities = ArrayList()
+                        for entity in parsed['entities']:
+                            entities.add(entity)
+                        message_obj.editingMessageEntities = entities
+                    else:
+                        message_obj.editingMessage = text
+                        message_obj.editingMessageEntities = None
                 photo = None
                 document = None
                 video_info = None

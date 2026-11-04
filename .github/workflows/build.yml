@@ -90,6 +90,19 @@ jobs:
       - name: Build ARM64 Standalone APK
         run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone -PngArm64Only
 
+      - name: Verify plugin hook runtime is packaged
+        run: |
+          python - <<'PY'
+          from zipfile import ZipFile
+          path = 'TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk'
+          with ZipFile(path) as apk:
+              name = 'lib/arm64-v8a/libpine.so'
+              data = apk.read(name)
+              if not data.startswith(b'\x7fELF'):
+                  raise SystemExit(f'{name} is not an ELF library')
+              print(f'Plugin hook runtime present: {name} ({len(data)} bytes)')
+          PY
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

@@ -6083,6 +6083,14 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
     }
 
     private PyObject callBound(String pluginId, PyObject pyObject, String hookName, Object... args) {
+        PyObject accountScope = null;
+        PyObject previousAccount = null;
+        int accountIndex = "on_send_message_hook".equals(hookName) ? 0 : 1;
+        if (args.length > accountIndex && args[accountIndex] instanceof Integer) {
+            accountScope = getPython().getModule("account_client");
+            previousAccount = accountScope.callAttr("_enter_hook_account", args[accountIndex]);
+        }
+        try {
         Plugin p = getPluginsController().plugins.get(pluginId);
         if (p != null) {
             java.util.Map<String, PyObject> bound = p.boundHooks;
@@ -6094,6 +6102,11 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             }
         }
         return pyObject.callAttr(hookName, args);
+        } finally {
+            if (accountScope != null) {
+                accountScope.callAttr("_exit_hook_account", previousAccount);
+            }
+        }
     }
 
     @Override
@@ -6121,6 +6134,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
 
     public PluginsController.HookResult<PluginsHooks.PostRequestResult> executePostRequestHook(String str, int i, TLObject tLObject, TLRPC.TL_error tL_error, PyObject pyObject) {
         if (pyObject != null) {
+            PyObject accountScope = getPython().getModule("account_client");
+            PyObject previousAccount = accountScope.callAttr("_enter_hook_account", i);
             try {
                 PyObject pyObjectCallAttr = pyObject.callAttr("post_request_hook", str, Integer.valueOf(i), tLObject, tL_error);
                 if (pyObjectCallAttr != null) {
@@ -6145,6 +6160,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 }
             } catch (PyException e) {
                 FileLog.e("Failed to execute post_request_hook for " + str, e);
+            } finally {
+                accountScope.callAttr("_exit_hook_account", previousAccount);
             }
         }
         return new PluginsController.HookResult<>(new PluginsHooks.PostRequestResult(tLObject, tL_error), false, false);

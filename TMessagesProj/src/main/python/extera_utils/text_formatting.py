@@ -20,7 +20,7 @@ from markdown_utils import (
 )
 
 __all__ = ['parse_markdown', 'RawEntity', 'TLEntityType', 'ParsedMessage',
-           'Markdown', 'HTML']
+           'Markdown', 'HTML', 'parse_raw', 'parse_text']
 
 def _utf16_len(text: str) -> int:
     n = 0
@@ -48,7 +48,7 @@ class _HTMLToEntities(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.text_parts = []
-        self.offset = 0           
+        self._text_offset = 0
         self.entities = []
         self._open = []           
 
@@ -59,15 +59,15 @@ class _HTMLToEntities(HTMLParser):
             self._emit('\n')
             return
         if tag == 'a':
-            self._open.append((TLEntityType.TEXT_LINK, self.offset,
+            self._open.append((TLEntityType.TEXT_LINK, self._text_offset,
                                {'url': attrs.get('href')}))
         elif tag == 'span' and 'tg-spoiler' in (attrs.get('class') or ''):
-            self._open.append((TLEntityType.SPOILER, self.offset, {}))
+            self._open.append((TLEntityType.SPOILER, self._text_offset, {}))
         elif tag in _TAG_TO_TYPE:
             extra = {}
             if tag == 'pre' and attrs.get('language'):
                 extra['language'] = attrs.get('language')
-            self._open.append((_TAG_TO_TYPE[tag], self.offset, extra))
+            self._open.append((_TAG_TO_TYPE[tag], self._text_offset, extra))
 
     def handle_endtag(self, tag):
         tag = tag.lower()
@@ -81,7 +81,7 @@ class _HTMLToEntities(HTMLParser):
                 (_TAG_TO_TYPE.get(tag) == etype)
             )
             if matches:
-                length = self.offset - start
+                length = self._text_offset - start
                 if length > 0:
                     self.entities.append(RawEntity(
                         type=etype, offset=start, length=length,
@@ -94,7 +94,7 @@ class _HTMLToEntities(HTMLParser):
 
     def _emit(self, data):
         self.text_parts.append(data)
-        self.offset += _utf16_len(data)
+        self._text_offset += _utf16_len(data)
 
 class HTML:
     """Parse a subset of Telegram-flavoured HTML into a ParsedMessage."""
@@ -107,3 +107,20 @@ class HTML:
         entities = sorted(parser.entities, key=lambda e: (e.offset, e.length))
         return ParsedMessage(text=''.join(parser.text_parts),
                              entities=tuple(entities))
+
+
+def parse_raw(text, parse_mode='HTML'):
+    mode = (parse_mode or 'HTML').lower()
+    if mode == 'html':
+        parsed = HTML.parse(text)
+    elif mode == 'markdown':
+        parsed = Markdown.parse(text)
+    else:
+        raise ValueError(f'unsupported parse_mode {parse_mode!r}')
+    return parsed.text, list(parsed.entities)
+
+
+def parse_text(text, parse_mode='HTML', is_caption=False):
+    plain, raw = parse_raw(text, parse_mode)
+    return {'caption' if is_caption else 'message': plain,
+            'entities': [entity.to_tlrpc_object() for entity in raw]}

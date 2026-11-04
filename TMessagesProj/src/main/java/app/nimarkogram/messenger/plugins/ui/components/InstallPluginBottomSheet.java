@@ -12,6 +12,7 @@ import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.text.Layout;
+import android.text.TextUtils;
 import android.text.SpannableStringBuilder;
 import android.text.style.StrikethroughSpan;
 import android.view.Gravity;
@@ -82,6 +83,12 @@ public class InstallPluginBottomSheet extends BottomSheet {
     private boolean enableAfterInstallation = false;
     private FrameLayout container;
     private ButtonWithCounterView installBtn;
+    // exteraGram install-sheet surface used by plugins which extend the sheet.
+    public View button;
+    public LinearLayout bottomContainer;
+    public boolean isUpdate;
+    public PluginInstallParams params;
+    private PluginsController.PluginValidationResult compatResult;
     private volatile boolean installing = false;
     private final BaseFragment hostFragment;
     private final View hostFragmentView;
@@ -105,17 +112,21 @@ public class InstallPluginBottomSheet extends BottomSheet {
         hostFragment = baseFragment;
         hostFragmentView = baseFragment.getFragmentView();
         pickerImportSourcePath = params != null ? params.filePath : null;
+        this.params = params;
+        this.compatResult = result;
         
         Activity context = baseFragment.getParentActivity();
         fixNavigationBar();
         
         boolean isUpdate = PluginsController.getInstance().plugins.containsKey(result.plugin.getId());
+        this.isUpdate = isUpdate;
         
         container = new FrameLayout(context);
         container.setClipChildren(false);
         container.setClipToPadding(false);
 
         LinearLayout linearLayout = new LinearLayout(context);
+        bottomContainer = linearLayout;
         linearLayout.setOrientation(LinearLayout.VERTICAL);
         linearLayout.setClipChildren(false);
         linearLayout.setClipToPadding(false);
@@ -265,9 +276,10 @@ public class InstallPluginBottomSheet extends BottomSheet {
         addSourceReviewCard(linearLayout, context, PluginSourceScanner.scan(params != null ? params.filePath : null));
 
         installBtn = new ButtonWithCounterView(context, true, this.resourcesProvider);
+        button = installBtn;
         installBtn.setText(LocaleController.getString((int) (isUpdate ? R.string.UpdatePlugin : R.string.InstallPlugin)), false);
         installBtn.setSubText(null, false);
-        installBtn.setOnClickListener(v -> installPlugin(params, result, baseFragment, isUpdate));
+        installBtn.setOnClickListener(v -> onInstallClick());
         
         linearLayout.addView(installBtn, LayoutHelper.createLinear(-1, 48, 0, 16, 28, 16, 16));
 
@@ -451,6 +463,14 @@ public class InstallPluginBottomSheet extends BottomSheet {
             hint.setDuration(5500L);
             hint.show();
         });
+    }
+
+    public void applyButtonState(boolean animated) {
+        // The host controls the button state during its installation transaction.
+    }
+
+    public void onInstallClick() {
+        installPlugin(params, compatResult, hostFragment, isUpdate);
     }
 
     private void installPlugin(PluginInstallParams params, PluginsController.PluginValidationResult result, BaseFragment fragment, boolean update) {
@@ -959,11 +979,17 @@ public class InstallPluginBottomSheet extends BottomSheet {
     public static class PluginInstallParams {
         public String filePath;
         public boolean incompatible;
+        private boolean trusted;
 
         public PluginInstallParams(String path, boolean incompatible) {
             this.filePath = path;
             this.incompatible = incompatible;
         }
+
+        public String getFilePath() { return filePath; }
+        public File toFile() { return TextUtils.isEmpty(filePath) ? null : new File(filePath); }
+        public boolean getTrusted() { return trusted; }
+        public void setTrusted(boolean value) { trusted = value; }
 
         public static PluginInstallParams of(MessageObject message) {
             String path = ChatUtils.getInstance().getPathToMessage(message);
