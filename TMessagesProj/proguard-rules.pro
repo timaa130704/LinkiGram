@@ -34,6 +34,9 @@
 # itself ships (org.telegram.ui.MainTabsActivity and friends) were not kept. Matches
 # what Ettacent/NimarkoGram does, for the same reason.
 -keep class org.telegram.** { *; }
+-keep class app.nimarkogram.messenger.plugins.PluginServices { *; }
+-keep class app.nimarkogram.messenger.plugins.utils.ClassProxyFactory { *; }
+-keep class app.nimarkogram.messenger.plugins.utils.ClassProxyFactory$* { *; }
 -keep class androidx.mediarouter.app.MediaRouteButton { *; }
 -keepclassmembers class ** {
     @android.webkit.JavascriptInterface <methods>;

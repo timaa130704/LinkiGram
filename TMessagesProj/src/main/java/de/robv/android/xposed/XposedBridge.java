@@ -54,6 +54,7 @@ public final class XposedBridge {
             
             Object pineHandle = top.canyie.pine.Pine.hook(member, adapter);
             if (pineHandle == null) {
+                android.util.Log.w("LinkiPluginHooks", "Pine returned no handle for " + describeMember(member));
                 FileLog.w("nimarko: Pine.hook returned null for " + describeMember(member)
                         + " — hook NOT installed");
                 return null;
@@ -70,6 +71,7 @@ public final class XposedBridge {
             } catch (Throwable inner) {
                 sig = String.valueOf(member);
             }
+            android.util.Log.e("LinkiPluginHooks", "Pine hook failed for " + sig, t);
             FileLog.e("nimarko: Pine.hook FAILED for " + sig
                     + " — " + t.getClass().getSimpleName() + ": " + t.getMessage(), t);
             return null;

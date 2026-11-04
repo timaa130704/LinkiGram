@@ -3654,6 +3654,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             if (py != null) {
                 if (runtimeToken != null) {
                     py.getModule("plugin_imports").callAttr("remove_plugin", pluginId, runtimeToken);
+                    app.nimarkogram.messenger.plugins.utils.ClassProxyFactory.releaseAllForPlugin(pluginId);
+                    py.getModule("extera_utils._generated_classes")
+                            .callAttr("forget_plugin_classes", pluginId);
                 }
                 PyObject modules = py.getModule("sys").get("modules");
                 PyObject module = modules != null

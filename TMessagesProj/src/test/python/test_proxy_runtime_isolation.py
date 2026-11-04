@@ -174,6 +174,7 @@ class ProxyRuntimeIsolationTest(unittest.TestCase):
             'plugin_runtime',
             'extera_utils',
             'extera_utils.classes',
+            'extera_utils._generated_classes',
         )
         cls.previous_modules = {
             name: sys.modules.get(name) for name in module_names
@@ -205,7 +206,7 @@ class ProxyRuntimeIsolationTest(unittest.TestCase):
         )
 
         extera_package = types.ModuleType('extera_utils')
-        extera_package.__path__ = []
+        extera_package.__path__ = [str(REPO / 'TMessagesProj/src/main/python/extera_utils')]
         sys.modules['extera_utils'] = extera_package
         classes_source = (
             REPO / 'TMessagesProj/src/main/python/extera_utils/classes.py')

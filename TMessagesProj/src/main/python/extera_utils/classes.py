@@ -275,3 +275,13 @@ def joverride(*args, **kwargs):
     return deco
 
 joverload = joverride
+
+# The exteraless DSL generates real subclasses; Base.extends above continues
+# to provide the existing Java-owned interface proxy implementation.
+from ._generated_classes import (  # noqa: E402,F401
+    java_subclass, joverride, joverload, jmethod, jfield, jconstructor,
+    jpreconstructor, jMVELmethod, jMVELoverride, JavaHelper, PyObj, J,
+)
+
+__all__ += ['jmethod', 'jfield', 'jconstructor', 'jpreconstructor',
+            'jMVELmethod', 'jMVELoverride', 'JavaHelper', 'PyObj', 'J']
