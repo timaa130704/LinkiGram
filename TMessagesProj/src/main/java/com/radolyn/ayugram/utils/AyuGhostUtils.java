@@ -43,6 +43,7 @@ public class AyuGhostUtils {
     }
 
     public static Long getDialogId(TLRPC.InputPeer peer) {
+        if (peer == null) return null;
         long dialogId;
         if (peer.chat_id != 0) {
             dialogId = -peer.chat_id;
@@ -56,6 +57,7 @@ public class AyuGhostUtils {
     }
 
     public static Long getDialogId(TLRPC.InputChannel peer) {
+        if (peer == null) return null;
         return -peer.channel_id;
     }
 
@@ -160,10 +162,22 @@ public class AyuGhostUtils {
     }
 
     public static void performStatusRequest(Boolean offline) {
+        performStatusRequest(UserConfig.selectedAccount, offline);
+    }
+
+    public static void performStatusRequest(int account, boolean offline) {
         TL_account.updateStatus offlineRequest = new TL_account.updateStatus();
         offlineRequest.offline = offline;
 
-        getConnectionsManager().sendRequest(offlineRequest, (response, error) -> FileLog.d("GhostMode: Status request completed."));
+        ConnectionsManager.getInstance(account).sendRequest(offlineRequest, (response, error) -> FileLog.d("GhostMode: Status request completed."));
+    }
+
+    public static void setOfflineForAllAccounts() {
+        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
+            if (UserConfig.getInstance(account).isClientActivated()) {
+                performStatusRequest(account, true);
+            }
+        }
     }
 
     public static InterceptResult interceptRequest(TLObject object, RequestDelegate onCompleteOrig) {
@@ -188,8 +202,15 @@ public class AyuGhostUtils {
                         || typing.action instanceof TLRPC.TL_sendMessageRecordVideoAction;
                 hidden = recording ? NimarkoConfig.ghostRecording : NimarkoConfig.ghostTyping;
                 if (typing.action instanceof TLRPC.TL_sendMessageCancelAction) hidden = false;
+            } else if (!((TLRPC.TL_messages_setEncryptedTyping) object).typing) {
+                hidden = false;
             }
-            if (hidden && !typingExcluded) return InterceptResult.Blocked(onCompleteOrig);
+            if (hidden && !typingExcluded) {
+                if (onCompleteOrig != null) {
+                    Utilities.stageQueue.postRunnable(() -> onCompleteOrig.run(new TLRPC.TL_boolTrue(), null));
+                }
+                return InterceptResult.Blocked(onCompleteOrig);
+            }
         }
 
         // Block read receipts if disabled
@@ -245,9 +266,9 @@ public class AyuGhostUtils {
     }
 
     private static RequestDelegate handleOfflineAfterSend(int account, TLObject object, RequestDelegate onCompleteOrig) {
-        if (app.nimarkogram.messenger.NimarkoConfig.ghostOfflineAfterSend && isMessageSendRequest(object)) {
+        if ((NimarkoConfig.ghostOnline || NimarkoConfig.ghostOfflineAfterSend) && isMessageSendRequest(object)) {
             TLRPC.InputPeer peer = extractPeerFromSendObject(object);
-            if (peer != null && AyuGhostPreferences.isTypingExcluded(account, getDialogId(peer))) {
+            if (!NimarkoConfig.ghostOnline && peer != null && AyuGhostPreferences.isTypingExcluded(account, getDialogId(peer))) {
                 return onCompleteOrig;
             }
             FileLog.d("GhostMode: Wrapping callback for offline-after-send.");
@@ -258,7 +279,11 @@ public class AyuGhostUtils {
                 }
 
                 FileLog.d("GhostMode: Scheduling delayed offline status update.");
-                Utilities.globalQueue.postRunnable(() -> performStatusRequest(true), OFFLINE_DELAY_MS);
+                Utilities.globalQueue.postRunnable(() -> {
+                    if (NimarkoConfig.ghostOnline || NimarkoConfig.ghostOfflineAfterSend) {
+                        performStatusRequest(account, true);
+                    }
+                }, OFFLINE_DELAY_MS);
             };
         }
         return onCompleteOrig;
@@ -339,7 +364,13 @@ public class AyuGhostUtils {
     private static boolean isMessageSendRequest(TLObject object) {
         return object instanceof TLRPC.TL_messages_sendMessage ||
                 object instanceof TLRPC.TL_messages_sendMedia ||
-                object instanceof TLRPC.TL_messages_sendMultiMedia;
+                object instanceof TLRPC.TL_messages_sendMultiMedia ||
+                object instanceof TLRPC.TL_messages_forwardMessages ||
+                object instanceof TLRPC.TL_messages_sendInlineBotResult ||
+                object instanceof TLRPC.TL_messages_sendEncrypted ||
+                object instanceof TLRPC.TL_messages_sendEncryptedFile ||
+                object instanceof TLRPC.TL_messages_sendEncryptedMultiMedia ||
+                object instanceof TLRPC.TL_messages_sendEncryptedService;
     }
 
     public record InterceptResult(boolean blockRequest, RequestDelegate effectiveOnComplete) {

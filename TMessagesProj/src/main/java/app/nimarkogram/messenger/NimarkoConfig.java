@@ -298,6 +298,9 @@ public final class NimarkoConfig {
     public static void toggleGhostOnline() {
         ghostOnline = !ghostOnline;
         getEditor().putBoolean("ghostOnline", ghostOnline).apply();
+        if (ghostOnline) {
+            com.radolyn.ayugram.utils.AyuGhostUtils.setOfflineForAllAccounts();
+        }
     }
 
     public static volatile boolean ghostReadReceipts = getPreferences().getBoolean("ghostReadReceipts", false);
@@ -359,7 +362,7 @@ public final class NimarkoConfig {
             .apply();
         if (hiding) {
             try {
-                com.radolyn.ayugram.utils.AyuGhostUtils.performStatusRequest(true);
+                com.radolyn.ayugram.utils.AyuGhostUtils.setOfflineForAllAccounts();
             } catch (Throwable t) {
                 org.telegram.messenger.FileLog.e("nimarko: ghost status request failed", t);
             }
@@ -457,7 +460,7 @@ public final class NimarkoConfig {
             // Port of NekoConfig.toggleGhostMode: announce the new status to
             // the server right away so the offline state takes effect.
             try {
-                com.radolyn.ayugram.utils.AyuGhostUtils.performStatusRequest(true);
+                com.radolyn.ayugram.utils.AyuGhostUtils.setOfflineForAllAccounts();
             } catch (Throwable t) {
                 org.telegram.messenger.FileLog.e("nimarko: ghost status request failed", t);
             }

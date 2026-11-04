@@ -399,19 +399,6 @@ public class ConnectionsManager extends BaseController {
     }
 
     private void sendRequestInternal(TLObject objectIn, RequestDelegate onCompleteIn, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
-        // --- Ghost Mode (AyuGram/exteraless port): runs before plugin hooks ---
-        try {
-            com.radolyn.ayugram.utils.AyuGhostUtils.InterceptResult ghostResult =
-                    com.radolyn.ayugram.utils.AyuGhostUtils.interceptRequest(currentAccount, objectIn, onCompleteIn);
-            if (ghostResult.blockRequest()) {
-                android.util.Log.i("NimarkoGhost", "request " + (objectIn != null ? objectIn.getClass().getSimpleName() : "null") + " blocked by ghost mode");
-                return;
-            }
-            onCompleteIn = ghostResult.effectiveOnComplete();
-        } catch (Throwable t) {
-            FileLog.e("nimarko: ghost intercept threw", t);
-        }
-
         TLObject hookedObject = objectIn;
         String requestName = "";
         try {
@@ -429,6 +416,24 @@ public class ConnectionsManager extends BaseController {
             hookedObject = pre;
         } catch (Throwable t) {
             FileLog.e("nimarko: pre-request hook threw", t);
+        }
+
+        // Apply privacy to the actual request, including replacements made by plugins.
+        try {
+            com.radolyn.ayugram.utils.AyuGhostUtils.InterceptResult ghostResult =
+                    com.radolyn.ayugram.utils.AyuGhostUtils.interceptRequest(currentAccount, hookedObject, onCompleteIn);
+            if (ghostResult.blockRequest()) {
+                android.util.Log.i("NimarkoGhost", "request " + hookedObject.getClass().getSimpleName() + " blocked by ghost mode");
+                return;
+            }
+            onCompleteIn = ghostResult.effectiveOnComplete();
+        } catch (Throwable t) {
+            android.util.Log.e("NimarkoGhost", "privacy interception failed", t);
+            if (hookedObject instanceof TLRPC.TL_messages_setTyping
+                    || hookedObject instanceof TLRPC.TL_messages_setEncryptedTyping
+                    || hookedObject instanceof org.telegram.tgnet.tl.TL_account.updateStatus) {
+                return;
+            }
         }
 
         final RequestDelegate userOnComplete = onCompleteIn;
