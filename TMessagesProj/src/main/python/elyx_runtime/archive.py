@@ -175,6 +175,8 @@ def parse_refmap(name: str, data: bytes) -> Dict[str, str]:
             # Builder-only keys may carry non-string values in the future;
             # keep them stringified so the runtime mapping stays simple.
             value = str(value)
+        if str(key) in {"main", "metainfo", "assets", "strings", "locales", "wheels"}:
+            _check_member_safety(value)
         refmap[str(key)] = value
     return refmap
 

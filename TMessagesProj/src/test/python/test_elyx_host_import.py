@@ -17,6 +17,13 @@ class Token:
 
 
 class ElyxHostImportTest(unittest.TestCase):
+    def test_refmap_rejects_paths_outside_archive(self):
+        from elyx_runtime.archive import parse_refmap, ElyxArchiveError
+        for path in ('../outside', '/outside', 'C:/outside', 'assets/../../outside'):
+            with self.subTest(path=path), self.assertRaises(ElyxArchiveError):
+                import json
+                parse_refmap('refmap.json', json.dumps({'assets': path}).encode())
+
     def test_archive_import_unload_and_reload(self):
         import plugin_imports
         from elyx_runtime import get_state
