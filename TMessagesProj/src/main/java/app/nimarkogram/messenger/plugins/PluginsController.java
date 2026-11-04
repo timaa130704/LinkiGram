@@ -1368,7 +1368,15 @@ public class PluginsController implements PluginsHooks {
             this.preferences = ApplicationLoader.applicationContext.getSharedPreferences("plugin_settings", 0);
         }
         
-        PythonPluginsEngine.recoverInterruptedPluginUpdates(this);
+        try {
+            PythonPluginsEngine.recoverInterruptedPluginUpdates(this);
+        } catch (Throwable recoveryFailure) {
+            // A damaged update journal must not abort initialization before the
+            // installed plugins can be listed. Do not run potentially incomplete code.
+            FileLog.e("Plugin update recovery failed; listing plugins in safe mode",
+                    recoveryFailure);
+            NimarkoConfig.setPluginsSafeMode(true);
+        }
 
         try {
             if (!this.preferences.getBoolean("plugin_falsequarantine_recovered_1", false)) {

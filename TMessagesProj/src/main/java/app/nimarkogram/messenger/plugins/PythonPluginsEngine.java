@@ -2029,6 +2029,10 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         }
         Utilities.pluginsQueue.postRunnable(() -> {
             try {
+                // Publish a disabled inventory first. Recovery, Python startup and
+                // dependency setup may all fail after an interrupted process.
+                registerPluginsMetadataOnly(true);
+                getPluginsController().notifyPluginsChanged();
                 cleanupOrphanedHostInstallStages();
                 
                 recoverInterruptedPluginUpdates(getPluginsController());
@@ -2086,6 +2090,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 checkDevServer();
             } catch (Throwable th) {
                 FileLog.e("nimarko: PythonPluginsEngine.init crashed", th);
+                NimarkoConfig.setPluginsSafeMode(true);
+                registerPluginsForSafeMode();
+                getPluginsController().notifyPluginsChanged();
                 if (runnable != null) {
                     AndroidUtilities.runOnUIThread(runnable);
                 }
@@ -2281,31 +2288,30 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             for (File file : files) {
                 String pid = file.getName().substring(0, file.getName().length() - 3);
                 if ("nimarkobanner".equalsIgnoreCase(pid)) continue;
-                Plugin plugin = createBoundedMetadataPlugin(file, pid);
-                boolean recoveryBlocked =
-                        RECOVERY_BLOCKED_PLUGIN_IDS.contains(pid);
-                boolean quarantined = controller.preferences.getBoolean(
-                        "plugin_crashed_" + pid, false);
-                if (recoveryBlocked) {
-                    plugin.setError(new IOException(
-                            "Plugin update recovery is incomplete"));
-                } else if (quarantined) {
-                    plugin.setError(new Exception(LocaleController.getString(
-                            R.string.NM_PluginCrashedDisabled)));
-                } else {
-                    plugin.setError(null);
+                try {
+                    Plugin plugin = createBoundedMetadataPlugin(file, pid);
+                    boolean recoveryBlocked = RECOVERY_BLOCKED_PLUGIN_IDS.contains(pid);
+                    boolean quarantined = controller.preferences.getBoolean(
+                            "plugin_crashed_" + pid, false);
+                    if (recoveryBlocked) {
+                        plugin.setError(new IOException("Plugin update recovery is incomplete"));
+                    } else if (quarantined) {
+                        plugin.setError(new Exception(LocaleController.getString(
+                                R.string.NM_PluginCrashedDisabled)));
+                    } else {
+                        plugin.setError(null);
+                    }
+                    plugin.setEnabled(false);
+                    controller.plugins.put(pid, plugin);
+                    boolean restoreEnabled = !forceDisabled
+                            && !recoveryBlocked
+                            && !quarantined
+                            && controller.preferences.getBoolean(
+                            PluginsController.PREF_PLUGIN_ENABLED_KEY_PREFIX + pid, false);
+                    controller.setPluginStartupActivationPending(pid, restoreEnabled);
+                } catch (Throwable pluginFailure) {
+                    FileLog.e("Could not list installed plugin " + pid, pluginFailure);
                 }
-                
-                plugin.setEnabled(false);
-                controller.plugins.put(pid, plugin);
-                boolean restoreEnabled = !forceDisabled
-                        && !recoveryBlocked
-                        && !quarantined
-                        && controller.preferences.getBoolean(
-                        PluginsController.PREF_PLUGIN_ENABLED_KEY_PREFIX + pid,
-                        false);
-                controller.setPluginStartupActivationPending(
-                        pid, restoreEnabled);
             }
         } catch (Throwable t) {
             FileLog.e("nimarko: safe-mode plugin listing failed", t);
