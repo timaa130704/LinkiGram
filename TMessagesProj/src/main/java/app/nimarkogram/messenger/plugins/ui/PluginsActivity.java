@@ -1060,6 +1060,32 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // pluginsUpdated can arrive while this fragment is paused or not yet
+        // attached. Re-read the registry when the screen becomes visible.
+        if (uiLifecycleActive && listView != null && listView.adapter != null) {
+            listView.adapter.update(false);
+        }
+        if (uiLifecycleActive && searchItem != null) {
+            AndroidUtilities.updateViewVisibilityAnimated(searchItem,
+                    NimarkoConfig.pluginsEngine && !PluginsController.getInstance().plugins.isEmpty(),
+                    0.5f, false);
+        }
+        if (uiLifecycleActive) {
+            updateAddButtonVisibility(false);
+            if (NimarkoConfig.pluginsEngine) {
+                PluginsController.PluginsEngine engine = PluginsController.engines.get(
+                        app.nimarkogram.messenger.plugins.PluginsConstants.PYTHON);
+                if (engine instanceof app.nimarkogram.messenger.plugins.PythonPluginsEngine) {
+                    ((app.nimarkogram.messenger.plugins.PythonPluginsEngine) engine)
+                            .rescanInstalledPluginFiles();
+                }
+            }
+        }
+    }
+
+    @Override
     public boolean onFragmentCreate() {
         if (!super.onFragmentCreate()) {
             return false;

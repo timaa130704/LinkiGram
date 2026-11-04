@@ -2278,6 +2278,40 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         registerPluginsMetadataOnly(true);
     }
 
+    /** Rescan installed files without replacing live plugin instances. */
+    public void rescanInstalledPluginFiles() {
+        Utilities.pluginsQueue.postRunnable(() -> {
+            PluginsController controller = getPluginsController();
+            File directory = controller.getPluginsDir();
+            File[] files = directory.listFiles((dir, name) ->
+                    name.toLowerCase(java.util.Locale.ROOT).endsWith(".py"));
+            if (files == null) return;
+            boolean changed = false;
+            for (File file : files) {
+                String id = file.getName().substring(0, file.getName().length() - 3);
+                if (id.isEmpty() || "nimarkobanner".equalsIgnoreCase(id)
+                        || controller.plugins.containsKey(id)
+                        || pluginDeleteMarker(directory, id).exists()) continue;
+                try {
+                    Plugin plugin = createBoundedMetadataPlugin(file, id);
+                    plugin.setEnabled(false);
+                    if (controller.preferences.getBoolean("plugin_crashed_" + id, false)) {
+                        plugin.setError(new Exception(LocaleController.getString(
+                                R.string.NM_PluginCrashedDisabled)));
+                    } else if (RECOVERY_BLOCKED_PLUGIN_IDS.contains(id)) {
+                        plugin.setError(new IOException("Plugin update recovery is incomplete"));
+                    }
+                    if (file.isFile() && controller.plugins.putIfAbsent(id, plugin) == null) {
+                        changed = true;
+                    }
+                } catch (Throwable failure) {
+                    FileLog.e("Could not rescan installed plugin " + id, failure);
+                }
+            }
+            if (changed) controller.notifyPluginsChanged();
+        });
+    }
+
     private void registerPluginsMetadataOnly(boolean forceDisabled) {
         PluginsController controller = getPluginsController();
         controller.clearPluginStartupActivations();

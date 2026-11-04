@@ -438,6 +438,8 @@ public class ApplicationLoader extends Application {
             }
         }
 
+        initPluginEngine();
+
         // A VPN and the bypass relay both bind local listeners; let the VPN win
         // instead of leaving a stale 127.0.0.1 entry that would break the next
         // connection attempt.
@@ -461,6 +463,22 @@ public class ApplicationLoader extends Application {
         }
         BillingController.getInstance().startConnection();
         app.nimarkogram.messenger.automation.RepeatingMessages.restore();
+    }
+
+    private static void initPluginEngine() {
+        // The restart helper runs in a separate process; plugins belong only to
+        // the main application process. Account state is ready at this point.
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            String process = android.app.Application.getProcessName();
+            if (process != null && !applicationContext.getPackageName().equals(process)) {
+                return;
+            }
+        }
+        try {
+            app.nimarkogram.messenger.plugins.PluginsController.getInstance().init();
+        } catch (Throwable failure) {
+            android.util.Log.e("LinkiPluginEngine", "Unable to start plugin engine", failure);
+        }
     }
 
     public ApplicationLoader() {
