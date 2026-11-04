@@ -3866,6 +3866,14 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         return getPluginsController().pluginsDir.getAbsolutePath() + File.separator + str + ".py";
     }
 
+    private static boolean isElyxArchive(File file) {
+        try (java.util.zip.ZipFile ignored = new java.util.zip.ZipFile(file)) {
+            return true;
+        } catch (IOException ignored) {
+            return false;
+        }
+    }
+
     @Override
     public void openInExternalApp(String str) {
         BaseFragment safeLastFragment = LaunchActivity.getSafeLastFragment();
@@ -3880,13 +3888,14 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
             
             File tempDir = new File(ApplicationLoader.getFilesDirFixed(), "temp");
             if (!tempDir.exists()) tempDir.mkdirs();
-            File tempFile = new File(tempDir, str + ".py");
+            boolean archive = isElyxArchive(src);
+            File tempFile = new File(tempDir, str + (archive ? ".elyx" : ".py"));
             try (FileInputStream in = new FileInputStream(src);
                  FileOutputStream out = new FileOutputStream(tempFile)) {
                 out.getChannel().transferFrom(in.getChannel(), 0L, in.getChannel().size());
             }
             tempFile.deleteOnExit();
-            AndroidUtilities.openForView(tempFile, tempFile.getName(), "text/plain",
+            AndroidUtilities.openForView(tempFile, tempFile.getName(), archive ? "application/zip" : "text/plain",
                     safeLastFragment.getParentActivity(), safeLastFragment.getResourceProvider(), false);
         } catch (Throwable t) {
             org.telegram.messenger.FileLog.e("nimarko: openInExternalApp failed", t);
@@ -3907,7 +3916,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         if (!file.exists()) {
             file.mkdirs();
         }
-        File file2 = new File(file, str + PluginsConstants.PLUGINS_EXT);
+        boolean archive = isElyxArchive(new File(pluginPath));
+        File file2 = new File(file, str + (archive ? ".elyx" : PluginsConstants.PLUGINS_EXT));
         try {
             FileInputStream fileInputStream = new FileInputStream(pluginPath);
             try {
@@ -3920,7 +3930,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     Intent intent = new Intent("android.intent.action.SEND");
                     intent.setFlags(1);
                     intent.putExtra("android.intent.extra.STREAM", uriForFile);
-                    intent.setType("application/x-plugin");
+                    intent.setType(archive ? "application/zip" : "application/x-plugin");
                     safeLastFragment.startActivityForResult(Intent.createChooser(intent, LocaleController.getString(R.string.ShareFile)), 500);
                     file2.deleteOnExit();
                 } finally {
