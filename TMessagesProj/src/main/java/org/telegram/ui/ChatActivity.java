@@ -21895,7 +21895,7 @@ public class ChatActivity extends BaseFragment implements
                     endId = msg2;
 
                     long fbStart = minVal;
-                    long fbEnd = msg1;
+                    long fbEnd = minVal;
                     if (messArr.size() == 1 && messArr.get(0).messageOwner instanceof TLRPC.TL_messageService) {
                         fbStart = minVal;
                         fbEnd = com.radolyn.ayugram.AyuUtils.getMinRealId(messages);
@@ -21936,8 +21936,11 @@ public class ChatActivity extends BaseFragment implements
                             }
                         });
                     } else {
-                        startId = fallbackStartId;
-                        endId = fallbackEndId;
+                        // Keep the current page when no dialog metadata is available.
+                        // A separate fallback is only valid at a confirmed history boundary.
+                        if (fallbackEndId != minVal) {
+                            ayuHookDeletedHistory(fallbackStartId, fallbackEndId, load_type);
+                        }
                     }
                 } else if (!messages.isEmpty() && load_type != 1) {
                     // loading upper messages

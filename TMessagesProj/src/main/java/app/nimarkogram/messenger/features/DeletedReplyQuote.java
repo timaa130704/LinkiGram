@@ -6,6 +6,8 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import java.util.ArrayList;
 
@@ -21,7 +23,7 @@ public final class DeletedReplyQuote {
         if ((quote == null || quote.trim().isEmpty()) && reply.messageText != null) quote = reply.messageText.toString();
         if (quote == null || quote.trim().isEmpty()) return;
         long sender = reply.getFromChatId();
-        String author = sender != 0 ? DialogObject.getName(account, sender) : reply.messageOwner.post_author;
+        String author = resolveAuthor(account, sender, reply.messageOwner.post_author);
         if (author == null || author.trim().isEmpty()) author = LocaleController.getString(R.string.HiddenName);
         author = author.replace('\n', ' ').replace('\r', ' ').trim();
         if (author.length() > 100) author = author.substring(0, 100);
@@ -53,7 +55,7 @@ public final class DeletedReplyQuote {
         TLRPC.TL_messageEntityBold authorEntity = new TLRPC.TL_messageEntityBold();
         authorEntity.offset = 0; authorEntity.length = author.length(); entities.add(authorEntity);
         if (sender > 0) {
-            TLRPC.InputUser user = org.telegram.messenger.MessagesController.getInstance(account).getInputUser(sender);
+            TLRPC.InputUser user = MessagesController.getInstance(account).getInputUser(sender);
             if (user != null && !(user instanceof TLRPC.TL_inputUserEmpty)) {
                 TLRPC.TL_inputMessageEntityMentionName mention = new TLRPC.TL_inputMessageEntityMentionName();
                 mention.offset = 0;
@@ -66,6 +68,21 @@ public final class DeletedReplyQuote {
         if (params.message != null) params.message = prefix + body; else params.caption = prefix + body;
         params.replyToMsg = params.replyToTopMsg;
         params.replyQuote = null;
+    }
+
+    private static String resolveAuthor(int account, long sender, String postAuthor) {
+        if (sender <= 0) {
+            return sender < 0 ? DialogObject.getName(account, sender) : postAuthor;
+        }
+        TLRPC.User user = MessagesController.getInstance(account).getUser(sender);
+        if (user == null) return null;
+        if (user.contact) {
+            // A contact's first/last name can be the sender's private address-book
+            // label, and putting it into the message would reveal it to everyone.
+            String username = UserObject.getPublicUsername(user);
+            return username == null || username.isEmpty() ? null : "@" + username;
+        }
+        return UserObject.getUserName(user);
     }
     private DeletedReplyQuote() { }
 }

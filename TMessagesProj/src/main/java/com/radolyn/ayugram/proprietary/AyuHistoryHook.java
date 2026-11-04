@@ -46,6 +46,7 @@ public abstract class AyuHistoryHook {
             long clientUserId = UserConfig.getInstance(currentAccount).clientUserId;
             AyuMessagesController ayuController = AyuMessagesController.getInstance();
             LongSparseArray<TLRPC.TL_message> messagesById = new LongSparseArray<>();
+            LongSparseArray<TLRPC.TL_message> replyMessagesById = new LongSparseArray<>();
             Set<Long> groupIds = new HashSet<>();
             Set<Integer> replyIds = new HashSet<>();
             List<DeletedMessageFull> deletedMessages;
@@ -86,7 +87,9 @@ public abstract class AyuHistoryHook {
             ArrayList<Long> uniqueGroupIds = new ArrayList<>(groupIds);
             for (DeletedMessageFull groupedMessageFull : ayuController.getMessagesGroupedIn(clientUserId, dialogId, uniqueGroupIds)) {
                 if (hasContent(groupedMessageFull)) {
-                    if (!messagesById.containsKey(groupedMessageFull.message.messageId)) {
+                    if (groupedMessageFull.message.messageId >= startId
+                            && groupedMessageFull.message.messageId <= endId
+                            && !messagesById.containsKey(groupedMessageFull.message.messageId)) {
                         TLRPC.TL_message mappedMessage = map(groupedMessageFull, currentAccount);
                         MessageReplyHeader replyHeader = mappedMessage.reply_to;
                         if (replyHeader != null) {
@@ -103,7 +106,7 @@ public abstract class AyuHistoryHook {
                 if (hasContent(replyMessageFull)) {
                     if (!messagesById.containsKey(replyMessageFull.message.messageId)) {
                         TLRPC.TL_message mappedMessage = map(replyMessageFull, currentAccount);
-                        messagesById.put(mappedMessage.id, mappedMessage);
+                        replyMessagesById.put(mappedMessage.id, mappedMessage);
                         MessagesStorage.addUsersAndChatsFromMessage(mappedMessage, usersToLoad, chatsToLoad, null);
                     }
                 }
@@ -170,6 +173,13 @@ public abstract class AyuHistoryHook {
             SparseArray<MessageObject> indexById = new SparseArray<>(messageObjects.size());
             for (MessageObject messageObj : messageObjects) {
                 indexById.put(messageObj.getId(), messageObj);
+            }
+            for (int i = 0; i < replyMessagesById.size(); i++) {
+                int replyId = (int) replyMessagesById.keyAt(i);
+                if (indexById.get(replyId) == null) {
+                    indexById.put(replyId, createMessageObject(currentAccount,
+                            replyMessagesById.valueAt(i), usersById, chatsById, messagesController));
+                }
             }
             for (int idx = 0; idx < messageObjects.size(); idx++) {
                 MessageObject messageObj = messageObjects.get(idx);
