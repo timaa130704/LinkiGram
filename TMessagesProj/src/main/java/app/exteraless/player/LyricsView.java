@@ -88,7 +88,7 @@ public class LyricsView extends FrameLayout {
 
     private static final long FOLLOW_RESUME_MS = 750;
     private static final int MAX_BLUR_DISTANCE = 4;
-    private static final float BLUR_PER_LINE_DP = 1.25f;
+    private static final float BLUR_PER_LINE_DP = 0.55f;
 
     public LyricsView(Context context) {
         super(context);
@@ -440,8 +440,8 @@ public class LyricsView extends FrameLayout {
         static final int ROLE_FUTURE = 2;
         static final int ROLE_PLAIN = 3;
 
-        private static final float OPACITY_FUTURE = 0.51f;
-        private static final float OPACITY_PAST = 0.5f;
+        private static final float OPACITY_FUTURE = 0.48f;
+        private static final float OPACITY_PAST = 0.48f;
         private static final float UNFILLED_ALPHA = 0.45f;
         private static final float ACTIVE_SCALE = 1.05f;
 
@@ -533,7 +533,11 @@ public class LyricsView extends FrameLayout {
         }
 
         private float textSize() {
-            return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, plain ? 20 : 28, getResources().getDisplayMetrics());
+            return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, plain ? 20 : 30, getResources().getDisplayMetrics());
+        }
+
+        private int textWidth(int width) {
+            return Math.max(1, (int) ((width - dp(40)) / ACTIVE_SCALE));
         }
 
         private void ensureLayout(int width) {
@@ -542,9 +546,9 @@ public class LyricsView extends FrameLayout {
             }
             layoutWidth = width;
             paint.setTextSize(textSize());
-            int textWidth = Math.max(1, (int) (width / ACTIVE_SCALE));
+            int textWidth = textWidth(width);
             layout = StaticLayout.Builder.obtain(text == null ? "" : text, 0, text == null ? 0 : text.length(), paint, textWidth)
-                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
                     .setLineSpacing(0, 1.18f)
                     .setIncludePad(false)
                     .build();
@@ -554,7 +558,7 @@ public class LyricsView extends FrameLayout {
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             int width = MeasureSpec.getSize(widthMeasureSpec);
             ensureLayout(width);
-            int pad = plain ? dp(6) : dp(10);
+            int pad = plain ? dp(8) : dp(16);
             int content = isInterlude() ? (int) (textSize() * 0.9f) : layout.getHeight();
             setMeasuredDimension(width, content + pad * 2);
         }
@@ -593,11 +597,11 @@ public class LyricsView extends FrameLayout {
             int baseAlpha = colorActive >>> 24;
             boolean live = role == ROLE_ACTIVE && !plain;
             float progress = live ? lineProgress() : 0f;
-            int pad = plain ? dp(6) : dp(10);
+            int pad = plain ? dp(8) : dp(16);
             canvas.save();
-            canvas.translate(0, pad);
+            canvas.translate((getWidth() - layout.getWidth()) / 2f, pad);
             float pivotY = (getHeight() - pad * 2) / 2f;
-            canvas.scale(scale.value, scale.value, 0, pivotY);
+            canvas.scale(scale.value, scale.value, layout.getWidth() / 2f, pivotY);
             if (isInterlude()) {
                 drawInterlude(canvas, live, progress, alpha, now);
             } else if (live && lyrics != null && index >= 0 && index < lyrics.lines.size()
@@ -622,8 +626,8 @@ public class LyricsView extends FrameLayout {
                                 android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     wordLayout = StaticLayout.Builder.obtain(styled, 0, styled.length(), paint,
-                                    Math.max(1, (int) (getWidth() / ACTIVE_SCALE)))
-                            .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0, 1.18f).setIncludePad(false).build();
+                                    textWidth(getWidth()))
+                            .setAlignment(Layout.Alignment.ALIGN_CENTER).setLineSpacing(0, 1.18f).setIncludePad(false).build();
                     wordLayoutIndex = index;
                     wordLayoutFilled = filled; wordLayoutUnfilled = unfilled; wordLayoutWidth = getWidth();
                 }
@@ -668,6 +672,7 @@ public class LyricsView extends FrameLayout {
             float cy = textSize() * 0.45f;
             float breathe = live ? 1f + 0.06f * (float) Math.sin(now / 1600.0 * Math.PI * 2) : 1f;
             canvas.save();
+            canvas.translate((layout.getWidth() - (3 * size + 2 * gap)) / 2f, 0);
             canvas.scale(breathe, breathe, size * 1.5f + gap, cy);
             int baseAlpha = colorActive >>> 24;
             for (int i = 0; i < 3; i++) {
