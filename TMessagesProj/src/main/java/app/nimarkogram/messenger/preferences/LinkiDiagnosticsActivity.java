@@ -13,7 +13,6 @@ import org.telegram.ui.Components.UniversalAdapter;
 
 import java.util.ArrayList;
 
-import app.exteraless.player.LinerApi;
 import app.nimarkogram.messenger.NimarkoConfig;
 
 /** Read-only, local connection diagnostics. No addresses or credentials are displayed. */
@@ -37,7 +36,6 @@ public final class LinkiDiagnosticsActivity extends BasePreferencesActivity {
         items.add(UItem.asShadow("Прокси: " + (proxy ? "включён" : "выключен")));
         items.add(UItem.asHeader("Тексты песен"));
         items.add(UItem.asShadow("Онлайн-поиск: " + (NimarkoConfig.lrclibAllowed() ? "включён" : "выключен")));
-        items.add(UItem.asShadow("Аккаунт Liner: " + (LinerApi.signedIn() ? "подключён" : "не подключён")));
         items.add(UItem.asShadow("Эта проверка показывает локальное состояние. Она не отправляет диагностические данные."));
         items.add(UItem.asButton(ID_REFRESH, R.drawable.msg_retry_solar, "Обновить"));
     }

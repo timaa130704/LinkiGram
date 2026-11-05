@@ -73,7 +73,7 @@ public final class OnlineLyrics {
         }
 
         public String key() {
-            return (artist == null ? "" : artist.toLowerCase(Locale.ROOT)) + "\u0001" + (title == null ? "" : title.toLowerCase(Locale.ROOT)) + "\u0001" + duration + "\u0001liner:" + LinerApi.signedIn();
+            return (artist == null ? "" : artist.toLowerCase(Locale.ROOT)) + "\u0001" + (title == null ? "" : title.toLowerCase(Locale.ROOT)) + "\u0001" + duration;
         }
 
         public boolean valid() {
@@ -167,7 +167,7 @@ public final class OnlineLyrics {
     }
 
     public static boolean knownMissing(Query query) {
-        return !LinerApi.signedIn() && missing.contains(query.key());
+        return missing.contains(query.key());
     }
 
     public static void loadCached(Query query, Callback callback) {
@@ -271,34 +271,16 @@ public final class OnlineLyrics {
     private static FetchOutcome fetchAllSources(Query query, Callback callback) {
         ArrayList<Lyrics> list = new ArrayList<>();
         AtomicInteger failures = new AtomicInteger(0);
-        boolean linerEnabled = LinerApi.signedIn();
-        CountDownLatch latch = new CountDownLatch(linerEnabled ? 6 : 5);
+        CountDownLatch latch = new CountDownLatch(5);
         LyricsDeadline deadline = new LyricsDeadline(REQUEST_TIMEOUT_MS / 1000);
         String batchKey = query.key();
         activeBatches.put(batchKey, deadline);
-        java.util.concurrent.atomic.AtomicBoolean linerFailed = new java.util.concurrent.atomic.AtomicBoolean(false);
         ArrayList<java.util.concurrent.Future<?>> tasks = new ArrayList<>();
         tasks.add(collectProvider(() -> requestLrclib(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestLrcmux(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestNetease(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestQq(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestKugou(query), list, failures, latch, callback, deadline));
-        if (linerEnabled) tasks.add(collectProvider(() -> {
-            try {
-            LinerApi.lyrics(query, lyrics -> {
-                ArrayList<Lyrics> snapshot;
-                synchronized (list) {
-                    if (!deadline.active) return;
-                    list.removeIf(previous -> lyrics.provider.equals(previous.provider));
-                    list.add(lyrics);
-                    snapshot = new ArrayList<>(list);
-                }
-                sortSources(snapshot);
-                AndroidUtilities.runOnUIThread(() -> { if (deadline.active) callback.onResult(snapshot, OK); });
-            });
-            return null;
-            } catch (Exception error) { linerFailed.set(true); throw error; }
-        }, list, failures, latch, callback, deadline, true));
         for (java.util.concurrent.Future<?> task : tasks) deadline.add(task);
         boolean completed = false;
         try {
@@ -315,9 +297,9 @@ public final class OnlineLyrics {
         }
         ArrayList<Lyrics> finished;
         synchronized (list) { finished = new ArrayList<>(list); }
-        boolean failed = !completed || linerFailed.get() || failures.get() > 0;
+        boolean failed = !completed || failures.get() > 0;
         if (finished.isEmpty()) {
-            return new FetchOutcome(null, failed || failures.get() >= (linerEnabled ? 6 : 5));
+            return new FetchOutcome(null, failed);
         }
         mergePunctuation(finished);
         sortSources(finished);
@@ -325,12 +307,8 @@ public final class OnlineLyrics {
     }
 
     private static java.util.concurrent.Future<?> collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback, LyricsDeadline deadline) {
-        return collectProvider(provider, list, failures, latch, callback, deadline, false);
-    }
-
-    private static java.util.concurrent.Future<?> collectProvider(Callable<Found> provider, ArrayList<Lyrics> list, AtomicInteger failures, CountDownLatch latch, Callback callback, LyricsDeadline deadline, boolean liner) {
         try {
-        return LyricsWorkers.submit(liner, () -> {
+        return LyricsWorkers.submit(() -> {
             LyricsDeadline.CURRENT.set(deadline);
             try {
                 if (!deadline.active) return;

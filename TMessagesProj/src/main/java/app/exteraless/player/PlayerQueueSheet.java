@@ -12,6 +12,7 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -37,6 +39,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 
 public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
@@ -51,7 +54,10 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
     private final GradientDrawable chipBg = new GradientDrawable();
     private final PlayerIcon chipIcon = PlayerIcon.stroke(PlayerIcon.SHUFFLE, 18);
     private final Adapter adapter = new Adapter();
+    private final ArrayList<MessageObject> items = new ArrayList<>();
     private boolean touchInList;
+    private boolean dragging;
+    private ItemTouchHelper touchHelper;
 
     public PlayerQueueSheet(Context context, PlayerColors colors, Theme.ResourcesProvider resourcesProvider) {
         super(context, false, resourcesProvider);
@@ -129,7 +135,7 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
         chip.setOnClickListener(v -> {
             MediaController.getInstance().setPlaybackOrderType(SharedConfig.shuffleMusic ? 0 : 2);
             updateChip();
-            adapter.notifyDataSetChanged();
+            syncItems(true);
             PlayerSheet.onModesChanged();
         });
         header.addView(chip, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, 40, 12, 0, 0, 0));
@@ -144,6 +150,7 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
         };
         layoutManager = new LinearLayoutManager(context);
         list.setLayoutManager(layoutManager);
+        syncItems(true);
         list.setAdapter(adapter);
         list.setClipToPadding(false);
         list.setVerticalScrollBarEnabled(false);
@@ -159,6 +166,52 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
             }
         });
         root.addView(list, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 34 + 72 + 8, 0, 0));
+        touchHelper = new ItemTouchHelper(new ItemTouchHelper.Callback() {
+            @Override
+            public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                return makeMovementFlags(SharedConfig.shuffleMusic ? 0 : ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
+            }
+
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return !SharedConfig.shuffleMusic;
+            }
+
+            @Override
+            public boolean isItemViewSwipeEnabled() {
+                return false;
+            }
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder source, @NonNull RecyclerView.ViewHolder target) {
+                return moveItem(source.getAdapterPosition(), target.getAdapterPosition());
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            }
+
+            @Override
+            public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+                super.onSelectedChanged(viewHolder, actionState);
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null && viewHolder.itemView instanceof Row) {
+                    dragging = true;
+                    container.requestDisallowInterceptTouchEvent(true);
+                    viewHolder.itemView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    ((Row) viewHolder.itemView).setDragging(true);
+                }
+            }
+
+            @Override
+            public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                super.clearView(recyclerView, viewHolder);
+                dragging = false;
+                if (viewHolder.itemView instanceof Row) {
+                    ((Row) viewHolder.itemView).setDragging(false);
+                }
+            }
+        });
+        touchHelper.attachToRecyclerView(list);
 
         updateChip();
         updateSubtitle();
@@ -170,7 +223,23 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
 
     @Override
     protected boolean canDismissWithSwipe() {
-        return !touchInList || !list.canScrollVertically(-1);
+        return !dragging && (!touchInList || !list.canScrollVertically(-1));
+    }
+
+    private int playlistIndex(int position) {
+        return direct() ? position : items.size() - 1 - position;
+    }
+
+    private boolean moveItem(int from, int to) {
+        if (from < 0 || to < 0 || from >= items.size() || to >= items.size() || from == to) {
+            return false;
+        }
+        if (!MediaController.getInstance().movePlaylistItem(playlistIndex(from), playlistIndex(to))) {
+            return false;
+        }
+        items.add(to, items.remove(from));
+        adapter.notifyItemMoved(from, to);
+        return true;
     }
 
     @Override
@@ -206,7 +275,11 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
             }
         }
         if (id == NotificationCenter.moreMusicDidLoad || id == NotificationCenter.musicDidLoad) {
-            adapter.notifyDataSetChanged();
+            syncItems(true);
+            updateSubtitle();
+            return;
+        }
+        if (syncItems(false)) {
             updateSubtitle();
             return;
         }
@@ -237,12 +310,32 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
         return MediaController.getInstance().currentSavedMusicList != null ? !SharedConfig.playOrderReversed : SharedConfig.playOrderReversed;
     }
 
-    private static MessageObject itemAt(int position) {
-        ArrayList<MessageObject> playlist = MediaController.getInstance().getPlaylist();
-        if (position < 0 || position >= playlist.size()) {
+    private MessageObject itemAt(int position) {
+        if (position < 0 || position >= items.size()) {
             return null;
         }
-        return direct() ? playlist.get(position) : playlist.get(playlist.size() - 1 - position);
+        return items.get(position);
+    }
+
+    private boolean syncItems(boolean force) {
+        ArrayList<MessageObject> playlist = MediaController.getInstance().getPlaylist();
+        ArrayList<MessageObject> ordered = new ArrayList<>(playlist);
+        if (!direct()) {
+            Collections.reverse(ordered);
+        }
+        boolean changed = force || ordered.size() != items.size();
+        for (int i = 0; !changed && i < ordered.size(); i++) {
+            changed = ordered.get(i) != items.get(i);
+        }
+        if (!changed) {
+            return false;
+        }
+        items.clear();
+        items.addAll(ordered);
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+        return true;
     }
 
     private static MessageObject currentItem() {
@@ -323,7 +416,7 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
 
         @Override
         public int getItemCount() {
-            return MediaController.getInstance().getPlaylist().size();
+            return items.size();
         }
     }
 
@@ -334,8 +427,10 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
         private final TextView artist;
         private final TextView duration;
         private final Equalizer equalizer;
+        private final View handle;
         private final GradientDrawable bg = new GradientDrawable();
         private MessageObject message;
+        private boolean draggingRow;
 
         Row(Context context) {
             super(context);
@@ -359,14 +454,35 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
             artist.setSingleLine(true);
             artist.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(artist, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
-            addView(texts, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 66, 0, 52, 0));
+            addView(texts, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 66, 0, 88, 0));
             duration = new TextView(context);
             duration.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
             duration.setFontFeatureSettings("tnum");
             duration.setTextColor(colors.onSurfaceVariant);
-            addView(duration, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+            addView(duration, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 36, 0));
             equalizer = new Equalizer(context);
-            addView(equalizer, LayoutHelper.createFrame(22, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+            addView(equalizer, LayoutHelper.createFrame(22, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 36, 0));
+            handle = new View(context);
+            PlayerIcon handleIcon = PlayerIcon.stroke(PlayerIcon.DRAG, 22);
+            handleIcon.setColor(colors.onSurfaceVariant);
+            handle.setBackground(handleIcon);
+            handle.setContentDescription(getString(R.string.OEPlayerDragToReorder));
+            handle.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN && !SharedConfig.shuffleMusic) {
+                    RecyclerView.ViewHolder holder = list.findContainingViewHolder(this);
+                    if (holder != null) {
+                        touchHelper.startDrag(holder);
+                    }
+                }
+                return false;
+            });
+            addView(handle, LayoutHelper.createFrame(22, 22, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+        }
+
+        void setDragging(boolean value) {
+            draggingRow = value;
+            setElevation(value ? dp(4) : 0);
+            updateState();
         }
 
         void bind(MessageObject mo) {
@@ -384,7 +500,8 @@ public class PlayerQueueSheet extends BottomSheet implements NotificationCenter.
 
         void updateState() {
             boolean current = message != null && message == currentItem();
-            bg.setColor(current ? colors.secondaryContainer : 0);
+            bg.setColor(current ? colors.secondaryContainer : draggingRow ? colors.surfaceHigh : 0);
+            handle.setVisibility(SharedConfig.shuffleMusic ? INVISIBLE : VISIBLE);
             title.setTextColor(current ? colors.onSecondaryContainer : colors.onSurface);
             artist.setTextColor(current ? colors.onSecondaryContainer : colors.onSurfaceVariant);
             duration.setVisibility(current ? GONE : VISIBLE);

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="OEPlayerDragToReorder">Перетащите, чтобы изменить порядок</string>
     <string name="LX_Title">Инструменты чата</string>
     <string name="LX_CleanOpen">Очищать метки слежки при открытии ссылок</string>
     <string name="LX_CleanPaste">Очищать метки слежки при вставке ссылок</string>
@@ -24,18 +25,6 @@
     <string name="LX_Played">Прослушано: %1$s</string>
     <string name="LX_NoTimes">Для этого сообщения нет сохранённых отметок.</string>
     <string name="LX_ModelInfo">Скачайте модель и нажмите для выбора. Удерживайте для удаления. Аудио остаётся на устройстве.</string>
-    <string name="LX_Liner">Аккаунт Liner для текстов песен</string>
-    <string name="LX_LinerLogin">Войти в Liner</string>
-    <string name="LX_LinerRegister">Создать аккаунт Liner</string>
-    <string name="LX_LinerUsername">Имя пользователя (a–z, 0–9, _)</string>
-    <string name="LX_LinerDisplayName">Отображаемое имя</string>
-    <string name="LX_LinerRegisterInvalid">Введите имя и логин длиной 3–30 символов: строчные латинские буквы, цифры или подчёркивание.</string>
-    <string name="LX_LinerVerificationRequired">Liner требует дополнительную проверку, которая пока не поддерживается.</string>
-    <string name="LX_LinerConnected">Аккаунт Liner подключён · настройки</string>
-    <string name="LX_LinerLogout">Выйти из Liner</string>
-    <string name="LX_LinerReady">Вход выполнен. Откройте плеер → Текст песни и перезагрузите трек для поиска источников Liner.</string>
-    <string name="LX_LinerInfo">Войдите по почте и паролю Liner. Данные отправляются только на api.tryliner.fun по HTTPS. Пароль не сохраняется. Токены сессии хранятся зашифрованными на устройстве. При поиске текстов отправляются название и исполнитель трека.</string>
-    <string name="LX_LinerError">Не удалось войти. Проверьте почту, пароль и соединение.</string>
     <string name="LX_LyricsRefreshSources">Обновить источники</string>
     <string name="LX_LyricsRefreshFailed">Не удалось обновить источники. Текущий текст сохранён.</string>
     <string name="LX_LyricsPartialSources">Не все источники ответили</string>

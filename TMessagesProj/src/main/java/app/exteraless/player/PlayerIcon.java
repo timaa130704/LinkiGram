@@ -19,6 +19,7 @@ import java.util.HashMap;
 public class PlayerIcon extends Drawable {
 
     public static final String CHEVRON_DOWN = "M6 9l6 6 6-6";
+    public static final String DRAG = "M5 9h14M5 15h14";
     public static final String MORE = circle(12, 5, 1.8f) + circle(12, 12, 1.8f) + circle(12, 19, 1.8f);
     public static final String HEART = "M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z";
     public static final String SHUFFLE = "M16 4h4v4M4 20L20 4M20 16v4h-4M14.5 14.5L20 20M4 4l5 5";

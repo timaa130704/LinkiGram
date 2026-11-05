@@ -16,7 +16,6 @@ public class ChatExtrasPreferencesActivity extends BasePreferencesActivity {
     @Override public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         for (int i = 0; i < keys.length; i++) items.add(SettingsHelper.asSwitchCG(i + 1, LocaleController.getString(titles[i])).setChecked(ChatExtras.enabled(keys[i])));
         items.add(UItem.asButton(100, R.drawable.msg_info_solar, LocaleController.getString(R.string.LX_ReadDates)));
-        items.add(UItem.asButton(102, R.drawable.msg_settings_solar, LocaleController.getString(R.string.LX_Liner)));
         items.add(UItem.asButton(101, R.drawable.msg_settings_solar, LocaleController.getString(R.string.LX_Offline)));
         items.add(UItem.asShadow(LocaleController.getString(R.string.LX_Info)));
     }
@@ -24,7 +23,6 @@ public class ChatExtrasPreferencesActivity extends BasePreferencesActivity {
         if (item.id >= 1 && item.id <= keys.length) {
             ChatExtras.toggle(keys[item.id - 1]); listView.adapter.update(false);
         } else if (item.id == 100) presentFragment(new AyuMomentsPreferencesActivity());
-        else if (item.id == 102) presentFragment(new LinerLoginActivity());
         else if (item.id == 101) presentFragment(new app.exteraless.speech.VoskSettingsActivity());
     }
 }

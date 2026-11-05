@@ -103,7 +103,6 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     private final TextView smallArtist;
     private final LyricsView lyricsView;
     private final TextView sourceView;
-    private final TextView linerAccountView;
     private final WavySeekBar seekBar;
     private final TextView bubble;
     private final GradientDrawable bubbleBg = new GradientDrawable();
@@ -396,18 +395,6 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         sourceView.setSingleLine(true);
         sourceView.setOnClickListener(v -> showSourcePicker());
         lyricsPanel.addView(sourceView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 16, 0, 8, 0, 0));
-        linerAccountView = new TextView(context);
-        linerAccountView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        linerAccountView.setGravity(Gravity.CENTER_VERTICAL);
-        linerAccountView.setText(getString(LinerApi.signedIn() ? R.string.LX_LinerConnected : R.string.LX_LinerLogin));
-        linerAccountView.setOnClickListener(v -> {
-            org.telegram.ui.ActionBar.BaseFragment fragment = org.telegram.ui.LaunchActivity.getLastFragment();
-            if (fragment != null) {
-                dismiss();
-                fragment.presentFragment(new app.nimarkogram.messenger.preferences.LinerLoginActivity());
-            }
-        });
-        lyricsPanel.addView(linerAccountView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 36));
         layout.addView(lyricsPanel);
 
         seekBar = new WavySeekBar(context);
@@ -1265,6 +1252,7 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
             return;
         }
         lyricsMode = value;
+        seekBar.setFrozen(value);
         seekBar.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
         timeRow.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
         controls.setVisibility(value ? View.INVISIBLE : View.VISIBLE);
@@ -1863,7 +1851,6 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
         likeButton.setColors(0, c.onSurfaceVariant, c.primaryContainer, c.onPrimaryContainer);
         lyricsView.setColors(c);
         sourceView.setTextColor(c.onSurfaceVariant);
-        linerAccountView.setTextColor(c.onSurfaceVariant);
         Drawable sourceChevron = sourceView.getCompoundDrawablesRelative()[2];
         if (sourceChevron != null) {
             sourceChevron.setTint(c.onSurfaceVariant);
