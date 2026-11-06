@@ -10,13 +10,14 @@ import app.nimarkogram.messenger.features.ChatExtras;
 import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 
 public class ChatExtrasPreferencesActivity extends BasePreferencesActivity {
-    private final String[] keys = {"cleanOpen", "cleanPaste", "inlineMath", "confirmCall", "confirmRecording", "hdPhotos", "deletedQuote"};
-    private final int[] titles = {R.string.LX_CleanOpen, R.string.LX_CleanPaste, R.string.LX_Math, R.string.LX_ConfirmCall, R.string.LX_ConfirmRecording, R.string.LX_HD, R.string.LX_DeletedQuote};
+    private final String[] keys = {"cleanOpen", "cleanPaste", "inlineMath", "confirmCall", "confirmRecording", "hdPhotos", "deletedQuote", "localTranslate"};
+    private final int[] titles = {R.string.LX_CleanOpen, R.string.LX_CleanPaste, R.string.LX_Math, R.string.LX_ConfirmCall, R.string.LX_ConfirmRecording, R.string.LX_HD, R.string.LX_DeletedQuote, R.string.LX_LocalTranslate};
     @Override public String getTitle() { return LocaleController.getString(R.string.LX_Title); }
     @Override public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         for (int i = 0; i < keys.length; i++) items.add(SettingsHelper.asSwitchCG(i + 1, LocaleController.getString(titles[i])).setChecked(ChatExtras.enabled(keys[i])));
         items.add(UItem.asButton(100, R.drawable.msg_info_solar, LocaleController.getString(R.string.LX_ReadDates)));
         items.add(UItem.asButton(101, R.drawable.msg_settings_solar, LocaleController.getString(R.string.LX_Offline)));
+        items.add(UItem.asShadow(LocaleController.getString(R.string.LX_LocalTranslateInfo)));
         items.add(UItem.asShadow(LocaleController.getString(R.string.LX_Info)));
     }
     @Override public void onClick(UItem item, View view, int position, float x, float y) {

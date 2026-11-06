@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="LX_LocalTranslate">Translate messages on device</string>
+    <string name="LX_LocalTranslateInfo">On-device translation downloads language models on first use. Message text stays on this device.</string>
     <string name="OEPlayerDragToReorder">Drag to reorder</string>
     <string name="LX_Title">Chat tools</string>
     <string name="LX_CleanOpen">Clean tracking parameters when opening links</string>

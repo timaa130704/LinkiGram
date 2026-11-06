@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="LX_LocalTranslate">Перевод сообщений на устройстве</string>
+    <string name="LX_LocalTranslateInfo">При первом использовании загружаются языковые модели. Текст сообщений остаётся на устройстве.</string>
     <string name="OEPlayerDragToReorder">Перетащите, чтобы изменить порядок</string>
     <string name="LX_Title">Инструменты чата</string>
     <string name="LX_CleanOpen">Очищать метки слежки при открытии ссылок</string>

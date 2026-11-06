@@ -123,6 +123,8 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
     };
 
     private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private int glowWidth, glowHeight, glowColor;
     private final RectF morphFrom = new RectF();
     private final RectF morphTo = new RectF();
     private final RectF morphCoverFrom = new RectF();
@@ -259,6 +261,17 @@ public class PlayerSheet extends BottomSheet implements NotificationCenter.Notif
                 backgroundPaint.setColor(colors.surface);
                 backgroundRect.set(0, 0, getWidth(), getHeight() + r);
                 canvas.drawRoundRect(backgroundRect, r, r, backgroundPaint);
+                int w = getWidth(), h = getHeight();
+                if (w > 0 && h > 0) {
+                    if (glowPaint.getShader() == null || glowWidth != w || glowHeight != h || glowColor != colors.primary) {
+                        glowWidth = w; glowHeight = h; glowColor = colors.primary;
+                        glowPaint.setShader(new android.graphics.RadialGradient(w * 0.5f, h * 0.32f,
+                                Math.max(w, h) * 0.62f,
+                                ColorUtils.setAlphaComponent(colors.primary, 38),
+                                ColorUtils.setAlphaComponent(colors.primary, 0), android.graphics.Shader.TileMode.CLAMP));
+                    }
+                    canvas.drawRoundRect(backgroundRect, r, r, glowPaint);
+                }
             }
 
             @Override

@@ -120,6 +120,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     private BaseFragment fragment;
     private Utilities.CallbackReturn<URLSpan, Boolean> onLinkPress;
     private boolean firstTranslation = true;
+    private int localTranslationGeneration;
 
     public TranslateAlert2(
         Context context,
@@ -308,9 +309,15 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public void translate() {
+        final int localGeneration = ++localTranslationGeneration;
         if (reqId != null) {
             ConnectionsManager.getInstance(currentAccount).cancelRequest(reqId, true);
             reqId = null;
+        }
+
+        if (app.nimarkogram.messenger.features.ChatExtras.enabled("localTranslate")) {
+            translateLocally(localGeneration);
+            return;
         }
 
         final String method = MessagesController.getInstance(currentAccount).translationsManualEnabled;
@@ -448,6 +455,50 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.55 Safari/537.36"
     };
+    private void translateLocally(int generation) {
+        final String text = reqText == null ? "" : reqText.toString();
+        String target = toLanguage == null ? null : toLanguage.replace('_', '-');
+        final String targetCode = target == null ? null : com.google.mlkit.nl.translate.TranslateLanguage.fromLanguageTag(target);
+        if (text.isEmpty() || targetCode == null || reqRichMessage != null || reqSum) {
+            localTranslationFailed(generation);
+            return;
+        }
+        com.google.mlkit.nl.languageid.LanguageIdentifier identifier = com.google.mlkit.nl.languageid.LanguageIdentification.getClient();
+        identifier.identifyLanguage(text).addOnSuccessListener(language -> {
+            identifier.close();
+            String source = com.google.mlkit.nl.translate.TranslateLanguage.fromLanguageTag(language);
+            if (source == null) { localTranslationFailed(generation); return; }
+            if (source.equals(targetCode)) { localTranslationSucceeded(generation, text); return; }
+            com.google.mlkit.nl.translate.Translator translator = com.google.mlkit.nl.translate.Translation.getClient(
+                    new com.google.mlkit.nl.translate.TranslatorOptions.Builder().setSourceLanguage(source).setTargetLanguage(targetCode).build());
+            translator.downloadModelIfNeeded().addOnSuccessListener(unused ->
+                    translator.translate(text).addOnSuccessListener(result -> {
+                        translator.close();
+                        localTranslationSucceeded(generation, result);
+                    }).addOnFailureListener(error -> { translator.close(); localTranslationFailed(generation); })
+            ).addOnFailureListener(error -> { translator.close(); localTranslationFailed(generation); });
+        }).addOnFailureListener(error -> { identifier.close(); localTranslationFailed(generation); });
+    }
+
+    private void localTranslationSucceeded(int generation, String text) {
+        if (generation != localTranslationGeneration || isDismissed()) return;
+        firstTranslation = false;
+        textView.setText(preprocessText(text));
+        adapter.updateMainView(textViewContainer);
+    }
+
+    private void localTranslationFailed(int generation) {
+        if (generation != localTranslationGeneration || isDismissed()) return;
+        if (firstTranslation) {
+            dismiss();
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR, LocaleController.getString(R.string.TranslationFailedAlert2));
+        } else {
+            BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(LocaleController.getString(R.string.TranslationFailedAlert2)).show();
+            headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
+            adapter.updateMainView(textViewContainer);
+        }
+    }
+
     private void translateAlt() {
         final String text = reqText == null ? "" : reqText.toString();
         String _fromLng = fromLanguage;

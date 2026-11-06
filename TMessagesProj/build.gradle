@@ -121,7 +121,7 @@ dependencies {
     api project(":TMessagesProj_Modules:media3:media-lib-session")
     api project(':jlatexmath')
 
-//    implementation 'com.google.mlkit:translate:17.0.3'
+    implementation 'com.google.mlkit:translate:17.0.3'
 
     implementation 'com.google.android.recaptcha:recaptcha:18.7.1'
 
