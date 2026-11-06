@@ -102,7 +102,7 @@ public final class OnlineLyrics {
     private static final String QQ_NAME = "QQ Music";
     private static final String KUGOU_NAME = "Kugou";
     private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
-    private static final int CACHE_VERSION = 10;
+    private static final int CACHE_VERSION = 11;
     private static final int MAX_DURATION_DIFF = 3;
     private static final int MAX_FALLBACK_DURATION_DIFF = 5;
     private static final int ALIGN_WINDOW = 4;
@@ -271,13 +271,17 @@ public final class OnlineLyrics {
     private static FetchOutcome fetchAllSources(Query query, Callback callback) {
         ArrayList<Lyrics> list = new ArrayList<>();
         AtomicInteger failures = new AtomicInteger(0);
-        CountDownLatch latch = new CountDownLatch(5);
+        CountDownLatch latch = new CountDownLatch(9);
         LyricsDeadline deadline = new LyricsDeadline(REQUEST_TIMEOUT_MS / 1000);
         String batchKey = query.key();
         activeBatches.put(batchKey, deadline);
         ArrayList<java.util.concurrent.Future<?>> tasks = new ArrayList<>();
         tasks.add(collectProvider(() -> requestLrclib(query), list, failures, latch, callback, deadline));
-        tasks.add(collectProvider(() -> requestLrcmux(query), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query, null), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query, "deezer"), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query, "kugou"), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query, "ytmusic"), list, failures, latch, callback, deadline));
+        tasks.add(collectProvider(() -> requestLrcmux(query, "musixmatch"), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestNetease(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestQq(query), list, failures, latch, callback, deadline));
         tasks.add(collectProvider(() -> requestKugou(query), list, failures, latch, callback, deadline));
@@ -317,6 +321,9 @@ public final class OnlineLyrics {
                     ArrayList<Lyrics> snapshot;
                     synchronized (list) {
                         if (!deadline.active) return;
+                        for (Lyrics previous : list) {
+                            if (previous.provider != null && previous.provider.equals(found.lyrics.provider)) return;
+                        }
                         list.add(found.lyrics);
                         snapshot = new ArrayList<>(list);
                     }
@@ -469,8 +476,9 @@ public final class OnlineLyrics {
         return synced != null ? new Found(synced) : null;
     }
 
-    private static Found requestLrcmux(Query q) throws Exception {
-        StringBuilder url = new StringBuilder(LRCMUX).append("?title=").append(enc(q.title)).append("&level=line&format=json");
+    private static Found requestLrcmux(Query q, String sourceId) throws Exception {
+        StringBuilder url = new StringBuilder(LRCMUX).append("?title=").append(enc(q.title)).append("&level=word&format=json");
+        if (sourceId != null) url.append("&sources=").append(enc(sourceId));
         if (!TextUtils.isEmpty(q.artist)) {
             url.append("&artist=").append(enc(q.artist));
         }
@@ -504,6 +512,7 @@ public final class OnlineLyrics {
             return null;
         }
         boolean synced = meta != null && !"none".equals(meta.optString("level"));
+        ArrayList<Lyrics.Line> parsedLines = new ArrayList<>();
         StringBuilder text = new StringBuilder();
         for (int i = 0; i < lines.length(); i++) {
             JSONObject line = lines.optJSONObject(i);
@@ -512,11 +521,29 @@ public final class OnlineLyrics {
             }
             if (synced) {
                 long start = Math.max(0, line.optLong("start", 0));
+                String lineText = line.optString("text", "");
+                ArrayList<Lyrics.Word> words = new ArrayList<>();
+                JSONArray tokens = line.optJSONArray("words");
+                int cursor = 0;
+                long previousTime = -1;
+                if (tokens != null) for (int j = 0; j < tokens.length(); j++) {
+                    JSONObject token = tokens.optJSONObject(j);
+                    if (token == null) { words.clear(); break; }
+                    String word = token.optString("text", "");
+                    long wordTime = token.optLong("start", -1);
+                    int pos = word.isEmpty() ? -1 : lineText.indexOf(word, cursor);
+                    if (pos < 0 || wordTime < 0 || wordTime < previousTime) { words.clear(); break; }
+                    words.add(new Lyrics.Word(wordTime, pos, pos + word.length()));
+                    cursor = pos + word.length();
+                    previousTime = wordTime;
+                }
+                parsedLines.add(new Lyrics.Line(start, lineText, words));
                 text.append(String.format(Locale.US, "[%02d:%02d.%02d]", start / 60000, start / 1000 % 60, start % 1000 / 10));
             }
             text.append(line.optString("text", "")).append('\n');
         }
-        Lyrics lyrics = Lyrics.parse(text.toString(), Lyrics.SOURCE_ONLINE, provider);
+        Lyrics lyrics = synced && !parsedLines.isEmpty() ? Lyrics.synced(parsedLines, Lyrics.SOURCE_ONLINE, provider)
+                : Lyrics.parse(text.toString(), Lyrics.SOURCE_ONLINE, provider);
         return lyrics == null ? null : new Found(lyrics);
     }
 
