@@ -5,6 +5,7 @@ import static org.telegram.messenger.LocaleController.getString;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.FrameLayout;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 
