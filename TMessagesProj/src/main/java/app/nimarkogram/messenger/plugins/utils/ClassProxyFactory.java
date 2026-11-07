@@ -19,6 +19,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -90,6 +91,8 @@ public final class ClassProxyFactory {
     private static final ConcurrentHashMap<String, ClassRecord> CLASSES = new ConcurrentHashMap<>();
     /** pluginId -> classKey'и (для releaseAllForPlugin). */
     private static final ConcurrentHashMap<String, Set<String>> PLUGIN_CLASSES = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Set<WeakReference<Object>>> PLUGIN_INSTANCES =
+            new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Serializable> MVEL_CACHE = new ConcurrentHashMap<>();
     private static final Object GENERATE_LOCK = new Object();
     private static final Random RANDOM = new Random();
@@ -190,6 +193,12 @@ public final class ClassProxyFactory {
             for (FieldInitial initial : rec.instanceInitials) {
                 initial.field.set(instance, coerce(initial.value, initial.field.getType()));
             }
+            if (pluginId != null) {
+                Set<WeakReference<Object>> instances = PLUGIN_INSTANCES.computeIfAbsent(
+                        pluginId, ignored -> ConcurrentHashMap.newKeySet());
+                instances.removeIf(reference -> reference.get() == null);
+                instances.add(new WeakReference<>(instance));
+            }
             return instance;
         } catch (Throwable t) {
             FileLog.e(TAG + ": newProxyInstance failed for " + classKey, t);
@@ -261,6 +270,12 @@ public final class ClassProxyFactory {
      * Интегратору: звать из PluginsController при unload плагина.
      */
     public static void releaseAllForPlugin(String pluginId) {
+        Set<WeakReference<Object>> instances = PLUGIN_INSTANCES.remove(pluginId);
+        if (instances != null) {
+            for (WeakReference<Object> reference : instances) {
+                releaseProxyInstance(reference.get());
+            }
+        }
         Set<String> keys = PLUGIN_CLASSES.remove(pluginId);
         if (keys == null) {
             return;

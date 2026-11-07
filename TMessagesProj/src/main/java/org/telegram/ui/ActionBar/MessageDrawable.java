@@ -138,6 +138,22 @@ public class MessageDrawable extends Drawable {
         alpha = 255;
     }
 
+    // compact mode: incoming bubbles are not drawn, outgoing ones are a solid tint without gradient or shadow
+    // the cached bubble bitmap is rendered through draw(), and must not be left empty by compact mode
+    private boolean renderingBackgroundCache;
+
+    private boolean isCompact() {
+        return Theme.isCompactMode(resourcesProvider) && currentType != TYPE_PREVIEW && overrideColor == null;
+    }
+
+    private int getCompactOutColor() {
+        int color = getColor(Theme.key_chat_compact_outBackground);
+        if (isSelected) {
+            color = ColorUtils.setAlphaComponent(color, Math.min(0xFF, Color.alpha(color) * 2));
+        }
+        return ColorUtils.compositeColors(color, getColor(Theme.key_chat_compact_background));
+    }
+
     public boolean hasGradient() {
         return gradientShader != null && Theme.shouldDrawGradientIcons;
     }
@@ -211,6 +227,12 @@ public class MessageDrawable extends Drawable {
         boolean animatedGradient;
         if (overrideColor != null) {
             color = overrideColor;
+            gradientColor1 = 0;
+            gradientColor2 = 0;
+            gradientColor3 = 0;
+            animatedGradient = false;
+        } else if (isOut && isCompact()) {
+            color = getCompactOutColor();
             gradientColor1 = 0;
             gradientColor2 = 0;
             gradientColor3 = 0;
@@ -376,16 +398,19 @@ public class MessageDrawable extends Drawable {
         int color;
         if (overrideColor != null) {
             color = overrideColor;
+        } else if (isOut && isCompact()) {
+            color = getCompactOutColor();
         } else if (isSelected) {
             color = getColor(isOut ? Theme.key_chat_outBubbleSelected : Theme.key_chat_inBubbleSelected);
         } else {
             color = getColor(isOut ? Theme.key_chat_outBubble : Theme.key_chat_inBubble);
         }
 
-        boolean drawWithShadow = shadow && gradientShader == null && !isSelected && !isCrossfadeBackground;
+        boolean drawWithShadow = shadow && gradientShader == null && !isSelected && !isCrossfadeBackground && !isCompact();
         int shadowColor = getColor(isOut ? Theme.key_chat_outBubbleShadow : Theme.key_chat_inBubbleShadow);
         if (lastDrawWithShadow != drawWithShadow || currentBackgroundDrawableRadius[idx2][idx] != newRad || (drawWithShadow && shadowDrawableColor[idx] != shadowColor) || backgroundDrawableColor[idx2][idx] != color) {
             currentBackgroundDrawableRadius[idx2][idx] = newRad;
+            renderingBackgroundCache = true;
             try {
                 Bitmap bitmap = Bitmap.createBitmap(dp(50), dp(40), Bitmap.Config.ARGB_8888);
                 Canvas canvas = new Canvas(bitmap);
@@ -428,6 +453,7 @@ public class MessageDrawable extends Drawable {
             } catch (Throwable ignore) {
 
             }
+            renderingBackgroundCache = false;
         }
         lastDrawWithShadow = drawWithShadow;
         backgroundDrawableColor[idx2][idx] = color;
@@ -466,7 +492,7 @@ public class MessageDrawable extends Drawable {
 
     public Drawable getShadowDrawable() {
         checkColorOsCache();
-        if (isCrossfadeBackground) {
+        if (isCrossfadeBackground || isCompact()) {
             return null;
         }
         if (gradientShader == null && !isSelected && crossfadeFromDrawable == null) {
@@ -578,6 +604,9 @@ public class MessageDrawable extends Drawable {
     }
 
     public void draw(Canvas canvas, Paint paintToUse) {
+        if (!isOut && isCompact() && !renderingBackgroundCache) {
+            return;
+        }
         Rect bounds = getBounds();
         if (!app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && paintToUse == null && paint.getStyle() == Paint.Style.FILL && gradientShader == null && overrideRoundRadius == 0 && overrideRounding <= 0) {
             Drawable background = getBackgroundDrawable();

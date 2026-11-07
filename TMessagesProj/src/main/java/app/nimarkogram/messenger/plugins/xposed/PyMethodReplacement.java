@@ -2,6 +2,7 @@ package app.nimarkogram.messenger.plugins.xposed;
 
 import com.chaquo.python.PyException;
 import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
 
 import org.telegram.messenger.FileLog;
 
@@ -117,11 +118,13 @@ public class PyMethodReplacement extends XC_MethodReplacement {
 
             PluginHookGuard.started(controller, this.pluginId);
             watchdogStarted = true;
+            PyObject compatParam = Python.getInstance().getModule("base_plugin")
+                    .callAttr("_wrap_hook_param", methodHookParam);
             PyObject pyObjectCallAttr;
             if (this.boundReplace != null) {
-                pyObjectCallAttr = this.boundReplace.call(methodHookParam);
+                pyObjectCallAttr = this.boundReplace.call(compatParam);
             } else {
-                pyObjectCallAttr = pyObject.callAttr(PluginsConstants.Xposed.REPLACE_HOOKED_METHOD, methodHookParam);
+                pyObjectCallAttr = pyObject.callAttr(PluginsConstants.Xposed.REPLACE_HOOKED_METHOD, compatParam);
             }
             if (pyObjectCallAttr == null) {
                 replacementResult = null;

@@ -1962,6 +1962,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 return;
             }
             try {
+                android.util.Log.i("LinkiPluginEngine", "Initializing Python plugin runtime");
                 
                 try {
                     org.lsposed.hiddenapibypass.HiddenApiBypass.addHiddenApiExemptions("L");
@@ -2000,7 +2001,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 
                 this.basePluginClass = base;
                 this.python = candidate;
+                android.util.Log.i("LinkiPluginEngine", "Python plugin runtime initialized");
             } catch (Exception e) {
+                android.util.Log.e("LinkiPluginEngine", "Python plugin runtime initialization failed", e);
                 FileLog.e("Failed to initialize Python", e);
             }
         }
@@ -2422,6 +2425,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
         Utilities.pluginsQueue.postRunnable(() -> {
             Plugin plugin;
             if (getPython() == null) {
+                android.util.Log.e("LinkiPluginEngine", "Plugin startup skipped: Python runtime unavailable");
                 FileLog.e("nimarko: loadPlugins() getPython()==null");
                 getPluginsController().clearPluginStartupActivations();
                 getPluginsController().notifyPluginsChanged();
@@ -2470,6 +2474,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                         return;
                     }
                     File[] fileArrListFiles = getPluginsController().pluginsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".py"));
+                    android.util.Log.i("LinkiPluginEngine", "Plugin startup: "
+                            + (fileArrListFiles == null ? "directory unavailable" : fileArrListFiles.length + " files"));
                     {
                         StringBuilder sb = new StringBuilder();
                         if (fileArrListFiles != null) for (File f : fileArrListFiles) sb.append(f.getName()).append("(").append(f.length()).append(") ");
@@ -2711,6 +2717,8 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     PipController.getInstance().cleanup();
                     getPluginsController().notifyPluginsChanged();
                     long enabledCount = getPluginsController().plugins.values().stream().filter(p -> p.isEnabled() && !p.hasError()).count();
+                    android.util.Log.i("LinkiPluginEngine", "Plugin startup complete: "
+                            + getPluginsController().plugins.size() + " registered, " + enabledCount + " enabled");
                     FileLog.d("nimarko: loadPlugins() done. Total=" + getPluginsController().plugins.size() + " Enabled=" + enabledCount);
                     if (runnable != null) {
                         AndroidUtilities.runOnUIThread(runnable);
@@ -2718,6 +2726,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                 } finally {
                 }
             } catch (PyException e) {
+                android.util.Log.e("LinkiPluginEngine", "Plugin startup Python failure", e);
                 FileLog.e("nimarko: loadPlugins() Python setup failed", e);
                 getPluginsController().clearPluginStartupActivations();
                 getPluginsController().notifyPluginsChanged();
@@ -2725,6 +2734,7 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     AndroidUtilities.runOnUIThread(runnable);
                 }
             } catch (Throwable failure) {
+                android.util.Log.e("LinkiPluginEngine", "Plugin startup failure", failure);
                 FileLog.e("nimarko: loadPlugins() failed", failure);
                 getPluginsController().clearPluginStartupActivations();
                 getPluginsController().notifyPluginsChanged();
@@ -5927,6 +5937,20 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                             case PluginsConstants.Settings.TYPE_DIVIDER:
                                 item = new DividerSetting(text);
                                 break;
+                            case "slider":
+                                double sliderMin = Double.parseDouble(PyObjectUtils.getString(pyObject, "min", "0"));
+                                double sliderMax = Double.parseDouble(PyObjectUtils.getString(pyObject, "max", "100"));
+                                double sliderStep = Double.parseDouble(PyObjectUtils.getString(pyObject, "step", "1"));
+                                double sliderDefault = defVal != null ? Double.parseDouble(defVal.toString()) : 0;
+                                if (key != null && text != null && Double.isFinite(sliderMin)
+                                        && Double.isFinite(sliderMax) && Double.isFinite(sliderStep)
+                                        && Double.isFinite(sliderDefault) && sliderMax > sliderMin
+                                        && sliderStep > 0 && Math.ceil((sliderMax - sliderMin) / sliderStep) <= Integer.MAX_VALUE) {
+                                    item = new app.nimarkogram.messenger.plugins.models.SliderSetting(
+                                            key, text, sliderDefault, sliderMin, sliderMax, sliderStep,
+                                            icon, onChange, onLongClick, linkAlias);
+                                }
+                                break;
                             case PluginsConstants.Settings.TYPE_CUSTOM:
                                 PyObject createView = pyObject.get("create_view");
                                 PyObject bindView = pyObject.get("bind_view");
@@ -6080,6 +6104,9 @@ public class PythonPluginsEngine implements PluginsController.PluginsEngine {
                     }
                     if (string.endsWith(PluginsConstants.Strategy.MODIFY) || string.endsWith(PluginsConstants.Strategy.MODIFY_FINAL)) {
                         PyObject pyObject2 = pyObjectCall.get(str);
+                        if (pyObject2 == null) {
+                            pyObject2 = pyObjectCall.get("result");
+                        }
                         if (pyObject2 != null) {
                             t = pyObject2.toJava(cls);
                         }

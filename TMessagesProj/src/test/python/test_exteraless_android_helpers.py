@@ -33,6 +33,7 @@ class AndroidHelperCompatibilityTest(unittest.TestCase):
         runtime = types.ModuleType('plugin_runtime')
         runtime.capture_callback_owner = lambda fn=None: cls.owner
         runtime.make_runnable = lambda fn: fn
+        runtime.make_reusable_runnable = lambda fn: fn
         def owned(owner, fn, args, kwargs, default):
             return fn(*args, **kwargs) if cls.active and owner is cls.owner else default
         runtime._run_owned_callback = owned

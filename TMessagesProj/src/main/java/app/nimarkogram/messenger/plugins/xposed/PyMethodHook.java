@@ -2,6 +2,7 @@ package app.nimarkogram.messenger.plugins.xposed;
 
 import com.chaquo.python.PyException;
 import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
 
 import org.telegram.messenger.FileLog;
 
@@ -143,10 +144,12 @@ public class PyMethodHook extends XC_MethodHook {
                 }
                 try {
                     
+                    PyObject compatParam = Python.getInstance().getModule("base_plugin")
+                            .callAttr("_wrap_hook_param", methodHookParam);
                     if (this.boundBefore != null) {
-                        this.boundBefore.call(methodHookParam);
+                        this.boundBefore.call(compatParam);
                     } else {
-                        this.pythonCallback.callAttr(PluginsConstants.Xposed.BEFORE_HOOKED_METHOD, methodHookParam);
+                        this.pythonCallback.callAttr(PluginsConstants.Xposed.BEFORE_HOOKED_METHOD, compatParam);
                     }
                 } catch (PyException pythonFailure) {
                     PluginHookGuard.failed(controller, this.pluginId, pythonFailure);
@@ -196,10 +199,12 @@ public class PyMethodHook extends XC_MethodHook {
                 }
                 try {
                     
+                    PyObject compatParam = Python.getInstance().getModule("base_plugin")
+                            .callAttr("_wrap_hook_param", methodHookParam);
                     if (this.boundAfter != null) {
-                        this.boundAfter.call(methodHookParam);
+                        this.boundAfter.call(compatParam);
                     } else {
-                        this.pythonCallback.callAttr(PluginsConstants.Xposed.AFTER_HOOKED_METHOD, methodHookParam);
+                        this.pythonCallback.callAttr(PluginsConstants.Xposed.AFTER_HOOKED_METHOD, compatParam);
                     }
                 } catch (PyException pythonFailure) {
                     PluginHookGuard.failed(controller, this.pluginId, pythonFailure);

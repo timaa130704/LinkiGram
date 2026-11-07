@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.SeekBar;
 
 import com.chaquo.python.PyObject;
 
@@ -46,6 +47,7 @@ import app.nimarkogram.messenger.plugins.models.InputSetting;
 import app.nimarkogram.messenger.plugins.models.SelectorSetting;
 import app.nimarkogram.messenger.plugins.models.SettingItem;
 import app.nimarkogram.messenger.plugins.models.SwitchSetting;
+import app.nimarkogram.messenger.plugins.models.SliderSetting;
 import app.nimarkogram.messenger.plugins.models.TextSetting;
 import app.nimarkogram.messenger.plugins.ui.components.PluginEditTextCell;
 import android.view.HapticFeedbackConstants;
@@ -410,6 +412,58 @@ public class PluginSettingsActivity extends BasePreferencesActivity implements
             String type = item.type;
 
             switch (type) {
+                case "slider":
+                    SliderSetting slider = (SliderSetting) item;
+                    Context sliderContext = getParentActivity();
+                    if (sliderContext != null && slider.key != null && slider.text != null) {
+                        PluginsController.PluginsEngine engine = PluginsController.getInstance().getPluginEngine(plugin.getId());
+                        Object saved = engine != null ? engine.getPluginSetting(plugin.getId(), slider.key, slider.defaultValue) : null;
+                        double initial = saved instanceof Number ? ((Number) saved).doubleValue() : slider.defaultValue;
+                        if (!Double.isFinite(initial)) initial = slider.defaultValue;
+                        int steps = (int) Math.ceil((slider.max - slider.min) / slider.step);
+                        int initialProgress = (int) Math.max(0, Math.min(steps, Math.round((initial - slider.min) / slider.step)));
+                        LinearLayout row = new LinearLayout(sliderContext);
+                        row.setOrientation(LinearLayout.VERTICAL);
+                        row.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(8), AndroidUtilities.dp(20), AndroidUtilities.dp(8));
+                        TextView label = new TextView(sliderContext);
+                        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+                        label.setTextSize(16);
+                        row.addView(label);
+                        SeekBar seek = new SeekBar(sliderContext);
+                        seek.setMax(steps);
+                        seek.setProgress(initialProgress);
+                        seek.setContentDescription(slider.text);
+                        row.addView(seek);
+                        java.util.function.IntConsumer updateLabel = progress -> {
+                            double value = Math.min(slider.max, slider.min + progress * slider.step);
+                            label.setText(slider.text + "  " + (value == Math.rint(value) ? Long.toString((long) value) : Double.toString(value)));
+                        };
+                        java.util.function.IntConsumer commit = progress -> {
+                            if (!isRuntimeCurrentForUi() || runtimeToken == null
+                                    || !runtimeToken.equals(slider.runtimeToken)) return;
+                            double value = Math.min(slider.max, slider.min + progress * slider.step);
+                            boolean integral = slider.min == Math.rint(slider.min)
+                                    && slider.max == Math.rint(slider.max) && slider.step == Math.rint(slider.step);
+                            Object persisted;
+                            if (integral) persisted = Long.valueOf((long) value);
+                            else persisted = Double.valueOf(value);
+                            PluginsController.getInstance().setPluginSetting(plugin.getId(), slider.key, persisted);
+                            triggerOnChange(slider.onChangeCallback, slider.key, persisted);
+                        };
+                        updateLabel.accept(initialProgress);
+                        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                            private boolean tracking;
+                            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                                updateLabel.accept(progress);
+                                if (fromUser && !tracking) commit.accept(progress);
+                            }
+                            @Override public void onStartTrackingTouch(SeekBar bar) { tracking = true; }
+                            @Override public void onStopTrackingTouch(SeekBar bar) { tracking = false; commit.accept(bar.getProgress()); }
+                        });
+                        uItem = UItem.asCustom(row);
+                        uItem.settingItem = slider;
+                    }
+                    break;
                 case "divider":
                     DividerSetting ds = (DividerSetting) item;
                     

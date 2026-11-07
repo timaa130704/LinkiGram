@@ -67,6 +67,7 @@ public final class PluginsConstants {
     public static final class MenuItemTypes {
         public static final String CHAT_ACTION_MENU = app.nimarkogram.messenger.plugins.PluginsConstants.MenuItemTypes.CHAT_ACTION_MENU;
         public static final String DRAWER_MENU = app.nimarkogram.messenger.plugins.PluginsConstants.MenuItemTypes.DRAWER_MENU;
+        public static final String MAIN_MENU = app.nimarkogram.messenger.plugins.PluginsConstants.MenuItemTypes.MAIN_MENU;
         public static final String MESSAGE_CONTEXT_MENU = app.nimarkogram.messenger.plugins.PluginsConstants.MenuItemTypes.MESSAGE_CONTEXT_MENU;
         public static final String PROFILE_ACTION_MENU = app.nimarkogram.messenger.plugins.PluginsConstants.MenuItemTypes.PROFILE_ACTION_MENU;
     }

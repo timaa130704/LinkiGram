@@ -3121,6 +3121,28 @@ public class PluginsController implements PluginsHooks {
         return arrayList;
     }
 
+    public void dispatchMenuItem(MenuItemRecord item, Map<String, Object> context) {
+        if (item == null || item.runtimeToken == null
+                || getPluginRuntimeTaskDecision(item.runtimeToken) != RUNTIME_TASK_RUN
+                || !enterPluginRuntime(item.runtimeToken)) {
+            return;
+        }
+        getWatchdog().onPluginExecutionStarted(item.pluginId);
+        try {
+            PyObject callback = item.onClickCallback;
+            if (callback != null) callback.call(context);
+        } catch (Exception failure) {
+            getWatchdog().onPluginExecutionFailed(item.pluginId, failure);
+            FileLog.e(failure);
+        } catch (Error failure) {
+            getWatchdog().onPluginExecutionFailed(item.pluginId, failure);
+            throw failure;
+        } finally {
+            getWatchdog().onPluginExecutionFinished(item.pluginId);
+            exitPluginRuntime(item.runtimeToken);
+        }
+    }
+
     void notifyPluginsChanged() {
         PluginDebugLog.log("CTRL notifyPluginsChanged pending="
                 + pendingToggleState.size()

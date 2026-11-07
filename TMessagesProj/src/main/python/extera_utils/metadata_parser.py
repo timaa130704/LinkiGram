@@ -35,3 +35,9 @@ def get_metadata(plugin=None):
         return _mp.get_metadata(path)
     except Exception:
         return {}
+
+# exteraless loader API, retained alongside LinkiGram's legacy get_metadata.
+from ._upstream_metadata_parser import (
+    PluginMetadataError, KNOWN_PERMISSIONS, PERMISSION_UI,
+    _validate_permissions, import_roots, read_metadata, read_metadata_json,
+)

@@ -39,3 +39,6 @@ relay/.wrangler/
 
 # Personal agent notes stay local; AGENTS.md contains public project instructions.
 /AGENTS.local.md
+
+# Local Telegram-base upgrade reference trees, previews and backups (large, temporary).
+/ci-apk-*/

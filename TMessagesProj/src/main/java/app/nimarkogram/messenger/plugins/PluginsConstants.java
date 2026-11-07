@@ -61,6 +61,7 @@ public final class PluginsConstants {
     public static class MenuItemTypes {
         public static final String CHAT_ACTION_MENU = "chat_action_menu";
         public static final String DRAWER_MENU = "drawer_menu";
+        public static final String MAIN_MENU = "main_menu";
         public static final String MESSAGE_CONTEXT_MENU = "message_context_menu";
         public static final String PROFILE_ACTION_MENU = "profile_action_menu";
     }

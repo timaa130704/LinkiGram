@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import math
 from typing import List, Callable, Any, Optional
 from android.view import View
 from app.nimarkogram.messenger.plugins import PluginsConstants
@@ -26,6 +27,41 @@ class Selector:
     type: str = field(default=PluginsConstants.Settings.TYPE_SELECTOR, init=False)
     on_long_click: Callable[[View], None] = field(default=None, compare=False, repr=False)
     link_alias: str = None
+    subtext: str = None
+
+
+@dataclass
+class Slider:
+    key: str
+    text: str
+    default: float = 0
+    min: float = 0
+    max: float = 100
+    step: float = 1
+    subtext: Optional[str] = None
+    icon: Optional[str] = None
+    on_change: Optional[Callable] = field(default=None, compare=False, repr=False)
+    on_long_click: Optional[Callable] = field(default=None, compare=False, repr=False)
+    link_alias: Optional[str] = None
+    type: str = field(default='slider', init=False)
+
+    def __post_init__(self):
+        values = (self.default, self.min, self.max, self.step)
+        if not all(math.isfinite(float(value)) for value in values):
+            raise ValueError('Slider values must be finite')
+        if self.max <= self.min or self.step <= 0 or math.ceil((self.max - self.min) / self.step) > 2147483647:
+            raise ValueError('Invalid slider range or step')
+
+    def normalize(self, value):
+        try:
+            value = float(value)
+            if not math.isfinite(value):
+                value = self.default
+        except (ValueError, TypeError):
+            value = self.default
+        value = min(self.max, max(self.min, value))
+        value = min(self.max, self.min + math.floor((value - self.min) / self.step + 0.5) * self.step)
+        return int(value) if all(float(v).is_integer() for v in (self.min, self.max, self.step)) else value
 
 @dataclass
 class Input:
@@ -93,9 +129,21 @@ class Custom:
     on_click: Callable[[View], None] = field(default=None, compare=False, repr=False)
     on_long_click: Callable[[View], None] = field(default=None, compare=False, repr=False)
     link_alias: str = None
+    factory: Any = field(default=None, compare=False, repr=False)
+    factory_args: Any = field(default=None, compare=False, repr=False)
+    create_sub_fragment: Callable[[], List[Any]] = field(default=None, compare=False, repr=False)
     type: str = field(default=PluginsConstants.Settings.TYPE_CUSTOM, init=False)
 
     def __post_init__(self):
+        if self.factory is not None:
+            produced = self.factory(*(self.factory_args or ()))
+            if not isinstance(produced, Custom):
+                raise TypeError('Custom factory must create a Custom setting')
+            for name in ('create_view', 'bind_view', 'on_click', 'on_long_click', 'create_sub_fragment'):
+                if getattr(self, name) is None:
+                    setattr(self, name, getattr(produced, name))
+            if self.link_alias is None:
+                self.link_alias = produced.link_alias
         
         if self.view is not None and self.create_view is None:
             _prebuilt = self.view
@@ -137,7 +185,22 @@ class SimpleSettingFactory:
                  is_clickable: bool=True, is_shadow: bool=False,
                  on_click_handler: Callable[[View], None]=None,
                  on_long_click_handler: Callable[[View], None]=None,
-                 link_alias: str=None):
+                 link_alias: str=None, **compat):
+        if callable(custom_name):
+            if bind_view_fn is None:
+                bind_view_fn = create_view_fn
+            create_view_fn = custom_name
+            custom_name = None
+        create_view_fn = create_view_fn or compat.pop('create_view', None)
+        bind_view_fn = bind_view_fn or compat.pop('bind_view', None)
+        attached_view_handler = attached_view_handler or compat.pop('attached_view', None)
+        equals_handler = equals_handler or compat.pop('equals', None)
+        content_equals_handler = content_equals_handler or compat.pop('content_equals', None)
+        on_click_handler = on_click_handler or compat.pop('on_click', None)
+        on_long_click_handler = on_long_click_handler or compat.pop('on_long_click', None)
+        self.create_item = compat.pop('create_item', None)
+        if compat:
+            raise TypeError('Unexpected factory arguments: ' + ', '.join(compat))
         self.custom_name = custom_name
         self.create_view_fn = create_view_fn
         self.bind_view_fn = bind_view_fn

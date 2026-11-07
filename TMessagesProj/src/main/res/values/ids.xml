@@ -73,4 +73,6 @@
 <item name="acc_action_move_left" type="id"/>
 <item name="acc_action_move_right" type="id"/>
 <item name="view_reparent_token_tag" type="id"/>
+    <item name="theme_bind" type="id" />
+    <item name="theme_generation" type="id" />
 </resources>

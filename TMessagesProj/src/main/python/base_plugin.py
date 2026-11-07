@@ -30,6 +30,7 @@ class HookStrategy(Enum):
     MODIFY = PluginsConstants.Strategy.MODIFY
     DEFAULT = PluginsConstants.Strategy.DEFAULT
     MODIFY_FINAL = PluginsConstants.Strategy.MODIFY_FINAL
+    NONE = PluginsConstants.Strategy.DEFAULT
 
 @dataclass
 class HookResult:
@@ -40,6 +41,7 @@ class HookResult:
     updates: Any = None
     error: Any = None
     params: Any = None
+    result: Any = None
 
 class PluginError(Exception):
     plugin_id: Optional[str]
@@ -48,7 +50,12 @@ class PluginError(Exception):
         self.plugin_id = plugin_id
 
 class XposedHook(ABC):
-    pass
+    def __init__(self, xposed_hook=None, before=None, after=None,
+                 before_filters=None, after_filters=None):
+        if before is not None:
+            self.before_hooked_method = before
+        if after is not None:
+            self.after_hooked_method = after
 
 class BaseHook(XposedHook):
     """exteraGram SDK public base for Xposed-style hook callbacks. Some plugins
@@ -57,8 +64,9 @@ class BaseHook(XposedHook):
     before/after entry points; the engine's __get_java_callback_instance()
     duck-types on the presence of these methods, so a BaseHook subclass that
     overrides either one is wired up exactly like a MethodHook."""
-    def __init__(self):
-        return
+    def __init__(self, xposed_hook=None, before=None, after=None,
+                 before_filters=None, after_filters=None):
+        super().__init__(xposed_hook, before, after, before_filters, after_filters)
 
     def before_hooked_method(self, param: XC_MethodHook.MethodHookParam):
         return
@@ -78,6 +86,54 @@ class MethodHook(BaseHook):
     def after_hooked_method(self, param: XC_MethodHook.MethodHookParam):
         return
 
+
+class HookParam:
+    """exteraless-compatible view over the live Xposed hook parameter."""
+    __slots__ = ('_param',)
+
+    def __init__(self, param):
+        object.__setattr__(self, '_param', param)
+
+    @property
+    def java(self):
+        return object.__getattribute__(self, '_param')
+
+    def __getattr__(self, name):
+        param = self.java
+        if name == 'result':
+            return param.getResult()
+        if name == 'throwable':
+            return param.getThrowable()
+        return getattr(param, name)
+
+    def __setattr__(self, name, value):
+        param = self.java
+        if name == 'result':
+            param.setResult(value)
+        elif name == 'throwable':
+            param.setThrowable(value)
+        else:
+            setattr(param, name, value)
+
+
+_hook_param_accessors = None
+
+
+def _wrap_hook_param(param):
+    global _hook_param_accessors
+    if _hook_param_accessors is None:
+        try:
+            cls = XC_MethodHook.MethodHookParam
+            if not isinstance(cls, type) or '_chaquopy_j_klass' not in cls.__dict__:
+                raise TypeError('not a Chaquopy Java class')
+            type.__setattr__(cls, 'result', property(lambda p: p.getResult(), lambda p, v: p.setResult(v)))
+            type.__setattr__(cls, 'throwable', property(lambda p: p.getThrowable(), lambda p, v: p.setThrowable(v)))
+            type.__setattr__(cls, 'java', property(lambda p: p))
+            _hook_param_accessors = True
+        except Exception:
+            _hook_param_accessors = False
+    return param if _hook_param_accessors else HookParam(param)
+
 def _make_method_hook(before: Optional[Callable]=None, after: Optional[Callable]=None) -> MethodHook:
     """exteraGram SDK parity: its hook helpers accept plain ``before=``/``after=``
     callbacks instead of requiring a pre-built MethodHook/MethodReplacement
@@ -89,10 +145,14 @@ def _make_method_hook(before: Optional[Callable]=None, after: Optional[Callable]
     if before is not None:
         def before_hooked_method(self, param, _before=before):
             return _before(param)
+        if hasattr(before, '__hook_filters__'):
+            before_hooked_method.__hook_filters__ = before.__hook_filters__
         methods[PluginsConstants.Xposed.BEFORE_HOOKED_METHOD] = before_hooked_method
     if after is not None:
         def after_hooked_method(self, param, _after=after):
             return _after(param)
+        if hasattr(after, '__hook_filters__'):
+            after_hooked_method.__hook_filters__ = after.__hook_filters__
         methods[PluginsConstants.Xposed.AFTER_HOOKED_METHOD] = after_hooked_method
     synthesized_cls = type('SynthesizedMethodHook', (MethodHook,), methods)
     return synthesized_cls()
@@ -108,6 +168,8 @@ class MenuItemType(Enum):
     DRAWER_MENU = PluginsConstants.MenuItemTypes.DRAWER_MENU
     CHAT_ACTION_MENU = PluginsConstants.MenuItemTypes.CHAT_ACTION_MENU
     PROFILE_ACTION_MENU = PluginsConstants.MenuItemTypes.PROFILE_ACTION_MENU
+    MAIN_MENU = PluginsConstants.MenuItemTypes.MAIN_MENU
+    CHAT_CONTEXT = PluginsConstants.MenuItemTypes.MESSAGE_CONTEXT_MENU
 
 @dataclass
 class MenuItemData:
@@ -213,18 +275,41 @@ class HookFilter(Enum):
                     arr.add((item if isinstance(item, HookFilterData) else item.filter_data).to_java_filter())
             return HookFilterData(filter_type=PluginsConstants.HookFilterTypes.OR, or_filters=arr)
 
-def hook_filters(*filters):
+    argument_is_null = ArgumentIsNull
+    argument_not_null = ArgumentNotNull
+    argument_is_true = ArgumentIsTrue
+    argument_is_false = ArgumentIsFalse
+    argument_equal = ArgumentEqual
+    argument_not_equal = ArgumentNotEqual
+    argument_is_instance_of = ArgumentIsInstanceOf
+    result_equal = ResultEqual
+    result_not_equal = ResultNotEqual
+    result_is_instance_of = ResultIsInstanceOf
+    condition = Condition
+    or_ = Or
+
+    @staticmethod
+    def result_is_null(): return HookFilter.RESULT_IS_NULL
+
+    @staticmethod
+    def result_not_null(): return HookFilter.RESULT_NOT_NULL
+
+    @staticmethod
+    def result_is_true(): return HookFilter.RESULT_IS_TRUE
+
+    @staticmethod
+    def result_is_false(): return HookFilter.RESULT_IS_FALSE
+
+def hook_filters(*filters, before=None, after=None):
     def decorator(func):
-        target = []
-        if filters:
-            if isinstance(filters[0], list):
-                target = filters[0]
-            else:
-                target = filters
-        func.__hook_filters__ = [
-            (f if isinstance(f, HookFilterData) else f.filter_data).to_java_filter() 
-            for f in target
-        ]
+        positional = filters[0] if len(filters) == 1 and isinstance(filters[0], list) else filters
+        def convert(values):
+            return [(f if isinstance(f, HookFilterData) else f.filter_data).to_java_filter()
+                    for f in values]
+        func.__hook_filters__ = {
+            'before': convert([*(before or ()), *positional]),
+            'after': convert(after or ()),
+        }
         return func
     return decorator
 
@@ -252,6 +337,10 @@ def _runtime_owned(default=None):
     return decorate
 
 class BasePlugin:
+    @property
+    def plugin_id(self):
+        return self.id or None
+
     @property
     def client(self):
         if '_exteraless_client_override' in self.__dict__:
@@ -471,10 +560,6 @@ class BasePlugin:
                         else:
                             java_callback_instance = PyMethodHook(
                                 self.id, xposed_hook, self._runtime_token)
-                        if hasattr((method := getattr(xposed_hook, PluginsConstants.Xposed.BEFORE_HOOKED_METHOD, None)), PluginsConstants.Xposed.HOOK_FILTERS):
-                            java_callback_instance.setBeforeHookedFilters(cast_to_array_list(getattr(method, PluginsConstants.Xposed.HOOK_FILTERS)))
-                        if hasattr((method := getattr(xposed_hook, PluginsConstants.Xposed.AFTER_HOOKED_METHOD, None)), PluginsConstants.Xposed.HOOK_FILTERS):
-                            java_callback_instance.setAfterHookedFilters(cast_to_array_list(getattr(method, PluginsConstants.Xposed.HOOK_FILTERS)))
                     else:
                         if hasattr(xposed_hook, PluginsConstants.Xposed.REPLACE_HOOKED_METHOD):
                             if priority is not None:
@@ -491,10 +576,21 @@ class BasePlugin:
                                 else:
                                     java_callback_instance = PyMethodHook(
                                         self.id, xposed_hook, self._runtime_token)
-                                if hasattr((method := getattr(xposed_hook, PluginsConstants.Xposed.BEFORE_HOOKED_METHOD, None)), PluginsConstants.Xposed.HOOK_FILTERS):
-                                    java_callback_instance.setBeforeHookedFilters(cast_to_array_list(getattr(method, PluginsConstants.Xposed.HOOK_FILTERS)))
-                                if hasattr((method := getattr(xposed_hook, PluginsConstants.Xposed.AFTER_HOOKED_METHOD, None)), PluginsConstants.Xposed.HOOK_FILTERS):
-                                    java_callback_instance.setAfterHookedFilters(cast_to_array_list(getattr(method, PluginsConstants.Xposed.HOOK_FILTERS)))
+                if java_callback_instance is not None and not hasattr(xposed_hook, PluginsConstants.Xposed.REPLACE_HOOKED_METHOD):
+                    selected = {'before': [], 'after': []}
+                    for method_name, phase in ((PluginsConstants.Xposed.BEFORE_HOOKED_METHOD, 'before'),
+                                               (PluginsConstants.Xposed.AFTER_HOOKED_METHOD, 'after')):
+                        method = getattr(xposed_hook, method_name, None)
+                        spec = getattr(method, PluginsConstants.Xposed.HOOK_FILTERS, None)
+                        if callable(spec):
+                            spec = spec(xposed_hook)
+                        if isinstance(spec, dict):
+                            selected['before'].extend(spec.get('before') or ())
+                            selected['after'].extend(spec.get('after') or ())
+                        elif spec:
+                            selected[phase].extend(spec)
+                    java_callback_instance.setBeforeHookedFilters(cast_to_array_list(selected['before']))
+                    java_callback_instance.setAfterHookedFilters(cast_to_array_list(selected['after']))
                 return java_callback_instance
    
     @final
@@ -594,12 +690,26 @@ class BasePlugin:
   
     @final
     @_runtime_owned()
-    def add_menu_item(self, menu_item_data: MenuItemData) -> Optional[str]:
+    def add_menu_item(self, menu_item_data: MenuItemData, text=None, *, on_click=None,
+                      condition=None, priority=0, icon=None, subtext=None, item_id=None) -> Optional[str]:
+        if isinstance(menu_item_data, (str, MenuItemType)) and text is not None:
+            menu_item_data = MenuItemData(menu_item_data, text, on_click, item_id,
+                                          icon, subtext, condition, priority)
+        elif isinstance(menu_item_data, MenuItemData) and (
+                text is not None or on_click is not None or condition is not None
+                or priority != 0 or icon is not None or subtext is not None or item_id is not None):
+            raise TypeError('Use either MenuItemData or individual menu fields')
+        if not isinstance(menu_item_data, MenuItemData):
+            raise TypeError('add_menu_item expects MenuItemData or a menu type and text')
         if not self.id or self.error_message or (not menu_item_data):
             return None
         else:
             try:
-                new_item_id = PluginsController.getInstance().addMenuItem(self.id, {PluginsConstants.MenuItemProperties.MENU_TYPE: menu_item_data.menu_type.value, PluginsConstants.MenuItemProperties.TEXT: menu_item_data.text, PluginsConstants.MenuItemProperties.ON_CLICK: menu_item_data.on_click, PluginsConstants.MenuItemProperties.ITEM_ID: menu_item_data.item_id, PluginsConstants.MenuItemProperties.ICON: menu_item_data.icon, PluginsConstants.MenuItemProperties.SUBTEXT: menu_item_data.subtext, PluginsConstants.MenuItemProperties.CONDITION: menu_item_data.condition, PluginsConstants.MenuItemProperties.PRIORITY: menu_item_data.priority})
+                menu_type = getattr(menu_item_data.menu_type, 'value', menu_item_data.menu_type)
+                menu_type = str(menu_type).lower()
+                if menu_type == 'chat_context':
+                    menu_type = PluginsConstants.MenuItemTypes.MESSAGE_CONTEXT_MENU
+                new_item_id = PluginsController.getInstance().addMenuItem(self.id, {PluginsConstants.MenuItemProperties.MENU_TYPE: menu_type, PluginsConstants.MenuItemProperties.TEXT: menu_item_data.text, PluginsConstants.MenuItemProperties.ON_CLICK: menu_item_data.on_click, PluginsConstants.MenuItemProperties.ITEM_ID: menu_item_data.item_id, PluginsConstants.MenuItemProperties.ICON: menu_item_data.icon, PluginsConstants.MenuItemProperties.SUBTEXT: menu_item_data.subtext, PluginsConstants.MenuItemProperties.CONDITION: menu_item_data.condition, PluginsConstants.MenuItemProperties.PRIORITY: menu_item_data.priority})
                 return new_item_id if new_item_id else None
             except Exception as e:
                 self.log(f'Error adding menu item: {e}')

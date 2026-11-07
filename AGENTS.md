@@ -1,5 +1,117 @@
 # LinkiGram — Agent Instructions
 
+## Telegram base upgrade audit (2026-11-07)
+
+- User requested upgrading the Telegram base to 13.2.1, not changing the
+  LinkiGram version name. Official DrKLO/Telegram commit
+  `7be672ead283d022812d75c729d3a04dd4c2a2c6` is 13.2.1 (7291); the parent
+  reference `1266006d887e75b70674b6b085822c8a315091ba` is 13.1.1 (7237).
+- Compared these official snapshots against the current checkout without
+  overwriting local work. The upstream diff contains 4,730 files; tree audit
+  found 4,732 changed paths including renames as add/delete. 873 local paths
+  match the older upstream version, 3,741 additions are absent locally, and
+  118 paths diverge. Of 116 diverged paths with both upstream blobs, 86 merged
+  cleanly in a dry run and 30 need manual conflict resolution. This is only a
+  textual audit; clean merges still need semantic review and CI/device tests.
+- `Tools/audit_telegram_update_tmp.py` reproduces the audit. Conflict previews
+  are under the local ignored reference checkout's `merge-previews` directory.
+  No Telegram base files have been updated, and no upgrade build was run.
+  Preserve local modifications; reconcile the 30 conflicts and adapt upstream
+  changes to LinkiGram, including plugins, player, privacy and build rules.
+- `Tools/resolve_telegram_previews_tmp.py` prepares draft resolutions for 10 of
+  the 30 conflicting files under `resolved-previews` in that reference checkout;
+  these are unverified drafts, not applied to the project. In particular,
+  `ChatMessageCell.java` has very large structural conflicts and requires
+  careful integration of Telegram widget/poll changes with LinkiGram hooks.
+- Superseded by the applied upgrade below (2026-11-08). The audit numbers stay
+  useful as the record of what the merge contained.
+
+## Telegram base upgraded to 13.2.1 (2026-11-08)
+
+- The Telegram base files in `TMessagesProj` were updated from 13.1.1
+  (`1266006d…`) to 13.2.1 (`7be672ea…`). The LinkiGram identity was not touched:
+  `APP_VERSION_NAME=2.8.1`, `APP_VERSION_CODE=20260211`,
+  `APP_PACKAGE=app.linkigram.messenger`.
+- Reference trees are local and ignored (`/ci-apk-*/` in `.gitignore`,
+  including `tree-13.1.1`, `tree-13.2.1`, `merge-previews` and
+  `upgrade-backup`, the pre-upgrade copy of every changed file).
+  4,700 upstream changes were applied on top of the local tree; all 30 conflicting
+  files were reconciled by hand. No `<<<<<<<`/`>>>>>>>` markers remain.
+- New upstream API adopted: `org.telegram.utils.glass.*` (`GlassSource*`,
+  `GlassEngine`), `ThemeBind`, `PipCoordinator`, the `blur3` render-node
+  drawables and the `setSections`/`cachedIsViewTypeShadow` signature. Removed:
+  `Components/blur3/source/*`, `BlurredBackgroundDrawableRenderNode`,
+  `Cells/LocationPoweredCell`, `main_tabs_glass_shader`. Local code was ported to
+  the new API instead of restoring the deleted classes:
+  - `MainTabsActivity` builds the tabs drawable from
+    `createTabSource(glass/frosted)` + `BlurredBackgroundProviderImpl.mainTabs`;
+    the local Material/ColorOS/LinkiGram-You styling and
+    `refreshTabsLiquidGlass()` are kept.
+  - `MainTabsLayout.draw()` no longer sets a shader light position; the moving
+    rim light is `BlurredBackgroundDrawable.setLightAngle(...)`, quantised to
+    4° because the rim nine-patch is baked per angle.
+  - `GlassTabView` keeps `applyMaterialMainTab()`, the Material indicator palette
+    and the stacked-label alpha, now driven by `applyColors()` /
+    `updateNavigationColors()`.
+  - `ChatActivityFadeView` uses `GlassSourceColor`.
+- Dependency/build decisions: upstream Firebase BoM 34.19.0 (`firebase-messaging`,
+  `firebase-pnv`, `firebase-appindexing`), the local `firebase-config` dependency
+  removed (no code used it); `minSdkVersion 24` kept; ML Kit `translate` kept
+  enabled; Chaquopy/Kotlin/Vosk and the media3 module exclusions kept.
+- Checks done (static only): tree-sitter parse of all 2,805 Java files (one
+  pre-existing false failure in `MediaController.java`, a literal NUL byte inside
+  the XMP string), `Tools/check_braces.py` `+0/+0` on every resolved file, all
+  1,143 `res/**/*.xml` files parse, no duplicate resource names, every
+  `R.<type>.<name>`, `Theme.key_*`, `ThemeBind.*`, `ClientTheme.*` and
+  `BlurredBackgroundProviderImpl.*` reference resolves, no reference to a deleted
+  glass class remains.
+- Not verified: no Gradle compile, no CI run and no device test. The next step is
+  an ARM64 `build.yml` run, then signature/package verification and
+  `adb install -r`. Behaviour that still needs a device: glass/frosted tab
+  background (moving rim light, Material and ColorOS styles), glass action bars
+  and sheets, chat menu (topics panel, 9876/9878 items), the new
+  `UniversalFragment`/`UniversalRecyclerView` section drawing, stories cell
+  header, PIP (`PipCoordinator`), plugins and the music player.
+- There is no Git repository in this checkout and no JDK/Android SDK on the
+  machine, so nothing was committed and no build could be started locally.
+  Do not describe this state as a finished, verified upgrade.
+
+## exDesktop fork handoff (2026-11-05)
+
+- Fork `timaa130704/exDesktop` contains an initial, unverified ghost privacy
+  implementation. Deleted-message preservation has not been ported.
+- The original Windows workflow was taken from upstream branch `ci-fix-builds`.
+  Upstream Windows run 40503901564 succeeded; this does not establish that the
+  fork builds or that its privacy controls work. Check the fork's Actions result.
+- Telegram Desktop test API credentials are limited and are not suitable for
+  distributing the client. Do not publish releases without explicit approval.
+
+## Правила работы агента
+
+- Пиши по делу, без пустых вступлений и рассуждений. Выполняй запрошенную
+  работу, а не ограничивайся описанием плана. Итоговый отчёт делай коротким:
+  что изменено, как проверено и что осталось незавершённым.
+- Сложные задачи разбивай на 3–10 конкретных шагов, выводи их одним списком в
+  консоль и последовательно выполняй, проверяя результаты. Не останавливайся
+  только из-за объёма или первой ошибки.
+- При ошибках изучай причину и проверяй доступную документацию. Самостоятельно
+  пробуй альтернативы; где это возможно и разумно, испробуй три разных подхода
+  прежде чем обращаться за уточнением. Не повторяй одинаковые действия, если
+  они не могут изменить результат.
+- Сначала быстро изучи необходимые файлы и окружение, затем внеси изменения и
+  запусти подходящие проверки, тесты или сборку. Исправляй обнаруженные ошибки.
+  Не выдавай непроверенную или незавершённую работу за выполненную; прямо
+  сообщай о фактических препятствиях и ограничениях проверки.
+- Самостоятельно принимай обычные технические решения и доводи задачу до
+  результата. Если действительно не хватает критических данных, задай один
+  короткий конкретный вопрос с вариантами, когда варианты уместны.
+- Все агенты без исключения обязаны вести этот AGENTS.md: после каждой задачи,
+  существенного этапа и перед передачей работы записывайте выполненные действия,
+  изменения, установленные факты, результаты проверок, ошибки, ограничения и
+  оставшиеся задачи. При продолжении работы уточняйте устаревшие записи, не
+  удаляя чужие инструкции и важный контекст. Не добавляйте личные данные,
+  учётные данные и приватные пути; используйте AGENTS.local.md для приватного.
+
 ## Working workflow
 
 - Continue on the user's PC in its existing checkout, directly on `main`.
@@ -22,6 +134,175 @@
   Check the actual device connection; cloud ADB limitations do not apply to a PC.
 - Keep X-CFG, wsbypass and landing outside the Liner task.
 - Do not publish releases or send announcements without explicit authorization.
+
+## Latest handoff: lyrics presentation and Liner (2026-11-05)
+
+- On 2026-11-06 the public lyrics aggregator was updated to request word-level
+  results and query Deezer, KuGou, YouTube Music and Musixmatch separately via
+  lrcmux. Deezer and KuGou returned actual word timestamps for a public test
+  track; YouTube Music returned line timing and Musixmatch plain text. Results
+  depend on the track and provider. The cache version was incremented.
+  `Tools/test_lrcmux_words.py --json-jar <org-json.jar>` checks production
+  parsing against offline word-timing and invalid-token fixtures. Device and CI
+  validation remain required.
+- The sources change is commit `f6c3bb24`; CI run **42256941863** was in
+  progress at handoff and its result must be checked before installation.
+- CI run **42256941863** succeeded. Its ARM64 LinkiGram 2.8.1 APK signature
+  was verified and it was installed with `adb install -r` on 2026-11-07.
+  Runtime availability and word highlighting have not been verified on device.
+- On 2026-11-06 a subtle cover-color radial glow was added to the player, and
+  optional ML Kit on-device translation was added to the message translation
+  sheet. It is enabled in chat tools, downloads language models when first used,
+  and does not fall back to network translation when local translation fails.
+  Rich-message and summary translation are not supported by the local path.
+  Java syntax and resource XML were checked; CI and real-device behavior,
+  including model download, translation and glow appearance, need validation.
+- These changes are committed as `c1bf4f94`; CI run **42218083284** was in
+  progress at handoff. This run must pass before installing its artifact.
+- CI run **42218083284** succeeded; its signed LinkiGram 2.8.1 ARM64 APK was
+  installed with `adb install -r`. On-device translation and glow appearance
+  have not yet been verified.
+- The upstream exteraless style editor and mini-player remain unported. These
+  are explicitly requested and must be adapted without losing LinkiGram lyrics,
+  playlists, local themes and other existing functionality.
+- At the user's request, Liner integration is being removed. The updated player
+  keeps the public lyrics providers and centered lyrics UI. Earlier Liner notes
+  below are historical; do not restore the integration without a new request.
+- The exteraless reference was checked at `c83765c4`. Its queue drag-and-drop
+  implementation and frozen seek-bar behavior were adapted to LinkiGram. The
+  larger upstream style editor, mini-player and full-screen player changes have
+  not been ported. Host checks covered Java syntax, resource XML, moving the
+  current and other tracks, shuffle mode and invalid indices. CI and on-device
+  queue behavior still need verification.
+- Commit `16612b07` removes the Liner integration and adds those queue/player
+  changes; CI run **42031148785** was queued at handoff. Do not describe this
+  partial adaptation as a complete exteraless player port.
+- CI run **42031148785** succeeded, and its signed ARM64 LinkiGram 2.8.1 APK
+  was installed with `adb install -r` on 2026-11-06. Queue behavior and the
+  remaining public lyrics providers have not yet been verified on the device.
+- CI run **41924704336** at `a0a547c6` succeeded. Its signed ARM64 APK was
+  installed with `adb install -r`; it includes the new lyrics presentation and
+  still includes Liner. Visual behavior on the device has not been verified.
+- Work to remove Liner was started but interrupted when the user requested this
+  earlier APK. The working tree contains partially staged deletions and partial
+  edits for that removal; they are not included in the installed APK. Preserve
+  this state and finish or reverse it only according to the user's direction.
+
+- `1a481ec2` centers synced, word-timed and plain lyrics horizontally, adds
+  side margins and larger spacing, and reduces blur on surrounding lines.
+  Existing seek and word timing behavior is retained. Device visual validation
+  and CI results must be checked separately before claiming they passed.
+- Offline Liner checks: `Tools/test_liner.py` passed 28 checks using JDK 17 and
+  org.json; `node tools/liner-lyrics/check.cjs` passed its parser checks.
+  These use fixtures and do not verify live services.
+- On-device Liner requests returned HTTP 403 for account history, library and
+  lyrics after the catalog lookup failed. A separate unauthenticated request
+  from the PC received a Cloudflare block page. Do not assume the phone's 403
+  has the same cause, or that provider responses are working. No credentials
+  were inspected. Live authenticated provider recovery remains unresolved.
+- The official `tryliner/desktop` client now requests `/v1/auth/challenge`
+  before registration and login; challenges may require Argon2id proof of work
+  and/or an interactive Turnstile check. LinkiGram's registration supports the
+  unchallenged case only and explicitly reports unsupported verification. Login
+  does not yet implement this challenge flow. Implement and test the official
+  flow before claiming registration and authentication are fully compatible.
+- `a0a547c6` hides seek, time and playback controls in lyrics mode and expands
+  the lyrics area; the lyrics button remains available to return. It also adds
+  the partial registration flow described above. CI run **41924704336** was
+  pending at handoff. Validate transitions, smaller screens, center alignment,
+  and registration on a real device after a successful build.
+
+## Handoff: LinkiGram 2.8.1 (2026-11-05)
+
+- Plugin files remained on the investigated device even though the plugin list
+  was empty after restarting the app. Their enabled preferences were retained.
+  The application was not calling `PluginsController.init()` at startup, leaving
+  the in-memory registry empty. This explains the observed case; it does not
+  establish the cause of every reported disappearance.
+- `0a5e8c5d` improves plugin recovery after a crash. `f0f93a25` initializes
+  the plugin engine during application startup and rescans installed plugin
+  files when the plugin screen resumes. The rescan preserves existing instances
+  and settings, and skips pending deletion markers.
+- Host checks covered startup process selection, list refresh and rescan, crash
+  inventory, and metadata publication. CI run **41906023326**, built from
+  `f0f93a25902e1321c1e302818b8b4eeeaa617386`, succeeded. Its ARM64 APK has
+  package `app.linkigram.messenger`, version `2.8.1`, code `202602119`, and
+  signing certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`.
+- This APK was installed successfully over the existing app with `adb install -r`
+  and the app was launched. The restored plugin list and plugin execution after
+  restart have **not** yet been verified on the device. Test them before claiming
+  that persistence is fixed for all users. Full exteraless compatibility remains
+  incomplete and needs real-plugin testing as described below.
+- GitHub release `v2.8.1` is published with the same CI APK:
+  https://github.com/timaa130704/LinkiGram/releases/tag/v2.8.1 . The APK SHA-256
+  is `07a4a33aa91aaea2c1e22d56b4b511e4474bd1cc8d3933bf32b14843ea18e41c`.
+  Release `v2.8.0` was also published previously.
+- Other recent committed changes include `537b3e4d` (reusable plugin Android
+  runnables; the user confirmed Clawd Pet moves and responds to touch),
+  `2ae363f5` (ghost privacy on outgoing requests), `78660304` (plugin
+  quarantine recovery), and `d91c15d8` (deleted-message history and 2.8).
+  Ghost privacy and deleted-message behavior still require device validation.
+
+## Earlier handoff: plugin compatibility (2026-11-04)
+
+The user wants plugins which work in `exteraless/exteraless` to work in
+LinkiGram. **This is not complete.** Do not report full compatibility based on
+the SDK additions or a successful build. Continue the implementation and verify
+real plugins on a device, including installation, activation, restart, hooks,
+callbacks and unloading. Preserve existing uncommitted work when doing so.
+
+Recent committed work on `main`:
+
+- `88315370`: fix a plugin permission prompt localization crash.
+- `387d3162`: invoke plugin send-message hooks from
+  `SendMessagesHelper.sendMessage`; previously the controller implemented the
+  hook but the actual sending path did not call it. Cancellation now prevents
+  sending and a modified `SendMessageParams` is passed onward.
+- `456fbec9` and `edbc71a0`: add some exteraless-compatible Android callback,
+  context, bulletin, account and plugin data/cache directory helpers, with
+  runtime-owned callbacks and tests. These do not constitute a full engine port.
+
+CI run **41538249771** built `387d3162`; its LinkiGram 2.7 APK was installed
+successfully on the connected device with `adb install -r`, preserving app data.
+An isolated test of the example Tiktokframe plugin's `.f` command showed that
+its Python handler starts the frame job and cancels the command; the complete
+Android flow has not been verified. The user also reported that the plugin
+disappeared after restarting the app and reinstalled it. Later investigation of
+an empty plugin list found the startup initialization issue described above;
+distinguish missing files from disabled or quarantined plugins in other cases.
+
+CI run **41713334571** succeeded at
+`edbc71a0689af1005dd1dd94e9b99454d84a42c0`. This newer build includes the
+additional SDK helpers. Its installation and runtime behavior have not been
+verified. The previous installed APK's certificate SHA-256 was
+`627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`.
+
+The current LinkiGram plugin implementation already derives from NimarkoGram.
+The upstream NimarkoGram `extera_utils.classes` has the same limitation as the
+current LinkiGram shim: it supports Java interfaces but not runtime subclassing
+of ordinary Java classes. Simply copying it does not add that capability.
+The exteraless implementation uses a dexmaker-backed class generator, a
+different Python loader and SDK, hooks, Java services and UI integrations.
+Their dependencies and behavior must be adapted and tested; copying individual
+files without wiring them does not make plugins work. A universal claim about
+all plugins requires evidence from an adequate plugin corpus and real devices.
+
+At this handoff there are uncommitted plugin migration files: `JsonUtils.java`,
+`utils/ClassProxyFactory.java`, the `elyx_runtime` Python package, the metadata
+parser changes and capability scanner with its test. They are incomplete and
+are not included in the committed CI builds above. The checked-out exteraless
+source used for comparison was commit
+`4771c553fee84618f8fa8dfc034c9e85317c2c72`; the local clone and the example
+Tiktokframe plugin are included as handoff materials in the project archive.
+The user's uncommitted blurred-background change and `promo-2.7/` project must
+also be preserved.
+
+For the latest committed SDK additions, 13 targeted host checks passed. Some
+older source-inspection tests failed because their expected Java comments or
+literal code shapes are absent in the pre-existing implementation; do not
+describe those failures as successful checks. Host checks do not prove Android
+runtime compatibility.
 
 ## Current handoff: Liner lyrics
 
@@ -50,7 +331,8 @@ Validation already completed:
 - Signing certificate SHA-256:
   `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`.
 
-Next steps on the PC:
+Historical next steps on the PC (the older APK below has since been superseded;
+do not install it over the newer LinkiGram build):
 
 1. Download the CI artifact above and install its verified APK through local ADB.
    Installation was requested but could not be performed from the cloud machine.

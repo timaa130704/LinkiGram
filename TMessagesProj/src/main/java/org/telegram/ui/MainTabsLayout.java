@@ -30,7 +30,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LiteMode;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedLinearLayout;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRenderNode;
+import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
 import org.telegram.ui.Components.glass.GlassTabView;
 
 
@@ -440,14 +440,19 @@ public class MainTabsLayout extends AnimatedLinearLayout {
 
     @Override
     public void draw(@NonNull Canvas canvas) {
+        // LinkiGram moving light: the rim light follows the dragged selector instead of a shader uniform.
         if (LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
                 && Build.VERSION.SDK_INT >= 33 && selectorInitialized
-                && getBackground() instanceof BlurredBackgroundDrawableRenderNode) {
-            BlurredBackgroundDrawableRenderNode glass =
-                    (BlurredBackgroundDrawableRenderNode) getBackground();
-            Rect bounds = glass.getPaddedBounds();
-            glass.setGlassLightPosition((animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX
-                    - bounds.left) / Math.max(1f, bounds.width()), selectorPress);
+                && getBackground() instanceof BlurredBackgroundDrawable) {
+            final BlurredBackgroundDrawable glass = (BlurredBackgroundDrawable) getBackground();
+            final float width = Math.max(1f, getWidth() - getPaddingLeft() - getPaddingRight());
+            final float x = (animatedLongSelectedViewCenterX + animatedLongSelectedViewOffsetX - getPaddingLeft()) / width;
+            final float clamped = Math.max(0f, Math.min(1f, x));
+            // 0 degrees is the light from straight above, positive towards the left. The rim geometry is
+            // baked into a nine-patch and cached per angle, so quantise: a continuous angle would re-bake
+            // on every frame of the selector drag.
+            final float angle = Math.round((0.5f - clamped) * 120f / 4f) * 4f;
+            glass.setLightAngle(angle);
         }
         super.draw(canvas);
     }

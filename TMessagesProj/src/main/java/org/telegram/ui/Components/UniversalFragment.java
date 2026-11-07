@@ -19,6 +19,7 @@ import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.INavigationLayout;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ActionBar.ThemeBind;
 import org.telegram.ui.Business.QuickRepliesController;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.DialogsActivity;
@@ -29,22 +30,30 @@ import java.util.ArrayList;
 public abstract class UniversalFragment extends BaseFragment {
 
     public UniversalRecyclerView listView;
+    protected FrameLayout contentView;
 
     @Override
     public View createView(Context context) {
-        actionBar.setBackButtonDrawable(new BackDrawable(false));
-        actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(getTitle());
-        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+        final ActionBar.ActionBarMenuOnItemClick onItemClick = new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
                     finishFragment();
                 }
             }
-        });
+        };
+        if (simpleActionBar != null) {
+            simpleActionBar.setBackButtonDrawable(new BackDrawable(false));
+            simpleActionBar.setTitle(getTitle());
+            simpleActionBar.setActionBarMenuOnItemClick(onItemClick);
+        } else {
+            actionBar.setBackButtonDrawable(new BackDrawable(false));
+            actionBar.setAllowOverlayTitle(true);
+            actionBar.setTitle(getTitle());
+            actionBar.setActionBarMenuOnItemClick(onItemClick);
+        }
 
-        SizeNotifierFrameLayout contentView = new SizeNotifierFrameLayout(context) {
+        contentView = new SizeNotifierFrameLayout(context) {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 super.onMeasure(
@@ -53,8 +62,11 @@ public abstract class UniversalFragment extends BaseFragment {
                 );
             }
         };
-        contentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        if (!useSimpleActionBar() || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+            // simple screens: the sectioned list draws the screen background itself
+            ThemeBind.backgroundColor(contentView, Theme.key_windowBackgroundGray);
+        }
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && actionBar != null) {
             actionBar.setDrawBlurBackground(contentView);
         }
 
