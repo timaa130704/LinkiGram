@@ -116,7 +116,11 @@
 - The 2.9 changelog the user asked for lists only generic "Telegram base
   updated to 13.2.1" plus the LinkiGram-side player, lyrics and translation
   changes; base feature details and the native build fix were explicitly
-  removed at the user's request. No GitHub release was published for 2.9.
+  removed at the user's request. Release **v2.9** was published on
+  2026-11-08 from `504907c5` with the ARM64 asset
+  `LinkiGram-2.9-arm64.apk` (SHA-256
+  `0f05a390c55f3ef8ce7f08bf0d5029e1fefe9c82c8631f8b2113d4e1ca7c7b9b`),
+  verified the same way as the CI artifact and marked Latest.
 
 ## exDesktop fork handoff (2026-11-05)
 
