@@ -21,9 +21,6 @@ public class LiquidGlassEffect {
     private RuntimeShader arrowShader;
     private RuntimeShader shader;
     private RenderEffect effect;
-    private final boolean hasSurfaceLight;
-    private float surfaceLight = 0.5f;
-    private float pressProgress;
 
     /** The effects by the phase of the node on the grid of the downsample, they keep the uniforms they were made with. */
     private RenderEffect[] effectPool;
@@ -31,15 +28,10 @@ public class LiquidGlassEffect {
     private float[] effectPoolCenterY;
 
     public LiquidGlassEffect(RenderNode node) {
-        this(node, R.raw.liquid_glass_shader);
-    }
-
-    public LiquidGlassEffect(RenderNode node, int shaderResource) {
         this.node = node;
         final String code = AndroidUtilities.readRes(R.raw.liquid_glass_shader);
         shader = plainShader = new RuntimeShader(code);
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
-        return true;
     }
 
     private int downsample;

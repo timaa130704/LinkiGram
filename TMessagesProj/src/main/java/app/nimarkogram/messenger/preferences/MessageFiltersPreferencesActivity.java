@@ -296,16 +296,7 @@ public class MessageFiltersPreferencesActivity extends BaseFragment {
             }
         });
 
-        listView.setSections(
-            view -> !(view instanceof ShadowSectionCell
-                    || view instanceof FiltersSetupActivity.HintInnerCell
-                    || view instanceof GraySectionCell)
-                    && !java.util.Objects.equals(view.getTag(), RecyclerListView.TAG_NOT_SECTION),
-            dp(12),
-            dp(16),
-            listView::drawBackgroundRect,
-            true
-        );
+        listView.setSections(dp(12), dp(16), true);
         actionBar.setAdaptiveBackground(listView);
 
         return fragmentView;

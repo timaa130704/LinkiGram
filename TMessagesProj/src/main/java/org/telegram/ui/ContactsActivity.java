@@ -98,7 +98,6 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RecyclerAnimationScrollHelper;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
-import org.telegram.ui.Components.blur3.capture.IBlur3Capture;
 import org.telegram.ui.Components.StickerEmptyView;
 import org.telegram.ui.Components.inset.WindowAnimatedInsetsProvider;
 
@@ -1432,12 +1431,6 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
     public boolean drawEdgeNavigationBar() {
         return !hasMainTabs;
     }
-
-    @Override
-    public IBlur3Capture getTabGlassCapture() {
-        return iBlur3Capture;
-    }
-
 
     @Override
     public void onParentScrollToTop() {

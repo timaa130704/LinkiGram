@@ -68,7 +68,7 @@ public abstract class UniversalFragment extends BaseFragment {
             ThemeBind.backgroundColor(contentView, Theme.key_windowBackgroundGray);
         }
         if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && actionBar != null) {
-            actionBar.setDrawBlurBackground(contentView);
+            actionBar.setDrawBlurBackground((SizeNotifierFrameLayout) contentView);
         }
 
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, this::onLongClick) {

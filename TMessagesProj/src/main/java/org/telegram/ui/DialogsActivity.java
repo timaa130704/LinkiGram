@@ -4089,7 +4089,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
             });
-            viewPage.listView.addEdgeEffectListener(() -> viewPage.listView.postOnAnimation(this::blur3_InvalidateBlur));
+            viewPage.listView.addEdgeEffectListener(() -> viewPage.listView.postOnAnimation(() ->
+                    invalidateBlurCaptures(GlassEngine.FLAG_INVALIDATED_POSITIONS)));
             glassEngine.addScrolledView(viewPage.listView);
             viewPage.scroller = new RecyclerListViewScroller(viewPage.listView);
             viewPage.listView.setAllowStopHeaveOperations(true);
