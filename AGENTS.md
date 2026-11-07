@@ -76,6 +76,48 @@
   machine, so nothing was committed and no build could be started locally.
   Do not describe this state as a finished, verified upgrade.
 
+## LinkiGram 2.9 built and installed (2026-11-08)
+
+- The checkout was turned into a Git repository on `main` (origin
+  `https://github.com/timaa130704/LinkiGram.git`, shallow clone base
+  `f6c3bb24`). The upgrade and the API fixes were pushed as `80dd94a8`,
+  `a11f9fde`, `736b6f49`, `5eccd13b`, and the version bump as `f58adc54`
+  (its commit message contains a literal `\n`; history was not rewritten).
+- The 13.2.1 prisma failure had nothing to do with the Java merge: the local
+  gitlink `TMessagesProj/jni/third_party/libprisma` was stale (`31a5d6fb`),
+  while upstream 13.1.1 and 13.2.1 both pin `94640c63`, which is the first
+  libprisma with `TokenList(std::string_view)`, `TokenList::swap` and
+  `LanguageTree::order()/language()`. `5eccd13b` fixes the pin. Other gitlinks
+  that differ from upstream are harmless: ffmpeg, libvpx and wallet engine are
+  linked from prebuilt `jni/prebuild/lib`, `third_party/pine` is a local plugin
+  dependency, and `tgcalls` was not changed between 13.1.1 and 13.2.1.
+- CI runs **42417988725** (2.8.1 on 13.2.1) and **42421295770** (2.9) both
+  succeeded, ARM64 only. The 2.9 artifact `linkigram-apk` was verified offline:
+  package `app.linkigram.messenger`, version `2.9`, code `202611089`, ZIP
+  integrity OK, v2 signature digest and RSA signature verified against
+  certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`,
+  APK SHA-256
+  `368fc50d80f7eae4d857a55e12ee1039a85976a53d8bce5c77e80e1288129aa6`.
+  No Java-side apksigner was available, so verification used a local script
+  that reimplements the v2 chunked digest and checks the RSA signature with
+  OpenSSL (the digest must be computed with the EOCD central-directory offset
+  rewritten to the signing-block start).
+- The 2.8.1-on-13.2.1 build was installed over the existing app with
+  `adb install -r` and checked on a Galaxy S10 (Android 16): no crash on start,
+  chat list with the glass tabs and story header, chat screen with drafts,
+  replies and the admin tag, Settings, LinkiGram settings (shows the version
+  number), and the plugin screen with the engine on and the installed plugins
+  listed. Lyrics, player, PIP, widgets, translation and the 9876/9878 menu
+  items were not exercised.
+- The 2.9 APK was not installed: the device disappeared from `adb devices`
+  between the 2.8.1 check and the 2.9 install. Reconnect the phone and run
+  `adb install -r` with the 2.9 artifact before claiming the device runs 2.9.
+- The 2.9 changelog the user asked for lists only generic "Telegram base
+  updated to 13.2.1" plus the LinkiGram-side player, lyrics and translation
+  changes; base feature details and the native build fix were explicitly
+  removed at the user's request. No GitHub release was published for 2.9.
+
 ## exDesktop fork handoff (2026-11-05)
 
 - Fork `timaa130704/exDesktop` contains an initial, unverified ghost privacy
