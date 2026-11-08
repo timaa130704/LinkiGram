@@ -1,8 +1,16 @@
 package app.nimarkogram.messenger.plugins.ui;
 
+import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -37,11 +45,15 @@ import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,9 +82,17 @@ public class PluginAgentActivity extends BaseFragment {
 
     private static final int MENU_REPORT = 1;
     private static final int MENU_SETTINGS = 2;
+    private static final int REQUEST_PICK_IMAGE = 4101;
+    private static final int REQUEST_PICK_FILE = 4102;
     /** Upper bound of the in-memory conversation that is resent with every request. */
     private static final int MAX_HISTORY = 16;
     private static final int MAX_HISTORY_CHARS = 120000;
+    /** Text attachments are pasted into the prompt, so they stay small. */
+    private static final int MAX_ATTACHMENT_BYTES = 256 * 1024;
+    /** Raw camera pictures are often bigger than the compressed result. */
+    private static final int MAX_READ_IMAGE_BYTES = 16 * 1024 * 1024;
+    private static final int MAX_ATTACHMENT_IMAGE_BYTES = 2 * 1024 * 1024;
+    private static final int MAX_IMAGE_SIDE = 1600;
     private static final Pattern FENCE = Pattern.compile("```[a-zA-Z0-9_+.-]*\\n?");
 
     /** Kept for the app session so closing and reopening the screen keeps the context. */
@@ -82,15 +102,25 @@ public class PluginAgentActivity extends BaseFragment {
     private Client client;
     private String requestId;
     private boolean busy;
+    private boolean attachmentLoading;
 
     private ScrollView scrollView;
     private LinearLayout messagesView;
     private EditText inputField;
     private View sendButton;
+    private View attachButton;
     private LinearLayout inputPanel;
+    private LinearLayout attachmentBar;
+    private TextView attachmentTitle;
     private Context context;
     private String modelLabel;
     private int bottomInset;
+
+    /** Pending attachment: either an image or the text of a file. */
+    private byte[] attachmentImage;
+    private String attachmentImageMime;
+    private String attachmentText;
+    private String attachmentName;
 
     public PluginAgentActivity() {
         this(null);
@@ -140,11 +170,62 @@ public class PluginAgentActivity extends BaseFragment {
         scrollView.addView(messagesView, LayoutHelper.createScroll(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
 
         inputPanel = new LinearLayout(context);
-        inputPanel.setOrientation(LinearLayout.HORIZONTAL);
-        inputPanel.setGravity(Gravity.CENTER_VERTICAL);
-        inputPanel.setPadding(dp(8), dp(8), dp(8), dp(8) + bottomInset);
+        inputPanel.setOrientation(LinearLayout.VERTICAL);
+        inputPanel.setPadding(dp(8), dp(6), dp(8), dp(8) + bottomInset);
         ThemeBind.backgroundColor(inputPanel, Theme.key_windowBackgroundWhite);
         root.addView(inputPanel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        attachmentBar = new LinearLayout(context);
+        attachmentBar.setOrientation(LinearLayout.HORIZONTAL);
+        attachmentBar.setGravity(Gravity.CENTER_VERTICAL);
+        attachmentBar.setBackground(Theme.createRoundRectDrawable(dp(12),
+                Theme.getColor(Theme.key_chat_messagePanelBackground)));
+        attachmentBar.setPadding(dp(10), dp(4), dp(4), dp(4));
+        attachmentBar.setVisibility(View.GONE);
+        inputPanel.addView(attachmentBar, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT,
+                LayoutHelper.WRAP_CONTENT, 0, 0, 4, 4));
+
+        ImageView attachmentIcon = new ImageView(context);
+        attachmentIcon.setScaleType(ImageView.ScaleType.CENTER);
+        attachmentIcon.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.msg_filehq).mutate());
+        attachmentIcon.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.MULTIPLY));
+        attachmentBar.addView(attachmentIcon, LayoutHelper.createLinear(18, 18, Gravity.CENTER_VERTICAL, 0, 0, 8, 0));
+
+        attachmentTitle = new TextView(context);
+        attachmentTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        attachmentTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        attachmentTitle.setSingleLine(true);
+        attachmentTitle.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+        attachmentBar.addView(attachmentTitle, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
+
+        ImageView attachmentRemove = new ImageView(context);
+        attachmentRemove.setScaleType(ImageView.ScaleType.CENTER);
+        attachmentRemove.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.msg_close).mutate());
+        attachmentRemove.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.MULTIPLY));
+        attachmentRemove.setContentDescription(LocaleController.getString(R.string.NM_PluginAgentAttachRemove));
+        attachmentRemove.setOnClickListener(view -> clearAttachment());
+        attachmentBar.addView(attachmentRemove, LayoutHelper.createLinear(28, 28, Gravity.CENTER_VERTICAL));
+
+        LinearLayout inputRow = new LinearLayout(context);
+        inputRow.setOrientation(LinearLayout.HORIZONTAL);
+        inputRow.setGravity(Gravity.CENTER_VERTICAL);
+        inputPanel.addView(inputRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        FrameLayout attachContainer = new FrameLayout(context);
+        attachContainer.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), Theme.RIPPLE_MASK_CIRCLE_20DP));
+        ImageView attachIcon = new ImageView(context);
+        attachIcon.setScaleType(ImageView.ScaleType.CENTER);
+        attachIcon.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.msg_input_attach2).mutate());
+        attachIcon.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_chat_messagePanelIcons), PorterDuff.Mode.MULTIPLY));
+        attachContainer.addView(attachIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+        attachContainer.setOnClickListener(view -> showAttachMenu());
+        attachContainer.setContentDescription(LocaleController.getString(R.string.NM_PluginAgentAttach));
+        attachButton = attachContainer;
+        inputRow.addView(attachContainer, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 4, 0));
 
         inputField = new EditTextBoldCursor(context);
         inputField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -166,7 +247,7 @@ public class PluginAgentActivity extends BaseFragment {
             }
             return false;
         });
-        inputPanel.addView(inputField, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
+        inputRow.addView(inputField, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
 
         FrameLayout sendContainer = new FrameLayout(context);
         sendContainer.setBackground(Theme.createSimpleSelectorCircleDrawable(dp(40),
@@ -181,7 +262,7 @@ public class PluginAgentActivity extends BaseFragment {
         sendContainer.setOnClickListener(view -> submit());
         sendContainer.setContentDescription(LocaleController.getString(R.string.NM_PluginAgentSend));
         sendButton = sendContainer;
-        inputPanel.addView(sendContainer, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 8, 0, 2, 0));
+        inputRow.addView(sendContainer, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 8, 0, 2, 0));
 
         fragmentView = root;
         replaySession();
@@ -215,7 +296,7 @@ public class PluginAgentActivity extends BaseFragment {
     public void onInsets(int left, int top, int right, int bottom) {
         bottomInset = bottom;
         if (inputPanel != null) {
-            inputPanel.setPadding(dp(8), dp(8), dp(8), dp(8) + bottom);
+            inputPanel.setPadding(dp(8), dp(6), dp(8), dp(8) + bottom);
         }
     }
 
@@ -235,19 +316,59 @@ public class PluginAgentActivity extends BaseFragment {
             return;
         }
         String text = inputField.getText() == null ? "" : inputField.getText().toString().trim();
-        if (TextUtils.isEmpty(text)) {
+        if (TextUtils.isEmpty(text) && attachmentImage == null && attachmentText == null) {
             return;
         }
+        final byte[] image = attachmentImage;
+        final String imageMime = attachmentImageMime;
+        final String fileText = attachmentText;
+        final String fileName = attachmentName;
         inputField.setText("");
-        send(text);
+        clearAttachment();
+
+        if (image != null && image.length > 0) {
+            String prompt = TextUtils.isEmpty(text)
+                    ? LocaleController.getString(R.string.NM_PluginAgentPhotoPrompt)
+                    : text;
+            Message message = new Message("user", prompt, image, imageMime);
+            CharSequence display = format(prompt);
+            if (!TextUtils.isEmpty(fileName)) {
+                display = TextUtils.concat(display, "\n\n",
+                        LocaleController.formatString(R.string.NM_PluginAgentAttachment, fileName));
+            }
+            send(message, display);
+            return;
+        }
+        if (fileText != null) {
+            StringBuilder content = new StringBuilder();
+            if (!TextUtils.isEmpty(text)) {
+                content.append(text).append("\n\n");
+            }
+            content.append(LocaleController.formatString(R.string.NM_PluginAgentFilePrompt,
+                    TextUtils.isEmpty(fileName)
+                            ? LocaleController.getString(R.string.NM_PluginAgentAttachFile)
+                            : fileName)).append("\n```\n");
+            content.append(fileText);
+            if (!fileText.endsWith("\n")) {
+                content.append('\n');
+            }
+            content.append("```");
+            send(new Message("user", content.toString()), format(content.toString()));
+            return;
+        }
+        send(new Message("user", text), format(text));
     }
 
     private void send(String text) {
+        send(new Message("user", text), format(text));
+    }
+
+    private void send(Message message, CharSequence display) {
         if (busy) {
             return;
         }
-        addBubble(format(text), true, null);
-        remember(new Message("user", text));
+        addBubble(display, true, null);
+        remember(message);
         scrollToBottom();
 
         Service service = AiConfig.getSelectedService();
@@ -308,6 +429,10 @@ public class PluginAgentActivity extends BaseFragment {
             sendButton.setEnabled(!value);
             sendButton.setAlpha(value ? 0.5f : 1f);
         }
+        if (attachButton != null) {
+            attachButton.setEnabled(!value);
+            attachButton.setAlpha(value ? 0.5f : 1f);
+        }
         if (actionBar != null) {
             actionBar.setSubtitle(value ? "…" : modelLabel);
         }
@@ -330,6 +455,305 @@ public class PluginAgentActivity extends BaseFragment {
         }
         if (keepFrom > 0) {
             SESSION_HISTORY.subList(0, keepFrom).clear();
+        }
+        dropOldImages();
+    }
+
+    /** Base64 images are heavy, so only the newest attached pictures stay in the history. */
+    private static void dropOldImages() {
+        int images = 0;
+        for (int a = SESSION_HISTORY.size() - 1; a >= 0; a--) {
+            Message message = SESSION_HISTORY.get(a);
+            if (message.getImageData() == null || message.getImageData().length == 0) {
+                continue;
+            }
+            images++;
+            if (images > 2) {
+                message.clearImage();
+            }
+        }
+    }
+
+    private void showAttachMenu() {
+        if (busy || attachmentLoading) {
+            return;
+        }
+        ItemOptions options = ItemOptions.makeOptions(this,
+                attachButton == null ? fragmentView : attachButton);
+        options.add(R.drawable.msg_gallery,
+                LocaleController.getString(R.string.NM_PluginAgentAttachPhoto), this::pickPhoto);
+        options.add(R.drawable.msg_filehq,
+                LocaleController.getString(R.string.NM_PluginAgentAttachFile), this::pickFile);
+        options.show();
+    }
+
+    private void pickPhoto() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startPicker(intent, REQUEST_PICK_IMAGE);
+    }
+
+    private void pickFile() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startPicker(intent, REQUEST_PICK_FILE);
+    }
+
+    private void startPicker(Intent intent, int requestCode) {
+        try {
+            startActivityForResult(intent, requestCode);
+        } catch (Throwable t) {
+            FileLog.e("PluginAgent: cannot open file picker", t);
+            showAttachError(null);
+        }
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (resultCode != Activity.RESULT_OK || data == null) {
+            return;
+        }
+        Uri uri = data.getData();
+        if (uri == null) {
+            return;
+        }
+        if (requestCode == REQUEST_PICK_IMAGE) {
+            loadAttachment(uri);
+        } else if (requestCode == REQUEST_PICK_FILE) {
+            loadAttachment(uri);
+        }
+    }
+
+    /**
+     * Images are decoded, downscaled and re-encoded as JPEG; every other file must
+     * be text, because only text can be pasted into the prompt.
+     */
+    private void loadAttachment(final Uri uri) {
+        if (attachmentLoading) {
+            return;
+        }
+        attachmentLoading = true;
+        if (attachButton != null) {
+            attachButton.setEnabled(false);
+        }
+        final Context app = ApplicationLoader.applicationContext;
+        Utilities.globalQueue.postRunnable(() -> {
+            String name = null;
+            String mime = null;
+            byte[] image = null;
+            String text = null;
+            String error = null;
+            try {
+                ContentResolver resolver = app.getContentResolver();
+                name = queryName(resolver, uri);
+                mime = resolver.getType(uri);
+                if (isImage(mime, name)) {
+                    byte[] raw = readAll(resolver, uri, MAX_READ_IMAGE_BYTES);
+                    if (raw == null) {
+                        error = "too_big";
+                    } else if (raw.length == 0) {
+                        error = "failed";
+                    } else {
+                        byte[] compressed = compressImage(raw);
+                        if (compressed != null) {
+                            image = compressed;
+                            mime = "image/jpeg";
+                        } else if (mime != null && mime.toLowerCase(Locale.ROOT).startsWith("image/")) {
+                            image = raw;
+                        } else {
+                            error = "binary";
+                        }
+                    }
+                } else {
+                    byte[] raw = readAll(resolver, uri, MAX_ATTACHMENT_BYTES);
+                    if (raw == null) {
+                        error = "too_big";
+                    } else if (isBinary(raw)) {
+                        error = "binary";
+                    } else {
+                        text = new String(raw, StandardCharsets.UTF_8);
+                    }
+                }
+            } catch (Throwable t) {
+                FileLog.e("PluginAgent: cannot read attachment", t);
+                error = "failed";
+            }
+            final String fileName = name;
+            final String fileMime = mime;
+            final byte[] imageData = image;
+            final String fileText = text;
+            final String failure = error;
+            AndroidUtilities.runOnUIThread(() -> {
+                attachmentLoading = false;
+                if (attachButton != null) {
+                    attachButton.setEnabled(!busy);
+                }
+                if (fragmentView == null) {
+                    return;
+                }
+                if (failure != null) {
+                    showAttachError(failure);
+                    return;
+                }
+                if (imageData != null) {
+                    setAttachmentImage(imageData, fileMime, fileName);
+                } else if (fileText != null) {
+                    setAttachmentText(fileText, fileName);
+                }
+            });
+        });
+    }
+
+    private void setAttachmentImage(byte[] data, String mime, String name) {
+        clearAttachment();
+        attachmentImage = data;
+        attachmentImageMime = TextUtils.isEmpty(mime) ? "image/jpeg" : mime;
+        attachmentName = TextUtils.isEmpty(name)
+                ? LocaleController.getString(R.string.NM_PluginAgentAttachPhoto) : name;
+        showAttachment();
+    }
+
+    private void setAttachmentText(String text, String name) {
+        clearAttachment();
+        attachmentText = text;
+        attachmentName = TextUtils.isEmpty(name)
+                ? LocaleController.getString(R.string.NM_PluginAgentAttachFile) : name;
+        showAttachment();
+    }
+
+    private void showAttachment() {
+        if (attachmentBar != null) {
+            attachmentBar.setVisibility(View.VISIBLE);
+        }
+        if (attachmentTitle != null) {
+            attachmentTitle.setText(attachmentName);
+        }
+    }
+
+    private void clearAttachment() {
+        attachmentImage = null;
+        attachmentImageMime = null;
+        attachmentText = null;
+        attachmentName = null;
+        if (attachmentBar != null) {
+            attachmentBar.setVisibility(View.GONE);
+        }
+        if (attachmentTitle != null) {
+            attachmentTitle.setText("");
+        }
+    }
+
+    private void showAttachError(String reason) {
+        int res = R.string.NM_PluginAgentAttachFailed;
+        if ("too_big".equals(reason)) {
+            res = R.string.NM_PluginAgentAttachTooBig;
+        } else if ("binary".equals(reason)) {
+            res = R.string.NM_PluginAgentAttachBinary;
+        }
+        if (fragmentView != null) {
+            BulletinFactory.of(this).createErrorBulletin(
+                    LocaleController.getString(res)).show();
+        }
+    }
+
+    private static String queryName(ContentResolver resolver, Uri uri) {
+        try (Cursor cursor = resolver.query(uri,
+                new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (index >= 0) {
+                    String value = cursor.getString(index);
+                    if (!TextUtils.isEmpty(value)) {
+                        return value;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e("PluginAgent: cannot read the file name", t);
+        }
+        String fallback = uri.getLastPathSegment();
+        return TextUtils.isEmpty(fallback) ? null : fallback;
+    }
+
+    private static byte[] readAll(ContentResolver resolver, Uri uri, int limit) throws Exception {
+        try (InputStream in = resolver.openInputStream(uri)) {
+            if (in == null) {
+                return null;
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int total = 0;
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > limit) {
+                    return null;
+                }
+                out.write(buffer, 0, read);
+            }
+            return out.toByteArray();
+        }
+    }
+
+    private static boolean isImage(String mime, String name) {
+        if (mime != null && mime.toLowerCase(Locale.ROOT).startsWith("image/")) {
+            return true;
+        }
+        if (TextUtils.isEmpty(name)) {
+            return false;
+        }
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                || lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".bmp")
+                || lower.endsWith(".heic") || lower.endsWith(".heif");
+    }
+
+    private static boolean isBinary(byte[] data) {
+        int limit = Math.min(data.length, 4096);
+        for (int a = 0; a < limit; a++) {
+            if (data[a] == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static byte[] compressImage(byte[] raw) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(raw, 0, raw.length, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                return null;
+            }
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 1;
+            while (bounds.outWidth / options.inSampleSize > MAX_IMAGE_SIDE
+                    || bounds.outHeight / options.inSampleSize > MAX_IMAGE_SIDE) {
+                options.inSampleSize *= 2;
+            }
+            Bitmap bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.length, options);
+            if (bitmap == null) {
+                return null;
+            }
+            try {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                for (int quality = 85; quality >= 55; quality -= 10) {
+                    out.reset();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
+                    if (out.size() <= MAX_ATTACHMENT_IMAGE_BYTES) {
+                        return out.toByteArray();
+                    }
+                }
+                return out.size() > 0 ? out.toByteArray() : null;
+            } finally {
+                bitmap.recycle();
+            }
+        } catch (Throwable t) {
+            FileLog.e("PluginAgent: cannot compress the image", t);
+            return null;
         }
     }
 

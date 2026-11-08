@@ -1514,6 +1514,16 @@
     <string name="NM_PluginAgentBadId">В ответе нет корректной константы __id__.</string>
     <string name="NM_PluginAgentReportPrompt">Плагин «%1$s» не работает или в нём баг. Найди причину и пришли исправленный файл целиком.</string>
     <string name="NM_PluginAgentConfigure">Настройте AI-провайдера, чтобы пользоваться агентом.</string>
+    <string name="NM_PluginAgentAttach">Прикрепить файл или фото</string>
+    <string name="NM_PluginAgentAttachPhoto">Фото</string>
+    <string name="NM_PluginAgentAttachFile">Файл</string>
+    <string name="NM_PluginAgentAttachRemove">Убрать вложение</string>
+    <string name="NM_PluginAgentAttachment">Вложение: %1$s</string>
+    <string name="NM_PluginAgentAttachTooBig">Файл слишком большой. Лимит — 256 КБ.</string>
+    <string name="NM_PluginAgentAttachBinary">Можно прикреплять только текстовые файлы и изображения.</string>
+    <string name="NM_PluginAgentAttachFailed">Не удалось прочитать файл.</string>
+    <string name="NM_PluginAgentPhotoPrompt">Посмотри на приложенное фото.</string>
+    <string name="NM_PluginAgentFilePrompt">Приложенный файл «%1$s»:</string>
     <string name="RecentChats">Недавние чаты</string>
     <string name="EnableGhostMode">Включить режим призрака</string>
     <string name="DisableGhostMode">Выключить режим призрака</string>

@@ -37,6 +37,12 @@ public final class Message {
         return mimeType;
     }
 
+    /** Drops the payload while keeping the text, so old pictures stop being resent. */
+    public void clearImage() {
+        imageData = null;
+        mimeType = null;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {

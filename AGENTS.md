@@ -663,6 +663,30 @@ python3 Tools/test_liner.py --json-jar /path/to/org-json.jar
 node tools/liner-lyrics/check.cjs
 ```
 
+## Plugin agent attachments (2026-11-09)
+
+- `PluginAgentActivity` now accepts attachments. An attach button in the input
+  panel opens `ItemOptions` with “Photo” and “File”, both through
+  `ACTION_GET_CONTENT` and `startActivityForResult`, so no runtime permission is
+  requested.
+- Images are decoded, downsampled to 1600 px and re-encoded as JPEG (raw pick is
+  capped at 16 MB); they are sent as
+  `Message(role, text, bytes, mime)` → `image_url` data URL. Files must be text
+  (≤256 KB, UTF-8, NUL scan rejects binaries) and are pasted into the prompt as
+  a fenced block; other binaries are rejected with a bulletin.
+- The attachment chip sits above the input row and shows the file name plus a
+  remove button. Sending with neither text nor attachment does nothing. Old
+  pictures are dropped from `SESSION_HISTORY` beyond the newest two
+  (`Message.clearImage`) so base64 payloads do not accumulate.
+- New strings: `NM_PluginAgentAttach`, `...AttachPhoto`, `...AttachFile`,
+  `...AttachRemove`, `...Attachment`, `...AttachTooBig`, `...AttachBinary`,
+  `...AttachFailed`, `...PhotoPrompt`, `...FilePrompt`, in both locale files.
+- Checks: `Tools/check_braces.py` `+0/+0`, every `R.string` reference resolves,
+  both strings files parse with no duplicate names, javac reports no syntax
+  errors (there is no Android SDK here, so this is not a compile). Not built or
+  installed: a device pass for photo/file attach, vision-model answers and
+  history replay is still required.
+
 ## Privacy
 
 This file is public on GitHub. Include only project instructions and technical

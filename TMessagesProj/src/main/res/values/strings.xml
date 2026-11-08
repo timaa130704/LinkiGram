@@ -12641,6 +12641,16 @@
     <string name="NM_PluginAgentBadId">The answer has no valid __id__ constant.</string>
     <string name="NM_PluginAgentReportPrompt">Plugin “%1$s” does not work or has a bug. Find the cause and send the full corrected file.</string>
     <string name="NM_PluginAgentConfigure">Configure an AI provider to use the agent.</string>
+    <string name="NM_PluginAgentAttach">Attach file or photo</string>
+    <string name="NM_PluginAgentAttachPhoto">Photo</string>
+    <string name="NM_PluginAgentAttachFile">File</string>
+    <string name="NM_PluginAgentAttachRemove">Remove attachment</string>
+    <string name="NM_PluginAgentAttachment">Attachment: %1$s</string>
+    <string name="NM_PluginAgentAttachTooBig">The file is too large. The limit is 256 KB.</string>
+    <string name="NM_PluginAgentAttachBinary">Only text files and images can be attached.</string>
+    <string name="NM_PluginAgentAttachFailed">Could not read the file.</string>
+    <string name="NM_PluginAgentPhotoPrompt">Look at the attached photo.</string>
+    <string name="NM_PluginAgentFilePrompt">Attached file «%1$s»:</string>
     <string name="RecentChats">Recent chats</string>
     <string name="EnableGhostMode">Enable ghost mode</string>
     <string name="DisableGhostMode">Disable ghost mode</string>
