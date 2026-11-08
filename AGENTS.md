@@ -147,6 +147,14 @@
 - `ClientTheme.roundedSurface` (AlertDialog, BottomSheet, popups) uses the
   glass alpha; `UniversalRecyclerView.drawBackgroundRect` fills You section
   cards with `glassColor(SURFACE)`.
+- The docked You bottom bar was still solid in practice: `onApplyWindowInsets`
+  (and `cgTabsUpdated`) reset `tabsView` to a transparent background over the
+  solid `tabsViewWrapper`, undoing the glass set in `updateLayout`.
+  `MainTabsActivity` now paints `tabsViewBackground` in every path
+  (`updateLayout`, `onApplyWindowInsets`, `refreshTabsLiquidGlass`,
+  `blur3_updateColors`, `cgTabsUpdated`) through `glassTabsBackground()`; the
+  wrapper keeps the solid color only for the system navigation strip. The
+  `MainTabsPreviewCell` in the bottom-tabs settings uses the glass fill too.
 - Checks done: `Tools/check_braces.py` `+0/+0` on all 13 changed Java files.
   Committed as `3b5c2499` and pushed to `main`.
 - CI run **42428023278** (`3b5c2499`, ARM64) succeeded. Artifact

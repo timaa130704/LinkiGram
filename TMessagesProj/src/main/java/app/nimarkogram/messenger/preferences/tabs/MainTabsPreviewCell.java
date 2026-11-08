@@ -301,9 +301,12 @@ public class MainTabsPreviewCell extends ViewGroup {
     }
 
     private void applyBackground() {
+        final int color = app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()
+                ? app.nimarkogram.messenger.appearance.ClientTheme.glassColor(
+                        app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)
+                : Theme.getColor(Theme.key_chat_messagePanelBackground, boundResourceProvider);
         setBackground(Theme.createRoundRectDrawable(
-                dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f),
-                Theme.getColor(Theme.key_chat_messagePanelBackground, boundResourceProvider)));
+                dp(DialogsActivity.MAIN_TABS_HEIGHT / 2f), color));
     }
 
     private void onTabClicked(int index, MainTabsManager.TabType type, GlassTabView tab) {
