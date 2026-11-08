@@ -257,6 +257,50 @@
 - Committed as `9db10d6f`; the settings-section fix is a separate commit. No
   device verification: the phone was not touched on request.
 
+## Message menu anchor, plugin AI agent and OpenCode provider (2026-11-09)
+
+- Message context menu placement: `ChatActivity.createMenu` used to open the
+  popup at the touch point (`v.getTop() + y`), so it covered the message. It now
+  anchors to the cell: `v.getBottom() + 8dp` when the popup fits below, otherwise
+  `v.getTop() - 8dp - popupHeight` above, otherwise the side with more free
+  space, then clamped to the list bounds. The `isInsideContainer` (chat in a
+  dialog container) path and the full-height path are unchanged.
+- Plugin AI agent: new `PluginAgentActivity` (chat UI built on `BaseFragment`)
+  and `PluginAgentPrompt` (static SDK description, live installed-plugin
+  catalogue, crash report + source assembly, code/id extraction). Entry points:
+  the `ai_chat` ActionBar icon in `PluginsActivity` and a per-plugin kebab item
+  that opens the agent and immediately reports that plugin. Answers that contain
+  a fenced Python file with `__id__` get an "install" action; the file is
+  written to `files/plugin-agent/<id>.plugin` and passed through
+  `PluginsController.showInstallDialog(fragment, path, false)`, so the normal
+  metadata/dependency validation and the update flow apply. The report path uses
+  the new `PluginCrashReports.reportText()` plus the plugin source. The
+  in-memory conversation is capped at 16 messages / 120k characters and is kept
+  for the app session.
+- OpenCode provider: `Provider.PRESETS` now starts with a keyless
+  `opencode` preset (`OpenCode Zen`, `https://opencode.ai/zen/v1`, model
+  `big-pickle`). `Provider.isKeylessUrl`, `Service.isKeyless()` and
+  `Service.hasCredentials()` allow it to be used without a key;
+  `Client.request` omits the `Authorization` header when the key is empty;
+  `AiController.canUseAI` accepts a keyless service; `AiSettingsActivity` hides
+  the key row for the preset. Because it is the first preset it also becomes
+  `AiConfig.DEFAULT_SERVICE`.
+- Verified against the live gateway from the PC: `GET /zen/v1/models` returns
+  200 without a key (list includes `big-pickle`); `POST /zen/v1/chat/completions`
+  without a key answers 429 `{"type":"error","error":{"type":"FreeUsageLimitError",
+  "message":...}}` for this IP, which the existing `readErrorMessage` surfaces as
+  the menu/test error text. No key, login or token is stored for this provider.
+- Checks: `Tools/check_braces.py` `+0/+0` on all changed Java files, both
+  `strings.xml` parse with no duplicate names, every new `NM_PluginAgent*`
+  reference resolves. No local Gradle/Android SDK, so this was not compiled
+  locally; CI must build it.
+- Not verified: the menu flip above/below on a device, the agent chat, the
+  install of a generated plugin, the crash-report flow, and an actual OpenCode
+  answer from the device IP (free-tier limits are per IP; the test IP is
+  already limited). Treat the whole change as built-but-unverified until the CI
+  APK is installed and those screens are exercised.
+- Committed as `a2fa9af6`.
+
 ## Session export fix (2026-11-08)
 
 - Exporting to the SQLite formats produced a 0-byte document. `SessionFiles.write`
