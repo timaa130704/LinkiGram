@@ -144,9 +144,9 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
         this.engineSettingsItem.setContentDescription(LocaleController.getString(R.string.Settings));
         this.engineSettingsItem.setOnClickListener(view -> presentFragment(new PluginsInfoActivity()));
 
-        this.actionBar.menu.addItem(PLUGIN_AGENT, R.drawable.ai_chat)
-                .setContentDescription(LocaleController.getString(R.string.NM_PluginAgentTitle))
-                .setOnClickListener(view -> presentFragment(new PluginAgentActivity()));
+        ActionBarMenuItem agentItem = this.actionBar.menu.addItem(PLUGIN_AGENT, R.drawable.ai_chat);
+        agentItem.setContentDescription(LocaleController.getString(R.string.NM_PluginAgentTitle));
+        agentItem.setOnClickListener(view -> presentFragment(new PluginAgentActivity()));
         
         this.listView.setOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
