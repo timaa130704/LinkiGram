@@ -299,7 +299,23 @@
   answer from the device IP (free-tier limits are per IP; the test IP is
   already limited). Treat the whole change as built-but-unverified until the CI
   APK is installed and those screens are exercised.
-- Committed as `a2fa9af6`.
+- Committed as `a2fa9af6`. The first CI run **42533251422** failed to compile:
+  in `PluginsActivity` the new ActionBar item chained `setContentDescription`
+  (a `void` `View` method), fixed in `681983ee`.
+- CI run **42533855263** (`681983ee`, ARM64) succeeded. Artifact `linkigram-apk`
+  (ID from run download) verified offline: package `app.linkigram.messenger`,
+  versionName `2.9`, versionCode `202611089`, ZIP integrity OK, v2 RSA signature
+  over the signed data verified with the certificate public key, certificate
+  SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`;
+  APK SHA-256
+  `6b285049f4f0763b4a680ea53839fda1f0c0cd531a4fc55c68b4a027d8bafdf9`.
+  The local chunked-digest reimplementation reports a mismatch even for the
+  already-installed older APK, so it is the script that is wrong; Android's own
+  v2 verification happens at install.
+- Not installed: `adb devices` was empty and no phone was visible in `lsusb`,
+  so the APK was not installed and the new screens remain unverified on a
+  device.
 
 ## Session export fix (2026-11-08)
 
