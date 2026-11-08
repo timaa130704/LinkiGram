@@ -227,7 +227,15 @@
 - Checked by diffing `80dd94a8^` with the merge and with the 13.2.1 reference
   tree; `Tools/check_braces.py` `+0/+0`. Every settings screen built on
   `UniversalFragment`/`UniversalRecyclerView` is affected, not only the main
-  settings list. Not verified on a device yet.
+  settings list.
+- Fixed in `7330d87b`; CI run **42524006442** (ARM64) succeeded. Artifact
+  `app.apk` SHA-256
+  `c33d8f9dad346492672ecb3fbdffd5b8bdf8e392f2419620ec18ee77098ffc05`,
+  package `app.linkigram.messenger`, version `2.9`, code `202611089`,
+  certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`
+  (androguard, offline). Not installed: `adb devices` was empty, so the card
+  shape is still unverified on the device.
 
 ## Selected tab, message-menu blur and session diagnostics (2026-11-09)
 
