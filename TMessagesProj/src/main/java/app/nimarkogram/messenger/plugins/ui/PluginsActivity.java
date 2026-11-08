@@ -69,6 +69,7 @@ import app.nimarkogram.messenger.utils.text.LocaleUtils;
 
 public class PluginsActivity extends BasePreferencesActivity implements NotificationCenter.NotificationCenterDelegate {
     private static final int PLUGIN_SETTINGS = 3;
+    private static final int PLUGIN_AGENT = 4;
     
     private static final int REQ_PICK_PLUGIN = 4711;
     private static final long MAX_PICKER_PLUGIN_BYTES = 4L * 1024L * 1024L;
@@ -142,6 +143,10 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
                 PLUGIN_SETTINGS, R.drawable.msg_settings);
         this.engineSettingsItem.setContentDescription(LocaleController.getString(R.string.Settings));
         this.engineSettingsItem.setOnClickListener(view -> presentFragment(new PluginsInfoActivity()));
+
+        this.actionBar.menu.addItem(PLUGIN_AGENT, R.drawable.ai_chat)
+                .setContentDescription(LocaleController.getString(R.string.NM_PluginAgentTitle))
+                .setOnClickListener(view -> presentFragment(new PluginAgentActivity()));
         
         this.listView.setOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -953,6 +958,9 @@ public class PluginsActivity extends BasePreferencesActivity implements Notifica
                 final boolean hasSettings = plugin.isEnabled()
                         && PluginsController.getInstance().hasPluginSettings(plugin.getId());
                 ItemOptions opts = ItemOptions.makeOptions(PluginsActivity.this, anchor);
+                opts.add(R.drawable.ai_chat,
+                        LocaleController.getString(R.string.NM_PluginAgentTitle),
+                        () -> presentFragment(new PluginAgentActivity(plugin.getId())));
                 if (hasSettings) {
                     opts.add(R.drawable.msg_settings,
                             LocaleController.getString(R.string.Settings),

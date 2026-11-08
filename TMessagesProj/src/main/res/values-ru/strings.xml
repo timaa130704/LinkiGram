@@ -1504,6 +1504,16 @@
     <string name="NM_PluginSafetyManual">Вы включили безопасный режим. Плагины приостановлены — это не значит, что какой-то плагин упал.</string>
     <string name="NM_PluginSafetyRecoveryFailed">Загрузка плагинов остановлена: не удалось сохранить состояние восстановления. Конкретный плагин не определён. Перезапустите приложение и проверьте память.</string>
     <string name="NM_PluginSafetyUnknown">Плагины приостановлены в безопасном режиме. Причина недоступна. Сам по себе безопасный режим не указывает на конкретный плагин.</string>
+    <string name="NM_PluginAgentTitle">AI-агент плагинов</string>
+    <string name="NM_PluginAgentHint">Опишите нужный плагин — агент напишет файл. Если плагин не запускается или в нём баг, отправьте агенту отчёт: он разберёт сбой и пришлёт исправленный код.</string>
+    <string name="NM_PluginAgentInputHint">Опишите плагин…</string>
+    <string name="NM_PluginAgentSend">Отправить</string>
+    <string name="NM_PluginAgentInstall">Установить плагин</string>
+    <string name="NM_PluginAgentReport">Сообщить о проблеме с плагином</string>
+    <string name="NM_PluginAgentNoPlugins">Установленных плагинов нет.</string>
+    <string name="NM_PluginAgentBadId">В ответе нет корректной константы __id__.</string>
+    <string name="NM_PluginAgentReportPrompt">Плагин «%1$s» не работает или в нём баг. Найди причину и пришли исправленный файл целиком.</string>
+    <string name="NM_PluginAgentConfigure">Настройте AI-провайдера, чтобы пользоваться агентом.</string>
     <string name="RecentChats">Недавние чаты</string>
     <string name="EnableGhostMode">Включить режим призрака</string>
     <string name="DisableGhostMode">Выключить режим призрака</string>

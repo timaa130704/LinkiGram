@@ -256,7 +256,7 @@ public class Client {
             notifyError(requestId, callback, 0, "service is not configured");
             return;
         }
-        if (TextUtils.isEmpty(service.getKey())) {
+        if (!service.hasCredentials()) {
             notifyError(requestId, callback, 0, "api key is not set");
             return;
         }
@@ -344,12 +344,15 @@ public class Client {
     private Request request(Service service, JSONObject body) {
         String base = Service.normalizeUrl(service.getUrl());
         String url = base + (base.endsWith("/") ? "chat/completions" : "/chat/completions");
-        return new Request.Builder()
+        Request.Builder builder = new Request.Builder()
                 .url(url)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + service.getKey())
                 .addHeader("HTTP-Referer", "https://github.com/exteraless/exteraless")
-                .addHeader("X-Title", "exteraless")
+                .addHeader("X-Title", "exteraless");
+        if (!TextUtils.isEmpty(service.getKey())) {
+            builder.addHeader("Authorization", "Bearer " + service.getKey());
+        }
+        return builder
                 .post(RequestBody.create(body.toString(), JSON))
                 .build();
     }
@@ -361,7 +364,7 @@ public class Client {
             notifyError(requestId, callback, 0, "service is not configured");
             return;
         }
-        if (TextUtils.isEmpty(service.getKey())) {
+        if (!service.hasCredentials()) {
             notifyError(requestId, callback, 0, "api key is not set");
             return;
         }

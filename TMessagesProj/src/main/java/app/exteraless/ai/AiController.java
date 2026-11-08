@@ -17,7 +17,7 @@ public final class AiController {
 
     public static boolean canUseAI() {
         Service service = AiConfig.getSelectedService();
-        return service != null && !TextUtils.isEmpty(service.getKey())
+        return service != null && service.hasCredentials()
                 && !TextUtils.isEmpty(service.getUrl()) && !TextUtils.isEmpty(service.getModel());
     }
 

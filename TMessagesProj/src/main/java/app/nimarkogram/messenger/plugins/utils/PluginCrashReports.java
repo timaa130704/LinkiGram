@@ -231,6 +231,16 @@ public final class PluginCrashReports {
                 LocaleController.getString(R.string.NM_PluginReportMissing));
     }
 
+    /** Synchronous report text, used by the plugin AI agent. Call it off the UI thread. */
+    public static String reportText(Plugin plugin, Throwable fallback) {
+        if (plugin == null) return null;
+        try {
+            return report(plugin, fallback);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     public static void copyReport(Plugin plugin, Throwable fallback, BaseFragment fragment) {
         if (plugin == null) return;
         submitUi(() -> {

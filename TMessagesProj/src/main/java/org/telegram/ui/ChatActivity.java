@@ -33764,7 +33764,6 @@ public class ChatActivity extends BaseFragment implements
             int minY = (int) (chatListView.getY() + dp(24));
             int maxY = totalHeight - height - dp(8);
             if (height < totalHeight) {
-                popupY = (int) (chatListView.getY() + v.getTop() + y);
                 if (isInsideContainer) {
                     int[] location = new int[2];
                     v.getLocationInWindow(location);
@@ -33773,8 +33772,22 @@ public class ChatActivity extends BaseFragment implements
                     chatListView.getLocationInWindow(location);
                     minY = dp(24);
                     maxY = Math.min(location[1] + chatListView.getMeasuredHeight(), AndroidUtilities.displaySize.y) - dp(8) - height;
-                } else if (height - backgroundPaddings.top - backgroundPaddings.bottom > AndroidUtilities.dp(240)) {
-                    popupY += AndroidUtilities.dp(240) - height;
+                } else {
+                    /* LinkiGram: anchor the message menu right under the pressed message, or
+                     * right above it when there is no room below, instead of letting it cover
+                     * the message by following the touch point. */
+                    final int gap = dp(8);
+                    final int belowY = (int) (chatListView.getY() + v.getBottom() + gap);
+                    final int aboveY = (int) (chatListView.getY() + v.getTop() - gap - height);
+                    final boolean fitsBelow = belowY <= maxY;
+                    final boolean fitsAbove = aboveY >= minY;
+                    if (fitsBelow) {
+                        popupY = belowY;
+                    } else if (fitsAbove) {
+                        popupY = aboveY;
+                    } else {
+                        popupY = maxY - belowY >= aboveY - minY ? belowY : aboveY;
+                    }
                 }
                 popupY = Utilities.clamp(popupY, maxY, minY);
             } else {

@@ -11,6 +11,13 @@ public final class Provider {
     private static final String FAVICON = "https://www.google.com/s2/favicons?domain=%s&sz=64";
 
     public static final List<Provider> PRESETS = new ArrayList<>(Arrays.asList(
+            // Keyless preset: the OpenCode Zen gateway answers without a login and
+            // enforces per-IP free-usage limits instead.
+            new Provider("opencode", "OpenCode Zen",
+                    "https://opencode.ai/zen/v1",
+                    "big-pickle",
+                    null,
+                    "opencode.ai", true),
             new Provider("gemini", "Gemini",
                     "https://generativelanguage.googleapis.com/v1beta/openai",
                     "gemini-3.5-flash",
@@ -38,15 +45,22 @@ public final class Provider {
     private final String model;
     private final String keyUrl;
     private final String iconDomain;
+    private final boolean keyless;
 
     private Provider(String id, String title, String url, String model, String keyUrl,
                      String iconDomain) {
+        this(id, title, url, model, keyUrl, iconDomain, false);
+    }
+
+    private Provider(String id, String title, String url, String model, String keyUrl,
+                     String iconDomain, boolean keyless) {
         this.id = id;
         this.title = title;
         this.url = url;
         this.model = model;
         this.keyUrl = keyUrl;
         this.iconDomain = iconDomain;
+        this.keyless = keyless;
     }
 
     public String getId() {
@@ -71,6 +85,16 @@ public final class Provider {
 
     public String getIconUrl() {
         return TextUtils.isEmpty(iconDomain) ? null : String.format(FAVICON, iconDomain);
+    }
+
+    /** True when the preset works without an API key (for example per-IP free tiers). */
+    public boolean isKeyless() {
+        return keyless;
+    }
+
+    public static boolean isKeylessUrl(String url) {
+        Provider provider = matching(url);
+        return provider != null && provider.isKeyless();
     }
 
     public static Provider matching(String url) {

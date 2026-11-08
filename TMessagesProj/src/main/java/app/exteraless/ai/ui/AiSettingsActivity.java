@@ -124,7 +124,7 @@ public class AiSettingsActivity extends AiSettingsBaseActivity {
         providerRow = addRow("provider");
         urlRow = addRow("url");
         modelRow = addRow("model");
-        keyRow = addRow("key");
+        keyRow = keyless() ? -1 : addRow("key");
         getKeyRow = keyUrl() == null ? -1 : addRow("getKey");
         reasoningRow = addRow("reasoning");
         presetsRow = addRow("presets");
@@ -164,6 +164,12 @@ public class AiSettingsActivity extends AiSettingsBaseActivity {
     private String keyUrl() {
         Provider provider = Provider.matching(service().getUrl());
         return provider == null ? null : provider.getKeyUrl();
+    }
+
+    /** OpenCode Zen and similar presets work without a key, so the key row is hidden. */
+    private boolean keyless() {
+        Provider provider = Provider.matching(service().getUrl());
+        return provider != null && provider.isKeyless();
     }
 
     @Override

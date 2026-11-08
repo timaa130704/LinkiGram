@@ -123,6 +123,16 @@ public class Service implements Serializable {
         this.key = key;
     }
 
+    /** True when the endpoint needs no API key (OpenCode Zen free tier). */
+    public boolean isKeyless() {
+        return TextUtils.isEmpty(key) && Provider.isKeylessUrl(url);
+    }
+
+    /** True when the service can be called: either a key is set or the preset is keyless. */
+    public boolean hasCredentials() {
+        return !TextUtils.isEmpty(key) || Provider.isKeylessUrl(url);
+    }
+
     public boolean isReasoningEnabled() {
         return getReasoningEffort() > 0;
     }

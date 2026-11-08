@@ -12631,6 +12631,16 @@
     <string name="NM_PluginSafetyManual">You enabled safe mode. Plugins are paused; this does not mean a plugin caused a crash.</string>
     <string name="NM_PluginSafetyRecoveryFailed">Plugin loading stopped: recovery state could not be saved. No plugin identified as the cause. Restart the app and check storage.</string>
     <string name="NM_PluginSafetyUnknown">Plugins are paused in safe mode. The reason is unavailable. Safe mode alone does not identify a plugin as the cause.</string>
+    <string name="NM_PluginAgentTitle">Plugin AI agent</string>
+    <string name="NM_PluginAgentHint">Describe the plugin you need. The agent writes the file, and you can report a broken plugin so it debugs the report and the source.</string>
+    <string name="NM_PluginAgentInputHint">Describe the plugin…</string>
+    <string name="NM_PluginAgentSend">Send</string>
+    <string name="NM_PluginAgentInstall">Install plugin</string>
+    <string name="NM_PluginAgentReport">Report a plugin problem</string>
+    <string name="NM_PluginAgentNoPlugins">No plugins installed.</string>
+    <string name="NM_PluginAgentBadId">The answer has no valid __id__ constant.</string>
+    <string name="NM_PluginAgentReportPrompt">Plugin “%1$s” does not work or has a bug. Find the cause and send the full corrected file.</string>
+    <string name="NM_PluginAgentConfigure">Configure an AI provider to use the agent.</string>
     <string name="RecentChats">Recent chats</string>
     <string name="EnableGhostMode">Enable ghost mode</string>
     <string name="DisableGhostMode">Disable ghost mode</string>
