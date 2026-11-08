@@ -1394,7 +1394,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                             tabsView.setBackground(tabsViewBackground);
                         }
                     } else {
-                        tabsView.setBackground(Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
+                        final android.graphics.drawable.Drawable glassTabs = glassTabsBackground();
+                        tabsView.setBackground(glassTabs != null ? glassTabs
+                                : Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
                     }
                 }
             }
@@ -1639,8 +1641,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         }
 
         final int updateLayoutHeight = updateLayoutWrapper != null && updateLayoutWrapper.isUpdateLayoutVisible() ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
-        final int bottom = contentView.getHeight() - navigationBarHeight - updateLayoutHeight - dp(DialogsActivity.MAIN_TABS_MARGIN);
-        final int top = bottom - dp(DialogsActivity.MAIN_TABS_HEIGHT);
+        // The capture follows the bar that is actually shown: the floating pill has its margin,
+        // a docked bar sits right on the navigation strip and is taller than the pill.
+        final int barMargin = tabsDocked ? 0 : dp(DialogsActivity.MAIN_TABS_MARGIN);
+        final int barHeight = tabsDocked && tabsView != null && tabsView.getHeight() > 0
+                ? tabsView.getHeight() : dp(DialogsActivity.MAIN_TABS_HEIGHT);
+        final int bottom = contentView.getHeight() - navigationBarHeight - updateLayoutHeight - barMargin;
+        final int top = bottom - barHeight;
 
         for (int a = 0, N = fragmentsArr.size(); a < N; a++) {
             final BaseFragment fragment = fragmentsArr.valueAt(a).fragment;

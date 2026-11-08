@@ -39,6 +39,13 @@ public class BlurredBackgroundProviderImpl {
                 if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
                     return Theme.getColor(Theme.key_windowBackgroundWhite, r) | 0xFF000000;
                 }
+                if (ClientTheme.glassEnabled()) {
+                    // Linki Glass over the You layer: the bar is a lens over the page, so its fill
+                    // has to stay translucent. Solving it to the solid glass target at 0.85 alpha
+                    // produced a plain slab with the blurred page hidden behind it.
+                    return Theme.multAlpha(Theme.getColor(Theme.key_glass_targetMainTabs, r),
+                            isDark ? 0.42f : 0.34f);
+                }
                 final float alpha = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0.85f : 0.76f;
                 final int colorBg = Theme.getColor(Theme.key_windowBackgroundWhite, r);
                 final int colorTarget = Theme.getColor(Theme.key_glass_targetMainTabs, r);

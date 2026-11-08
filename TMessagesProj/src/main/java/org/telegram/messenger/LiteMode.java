@@ -398,8 +398,11 @@ public class LiteMode {
     }
 
     private static int powerSaverValue() {
-        // Glass follows the user's saved switch even when automatic saving starts.
-        return PRESET_POWER_SAVER | (value & FLAG_LIQUID_GLASS);
+        // Glass follows the user's saved switch even when automatic saving starts: keeping the
+        // glass flag without the blur it is built on leaves flat translucent rectangles behind
+        // the panels instead of glass, so the blur flag is kept with it.
+        final int glass = value & FLAG_LIQUID_GLASS;
+        return PRESET_POWER_SAVER | glass | (glass != 0 ? FLAG_CHAT_BLUR : 0);
     }
 
     private static void onFlagsUpdate(int oldValue, int newValue) {
