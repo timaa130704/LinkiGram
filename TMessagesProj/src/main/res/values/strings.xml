@@ -13213,4 +13213,22 @@
     <string name="FpnvConsentCountry">Country</string>
     <string name="FpnvConsentMccMnc">MCC / MNC</string>
     <string name="FpnvConsentPhoneNumber">Phone Number</string>
+    <!-- Account session import/export -->
+    <string name="SessionTransferButton">Session</string>
+    <string name="SessionTransferLogin">Log in with a session</string>
+    <string name="SessionTransferFile">Telethon / Pyrogram file (.session)</string>
+    <string name="SessionTransferTdata">tdata archive (.zip)</string>
+    <string name="SessionTransferExport">Export account session</string>
+    <string name="SessionTransferPasscode">Desktop local passcode (optional)</string>
+    <string name="SessionTransferPasscodeInfo">Leave empty if Telegram Desktop has no local passcode. This is not your Telegram two-step verification password.</string>
+    <string name="SessionTransferSelectAccount">Select an account</string>
+    <string name="SessionTransferImportWarning">Only import your own session. This will reuse its authorization. Do not run clients with the same authorization at the same time: Telegram may revoke it.</string>
+    <string name="SessionTransferExportWarning">The exported file grants full access to your account without a login code or two-step verification password. Save it only to a location you trust. Revoke this device in Telegram if the file is exposed.</string>
+    <string name="SessionTransferInvalid">Invalid session. Check the format, 256-byte auth key and DC ID (1–5). Production user accounts only.</string>
+    <string name="SessionTransferFileError">Cannot read the document. Select a standalone Telethon or Pyrogram .session database, closed cleanly by its client.</string>
+    <string name="SessionTransferTdataError">Cannot read tdata. Check the local passcode and ZIP contents (key_data and account authorization files). Remove cache files if the archive exceeds 64 MB unpacked.</string>
+    <string name="SessionTransferLoginError">Session verification failed or timed out. Check your connection, DC ID and whether the authorization is still valid.</string>
+    <string name="SessionTransferAlreadyAdded">This account or authorization is already added.</string>
+    <string name="SessionTransferExportError">Could not export the session. Check the destination and available space. The destination may contain an incomplete file.</string>
+    <string name="SessionTransferExported">Session exported</string>
 </resources>

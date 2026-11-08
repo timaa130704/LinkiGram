@@ -1125,6 +1125,12 @@ public class ConnectionsManager extends BaseController {
     public static native long native_getCurrentTimeMillis(int currentAccount);
     public static native int native_getCurrentTime(int currentAccount);
     public static native int native_getCurrentPingTime(int currentAccount);
+    @Keep
+    public interface SessionCallback {
+        @Keep void onResult(byte[] result);
+    }
+    public static native void native_importSession(int account, int dcId, byte[] key, SessionCallback callback);
+    public static native void native_exportSession(int account, SessionCallback callback);
     public static native int native_getCurrentDatacenterId(int currentAccount);
     public static native long native_getCurrentAuthKeyId(int currentAccount);
     public static native int native_getTimeDifference(int currentAccount);

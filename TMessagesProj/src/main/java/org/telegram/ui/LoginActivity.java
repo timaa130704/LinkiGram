@@ -244,6 +244,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             AUTH_TYPE_WORD = 16,
             AUTH_TYPE_PHRASE = 17;
 
+    private org.telegram.messenger.sessions.SessionTransfer sessionTransfer;
+
     private final static int MODE_LOGIN = 0,
             MODE_CANCEL_ACCOUNT_DELETION = 1,
             MODE_CHANGE_PHONE_NUMBER = 2,
@@ -534,6 +536,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public void onFragmentDestroy() {
+        if (sessionTransfer != null) sessionTransfer.destroy();
         super.onFragmentDestroy();
         for (int a = 0; a < views.length; a++) {
             if (views[a] != null) {
@@ -1198,6 +1201,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (sessionTransfer != null && sessionTransfer.onActivityResult(requestCode, resultCode, data)) return;
         LoginActivityRegisterView registerView = (LoginActivityRegisterView) views[VIEW_REGISTER];
         if (registerView != null) {
             registerView.imageUpdater.onActivityResult(requestCode, resultCode, data);
@@ -1700,6 +1704,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private boolean pendingSwitchingAccount;
 
     private void onAuthSuccess(TLRPC.TL_auth_authorization res, boolean afterSignup) {
+        if (sessionTransfer != null && sessionTransfer.isBusy()) return;
         MessagesController.getInstance(currentAccount).cleanup();
         ConnectionsManager.getInstance(currentAccount).setUserId(res.user.id);
         UserConfig.getInstance(currentAccount).clearConfig();
@@ -2512,7 +2517,24 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 return false;
             });
 
-            int bottomMargin = 72;
+            if (activityMode == MODE_LOGIN) {
+                ButtonWithCounterView sessionButton = new ButtonWithCounterView(context, getResourceProvider());
+                sessionButton.setRound();
+                sessionButton.setText(getString(R.string.SessionTransferLogin), false);
+                sessionButton.setOnClickListener(v -> {
+                    if (sessionTransfer == null) {
+                        sessionTransfer = new org.telegram.messenger.sessions.SessionTransfer(LoginActivity.this, user -> {
+                            TLRPC.TL_auth_authorization authorization = new TLRPC.TL_auth_authorization();
+                            authorization.user = user;
+                            onAuthSuccess(authorization);
+                        });
+                    }
+                    sessionTransfer.showImport();
+                });
+                addView(sessionButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 46, 16, 16, 16, 8));
+            }
+
+            int bottomMargin = activityMode == MODE_LOGIN ? 2 : 72;
             if (newAccount && activityMode == MODE_LOGIN) {
                 syncContactsBox = new CheckBoxCell(context, 2);
                 syncContactsBox.setText(getString("SyncContacts", R.string.SyncContacts), "", syncContacts, false);

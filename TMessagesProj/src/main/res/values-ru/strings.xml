@@ -1712,4 +1712,22 @@
     <string name="LinkiYouSystemColor">Использовать цвета системы</string>
     <string name="LinkiYouColorsInfo">Из акцентного цвета создаётся палитра Material You для светлой и тёмной темы.</string>
     <string name="LinkiYouLayout">Расположение</string>
+    <!-- Account session import/export -->
+    <string name="SessionTransferButton">Сессия</string>
+    <string name="SessionTransferLogin">Войти через сессию</string>
+    <string name="SessionTransferFile">Файл Telethon / Pyrogram (.session)</string>
+    <string name="SessionTransferTdata">Архив tdata (.zip)</string>
+    <string name="SessionTransferExport">Экспорт сессии аккаунта</string>
+    <string name="SessionTransferPasscode">Локальный пароль Desktop (необязательно)</string>
+    <string name="SessionTransferPasscodeInfo">Оставьте пустым, если в Telegram Desktop нет локального пароля. Это не облачный пароль Telegram.</string>
+    <string name="SessionTransferSelectAccount">Выберите аккаунт</string>
+    <string name="SessionTransferImportWarning">Импортируйте только свою сессию. Будет использована её авторизация. Не запускайте клиенты с одной авторизацией одновременно: Telegram может её отозвать.</string>
+    <string name="SessionTransferExportWarning">Экспортированный файл даёт полный доступ к аккаунту без кода входа и облачного пароля. Сохраняйте его только в надёжном месте. При утечке завершите сессию этого устройства в Telegram.</string>
+    <string name="SessionTransferInvalid">Некорректная сессия. Проверьте формат, Auth Key (512 hex-символов) и DC ID (1–5). Поддерживаются только пользовательские аккаунты основной сети.</string>
+    <string name="SessionTransferFileError">Не удалось прочитать файл. Выберите отдельную базу .session Telethon или Pyrogram, корректно закрытую её клиентом.</string>
+    <string name="SessionTransferTdataError">Не удалось прочитать tdata. Проверьте локальный пароль и содержимое ZIP (key_data и файлы авторизации аккаунтов). Удалите кэш, если распакованный архив превышает 64 МБ.</string>
+    <string name="SessionTransferLoginError">Проверка сессии не удалась или истекло время ожидания. Проверьте подключение, DC ID и действительность авторизации.</string>
+    <string name="SessionTransferAlreadyAdded">Этот аккаунт или авторизация уже добавлены.</string>
+    <string name="SessionTransferExportError">Не удалось экспортировать сессию. Проверьте место сохранения и свободную память. По выбранному пути мог остаться неполный файл.</string>
+    <string name="SessionTransferExported">Сессия экспортирована</string>
 </resources>

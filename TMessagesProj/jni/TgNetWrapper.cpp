@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <algorithm>
 #include "tgnet/ApiScheme.h"
 #include "tgnet/BuffersStorage.h"
 #include "tgnet/NativeByteBuffer.h"
@@ -96,6 +97,51 @@ jint getCurrentDatacenterId(JNIEnv *env, jclass c, jint instanceNum) {
 
 jlong getCurrentAuthKeyId(JNIEnv *env, jclass c, jint instanceNum) {
     return ConnectionsManager::getInstance(instanceNum).getCurrentAuthKeyId();
+}
+
+// SessionCallback is kept from shrinking/renaming on the Java side.
+void deliverSessionResult(int instanceNum, jobject callback, jmethodID method, uint32_t dc, std::vector<uint8_t> key, bool success) {
+    JNIEnv *env = jniEnv[instanceNum];
+    jbyteArray result = nullptr;
+    if (success) {
+        result = env->NewByteArray(key.empty() ? 0 : 260);
+        if (!key.empty() && result != nullptr) {
+            jbyte header[4] = {(jbyte) (dc >> 24), (jbyte) (dc >> 16), (jbyte) (dc >> 8), (jbyte) dc};
+            env->SetByteArrayRegion(result, 0, 4, header);
+            env->SetByteArrayRegion(result, 4, 256, reinterpret_cast<jbyte *>(key.data()));
+        }
+    }
+    std::fill(key.begin(), key.end(), 0);
+    env->CallVoidMethod(callback, method, result);
+    if (result != nullptr) env->DeleteLocalRef(result);
+    env->DeleteGlobalRef(callback);
+}
+
+void importSession(JNIEnv *env, jclass c, jint instanceNum, jint dcId, jbyteArray authKey, jobject callback) {
+    if (authKey == nullptr || env->GetArrayLength(authKey) != 256 || callback == nullptr) return;
+    std::vector<uint8_t> key(256);
+    env->GetByteArrayRegion(authKey, 0, 256, reinterpret_cast<jbyte *>(key.data()));
+    jclass cls = env->GetObjectClass(callback);
+    jmethodID method = env->GetMethodID(cls, "onResult", "([B)V");
+    env->DeleteLocalRef(cls);
+    if (method == nullptr) return;
+    jobject ref = env->NewGlobalRef(callback);
+    ConnectionsManager::getInstance(instanceNum).importSession(dcId, std::move(key), [instanceNum, ref, method](bool ok) {
+        deliverSessionResult(instanceNum, ref, method, 0, {}, ok);
+    });
+}
+
+void exportSession(JNIEnv *env, jclass c, jint instanceNum, jobject callback) {
+    if (callback == nullptr) return;
+    jclass cls = env->GetObjectClass(callback);
+    jmethodID method = env->GetMethodID(cls, "onResult", "([B)V");
+    env->DeleteLocalRef(cls);
+    if (method == nullptr) return;
+    jobject ref = env->NewGlobalRef(callback);
+    ConnectionsManager::getInstance(instanceNum).exportSession([instanceNum, ref, method](uint32_t dc, std::vector<uint8_t> key) {
+        bool ok = key.size() == 256;
+        deliverSessionResult(instanceNum, ref, method, dc, std::move(key), ok);
+    });
 }
 
 jint isTestBackend(JNIEnv *env, jclass c, jint instanceNum) {
@@ -520,6 +566,8 @@ void setJava(JNIEnv *env, jclass c, jboolean useJavaByteBuffers) {
 
 static const char *ConnectionsManagerClassPathName = "org/telegram/tgnet/ConnectionsManager";
 static JNINativeMethod ConnectionsManagerMethods[] = {
+        {"native_importSession", "(II[BLorg/telegram/tgnet/ConnectionsManager$SessionCallback;)V", (void *) importSession},
+        {"native_exportSession", "(ILorg/telegram/tgnet/ConnectionsManager$SessionCallback;)V", (void *) exportSession},
         {"native_getCurrentTimeMillis", "(I)J", (void *) getCurrentTimeMillis},
         {"native_getCurrentTime", "(I)I", (void *) getCurrentTime},
         {"native_getCurrentPingTime", "(I)I", (void *) getCurrentPingTime},

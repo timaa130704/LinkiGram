@@ -127,3 +127,9 @@
 -keep class org.vosk.** { *; }
 -keep class com.sun.jna.** { *; }
 -dontwarn com.sun.jna.**
+
+# JNI session portability callbacks, including lambda implementations.
+-keep interface org.telegram.tgnet.ConnectionsManager$SessionCallback { *; }
+-keepclassmembers class * implements org.telegram.tgnet.ConnectionsManager$SessionCallback {
+    public void onResult(byte[]);
+}

@@ -110,6 +110,8 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
     private ArrayList<TLObject> passwordSessions = new ArrayList<>();
     private ArrayList<TL_account.TL_connectedBot> bots = new ArrayList<>();
     private TLRPC.TL_authorization currentSession;
+    private int exportSessionRow = -1;
+    private org.telegram.messenger.sessions.SessionTransfer sessionTransfer;
     private boolean loading;
     private UndoView undoView;
 //    private RecyclerItemsEnterAnimator itemsEnterAnimator;
@@ -177,8 +179,15 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
 
     @Override
     public void onFragmentDestroy() {
+        if (sessionTransfer != null) sessionTransfer.destroy();
         super.onFragmentDestroy();
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.newSessionReceived);
+    }
+
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (sessionTransfer != null && sessionTransfer.onActivityResult(requestCode, resultCode, data)) return;
+        super.onActivityResultFragment(requestCode, resultCode, data);
     }
 
     @Override
@@ -262,7 +271,10 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         itemAnimator.setDelayAnimations(false);
         listView.setItemAnimator(itemAnimator);
         listView.setOnItemClickListener((view, position) -> {
-            if (position == ttlRow) {
+            if (position == exportSessionRow) {
+                if (sessionTransfer == null) sessionTransfer = new org.telegram.messenger.sessions.SessionTransfer(this, null);
+                sessionTransfer.showExport();
+            } else if (position == ttlRow) {
                 if (getParentActivity() == null) {
                     return;
                 }
@@ -781,6 +793,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         rowCount = 0;
         currentSessionSectionRow = -1;
         currentSessionRow = -1;
+        exportSessionRow = -1;
         terminateAllSessionsRow = -1;
         terminateAllSessionsDetailRow = -1;
         passwordSessionsSectionRow = -1;
@@ -814,6 +827,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         if (currentSession != null) {
             currentSessionSectionRow = rowCount++;
             currentSessionRow = rowCount++;
+            if (currentType == 0) exportSessionRow = rowCount++;
         }
 
 
@@ -882,7 +896,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int position = holder.getAdapterPosition();
-            return position == terminateAllSessionsRow || position >= otherSessionsStartRow && position < otherSessionsEndRow || position >= botSessionsStartRow && position < botSessionsEndRow || position >= passwordSessionsStartRow && position < passwordSessionsEndRow || position == currentSessionRow || position == ttlRow;
+            return position == exportSessionRow || position == terminateAllSessionsRow || position >= otherSessionsStartRow && position < otherSessionsEndRow || position >= botSessionsStartRow && position < botSessionsEndRow || position >= passwordSessionsStartRow && position < passwordSessionsEndRow || position == currentSessionRow || position == ttlRow;
         }
 
         @Override
@@ -922,7 +936,11 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
             switch (holder.getItemViewType()) {
                 case VIEW_TYPE_TEXT:
                     TextCell textCell = (TextCell) holder.itemView;
-                    if (position == terminateAllSessionsRow) {
+                    if (position == exportSessionRow) {
+                        textCell.setColors(Theme.key_windowBackgroundWhiteBlueText4, Theme.key_windowBackgroundWhiteBlueText4);
+                        textCell.setTag(Theme.key_windowBackgroundWhiteBlueText4);
+                        textCell.setTextAndIcon(getString(R.string.SessionTransferExport), R.drawable.msg_download, false);
+                    } else if (position == terminateAllSessionsRow) {
                         textCell.setColors(Theme.key_text_RedRegular, Theme.key_text_RedRegular);
                         textCell.setTag(Theme.key_text_RedRegular);
                         if (currentType == 0) {
@@ -996,7 +1014,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                 default:
                     SessionCell sessionCell = (SessionCell) holder.itemView;
                     if (position == currentSessionRow) {
-                        sessionCell.setSession(currentSession != null ? currentSession : createLocalSession(), !sessions.isEmpty() || !passwordSessions.isEmpty() || qrCodeRow != -1);
+                        sessionCell.setSession(currentSession != null ? currentSession : createLocalSession(), exportSessionRow != -1 || !sessions.isEmpty() || !passwordSessions.isEmpty() || qrCodeRow != -1);
                     } else if (position >= otherSessionsStartRow && position < otherSessionsEndRow) {
                         sessionCell.setSession(sessions.get(position - otherSessionsStartRow), position != otherSessionsEndRow - 1);
                     } else if (position >= botSessionsStartRow && position < botSessionsEndRow) {
@@ -1035,6 +1053,8 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                 return Objects.hash(0, 9);
             } else if (position == ttlHeaderRow) {
                 return Objects.hash(0, 10);
+            } else if (position == exportSessionRow) {
+                return Objects.hash(0, 14);
             } else if (position == currentSessionRow) {
                 return Objects.hash(0, 11);
             } else if (position >= otherSessionsStartRow && position < otherSessionsEndRow) {
@@ -1064,7 +1084,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
 
         @Override
         public int getItemViewType(int position) {
-            if (position == terminateAllSessionsRow) {
+            if (position == terminateAllSessionsRow || position == exportSessionRow) {
                 return VIEW_TYPE_TEXT;
             } else if (position == terminateAllSessionsDetailRow || position == otherSessionsTerminateDetail || position == passwordSessionsDetailRow || position == qrCodeDividerRow || position == ttlDivideRow || position == noOtherSessionsRow) {
                 return VIEW_TYPE_INFO;

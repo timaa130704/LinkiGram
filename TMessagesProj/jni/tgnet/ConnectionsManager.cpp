@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <memory.h>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
 #include <zlib.h>
 #include <memory>
 #include <string>
@@ -4036,6 +4037,52 @@ void ConnectionsManager::reconnect(int32_t dcId, int32_t connectionType) {
                 connection->suspendConnection(true);
             }
         }
+    });
+}
+
+// All key access happens on the account's network thread.
+void ConnectionsManager::importSession(uint32_t dcId, std::vector<uint8_t> key, std::function<void(bool)> done) {
+    scheduleTask([this, dcId, key = std::move(key), done]() mutable {
+        Datacenter *dc = getDatacenterWithId(dcId);
+        if (currentUserId != 0 || testBackend || dcId < 1 || dcId > 5 || key.size() != 256 || dc == nullptr) {
+            std::fill(key.begin(), key.end(), 0);
+            done(false);
+            return;
+        }
+        // Discard any in-flight phone/QR login; it must not overwrite the imported authorization.
+        requestsQueue.clear();
+        runningRequests.clear();
+        quickAckIdToRequestIds.clear();
+        movingToDatacenterId = DEFAULT_DATACENTER_ID;
+        movingAuthorization.reset();
+        for (auto &entry : datacenters) {
+            entry.second->suspendConnections(true);
+            entry.second->clearAuthKey(HandshakeTypeAll);
+            entry.second->recreateSessions(HandshakeTypeAll);
+            entry.second->authorized = false;
+        }
+        uint8_t hash[SHA_DIGEST_LENGTH];
+        SHA1(key.data(), key.size(), hash);
+        dc->authKeyPerm = new ByteArray(key.data(), (uint32_t) key.size());
+        dc->authKeyPermId = 0;
+        for (int i = 0; i < 8; ++i) dc->authKeyPermId |= (int64_t) ((uint64_t) hash[12 + i] << (8 * i));
+        std::fill(key.begin(), key.end(), 0);
+        dc->authorized = true;
+        dc->resetInitVersion();
+        currentDatacenterId = dcId;
+        saveConfig();
+        done(true);
+    });
+}
+
+void ConnectionsManager::exportSession(std::function<void(uint32_t, std::vector<uint8_t>)> done) {
+    scheduleTask([this, done] {
+        Datacenter *dc = getDatacenterWithId(currentDatacenterId);
+        if (testBackend || currentUserId == 0 || dc == nullptr || dc->authKeyPerm == nullptr || dc->authKeyPerm->length != 256) {
+            done(0, {});
+            return;
+        }
+        done(currentDatacenterId, std::vector<uint8_t>(dc->authKeyPerm->bytes, dc->authKeyPerm->bytes + 256));
     });
 }
 
