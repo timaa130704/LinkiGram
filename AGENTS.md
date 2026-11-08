@@ -316,6 +316,18 @@
 - Not installed: `adb devices` was empty and no phone was visible in `lsusb`,
   so the APK was not installed and the new screens remain unverified on a
   device.
+- Free models in the picker (2026-11-09, after the build above): the gateway
+  serves several free models (`big-pickle`, `*-free`, ...) next to paid ones.
+  `Client.listModelsInfo` parses the endpoint metadata (`name`,
+  `cost.text.input/output.price`, `limit.context`,
+  `capabilities.reasoning.supported`) into `RemoteModel`; `AiModelPicker` sorts
+  free models first, shows a green `Free`/`Бесплатно` badge, prefers the endpoint
+  display names (models.dev is the fallback) and, for keyless presets, lists
+  only free models. A keyless endpoint that publishes no prices (local servers)
+  keeps the full list, and a typed model id is always accepted.
+  `Client.listModels` stays as an id-only wrapper. `Tools/check_braces.py`
+  `+0/+0`, both strings files parse. Not built or installed yet; the next CI run
+  must cover it.
 
 ## Session export fix (2026-11-08)
 

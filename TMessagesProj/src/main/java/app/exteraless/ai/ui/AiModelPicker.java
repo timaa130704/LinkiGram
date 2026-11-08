@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.Locale;
 
 import app.exteraless.ai.data.ModelInfo;
+import app.exteraless.ai.data.RemoteModel;
 import app.exteraless.ai.network.Client;
 import app.exteraless.ai.network.ModelsCatalog;
 
@@ -48,11 +49,11 @@ public class AiModelPicker extends BottomSheet {
     private final TextView emptyView;
     private final Adapter adapter;
 
-    private final ArrayList<String> models = new ArrayList<>();
-    private final ArrayList<String> filtered = new ArrayList<>();
+    private final ArrayList<RemoteModel> models = new ArrayList<>();
+    private final ArrayList<RemoteModel> filtered = new ArrayList<>();
     private String query = "";
     private String typed = "";
-    private String customModel;
+    private RemoteModel customModel;
     private String loadError;
 
     public static void show(Context context, Theme.ResourcesProvider resourcesProvider,
@@ -120,7 +121,7 @@ public class AiModelPicker extends BottomSheet {
                 return;
             }
             if (onPick != null) {
-                onPick.run(filtered.get(position));
+                onPick.run(filtered.get(position).getId());
             }
             dismiss();
         });
@@ -146,7 +147,7 @@ public class AiModelPicker extends BottomSheet {
 
     private void load() {
         ModelsCatalog.load(loaded -> applyFilter());
-        new Client.Builder().build().listModels((list, error) -> {
+        new Client.Builder().build().listModelsInfo((list, error) -> {
             progressView.setVisibility(View.GONE);
             loadError = TextUtils.isEmpty(error) ? null : error;
             models.clear();
@@ -160,23 +161,35 @@ public class AiModelPicker extends BottomSheet {
     private void applyFilter() {
         filtered.clear();
         boolean exact = false;
-        for (String model : models) {
-            if (query.isEmpty() || model.toLowerCase(Locale.ROOT).contains(query)) {
+        ArrayList<RemoteModel> matched = new ArrayList<>();
+        for (RemoteModel model : models) {
+            String id = model.getId();
+            if (query.isEmpty()
+                    || id.toLowerCase(Locale.ROOT).contains(query)
+                    || model.getName().toLowerCase(Locale.ROOT).contains(query)) {
+                matched.add(model);
+            }
+            exact = exact || id.equalsIgnoreCase(typed);
+        }
+        /*
+         * Without a key the gateway only serves its free models, so a keyless
+         * preset lists those. When the endpoint publishes no prices at all the
+         * full list is kept, so local/self-hosted servers are not emptied.
+         */
+        boolean freeOnly = keylessService() && matched.stream().anyMatch(RemoteModel::isFree);
+        for (RemoteModel model : matched) {
+            if (!freeOnly || model.isFree()) {
                 filtered.add(model);
             }
-            exact = exact || model.equalsIgnoreCase(typed);
         }
         Collections.sort(filtered, (first, second) -> {
-            ModelInfo firstInfo = ModelsCatalog.get(first);
-            ModelInfo secondInfo = ModelsCatalog.get(second);
-            if ((firstInfo == null) != (secondInfo == null)) {
-                return firstInfo == null ? 1 : -1;
+            if (first.isFree() != second.isFree()) {
+                return first.isFree() ? -1 : 1;
             }
-            String firstName = firstInfo == null ? first : firstInfo.getName();
-            String secondName = secondInfo == null ? second : secondInfo.getName();
-            return firstName.compareToIgnoreCase(secondName);
+            return displayName(first).compareToIgnoreCase(displayName(second));
         });
-        customModel = typed.isEmpty() || exact ? null : typed;
+        customModel = typed.isEmpty() || exact
+                ? null : new RemoteModel(typed, typed, false, false, 0);
         if (customModel != null) {
             filtered.add(0, customModel);
         }
@@ -185,6 +198,20 @@ public class AiModelPicker extends BottomSheet {
             emptyView.setText(loadError == null ? getString(R.string.OEAiModelsEmpty) : loadError);
         }
         adapter.notifyDataSetChanged();
+    }
+
+    private static boolean keylessService() {
+        app.exteraless.ai.data.Service service = app.exteraless.ai.AiConfig.getSelectedService();
+        return service != null && service.isKeyless();
+    }
+
+    /** Endpoint name when it is meaningful, otherwise the models.dev name, then the id. */
+    private static String displayName(RemoteModel model) {
+        if (!TextUtils.equals(model.getName(), model.getId())) {
+            return model.getName();
+        }
+        ModelInfo info = ModelsCatalog.get(model.getId());
+        return info == null || TextUtils.isEmpty(info.getName()) ? model.getId() : info.getName();
     }
 
     private static String shortContext(long context) {
@@ -243,18 +270,18 @@ public class AiModelPicker extends BottomSheet {
                     LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 10, 0, 0, 0));
         }
 
-        public void bind(String modelId) {
-            if (modelId.equals(customModel)) {
-                nameView.setText(modelId);
+        public void bind(RemoteModel model) {
+            if (model == customModel) {
+                nameView.setText(model.getId());
                 nameView.setTypeface(AndroidUtilities.bold());
                 idView.setText(getString(R.string.OEAiModelUseCustom));
                 idView.setVisibility(VISIBLE);
                 badgeView.setVisibility(GONE);
                 return;
             }
-            ModelInfo info = ModelsCatalog.get(modelId);
-            String title = info == null ? modelId : info.getName();
-            boolean reasoning = info != null && info.isReasoning();
+            ModelInfo info = ModelsCatalog.get(model.getId());
+            String title = displayName(model);
+            boolean reasoning = model.isReasoning() || (info != null && info.isReasoning());
             if (reasoning) {
                 SpannableStringBuilder builder = new SpannableStringBuilder("\u2726 ");
                 builder.setSpan(new ForegroundColorSpan(
@@ -265,13 +292,28 @@ public class AiModelPicker extends BottomSheet {
             } else {
                 nameView.setText(title);
             }
-            nameView.setTypeface(TextUtils.equals(modelId, currentModel)
+            nameView.setTypeface(TextUtils.equals(model.getId(), currentModel)
                     ? AndroidUtilities.bold() : null);
-            idView.setText(modelId);
-            idView.setVisibility(TextUtils.equals(title, modelId) ? GONE : VISIBLE);
-            String badge = info == null ? "" : shortContext(info.getContext());
-            badgeView.setText(badge);
-            badgeView.setVisibility(TextUtils.isEmpty(badge) ? GONE : VISIBLE);
+            idView.setText(model.getId());
+            idView.setVisibility(TextUtils.equals(title, model.getId()) ? GONE : VISIBLE);
+            if (model.isFree()) {
+                badgeView.setText(getString(R.string.OEAiModelFree));
+                bindBadgeColor(Theme.key_windowBackgroundWhiteGreenText);
+                badgeView.setVisibility(VISIBLE);
+            } else {
+                long context = model.getContext() > 0
+                        ? model.getContext() : (info == null ? 0 : info.getContext());
+                String badge = context == 0 ? "" : shortContext(context);
+                badgeView.setText(badge);
+                bindBadgeColor(Theme.key_dialogTextGray2);
+                badgeView.setVisibility(TextUtils.isEmpty(badge) ? GONE : VISIBLE);
+            }
+        }
+
+        private void bindBadgeColor(int colorKey) {
+            int color = getThemedColor(colorKey);
+            badgeView.setTextColor(color);
+            badgeView.setBackground(Theme.createRoundRectDrawable(dp(4), Theme.multAlpha(color, 0.14f)));
         }
 
         @Override

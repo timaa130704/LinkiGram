@@ -13001,6 +13001,7 @@
 <string name="OEAiModelSearchOrEnter">Search or type a model</string>
 
 <string name="OEAiModelUseCustom">Use this model</string>
+<string name="OEAiModelFree">Free</string>
 
 <string name="OEAiReasoningOff">Off</string>
 

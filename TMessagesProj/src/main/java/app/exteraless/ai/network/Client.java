@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.exteraless.ai.AiConfig;
 import app.exteraless.ai.data.Message;
+import app.exteraless.ai.data.RemoteModel;
 import app.exteraless.ai.data.Role;
 import app.exteraless.ai.data.Service;
 import okhttp3.Call;
@@ -117,6 +118,25 @@ public class Client {
     }
 
     public void listModels(Utilities.Callback2<List<String>, String> callback) {
+        listModelsInfo((models, error) -> {
+            if (models == null) {
+                callback.run(null, error);
+                return;
+            }
+            ArrayList<String> ids = new ArrayList<>(models.size());
+            for (RemoteModel model : models) {
+                ids.add(model.getId());
+            }
+            callback.run(ids, null);
+        });
+    }
+
+    /**
+     * Loads the model list with the metadata the endpoint publishes (display
+     * name, free flag, context, reasoning support). Keyless gateways expose
+     * several free models this way, which the picker marks.
+     */
+    public void listModelsInfo(Utilities.Callback2<List<RemoteModel>, String> callback) {
         final Service service = service();
         if (service == null || TextUtils.isEmpty(service.getUrl())) {
             AndroidUtilities.runOnUIThread(() -> callback.run(null, "service is not configured"));
@@ -152,14 +172,28 @@ public class Client {
                         return;
                     }
                     JSONArray data = new JSONObject(body.string()).optJSONArray("data");
-                    final ArrayList<String> models = new ArrayList<>();
+                    final ArrayList<RemoteModel> models = new ArrayList<>();
                     if (data != null) {
                         for (int a = 0; a < data.length(); a++) {
                             JSONObject item = data.optJSONObject(a);
                             String id = text(item, "id");
-                            if (!TextUtils.isEmpty(id)) {
-                                models.add(id);
+                            if (TextUtils.isEmpty(id)) {
+                                continue;
                             }
+                            String name = text(item, "name");
+                            long context = 0;
+                            JSONObject limit = item.optJSONObject("limit");
+                            if (limit != null) {
+                                context = limit.optLong("context", 0);
+                            }
+                            boolean reasoning = false;
+                            JSONObject capabilities = item.optJSONObject("capabilities");
+                            JSONObject reasoningObject = capabilities == null
+                                    ? null : capabilities.optJSONObject("reasoning");
+                            if (reasoningObject != null) {
+                                reasoning = reasoningObject.optBoolean("supported", false);
+                            }
+                            models.add(new RemoteModel(id, name, isFree(item), reasoning, context));
                         }
                     }
                     AndroidUtilities.runOnUIThread(() -> callback.run(models, null));
@@ -168,6 +202,19 @@ public class Client {
                 }
             }
         });
+    }
+
+    /** A model is free only when both input and output prices are published and zero. */
+    private static boolean isFree(JSONObject model) {
+        JSONObject cost = model.optJSONObject("cost");
+        JSONObject words = cost == null ? null : cost.optJSONObject("text");
+        JSONObject input = words == null ? null : words.optJSONObject("input");
+        JSONObject output = words == null ? null : words.optJSONObject("output");
+        if (input == null || output == null) {
+            return false;
+        }
+        return input.has("price") && output.has("price")
+                && input.optDouble("price", -1) == 0 && output.optDouble("price", -1) == 0;
     }
 
     public boolean isGenerating() {
