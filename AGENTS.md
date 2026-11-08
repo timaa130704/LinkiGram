@@ -171,6 +171,48 @@
   dialogs/sheets/popups, and the same screens with Linki Glass off to compare.
   Treat the feature as built but unverified until that pass is done.
 
+## Telegram account session import/export (2026-11-08)
+
+- Ported the session portability feature from `skb8/Telegram` commits
+  `bb3bdf5b` and `0ac0817b` onto the 13.2.1 base as `4b2b4095`. Format
+  interop comes from that fork; this tree does not include its QR login,
+  APK workflow or API-credential helper.
+- Native: `ConnectionsManager::importSession`/`exportSession` run on the
+  account network thread. Import refuses an activated account, a test
+  backend, DC outside 1–5 or a key that is not 256 bytes, clears pending
+  phone/QR login state, clears every DC auth key, installs `authKeyPerm`
+  with the SHA-1 key id, marks the DC authorized and saves the config.
+  Export refuses the test backend and an unactivated account.
+  `TgNetWrapper.cpp` adds `native_importSession`/`native_exportSession` with
+  a `SessionCallback` (`onResult(byte[])`); import returns a zero-length
+  array on success, export returns 4-byte big-endian DC id + 256-byte key.
+- Java: new `org.telegram.messenger.sessions` package (`SessionData`,
+  `SessionFiles`, `SessionTransfer`, `StringSessionCodec`, `TdataCodec`).
+  Formats: Telethon/Pyrogram SQLite `.session`, Desktop `tdata` ZIP, Telethon
+  and Pyrogram String Session, Auth Key + DC ID. Imports reject bots, test
+  sessions and malformed keys; tdata uses the Desktop TDF$ container and
+  MTProto 1 AES-IGE with an optional local passcode.
+- Entry points: a “Log in with a session” button on the phone-number screen
+  (confirmation, then native import, then `users.getUsers(inputUserSelf)`,
+  then the existing `onAuthSuccess` path), and “Export account session” under
+  Settings → Devices → This device. Failed or timed-out imports roll the
+  imported key back locally; existing accounts are never overwritten.
+- ProGuard keeps `ConnectionsManager$SessionCallback` and its `onResult`.
+- Checked locally: `Tools/check_braces.py` `+0/+0` on all changed Java files,
+  both strings files parse, no duplicate resource names and every
+  `R.string.SessionTransfer*` reference resolves. Not yet compiled or run on
+  a device; CI run **42504035400** (`4b2b4095`) was started for that.
+- Device validation still required: import each format (at least a real
+  Telethon/Pyrogram `.session`, tdata ZIP, and Auth Key + DC), reject a bot or
+  expired session, export in every format, reopen the exported files in
+  Telethon/Pyrogram, and confirm that a failed import leaves the account
+  selectable and does not leave a half-authorized DC. Do not use the primary
+  account for destructive checks without a backup of its session.
+- `63f8415b` (glass bottom bar) was not installed separately: CI run
+  **42502345696** was cancelled by the newer push because the workflow uses
+  `cancel-in-progress`. Its Java smoke test had passed; the newer build
+  includes both commits.
+
 ## exDesktop fork handoff (2026-11-05)
 
 - Fork `timaa130704/exDesktop` contains an initial, unverified ghost privacy
