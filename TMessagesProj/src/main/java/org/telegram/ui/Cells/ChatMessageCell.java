@@ -12211,7 +12211,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     private int getBubbleRadius() {
         return app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
-                ? app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius() : getBubbleRadius();
+                ? app.nimarkogram.messenger.appearance.ClientTheme.bubbleRadius() : SharedConfig.bubbleRadius;
     }
 
     int getExtraTextX() {
