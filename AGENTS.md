@@ -148,12 +148,20 @@
   glass alpha; `UniversalRecyclerView.drawBackgroundRect` fills You section
   cards with `glassColor(SURFACE)`.
 - Checks done: `Tools/check_braces.py` `+0/+0` on all 13 changed Java files.
-  Not done: no local compile (no JDK/Android SDK on this machine), no CI run,
-  no device check. The phone was absent from `adb devices` during this work.
-  Needs an ARM64 `build.yml` run, then `adb install -r` and a visual pass over
-  You + Linki Glass: docked tab bar, chat header/menu/input, filter tabs,
-  search field, LinkiGram settings headers, dialogs/sheets/popups, and the
-  same screens with Linki Glass off to compare.
+  Committed as `3b5c2499` and pushed to `main`.
+- CI run **42428023278** (`3b5c2499`, ARM64) succeeded. Artifact
+  `linkigram-apk` (ID 13596654304) verified offline: package
+  `app.linkigram.messenger`, version `2.9`, code `202611089`, ZIP and v2
+  digest/RSA signature OK against certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`;
+  APK SHA-256
+  `1cbba2c67e93606df61162b4e9f524cea99fac12d286761e8ef50b2d4dee4dce`.
+- Not verified on a device: the phone was absent from `adb devices` and
+  `lsusb` during this work, so the APK was not installed. Needs `adb install -r`
+  and a visual pass over You + Linki Glass: docked tab bar, chat
+  header/menu/input, filter tabs, search field, LinkiGram settings headers,
+  dialogs/sheets/popups, and the same screens with Linki Glass off to compare.
+  Treat the feature as built but unverified until that pass is done.
 
 ## exDesktop fork handoff (2026-11-05)
 
