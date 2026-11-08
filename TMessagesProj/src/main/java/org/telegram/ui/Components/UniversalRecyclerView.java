@@ -458,7 +458,8 @@ public class UniversalRecyclerView extends RecyclerListView {
                 UItem item = adapter.getItem(viewHolder.getAdapterPosition());
                 return !UniversalAdapter.isShadow(type) && (item == null || !item.transparent);
             },
-            UniversalAdapter::isShadow,
+            type -> !UniversalAdapter.isShadow(type)
+                    && !(UniversalAdapter.isHeader(type) && app.nimarkogram.messenger.appearance.MaterialStyle.separatedHeaders()),
             padding, resolveSectionRadius(roundRadius),
             topPadding
         );

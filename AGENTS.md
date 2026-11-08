@@ -210,6 +210,45 @@
   Glass off. The phone was in use by the user, so nothing was installed or
   touched during this change.
 
+## Material settings sections lost their shape after the 13.2.1 merge (2026-11-09)
+
+- Symptom reported on the device: in the Material style the settings sections no
+  longer look like one card — rows get their own rounded corners and gaps.
+- Cause: the 13.2.1 merge replaced the second `setSections` callback in
+  `UniversalRecyclerView.setSections(int, float, boolean)` with upstream's
+  `UniversalAdapter::isShadow`, while the pre-upgrade code passed
+  `type -> !isShadow(type) && !(isHeader(type) && MaterialStyle.separatedHeaders())`
+  and `this::drawBackgroundRect`. The new `RecyclerListView` uses that callback
+  to ask whether a *neighbour* is a section item (`sectionNeighbor`,
+  `hasAbove`/`hasBelow`), so the inverted predicate made every row its own pill
+  and added the 2 dp segment gap above the first row too. Restored the local
+  lambda; the 13.2.1 five-argument overload already defaults to
+  `this::drawBackgroundRect`.
+- Checked by diffing `80dd94a8^` with the merge and with the 13.2.1 reference
+  tree; `Tools/check_braces.py` `+0/+0`. Every settings screen built on
+  `UniversalFragment`/`UniversalRecyclerView` is affected, not only the main
+  settings list. Not verified on a device yet.
+
+## Selected tab, message-menu blur and session diagnostics (2026-11-09)
+
+- The selected-tab capsule of the glass bar was painted with the opaque You
+  `CONTAINER` colour. In `GlassTabView.dispatchDraw` it is now multiplied to
+  0.34 (dark) / 0.42 (light) alpha when `ClientTheme.glassEnabled()`, so the
+  blurred page and the bar itself show through it.
+- The message context menu dimmed the chat without blurring it, because
+  `createMenu` called the dim-only `dimBehindView(v, true)`. It now uses the
+  blurred scrim on Android 13+ with liquid glass, like the reaction menu. The
+  popup content is made invisible during the synchronous capture so the menu
+  surface is not blurred into its own background.
+- Session import failures were opaque. `SessionTransfer.error` now accepts a
+  detail and `login` names the refusing stage (native import, `users.getUsers`
+  error text, missing/mismatched user, 45 s timeout) and logs it under the
+  `SessionTransfer` logcat tag. This is temporary diagnostics; it also explains
+  the by-design rejection of this app's own exported session, whose
+  authorization is still used by the active account.
+- Committed as `9db10d6f`; the settings-section fix is a separate commit. No
+  device verification: the phone was not touched on request.
+
 ## Session export fix (2026-11-08)
 
 - Exporting to the SQLite formats produced a 0-byte document. `SessionFiles.write`
