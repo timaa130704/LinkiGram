@@ -13,6 +13,7 @@ import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
+import app.nimarkogram.messenger.appearance.ClientTheme;
 import app.nimarkogram.messenger.appearance.LinkiGramYouTheme;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundProvider;
@@ -114,8 +115,14 @@ public class BlurredBackgroundProviderImpl {
     public static BlurredBackgroundProvider messageMenuBackground(Theme.ResourcesProvider resourcesProvider) {
         return new BlurredBackgroundProviderBuilder(resourcesProvider)
                 .setBackgroundColor((r, isDark) -> {
-                    if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)
-                            || LinkiGramYouTheme.isEnabled()) {
+                    if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+                        return Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, r) | 0xFF000000;
+                    }
+                    if (ClientTheme.glassEnabled()) {
+                        // LinkiGram You + Linki Glass: the menu is a glass panel over the You surface.
+                        return ClientTheme.glassColor(ClientTheme.SURFACE_HIGH, isDark);
+                    }
+                    if (LinkiGramYouTheme.isEnabled()) {
                         return Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, r) | 0xFF000000;
                     }
                     return Theme.multAlpha(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, r),

@@ -3696,6 +3696,12 @@ public class ChatActivity extends BaseFragment implements
             @Override
             public int getBackgroundColor() {
                 if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+                    if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                        // Linki Glass on the You layer: the input panel is a glass island
+                        // and the blurred chat behind it shows through.
+                        return app.nimarkogram.messenger.appearance.ClientTheme.glassColor(
+                                app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH);
+                    }
                     return ColorUtils.setAlphaComponent(
                             app.nimarkogram.messenger.appearance.ClientTheme.color(
                                     app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH), 255);
@@ -4712,7 +4718,8 @@ public class ChatActivity extends BaseFragment implements
 
         contentView.setOccupyStatusBar(!inBubbleMode && !isInsideContainer && !inPreviewMode);
 
-        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                && !app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
             actionBar.setBackgroundColor(getThemedColor(Theme.key_actionBarDefault));
         } else {
             actionBar.setupGlass(
@@ -32383,10 +32390,12 @@ public class ChatActivity extends BaseFragment implements
 
             updateScrimSourceBitmap();
 
-            final boolean liquidMessageMenu = !app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()
+            final boolean youGlass = app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled();
+            final boolean liquidMessageMenu =
+                    (!app.nimarkogram.messenger.appearance.ClientTheme.isEnabled() || youGlass)
                     && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
             scrimBlur3Factory.setLiquidGlassEffectAllowed(liquidMessageMenu);
-            if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) {
+            if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled() && !youGlass) {
                 Drawable materialMenuBackground = popupLayout.getContext().getResources()
                         .getDrawable(R.drawable.popup_fixed_alert4).mutate();
                 popupLayout.setBackground(app.nimarkogram.messenger.appearance.ClientTheme.popupDrawable(

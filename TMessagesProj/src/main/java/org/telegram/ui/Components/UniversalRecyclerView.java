@@ -485,7 +485,12 @@ public class UniversalRecyclerView extends RecyclerListView {
         cardStrokePaint.setColor(0);
         if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) cardFillPaint.clearShadowLayer();
         else cardFillPaint.setShadowLayer(dpf2(2), 0, dpf2(0.33f), multAlpha(0x0a000000, alpha));
-        cardFillPaint.setColor(multAlpha(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider), alpha));
+        // Linki Glass: the You section cards become glass panes over the blurred list.
+        final int cardColor = app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()
+                ? app.nimarkogram.messenger.appearance.ClientTheme.glassColor(
+                        app.nimarkogram.messenger.appearance.ClientTheme.SURFACE)
+                : Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
+        cardFillPaint.setColor(multAlpha(cardColor, alpha));
         if (topRadius == bottomRadius) {
             canvas.drawRoundRect(rect, topRadius, topRadius, cardStrokePaint);
             canvas.drawRoundRect(rect, topRadius, topRadius, cardFillPaint);

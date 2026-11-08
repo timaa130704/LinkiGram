@@ -297,9 +297,16 @@ public class MessageFiltersPreferencesActivity extends BaseFragment {
         });
 
         listView.setSections(dp(12), dp(16), true);
-        actionBar.setAdaptiveBackground(listView);
+        if (!app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+            actionBar.setAdaptiveBackground(listView);
+        }
 
         return fragmentView;
+    }
+
+    @Override
+    protected RecyclerListView getListViewForSimpleGlass() {
+        return app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() ? listView : null;
     }
 
     private class ListAdapter extends RecyclerListView.SelectionAdapter {

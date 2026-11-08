@@ -139,9 +139,15 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private BlurredBackgroundDrawable tabsViewBackground;
     private boolean tabsDocked;
     private static boolean useGlassTabs() {
+        if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
+            return false;
+        }
+        // LinkiGlass on the You layer: the docked You bar is glass as well.
+        if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+            return true;
+        }
         return !app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
-                && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_FLOATING
-                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+                && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_FLOATING;
     }
 
     private boolean tabsLiquidGlassEnabled;
@@ -492,7 +498,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsView.setBackgroundColor(0x00000000);
             tabsView.setElevation(0);
         } else if (md3Nav && dockedTabs) {
-            tabsView.setBackgroundColor(0x00000000);
+            if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                tabsView.setBackground(tabsViewBackground);
+            } else {
+                tabsView.setBackgroundColor(0x00000000);
+            }
             tabsView.setElevation(0);
         } else if (md3Nav) {
             tabsView.setBackground(Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
@@ -520,7 +530,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewWrapper.setOnClickListener(v -> {});
         if (colorOsNav) {
             tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
-        } else if (md3Nav && dockedTabs) {
+        } else if (md3Nav && dockedTabs
+                && !app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
             tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
         }
         tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(colorOsNav || !md3Nav || dockedTabs ? LayoutHelper.MATCH_PARENT : LayoutHelper.WRAP_CONTENT,
@@ -1619,8 +1630,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
             }
         } else if (tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
-            tabsView.setBackgroundColor(0x00000000);
-            if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+            if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                tabsView.setBackground(tabsViewBackground);
+                if (tabsViewWrapper != null) tabsViewWrapper.setBackground(null);
+            } else {
+                tabsView.setBackgroundColor(0x00000000);
+                if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+            }
         } else {
             if (tabsViewWrapper != null) tabsViewWrapper.setBackground(null);
             tabsView.setBackground(app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
@@ -1645,8 +1661,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
                 }
             } else if (tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
-                tabsView.setBackgroundColor(0x00000000);
-                if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+                if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                    tabsView.setBackground(tabsViewBackground);
+                    if (tabsViewWrapper != null) tabsViewWrapper.setBackground(null);
+                } else {
+                    tabsView.setBackgroundColor(0x00000000);
+                    if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+                }
             } else if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
                 tabsView.setBackground(Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
             }

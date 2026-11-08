@@ -1177,7 +1177,9 @@ public class FilterTabsView extends FrameLayout {
 
     public void setBlurredBackground(BlurredBackgroundDrawable drawable) {
         blurredBackgroundDrawable = drawable;
-        setBackground(app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? null : drawable);
+        final boolean you = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
+        // LinkiGlass on the You layer: the filter tabs keep their blur instead of the solid You chip row.
+        setBackground(you && !app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() ? null : drawable);
     }
 
     public void scrollToTab(Tab tab, int position) {

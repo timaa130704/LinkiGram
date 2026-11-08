@@ -216,7 +216,8 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     }
 
     public void setBlurredBackgroundVisibility(float visibility) {
-        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !isSectionBackground) {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !isSectionBackground
+                && !app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
             visibility = 0f;
         }
         final int alpha = (int) (255 * visibility);
@@ -279,7 +280,10 @@ public class FragmentSearchField extends FrameLayout implements FactorAnimator.T
     public void updateColors() {
         final boolean isDark = resourcesProvider != null ? resourcesProvider.isDark() : Theme.isCurrentThemeDark();
         final boolean you = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() && !isSectionBackground;
-        bg = you ? Theme.createRoundRectDrawable(dp(24), app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)) : isSectionBackground ?
+        final boolean youGlass = you && app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled();
+        bg = you ? Theme.createRoundRectDrawable(dp(24), youGlass
+            ? app.nimarkogram.messenger.appearance.ClientTheme.glassColor(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)
+            : app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH)) : isSectionBackground ?
             Theme.createRoundRectDrawableShadowed(dp(20), getThemedColor(Theme.key_windowBackgroundWhite)) :
             Theme.createRoundRectDrawable(dp(20), isWhiteBackground ? getThemedColor(Theme.key_windowBackgroundWhite) : getThemedColor(Theme.key_windowBackgroundWhiteBlackText, isDark ? 0.07f : 0.05f));
         searchIcon.setColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.6f), PorterDuff.Mode.MULTIPLY);

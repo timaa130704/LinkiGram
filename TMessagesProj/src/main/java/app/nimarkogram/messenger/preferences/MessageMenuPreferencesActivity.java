@@ -143,9 +143,16 @@ public class MessageMenuPreferencesActivity extends BaseFragment {
         });
 
         listView.setSections(true);
-        actionBar.setAdaptiveBackground(listView);
+        if (!app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+            actionBar.setAdaptiveBackground(listView);
+        }
 
         return fragmentView;
+    }
+
+    @Override
+    protected RecyclerListView getListViewForSimpleGlass() {
+        return app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() ? listView : null;
     }
 
     public void showRestartBulletin() {

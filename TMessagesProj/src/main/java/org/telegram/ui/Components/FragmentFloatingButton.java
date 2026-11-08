@@ -160,7 +160,9 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
         }
         if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
             int foreground = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_CONTAINER);
-            int fill = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER);
+            int fill = app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()
+                    ? app.nimarkogram.messenger.appearance.ClientTheme.glassColor(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER)
+                    : app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.CONTAINER);
             imageView.setColorFilter(foreground, PorterDuff.Mode.SRC_IN);
             progressView.setProgressColor(foreground);
             setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(0, dp(16)));
@@ -272,7 +274,8 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
     @Override
     public void draw(@NonNull Canvas canvas) {
         if (iBlur3Background != null) {
-            if (!app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) iBlur3Background.draw(canvas);
+            if (!app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                    || app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) iBlur3Background.draw(canvas);
         }
         super.draw(canvas);
     }

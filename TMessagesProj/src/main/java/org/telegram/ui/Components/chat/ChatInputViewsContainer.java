@@ -278,7 +278,8 @@ public class ChatInputViewsContainer extends FrameLayout implements Theme.Colora
 
         blurredBackgroundDrawable.setBounds(tmpRect);
         if (drawInputBackground) {
-            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+            if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                    && !app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
                 youComposerPaint.setColor(app.nimarkogram.messenger.appearance.ClientTheme.color(
                     app.nimarkogram.messenger.appearance.ClientTheme.BACKGROUND));
                 youComposerPaint.setAlpha(blurredBackgroundDrawable.getAlpha());

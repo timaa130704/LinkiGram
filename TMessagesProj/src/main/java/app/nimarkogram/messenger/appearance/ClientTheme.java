@@ -16,6 +16,7 @@ import com.google.android.material.color.utilities.SchemeTonalSpot;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.LiteMode;
 import org.telegram.ui.ActionBar.Theme;
 
 /** Shared semantic roles and geometry for both complete client appearances. */
@@ -45,6 +46,26 @@ public final class ClientTheme {
         }
         int role = ROLES.get(key, 0);
         return role == 0 ? original : color(role);
+    }
+
+    /**
+     * Linki Glass on top of the LinkiGram You layer: the You surfaces are painted as glass
+     * panels instead of solid surfaces, so every screen styled by the You theme follows
+     * the Linki Glass switch as well.
+     */
+    public static boolean glassEnabled() {
+        return LinkiGramYouTheme.isEnabled()
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+    }
+
+    /** A You role as a glass fill: the blurred background behind the panel shows through. */
+    public static int glassColor(int role, boolean dark) {
+        return Theme.multAlpha(color(role), dark ? 0.66f : 0.78f);
+    }
+
+    public static int glassColor(int role) {
+        return glassColor(role, Theme.isCurrentThemeDark());
     }
 
     public static int color(int role) {
@@ -132,6 +153,11 @@ public final class ClientTheme {
 
     private static Drawable roundedSurface(Drawable original, int color, boolean topOnly, int radius) {
         if (!isEnabled() || original == null) return original;
+        // Linki Glass on the You layer: the same panels become glass panes, so the
+        // dimmed content behind a dialog or sheet stays visible through the surface.
+        if (glassEnabled()) {
+            color = Theme.multAlpha(color, Theme.isCurrentThemeDark() ? 0.72f : 0.82f);
+        }
         Rect padding = new Rect();
         original.getPadding(padding);
         GradientDrawable panel = new GradientDrawable();

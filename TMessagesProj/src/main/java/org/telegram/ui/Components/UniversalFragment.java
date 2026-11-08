@@ -95,6 +95,13 @@ public abstract class UniversalFragment extends BaseFragment {
         return fragmentView = contentView;
     }
 
+    @Override
+    protected RecyclerListView getListViewForSimpleGlass() {
+        // LinkiGlass on the LinkiGram You layer: the You screens take the glass header of the base
+        // instead of the solid one, blurring the list that scrolls under it.
+        return app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() ? listView : null;
+    }
+
     protected abstract CharSequence getTitle();
     protected abstract void fillItems(ArrayList<UItem> items, UniversalAdapter adapter);
     protected abstract void onClick(UItem item, View view, int position, float x, float y);

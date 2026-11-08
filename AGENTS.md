@@ -122,6 +122,39 @@
   `0f05a390c55f3ef8ce7f08bf0d5029e1fefe9c82c8631f8b2113d4e1ca7c7b9b`),
   verified the same way as the CI artifact and marked Latest.
 
+## Linki Glass over LinkiGram You (2026-11-08)
+
+- Requested behaviour: with LinkiGram You and Linki Glass both on, Linki Glass
+  applies on the LinkiGram You screens instead of the solid You surfaces.
+  Condition is `ClientTheme.glassEnabled()` = LinkiGram You + `LiteMode.FLAG_LIQUID_GLASS`
+  + SDK >= 33; `ClientTheme.glassColor(role)` is the same You role at alpha
+  0.66 (dark) / 0.78 (light).
+- Removed the You-specific glass suppressions: chat header (`setupGlass`),
+  message menu (`scrimBlur3Factory` / `liquidMessageMenu`), input panel
+  background (`ChatInputViewsContainer` no longer paints the opaque You rect),
+  message-menu background provider, input-panel glass color, filter tabs
+  (`FilterTabsView.setBlurredBackground`), search field
+  (`FragmentSearchField`, translucent `bg`), floating/sub buttons
+  (`FragmentFloatingButton`), and the docked main tab bar
+  (`MainTabsActivity.useGlassTabs()` and the three background paths).
+- Glass headers for LinkiGram settings: `BasePreferencesActivity`,
+  `MessageFiltersPreferencesActivity` and `MessageMenuPreferencesActivity` now
+  return `listView` from `getListViewForSimpleGlass()` and skip
+  `setAdaptiveBackground` when `glassEnabled()`; `onInsets` keeps the padding
+  that `BaseFragmentSimpleGlass.setListViewParams` sets. `UniversalFragment`
+  does the same for every screen that does not already override it
+  (`UserInfoActivity` and `BusinessIntroActivity` already did).
+- `ClientTheme.roundedSurface` (AlertDialog, BottomSheet, popups) uses the
+  glass alpha; `UniversalRecyclerView.drawBackgroundRect` fills You section
+  cards with `glassColor(SURFACE)`.
+- Checks done: `Tools/check_braces.py` `+0/+0` on all 13 changed Java files.
+  Not done: no local compile (no JDK/Android SDK on this machine), no CI run,
+  no device check. The phone was absent from `adb devices` during this work.
+  Needs an ARM64 `build.yml` run, then `adb install -r` and a visual pass over
+  You + Linki Glass: docked tab bar, chat header/menu/input, filter tabs,
+  search field, LinkiGram settings headers, dialogs/sheets/popups, and the
+  same screens with Linki Glass off to compare.
+
 ## exDesktop fork handoff (2026-11-05)
 
 - Fork `timaa130704/exDesktop` contains an initial, unverified ghost privacy
