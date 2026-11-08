@@ -201,7 +201,14 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
                 } else {
                     tmpRectF.set(0, 0, viewWidth, getHeight());
                 }
-                paintCounterBackground.setColor(Theme.multAlpha(materialIndicatorColor, alpha));
+                int indicatorColor = materialIndicatorColor;
+                if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                    // The bar is a lens over the page, so the selected tab capsule has to let it
+                    // through as well: an opaque indicator covered both the blur and the content.
+                    indicatorColor = Theme.multAlpha(indicatorColor,
+                            Theme.isCurrentThemeDark() ? 0.34f : 0.42f);
+                }
+                paintCounterBackground.setColor(Theme.multAlpha(indicatorColor, alpha));
             } else {
                 tmpRectF.set(0, 0, viewWidth, getHeight());
             }

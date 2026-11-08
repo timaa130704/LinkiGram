@@ -114,7 +114,7 @@ public final class SessionTransfer {
         Utilities.globalQueue.postRunnable(() -> {
             List<SessionData> sessions;
             try { sessions = SessionFiles.read(ApplicationLoader.applicationContext, uri, tdata, passcode); }
-            catch (Exception e) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); error(tdata ? R.string.SessionTransferTdataError : R.string.SessionTransferFileError); } }); return; }
+            catch (Exception e) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); error(tdata ? R.string.SessionTransferTdataError : R.string.SessionTransferFileError, e.toString()); } }); return; }
             AndroidUtilities.runOnUIThread(() -> {
                 if (!valid(token)) { for (SessionData s : sessions) s.clear(); return; }
                 finish(); select(sessions);
@@ -149,18 +149,24 @@ public final class SessionTransfer {
             byte[] hash = MessageDigest.getInstance("SHA-1").digest(session.authKey);
             long keyId = ByteBuffer.wrap(hash, 12, 8).order(java.nio.ByteOrder.LITTLE_ENDIAN).getLong();
             for (int i = 0; i < UserConfig.MAX_ACCOUNT_COUNT; i++) {
-                if (UserConfig.getInstance(i).isClientActivated() && ConnectionsManager.native_getCurrentAuthKeyId(i) == keyId) { error(R.string.SessionTransferAlreadyAdded); return; }
+                if (UserConfig.getInstance(i).isClientActivated() && ConnectionsManager.native_getCurrentAuthKeyId(i) == keyId) {
+                    // Usually the user exported this app's own session and imported it back: that
+                    // cannot log in, the authorization is still the one the active account uses.
+                    error(R.string.SessionTransferAlreadyAdded, "account " + (i + 1) + " already uses this authorization");
+                    return;
+                }
             }
         } catch (Exception e) { error(R.string.SessionTransferInvalid); return; }
         busy = true; installed = true; int token = ++generation;
         long expectedUser = session.userId;
         byte[] importKey = session.authKey.clone();
         showProgress();
-        timeout = () -> { if (valid(token)) { rollback(); finish(); error(R.string.SessionTransferLoginError); } };
+        timeout = () -> { if (valid(token)) { rollback(); finish(); error(R.string.SessionTransferLoginError, "no answer within 45 s"); } };
         AndroidUtilities.runOnUIThread(timeout, 45000);
         ConnectionsManager.native_importSession(account, session.dcId, importKey, result -> AndroidUtilities.runOnUIThread(() -> {
             if (!valid(token)) return;
-            if (result == null) { installed = false; finish(); error(R.string.SessionTransferLoginError); return; }
+            android.util.Log.i("SessionTransfer", "native import dc=" + session.dcId + " result=" + (result != null ? "ok" : "rejected"));
+            if (result == null) { installed = false; finish(); error(R.string.SessionTransferLoginError, "native_importSession refused the key"); return; }
             TLRPC.TL_users_getUsers req = new TLRPC.TL_users_getUsers(); req.id.add(new TLRPC.TL_inputUserSelf());
             requestId = ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
                 if (!valid(token)) return;
@@ -169,9 +175,12 @@ public final class SessionTransfer {
                     Object first = ((org.telegram.tgnet.Vector<?>) response).objects.isEmpty() ? null : ((org.telegram.tgnet.Vector<?>) response).objects.get(0);
                     if (first instanceof TLRPC.User) user = (TLRPC.User) first;
                 }
-                if (error != null || user == null || !user.self || user.bot || user.deleted || (expectedUser != 0 && expectedUser != user.id)) {
-                    rollback(); finish(); error(R.string.SessionTransferLoginError); return;
-                }
+                android.util.Log.i("SessionTransfer", "users.getUsers " + (error != null ? "error=" + error.text : "user=" + (user != null ? user.id : "none")));
+                if (error != null) { rollback(); finish(); error(R.string.SessionTransferLoginError, "users.getUsers: " + error.text); return; }
+                if (user == null) { rollback(); finish(); error(R.string.SessionTransferLoginError, "users.getUsers returned no user"); return; }
+                if (!user.self) { rollback(); finish(); error(R.string.SessionTransferLoginError, "the session user is not the session owner"); return; }
+                if (user.bot || user.deleted) { rollback(); finish(); error(R.string.SessionTransferLoginError, "bot or deleted account"); return; }
+                if (expectedUser != 0 && expectedUser != user.id) { rollback(); finish(); error(R.string.SessionTransferLoginError, "user id does not match the session"); return; }
                 for (int i = 0; i < UserConfig.MAX_ACCOUNT_COUNT; i++) if (i != account && UserConfig.getInstance(i).getClientUserId() == user.id) {
                     rollback(); finish(); error(R.string.SessionTransferAlreadyAdded); return;
                 }
@@ -245,8 +254,20 @@ public final class SessionTransfer {
         installed = false;
     }
     private void error(int resource) {
-        if (!destroyed && fragment.getParentActivity() != null) fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity())
-                .setTitle(getString(R.string.SessionTransferLogin)).setMessage(getString(resource)).setPositiveButton(getString(R.string.OK), null).create());
+        error(resource, null);
+    }
+
+    /**
+     * Device-test diagnostics: the release build has no log file, so the stage that refused the
+     * session is shown next to the generic message. Remove the detail once import is confirmed.
+     */
+    private void error(int resource, String detail) {
+        if (destroyed || fragment.getParentActivity() == null) return;
+        final String message = getString(resource)
+                + (detail != null && !detail.isEmpty() ? "\n\n" + detail : "");
+        fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity())
+                .setTitle(getString(R.string.SessionTransferLogin)).setMessage(message)
+                .setPositiveButton(getString(R.string.OK), null).create());
     }
 
     /** Export failures get the export title; the reason is appended so a device test is diagnosable. */

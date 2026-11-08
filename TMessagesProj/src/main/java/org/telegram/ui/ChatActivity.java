@@ -11460,6 +11460,13 @@ public class ChatActivity extends BaseFragment implements
             animators.add(scrimPaintAlphaAnimator = ValueAnimator.ofFloat(0, value));
 
             if (blur) {
+                // The menu itself is in a separate window: keep it out of the capture, otherwise
+                // its own surface is blurred into the background it is drawn over.
+                final View popupContent = scrimPopupWindow != null && scrimPopupWindow.isShowing()
+                        ? scrimPopupWindow.getContentView() : null;
+                if (popupContent != null) {
+                    popupContent.setVisibility(View.INVISIBLE);
+                }
                 ScrimOptions.makeGlobalBlurBitmaps((bitmapBg, bitmapOptions) -> {
                     scrimBlurBitmap = bitmapBg;
                     scrimBlurBitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -11469,6 +11476,9 @@ public class ChatActivity extends BaseFragment implements
                     Blur3Utils.checkBitmapSourceMatrixScale(scrimBlur3SourceBitmap, fragmentView);
                     scrimBlur3Factory.invalidateAllLinkedViews();
                 });
+                if (popupContent != null) {
+                    popupContent.setVisibility(View.VISIBLE);
+                }
             }
         } else {
             scrimViewProgress = scrimPaintAlpha / max;
@@ -33797,7 +33807,9 @@ public class ChatActivity extends BaseFragment implements
             }
             chatListView.stopScroll();
             chatLayoutManager.setCanScrollVertically(false);
-            dimBehindView(v, true);
+            final boolean blurMessageMenu = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS);
+            dimBehindView(v, blurMessageMenu, true);
             hideHints(false);
             if (topUndoView != null) {
                 topUndoView.hide(true, 1);
