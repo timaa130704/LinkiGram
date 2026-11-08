@@ -171,6 +171,57 @@
   dialogs/sheets/popups, and the same screens with Linki Glass off to compare.
   Treat the feature as built but unverified until that pass is done.
 
+- Device pass on the You + Linki Glass layer (`78101bd8`, `90c7cdd5`): the
+  docked/floating You bar turned out to be transparent but flat — see the
+  section below. Also found and fixed a `StackOverflowError` on entering any
+  chat: the 13.2.1 merge had replaced `SharedConfig.bubbleRadius` with a call to
+  the enclosing `ChatMessageCell.getBubbleRadius()`, so the bubble radius
+  lookup recursed whenever LinkiGram You was off (`90c7cdd5`).
+
+## Why the Linki Glass tab bar still looked flat (2026-11-08)
+
+- Three separate causes, each of which alone was enough to hide the glass:
+  1. Automatic power saving (battery below `BATTERY_*`, i.e. 10%) kept
+     `FLAG_LIQUID_GLASS` but dropped `FLAG_CHAT_BLUR`. Without blur
+     `BlurredBackgroundDrawable.pickSource()` returns the colour-only source, so
+     the bar is a flat translucent rectangle with a rim and no page behind it.
+     `LiteMode.powerSaverValue()` now keeps `FLAG_CHAT_BLUR` together with the
+     glass flag.
+  2. `BlurredBackgroundProviderImpl.mainTabs()` solved its fill against the solid
+     glass target at 0.85 alpha, which over the You surface is an almost opaque
+     slab. With `ClientTheme.glassEnabled()` the fill is now the You glass colour
+     at 0.42 alpha (dark) / 0.34 (light). Note the liquid glass shader composites
+     the tint over the captured page, so this alpha controls the tint strength,
+     not transparency: the page showing through the bar depends on the source,
+     i.e. on cause 1.
+  3. `cgTabsUpdated` reset the floating bar to an opaque round-rect drawable;
+     that path now uses the glass background like every other one, and the glass
+     capture band follows the bar that is actually drawn (the docked bar is
+     taller than the floating pill).
+- Committed as `45259bbb`. CI run **42515040780** (ARM64) succeeded; artifact
+  `app.apk` SHA-256
+  `2cd2ae030066c815a3d59c4c30a0e14a6e378aeff0815ecad2fb0a4094d9c084`,
+  package `app.linkigram.messenger`, version `2.9`, code `202611089`,
+  certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`
+  (checked offline with androguard; no device install).
+- Not verified on a device: whether the bar now reads as glass at low battery
+  and with power saving on, the docked variant, and the same screens with Linki
+  Glass off. The phone was in use by the user, so nothing was installed or
+  touched during this change.
+
+## Session export fix (2026-11-08)
+
+- Exporting to the SQLite formats produced a 0-byte document. `SessionFiles.write`
+  opened the SAF stream first and built the database afterwards, swallowed the
+  exception, and ran `PRAGMA journal_mode` through `execSQL`. It now builds the
+  whole payload (zip / database / text) and reads the database back before the
+  document is opened, turns write-ahead logging off explicitly, copies the file
+  whole, logs failures with `FileLog.e`, and the export error dialog uses the
+  export title and shows the reason so a device test is diagnosable
+  (`78101bd8`). The exception text in that dialog is temporary and should be
+  removed once the export is confirmed working on a device.
+
 ## Telegram account session import/export (2026-11-08)
 
 - Ported the session portability feature from `skb8/Telegram` commits
