@@ -137,6 +137,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private GlassTabView youSearchTab;
     private GlassTabView youXcfgTab;
     private BlurredBackgroundDrawable tabsViewBackground;
+    private View tabsNavStrip;
     private boolean tabsDocked;
     private static boolean useGlassTabs() {
         if (!LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS)) {
@@ -305,6 +306,47 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     /** LinkiGlass on the You layer: the paint of the bottom bar, or null to keep the solid You surface. */
     private android.graphics.drawable.Drawable glassTabsBackground() {
         return app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() ? tabsViewBackground : null;
+    }
+
+    /**
+     * The container behind the tab bar. On Linki Glass it must stay transparent: the blurred
+     * background drawable is the panel, and an opaque container behind it flattens the glass into
+     * a plain dark strip. The solid You surface color is then used only for the system navigation
+     * strip, which sits under the bar inside the container's bottom padding.
+     */
+    private void applyTabsWrapperBackground() {
+        if (tabsViewWrapper == null) return;
+        final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+        final boolean youDocked = tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
+        final boolean glass = youDocked && glassTabsBackground() != null;
+        if (colorOs) {
+            tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
+            setTabsNavStripVisible(false);
+        } else if (glass) {
+            tabsViewWrapper.setBackground(null);
+            setTabsNavStripVisible(true);
+        } else if (youDocked) {
+            tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+            setTabsNavStripVisible(false);
+        } else {
+            tabsViewWrapper.setBackground(null);
+            setTabsNavStripVisible(false);
+        }
+    }
+
+    private void setTabsNavStripVisible(boolean visible) {
+        if (tabsNavStrip == null) return;
+        tabsNavStrip.setBackgroundColor(getNavigationBarSurfaceColor());
+        tabsNavStrip.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    private void setTabsNavStripHeight(int height) {
+        if (tabsNavStrip == null) return;
+        final ViewGroup.LayoutParams params = tabsNavStrip.getLayoutParams();
+        if (params != null && params.height != height) {
+            params.height = height;
+            tabsNavStrip.setLayoutParams(params);
+        }
     }
 
     public void updateLayout() {
@@ -540,16 +582,18 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabsViewWrapper = new FrameLayout(context);
         tabsViewWrapper.setOnClickListener(v -> {});
-        if (colorOsNav) {
-            tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
-        } else if (md3Nav && dockedTabs) {
-            tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
-        }
+        // Solid strip under the system navigation buttons only; on Linki Glass the bar above it
+        // must stay transparent or the opaque wrapper would hide the glass panel.
+        tabsNavStrip = new View(context);
+        tabsNavStrip.setBackgroundColor(getNavigationBarSurfaceColor());
+        tabsNavStrip.setVisibility(View.GONE);
+        tabsViewWrapper.addView(tabsNavStrip, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0, Gravity.BOTTOM));
         tabsViewWrapper.addView(tabsView, LayoutHelper.createFrame(colorOsNav || !md3Nav || dockedTabs ? LayoutHelper.MATCH_PARENT : LayoutHelper.WRAP_CONTENT,
                 colorOsNav ? 64 : md3Nav ? 64 : dockedTabs ? DialogsActivity.MAIN_TABS_HEIGHT : DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0, 0, colorOsNav || dockedTabs ? 0 : md3Nav ? 8 : 0));
         tabsViewWrapper.setClipToPadding(false);
         contentView.addView(tabsViewWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+        applyTabsWrapperBackground();
 
         updateLayoutWrapper = new UpdateLayoutWrapper(context);
         contentView.addView(updateLayoutWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
@@ -1244,6 +1288,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         final boolean materialNavigation = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         tabsViewWrapper.setPadding(systemInsets.left, 0, systemInsets.right, navigationBarHeight);
+        setTabsNavStripHeight(navigationBarHeight);
         if (materialNavigation) {
             ViewGroup.LayoutParams tabsParams = tabsView.getLayoutParams();
             boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
@@ -1254,7 +1299,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             if (colorOs) {
                 tabsView.setBackgroundColor(0x00000000);
                 tabsView.setElevation(0);
-                tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
+                applyTabsWrapperBackground();
             } else if (youDocked) {
                 if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()
                         && tabsViewBackground != null) {
@@ -1263,7 +1308,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     tabsView.setBackgroundColor(0x00000000);
                 }
                 tabsView.setElevation(0);
-                tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+                applyTabsWrapperBackground();
             } else {
                 final android.graphics.drawable.Drawable glassTabs = glassTabsBackground();
                 if (glassTabs != null) {
@@ -1273,7 +1318,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     tabsView.setBackground(Theme.createRoundRectDrawable(dp(32), getNavigationBarSurfaceColor()));
                     tabsView.setElevation(dp(3));
                 }
-                tabsViewWrapper.setBackground(null);
+                applyTabsWrapperBackground();
             }
         }
 
@@ -1343,7 +1388,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 applyYouTabsConfiguration();
                 if (tabsView != null) {
                     if (tabsDocked && tabsViewWrapper != null) {
-                        tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
+                        applyTabsWrapperBackground();
                         if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()
                                 && tabsViewBackground != null) {
                             tabsView.setBackground(tabsViewBackground);
@@ -1655,19 +1700,16 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground.setPadding(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
             tabsView.setBackgroundColor(0x00000000);
-            if (tabsViewWrapper != null) {
-                tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
-            }
+            applyTabsWrapperBackground();
         } else if (tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
             if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() && tabsViewBackground != null) {
                 tabsView.setBackground(tabsViewBackground);
-                if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
             } else {
                 tabsView.setBackgroundColor(0x00000000);
-                if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
             }
+            applyTabsWrapperBackground();
         } else {
-            if (tabsViewWrapper != null) tabsViewWrapper.setBackground(null);
+            applyTabsWrapperBackground();
             final android.graphics.drawable.Drawable glassTabs = glassTabsBackground();
             tabsView.setBackground(glassTabs != null ? glassTabs
                     : app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()
@@ -1688,17 +1730,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         if (tabsView != null) {
             if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
                 tabsView.setBackgroundColor(0x00000000);
-                if (tabsViewWrapper != null) {
-                    tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
-                }
+                applyTabsWrapperBackground();
             } else if (tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
                 if (app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled() && tabsViewBackground != null) {
                     tabsView.setBackground(tabsViewBackground);
-                    if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
                 } else {
                     tabsView.setBackgroundColor(0x00000000);
-                    if (tabsViewWrapper != null) tabsViewWrapper.setBackgroundColor(getNavigationBarSurfaceColor());
                 }
+                applyTabsWrapperBackground();
             } else if (app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle()) {
                 final android.graphics.drawable.Drawable glassTabs = glassTabsBackground();
                 tabsView.setBackground(glassTabs != null ? glassTabs

@@ -203,25 +203,27 @@ public final class SessionTransfer {
     private void export(Uri uri, int format) {
         busy = true; int token = ++generation; showProgress();
         ConnectionsManager.native_exportSession(account, bytes -> {
-            if (bytes == null) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); error(R.string.SessionTransferExportError); } }); return; }
+            if (bytes == null) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); exportError(null); } }); return; }
             // Native callback hands off a copy; promptly clear it after conversion.
             SessionData session;
             try {
                 session = new SessionData(ByteBuffer.wrap(bytes).getInt(), Arrays.copyOfRange(bytes, 4, 260),
                         UserConfig.getInstance(account).getClientUserId(), BuildVars.APP_ID);
-            } catch (Exception e) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); error(R.string.SessionTransferExportError); } }); return; }
+            } catch (Exception e) { AndroidUtilities.runOnUIThread(() -> { if (valid(token)) { finish(); exportError(e); } }); return; }
             finally { Arrays.fill(bytes, (byte) 0); }
             Utilities.globalQueue.postRunnable(() -> {
                 boolean ok = false;
+                Exception failure = null;
                 try { if (!destroyed) { SessionFiles.write(ApplicationLoader.applicationContext, uri, format, session); ok = true; } }
-                catch (Exception ignored) { }
+                catch (Exception e) { failure = e; FileLog.e(e); }
                 finally { session.clear(); }
-                boolean success = ok;
+                final boolean success = ok;
+                final Exception error = failure;
                 AndroidUtilities.runOnUIThread(() -> {
                     if (!valid(token)) return;
                     finish();
                     if (success) Toast.makeText(fragment.getParentActivity(), getString(R.string.SessionTransferExported), Toast.LENGTH_LONG).show();
-                    else error(R.string.SessionTransferExportError);
+                    else exportError(error);
                 });
             });
         });
@@ -245,6 +247,16 @@ public final class SessionTransfer {
     private void error(int resource) {
         if (!destroyed && fragment.getParentActivity() != null) fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity())
                 .setTitle(getString(R.string.SessionTransferLogin)).setMessage(getString(resource)).setPositiveButton(getString(R.string.OK), null).create());
+    }
+
+    /** Export failures get the export title; the reason is appended so a device test is diagnosable. */
+    private void exportError(Exception e) {
+        if (destroyed || fragment.getParentActivity() == null) return;
+        final String message = getString(R.string.SessionTransferExportError)
+                + (e != null && e.getMessage() != null ? "\n\n" + e : "");
+        fragment.showDialog(new AlertDialog.Builder(fragment.getParentActivity())
+                .setTitle(getString(R.string.SessionTransferExport)).setMessage(message)
+                .setPositiveButton(getString(R.string.OK), null).create());
     }
     public void destroy() { destroyed = true; generation++; rollback(); finish(); }
 }

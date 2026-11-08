@@ -51,31 +51,61 @@ public final class SessionFiles {
     }
 
     public static void write(Context context, Uri uri, int format, SessionData session) throws Exception {
-        try (OutputStream out = context.getContentResolver().openOutputStream(uri, "wt")) {
-            if (out == null) throw new IOException("Cannot create document");
-            if (format == TDATA) {
-                try (ZipOutputStream zip = new ZipOutputStream(out)) {
-                    for (Map.Entry<String, byte[]> entry : TdataCodec.write(session).entrySet()) {
-                        zip.putNextEntry(new ZipEntry(entry.getKey())); zip.write(entry.getValue()); zip.closeEntry();
-                    }
-                }
-            } else if (format == TELETHON_FILE || format == PYROGRAM_FILE) {
-                File file = File.createTempFile("session-export-", ".session", context.getCacheDir());
-                try {
-                    writeDatabase(file, format, session);
-                    try (InputStream in = new FileInputStream(file)) { copy(in, out, MAX_FILE); }
-                } finally { deleteDatabase(file); }
-            } else {
-                String value = format == TELETHON_STRING ? StringSessionCodec.telethon(session)
-                        : format == PYROGRAM_STRING ? StringSessionCodec.pyrogram(session) : StringSessionCodec.manual(session);
-                out.write(value.getBytes(StandardCharsets.UTF_8));
+        // Build the whole payload first: a failure while writing the database must not leave
+        // a half-written document, and the SAF stream stays open for as short a time as possible.
+        final byte[] payload = payload(context, format, session);
+        try {
+            try (OutputStream out = context.getContentResolver().openOutputStream(uri, "wt")) {
+                if (out == null) throw new IOException("Cannot create document");
+                out.write(payload);
+                out.flush();
             }
+        } finally {
+            Arrays.fill(payload, (byte) 0);
         }
     }
 
-    private static void writeDatabase(File file, int format, SessionData s) {
+    private static byte[] payload(Context context, int format, SessionData session) throws Exception {
+        if (format == TDATA) {
+            final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            try (ZipOutputStream zip = new ZipOutputStream(buffer)) {
+                for (Map.Entry<String, byte[]> entry : TdataCodec.write(session).entrySet()) {
+                    zip.putNextEntry(new ZipEntry(entry.getKey())); zip.write(entry.getValue()); zip.closeEntry();
+                }
+            }
+            return buffer.toByteArray();
+        }
+        if (format == TELETHON_FILE || format == PYROGRAM_FILE) {
+            final File file = File.createTempFile("session-export-", ".session", context.getCacheDir());
+            try {
+                writeDatabase(file, format, session);
+                if (file.length() <= 0) throw new IOException("Empty session database");
+                // Read back what will be handed to the user: a database that cannot be parsed
+                // again is useless even if SQLite managed to write it.
+                final SessionData check;
+                try { check = readDatabase(file); } catch (Exception e) { throw new IOException("Unreadable session database", e); }
+                check.clear();
+                return readAll(file);
+            } finally { deleteDatabase(file); }
+        }
+        final String value = format == TELETHON_STRING ? StringSessionCodec.telethon(session)
+                : format == PYROGRAM_STRING ? StringSessionCodec.pyrogram(session) : StringSessionCodec.manual(session);
+        return value.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] readAll(File file) throws IOException {
+        try (InputStream in = new FileInputStream(file)) {
+            final ByteArrayOutputStream out = new ByteArrayOutputStream((int) Math.min(file.length(), MAX_FILE));
+            copy(in, out, MAX_FILE);
+            return out.toByteArray();
+        }
+    }
+
+    private static void writeDatabase(File file, int format, SessionData s) throws Exception {
         try (SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(file, null)) {
-            db.execSQL("PRAGMA journal_mode=DELETE");
+            // A plain rollback journal keeps every committed page inside the single file that
+            // is copied to the document; the default journal mode of a new database is DELETE.
+            try { db.disableWriteAheadLogging(); } catch (Exception ignore) { }
             db.beginTransaction();
             try {
                 if (format == TELETHON_FILE) {
