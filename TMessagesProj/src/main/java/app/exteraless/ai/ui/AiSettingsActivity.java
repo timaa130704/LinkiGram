@@ -323,8 +323,14 @@ public class AiSettingsActivity extends AiSettingsBaseActivity {
                     provider == current, v -> {
                         dialog.dismiss();
                         Service service = service();
+                        String previousUrl = Service.normalizeUrl(service.getUrl());
                         service.setUrl(provider.getUrl());
                         service.setModel(provider.getModel());
+                        // A key belongs to one provider: picking another preset must
+                        // not keep the old one, especially not for a keyless preset.
+                        if (!TextUtils.equals(previousUrl, Service.normalizeUrl(service.getUrl()))) {
+                            service.setKey(null);
+                        }
                         store(service);
                     }), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
         }

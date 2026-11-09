@@ -147,7 +147,7 @@ public class Client {
         final Request built;
         try {
             Request.Builder request = new Request.Builder().url(url).get();
-            if (!TextUtils.isEmpty(service.getKey())) {
+            if (service.sendsKey()) {
                 request.addHeader("Authorization", "Bearer " + service.getKey());
             }
             built = request.build();
@@ -396,7 +396,7 @@ public class Client {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("HTTP-Referer", "https://github.com/exteraless/exteraless")
                 .addHeader("X-Title", "exteraless");
-        if (!TextUtils.isEmpty(service.getKey())) {
+        if (service.sendsKey()) {
             builder.addHeader("Authorization", "Bearer " + service.getKey());
         }
         return builder

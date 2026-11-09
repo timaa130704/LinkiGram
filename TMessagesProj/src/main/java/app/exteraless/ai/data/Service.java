@@ -125,7 +125,16 @@ public class Service implements Serializable {
 
     /** True when the endpoint needs no API key (OpenCode Zen free tier). */
     public boolean isKeyless() {
-        return TextUtils.isEmpty(key) && Provider.isKeylessUrl(url);
+        return Provider.isKeylessUrl(url);
+    }
+
+    /**
+     * A keyless preset must never send an Authorization header. The keyless flag
+     * follows the URL, so a key left over from another provider cannot break the
+     * request.
+     */
+    public boolean sendsKey() {
+        return !isKeyless() && !TextUtils.isEmpty(key);
     }
 
     /** True when the service can be called: either a key is set or the preset is keyless. */
