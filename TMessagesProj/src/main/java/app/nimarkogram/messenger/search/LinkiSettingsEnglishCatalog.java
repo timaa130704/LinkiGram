@@ -70,11 +70,11 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.CP_Slider_RecentEmojisAndStickers, "Recent emoji/sticker count");
         labels.put(R.string.CP_Snowflakes_Header, "Snowflakes");
         labels.put(R.string.CP_SortByUnread, "Sort by unread");
-        labels.put(R.string.CP_TimeOnStick, "Hide time on stickers in chat");
         labels.put(R.string.CP_UnarchiveOnSwipe, "Unarchive on swipe");
         labels.put(R.string.CP_UnreadBadgeOnBackButton, "Show unread chats counter");
         labels.put(R.string.CP_VibrateInChats, "In-chat vibration");
         labels.put(R.string.CP_VideoSeekDuration, "Double-tap to seek video (seconds)");
+        labels.put(R.string.Copy, "Copy");
         labels.put(R.string.DirectShare, "Direct Share");
         labels.put(R.string.EP_CustomChat, "Custom chat for Saved Messages");
         labels.put(R.string.EP_DownloadSpeedBoost, "Download speed boost");
@@ -96,9 +96,17 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.LF_DrawerStyle, "Side menu appearance");
         labels.put(R.string.LF_Labels, "Show labels and details");
         labels.put(R.string.LF_Menu, "Side menu settings");
+        labels.put(R.string.LX_Title, "Chat tools");
+        labels.put(R.string.LinkiAllowProtectedScreenshots, "Allow screenshots in protected chats");
+        labels.put(R.string.LinkiDoubleTapIncoming, "Double tap incoming messages");
+        labels.put(R.string.LinkiDoubleTapOutgoing, "Double tap outgoing messages");
         labels.put(R.string.LinkiHidePhone, "Hide my phone number locally");
+        labels.put(R.string.LinkiKeepOnce, "Keep opened view-once media");
+        labels.put(R.string.LinkiOnceArchive, "Saved view-once media");
         labels.put(R.string.LinkiRelativeLastSeen, "Relative last seen");
         labels.put(R.string.LinkiSettingsIconColors, "Settings icon colors");
+        labels.put(R.string.LinkiStickerTime, "Sticker timestamp");
+        labels.put(R.string.LinkiYouCustomize, "LinkiGram You customization");
         labels.put(R.string.LiteMode, "Animations");
         labels.put(R.string.LocalMiscellaneousCache, "Miscellaneous");
         labels.put(R.string.MessagesSettings, "Messages");
@@ -183,6 +191,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_CP_Header_Media, "Media");
         labels.put(R.string.NM_CP_LatexRendering, "Render LaTeX formulas");
         labels.put(R.string.NM_CP_PreReformRussian, "Pre-reform Russian spelling");
+        labels.put(R.string.NM_CP_ReadAllInMenu, "Read all in the menu");
         labels.put(R.string.NM_CP_SnowflakesInChat, "Snowflakes in chat");
         labels.put(R.string.NM_CP_WeekdayNearDate, "Show weekday by date");
         labels.put(R.string.NM_Camera_FaceDetection, "Face Detection");
@@ -192,6 +201,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_Chat_Section, "Chats");
         labels.put(R.string.NM_ClassicUi, "Classic interface");
         labels.put(R.string.NM_ClassicUi_Header, "Interface style");
+        labels.put(R.string.NM_ColorOS17, "ColorOS 17");
         labels.put(R.string.NM_Config_Export, "Export settings");
         labels.put(R.string.NM_Config_Header, "Configuration");
         labels.put(R.string.NM_Config_Import, "Import settings");
@@ -255,6 +265,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_InBubbleGradient3, "Gradient color 3");
         labels.put(R.string.NM_InBubbleGradients, "Gradients for incoming bubbles");
         labels.put(R.string.NM_LastSeenCache, "Show exact last seen");
+        labels.put(R.string.NM_LinkiGramYou, "LinkiGram You");
         labels.put(R.string.NM_LiquidGlass, "Linki Glass");
         labels.put(R.string.NM_MF_Advanced, "Advanced");
         labels.put(R.string.NM_MF_ChatBlacklist, "Never filter in these chats");
@@ -398,6 +409,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.OEAppearanceMd3Player, "Music player");
         labels.put(R.string.OEGeneralLastFm, "Last.fm");
         labels.put(R.string.Plugins, "Plugins");
+        labels.put(R.string.Repeat, "Repeat");
         labels.put(R.string.Reply, "Reply");
         labels.put(R.string.ReportChat, "Report");
         labels.put(R.string.Reset, "Reset");

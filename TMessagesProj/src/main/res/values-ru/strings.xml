@@ -10,6 +10,8 @@
     <string name="NM_CP_Header_Interaction">Взаимодействие</string>
     <string name="NM_CP_Header_Media">Медиа</string>
     <string name="NM_CP_CenterTitleInChat">Центрировать заголовок в чате</string>
+    <string name="NM_CP_ReadAllInMenu">«Прочитать все» в меню</string>
+    <string name="NM_CP_ReadAllInMenu_Desc">Убрать кнопку с панели и показывать «Прочитать все» в меню из трёх точек.</string>
     <string name="NM_CP_SnowflakesInChat">Снежинки в чате</string>
     <string name="NM_CP_WeekdayNearDate">День недели у даты</string>
     <string name="NM_CP_WeekdayNearDate_Desc">Показывает день недели рядом с датой в чате.</string>

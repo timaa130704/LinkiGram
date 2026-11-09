@@ -3439,17 +3439,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
             if (!onlySelect && communityId == 0) {
-                ActionBarMenuItem readAllItem = menu.addItem(10082, R.drawable.msg_markread);
-                readAllItem.setContentDescription(getString(R.string.MarkAllAsRead));
-                readAllItem.setOnClickListener(v -> {
-                    int type = viewPages != null && viewPages[0] != null ? viewPages[0].dialogsType : initialDialogsType;
-                    ArrayList<TLRPC.Dialog> unread = new ArrayList<>();
-                    for (TLRPC.Dialog dialog : new ArrayList<>(getDialogsArray(currentAccount, type, folderId, false))) {
-                        if (!(dialog instanceof TLRPC.TL_dialogFolder)
-                                && (dialog.unread_count > 0 || dialog.unread_mark || dialog.unread_mentions_count > 0)) unread.add(dialog);
-                    }
-                    if (!unread.isEmpty()) markDialogsAsRead(unread);
-                });
+                // LinkiGram: the button can be moved into the three-dot menu.
+                if (!NimarkoConfig.readAllInMenu) {
+                    ActionBarMenuItem readAllItem = menu.addItem(10082, R.drawable.msg_markread);
+                    readAllItem.setContentDescription(getString(R.string.MarkAllAsRead));
+                    readAllItem.setOnClickListener(v -> {
+                        ArrayList<TLRPC.Dialog> unread = getUnreadDialogsForReadAll();
+                        if (!unread.isEmpty()) markDialogsAsRead(unread);
+                    });
+                }
             }
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
             optionsItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
@@ -9714,6 +9712,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         getMessagesController().markDialogAsUnread(did, null, 0);
     }
 
+    /** LinkiGram: unread dialogs of the current folder, used by the Read all action. */
+    private ArrayList<TLRPC.Dialog> getUnreadDialogsForReadAll() {
+        int type = viewPages != null && viewPages[0] != null ? viewPages[0].dialogsType : initialDialogsType;
+        ArrayList<TLRPC.Dialog> unread = new ArrayList<>();
+        for (TLRPC.Dialog dialog : new ArrayList<>(getDialogsArray(currentAccount, type, folderId, false))) {
+            if (!(dialog instanceof TLRPC.TL_dialogFolder)
+                    && (dialog.unread_count > 0 || dialog.unread_mark || dialog.unread_mentions_count > 0)) unread.add(dialog);
+        }
+        return unread;
+    }
+
     private void markDialogsAsRead(ArrayList<TLRPC.Dialog> dialogs) {
         debugLastUpdateAction = 2;
         int selectedDialogIndex = -1;
@@ -13602,6 +13611,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
             });
         });
+        if (NimarkoConfig.readAllInMenu) {
+            ArrayList<TLRPC.Dialog> unreadForMenu = getUnreadDialogsForReadAll();
+            if (!unreadForMenu.isEmpty()) {
+                io.add(R.drawable.msg_markread, getString(R.string.MarkAllAsRead), () -> markDialogsAsRead(unreadForMenu));
+            }
+        }
         io.addGap();
         io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
             Bundle args = new Bundle();

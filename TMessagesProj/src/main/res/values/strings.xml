@@ -11318,6 +11318,8 @@
 <string name="NM_CP_Header_Interaction">Interaction</string>
 <string name="NM_CP_Header_Media">Media</string>
 <string name="NM_CP_CenterTitleInChat">Center title in chat</string>
+<string name="NM_CP_ReadAllInMenu">Read all in the menu</string>
+<string name="NM_CP_ReadAllInMenu_Desc">Hide the toolbar button and show Mark all as read in the three-dot menu.</string>
 <string name="NM_CP_SnowflakesInChat">Snowflakes in chat</string>
 <string name="NM_CP_WeekdayNearDate">Show weekday by date</string>
 <string name="NM_CP_WeekdayNearDate_Desc">Adds the day of the week next to the date in chat.</string>

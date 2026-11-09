@@ -46,7 +46,8 @@ import app.nimarkogram.messenger.preferences.helpers.SettingsHelper;
 public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivity {
 
     private final int sortByUnreadRow = 1, unarchiveOnSwipeRow = 2, forwardWithoutAuthorRow = 3,
-            customChatRow = 4, recentEmojisStickersRow = 5, openSettingsBySwipeRow = 6;
+            customChatRow = 4, recentEmojisStickersRow = 5, openSettingsBySwipeRow = 6,
+            readAllInMenuRow = 7;
 
     private final int centerTitleRow = 10, unreadBadgeRow = 11, customBackgroundInChatsRow = 12,
             snowflakesRow = 13, pencilIconRow = 14, forwardDateRow = 15, hideBottomBarRow = 16,
@@ -90,6 +91,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
                 .setChecked(NimarkoConfig.unarchiveOnSwipe));
         items.add(SettingsHelper.asSwitchCG(openSettingsBySwipeRow, getString(R.string.CP_OpenSettingsBySwipe), getString(R.string.CP_OpenSettingsBySwipe_Desc))
                 .setChecked(NimarkoConfig.openSettingsBySwipe));
+        items.add(SettingsHelper.asSwitchCG(readAllInMenuRow, getString(R.string.NM_CP_ReadAllInMenu), getString(R.string.NM_CP_ReadAllInMenu_Desc))
+                .setChecked(NimarkoConfig.readAllInMenu));
         items.add(SettingsHelper.asSwitchCG(forwardWithoutAuthorRow, getString(R.string.ForwardWithoutAuthor))
                 .setChecked(NimarkoConfig.forwardWithoutAuthor));
         items.add(SettingsHelper.asSwitchCG(customChatRow, getString(R.string.EP_CustomChat), getString(R.string.EP_CustomChat_Desc))
@@ -214,6 +217,9 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
             NimarkoConfig.toggleOpenSettingsBySwipe();
             updateCheckState(view, NimarkoConfig.openSettingsBySwipe);
             listView.invalidateItemDecorations();
+        } else if (id == readAllInMenuRow) {
+            NimarkoConfig.toggleReadAllInMenu();
+            updateCheckState(view, NimarkoConfig.readAllInMenu);
         } else if (id == forwardWithoutAuthorRow) {
             NimarkoConfig.toggleForwardWithoutAuthor();
             updateCheckState(view, NimarkoConfig.forwardWithoutAuthor);

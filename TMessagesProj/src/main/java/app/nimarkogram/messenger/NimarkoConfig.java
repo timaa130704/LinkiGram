@@ -744,6 +744,13 @@ public final class NimarkoConfig {
         sortByUnread = !sortByUnread;
         getEditor().putBoolean("sortByUnread", sortByUnread).apply();
     }
+
+    /** Hide the "Read all" toolbar button and move the action into the three-dot menu. */
+    public static boolean readAllInMenu = getPreferences().getBoolean("readAllInMenu", false);
+    public static void toggleReadAllInMenu() {
+        readAllInMenu = !readAllInMenu;
+        getEditor().putBoolean("readAllInMenu", readAllInMenu).apply();
+    }
     public static void setSortByUnread(boolean v) {
         sortByUnread = v;
         getEditor().putBoolean("sortByUnread", v).apply();
