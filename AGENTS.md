@@ -724,10 +724,19 @@ node tools/liner-lyrics/check.cjs
   `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`; APK
   SHA-256
   `830dc994e33aa5232f1ee5e93b2924c160816497cfaa8ba787934b24a7d495b7`.
-- Not installed or re-verified on a device: the phone disappeared from
-  `adb devices` during the session (the plugin-agent attachment build had been
-  installed successfully before that). Picking OpenCode Zen on the phone with
-  the new APK still has to be confirmed, together with the free-model list.
+- Installed on `RF8MA188NFZ` with `adb install -r` (app data preserved). On the
+  installed build the AI settings screen shows “OpenCode Zen”,
+  `https://opencode.ai/zen/v1`, no “Ключ API” row, and the model picker lists
+  the gateway's free models with the “Бесплатно” badge (`beam-free`,
+  `big-pickle`, `crouton-alpha-free`, `deepseek-v4.1-flash-free`,
+  `flint-40b-free`, `glm-5.3-flash-free`, `iceman-free`, `inkling-2-small-free`,
+  …). That list can only be fetched when the request carries no `Authorization`
+  header, so the invalid-credential case is fixed. A real chat answer on the
+  free tier was not exercised (the PC's IP is already rate-limited).
+- Note for the next session: the `gh` token became invalid in the middle of this
+  work (`gh run download` → HTTP 401), so artifacts could not be fetched until
+  the user ran `gh auth login` again. `git` operations kept working because the
+  repository is public.
 
 ## Privacy
 
