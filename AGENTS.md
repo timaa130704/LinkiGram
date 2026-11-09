@@ -738,6 +738,39 @@ node tools/liner-lyrics/check.cjs
   the user ran `gh auth login` again. `git` operations kept working because the
   repository is public.
 
+## Read all in the three-dot menu and desktop feature inventory (2026-11-09)
+
+- New Chats setting **“Read all in the menu”** (`NM_CP_ReadAllInMenu`,
+  `NimarkoConfig.readAllInMenu`, toggled in `ChatsPreferencesActivity`). When on,
+  the “Mark all as read” toolbar button in `DialogsActivity` is not added and the
+  same action appears in the three-dot `ItemOptions` menu, computed for the
+  current folder via a shared `getUnreadDialogsForReadAll()` helper. The item is
+  only shown when there are unread dialogs; the archive long-press menu and the
+  community/archive paths are unchanged.
+- Strings added to `values/strings.xml` and `values-ru/strings.xml`. The settings
+  search catalogs were regenerated with `Tools/generate_settings_search.py`;
+  this also refreshed previously stale entries (`NM_LinkiGramYou`, `NM_ColorOS17`,
+  `LinkiYouCustomize`, `LX_Title`, `LinkiStickerTime`), so the catalog now lists
+  422 entries over 29 screens. All new `R.string` references resolve.
+- Checks: `Tools/check_braces.py` `+0/+0` on the five changed Java files, both
+  strings files parse with no duplicate names, javac reports no syntax errors in
+  `DialogsActivity`. Committed as `707901bf`.
+- `DESKTOP_FEATURES.md` (repo root) documents the whole LinkiGram feature set for
+  the PC client — names, types and Android locations plus proposed `tdesktop`
+  modules — with a full settings reference (29 screens) and an Android-only
+  section; the plugin AI agent is deliberately excluded. `desktop/README.md`
+  links to it. Committed as `d09101d6`.
+- CI run **42662520557** (`d09101d6`, ARM64) succeeded. Artifact `linkigram-apk`
+  verified offline with androguard: package `app.linkigram.messenger`,
+  versionName `2.9`, versionCode `202611089`, v2 signature, certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`; APK
+  SHA-256
+  `3a4438bd2d8c8854cacfc157686004fbfc9ce21fbc7517daa226e428baa61aca`.
+- Not installed or checked on a device: `adb devices` was empty at build time.
+  The feature still needs a device pass: enable the setting, confirm the toolbar
+  button disappears and “Mark all as read” works from the three-dot menu, then
+  turn it off again.
+
 ## Privacy
 
 This file is public on GitHub. Include only project instructions and technical
