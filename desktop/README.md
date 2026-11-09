@@ -17,3 +17,8 @@ Windows builds run in GitHub Actions using `desktop-windows.yml`. The workflow i
 5. Calls and platform integrations.
 
 Each feature must have a native desktop implementation and tests; Android plugin APIs are not part of the desktop contract.
+
+## Feature inventory
+
+The complete LinkiGram feature list, with names, types and where every feature
+lives today, is in [`../DESKTOP_FEATURES.md`](../DESKTOP_FEATURES.md).
