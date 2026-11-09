@@ -697,6 +697,38 @@ node tools/liner-lyrics/check.cjs
   attachment UI, provider-side image support and the gallery/file pickers remain
   unverified on a device.
 
+## OpenCode Zen rejected a leftover key (2026-11-09)
+
+- Symptom reported by the user: the OpenCode Zen preset answered “Invalid
+  credential” / an invalid-key error. Verified against the live gateway: `GET
+  https://opencode.ai/zen/v1/models` returns 200 without a key, but returns 401
+  `{"error":{"type":"server_error","message":"Invalid credential"}}` when a
+  `Bearer` token is sent. The keyless preset was inheriting the API key of the
+  previously selected provider (custom `api.reformboss.com`), and
+  `Service.isKeyless()` only reported keyless while the stored key was empty.
+- `Service.isKeyless()` is now derived from the URL (`Provider.isKeylessUrl`)
+  and a new `Service.sendsKey()` decides the `Authorization` header, so both
+  `Client.listModels` and `Client.request` never attach a key to a keyless
+  preset, even if old state still holds one. `AiSettingsActivity` clears the key
+  when the provider URL actually changes, so a key no longer leaks across
+  providers. `hasCredentials()` and the hidden key row keep using the same rule.
+- The user's own `reformboss` key was verified working from the PC (`/v1/models`
+  200, `/v1/chat/completions` 200 for `deepseek-v4.1-flash-1017`); it is the key
+  present in the opencode app config (`REFORMBOSS_API_KEY` in
+  `~/.config/opencode/service.json`). No key was read into the repository.
+- Checks: `Tools/check_braces.py` `+0/+0` on the three changed Java files, javac
+  reports no syntax errors. Committed as `4dfad06d`; CI run **42633870052**
+  (ARM64) succeeded. Artifact `linkigram-apk` verified offline with androguard:
+  package `app.linkigram.messenger`, versionName `2.9`, versionCode `202611089`,
+  v2 signature and certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`; APK
+  SHA-256
+  `830dc994e33aa5232f1ee5e93b2924c160816497cfaa8ba787934b24a7d495b7`.
+- Not installed or re-verified on a device: the phone disappeared from
+  `adb devices` during the session (the plugin-agent attachment build had been
+  installed successfully before that). Picking OpenCode Zen on the phone with
+  the new APK still has to be confirmed, together with the free-model list.
+
 ## Privacy
 
 This file is public on GitHub. Include only project instructions and technical
