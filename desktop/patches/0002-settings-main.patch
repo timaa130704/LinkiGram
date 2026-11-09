@@ -1,0 +1,32 @@
+diff --git a/Telegram/SourceFiles/settings/sections/settings_main.cpp b/Telegram/SourceFiles/settings/sections/settings_main.cpp
+index b452a17..4b8658e 100644
+--- a/Telegram/SourceFiles/settings/sections/settings_main.cpp
++++ b/Telegram/SourceFiles/settings/sections/settings_main.cpp
+@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ */
+ #include "settings/sections/settings_main.h"
+ 
++#include "linkigram/settings/settings_linkigram.h"
++
+ #include "settings/settings_common_session.h"
+ 
+ #include "api/api_cloud_password.h"
+@@ -472,6 +474,18 @@ void BuildSectionButtons(SectionBuilder &builder) {
+ 		},
+ 		.keywords = { u"translate"_q, u"localization"_q, u"language"_q },
+ 	});
++
++	builder.addSectionButton({
++		.title = rpl::single(u"LinkiGram"_q),
++		.targetSection = LinkiGramId(),
++		.icon = { &st::menuIconExperimental },
++		.keywords = {
++			u"linkigram"_q,
++			u"theme"_q,
++			u"privacy"_q,
++			u"appearance"_q,
++		},
++	});
+ }
+ 
+ void BuildInterfaceScale(SectionBuilder &builder) {

@@ -1,5 +1,61 @@
 # LinkiGram — Agent Instructions
 
+## LinkiGram Desktop: settings hub and branding (2026-11-09)
+
+- The desktop client lives in `desktop/tdesktop/` (a git-ignored vanilla
+  `telegramdesktop/tdesktop` checkout, `dev` @ `87ff45f`, 7.4.1). LinkiGram
+  code is new native C++ under `Telegram/SourceFiles/linkigram/`; the Android
+  plugin/DEX/Python subsystem is out of the desktop contract.
+- Added `linkigram/linkigram_config.{h,cpp}`: a JSON settings store at
+  `tdata/linkigram.json` with `Config::Instance()`, typed get/set, `save()`,
+  `path()` and `import()`.
+- **Full settings port.** `linkigram/settings/settings_data.{h,cpp}` is
+  generated from the settings reference in `DESKTOP_FEATURES.md` and holds all
+  **28 non-Android settings screens / 421 records** (`LinkiGram`,
+  `General`, `Appearance`, `Chats`, `Camera`, `Privacy`, `AyuMoments (ghost)`,
+  `Messages`, `Recent emojis/stickers`, `Folders`, `Bottom tabs`,
+  `Media downloader`, `Banners`, `Debug`, `Experimental`, `Text animation`,
+  `Background`, `Message menu items`, `Side menu`, `Side menu appearance`,
+  `AI Assistant`, `Quick info`, `Bypass`, `Message menu`, `Message filtering`,
+  `Reorder menu items`, `Messages and profiles`, `Icon pack`). The generator is
+  the tracked `desktop/tools/gen_settings.py`; regenerate with
+  `python3 desktop/tools/gen_settings.py` if the inventory changes.
+  `PluginsActivity` is intentionally excluded (Android-only).
+- `linkigram/settings/settings_linkigram.{h,cpp}` implements one generic
+  `AbstractSection` per screen (`ScreenFactory` + `LinkiGramScreen`,
+  `LinkiGramScreenId(int)`) plus the `LinkiGramHub` `Section` (`LinkiGramId()`)
+  that lists every screen, an About row (opens the repository) and
+  Export/Import actions. Each record is a persisted toggle keyed
+  `"<screen title>/<R.string key>"`. It uses raw `QString` literals and the
+  direct `AddButtonWithIcon` + `toggleOn` + `toggledValue()` pattern, so it
+  needs no `tr::phrase` / `BuildHelper` search registration. The per-screen
+  factory instances are cached so a screen's `Type` (shared_ptr) is stable.
+- Wired a LinkiGram button into `BuildSectionButtons` in
+  `settings/sections/settings_main.cpp` and listed the six new files in
+  `Telegram/CMakeLists.txt`.
+- Branded `core/version.h`: `AppName` = "LinkiGram Desktop", `AppNameOld` =
+  "Telegram Desktop"; `AppFile`/`AppId` are intentionally unchanged.
+- Packaging is overlay + patches, chosen by the user. The tracked
+  `desktop/linkigram/` holds the LinkiGram sources under the base's
+  `Telegram/SourceFiles/...` paths, `desktop/patches/` holds the upstream-file
+  edits, and `desktop/apply-linkigram.sh [tdesktop]` copies the overlay and
+  applies the patches idempotently. The three patches apply cleanly to a
+  pristine `dev` @ `87ff45f` checkout (verified with `git apply --check`), and
+  the script reports "Already applied" on a second run. `desktop-windows.yml`
+  runs `desktop/apply-linkigram.sh desktop/tdesktop` right after checking out
+  Telegram Desktop and before configuring the build.
+- Local verification only: the new and edited translation units were checked
+  with `-fsyntax-only` using the real flags from `ninja -t commands`
+  (`linkigram_config.cpp`, `settings_data.cpp`, `settings_linkigram.cpp`,
+  `settings/sections/settings_main.cpp` all clean). A full local build was not
+  completed — it kept being killed when the OpenCode server restarted — so the
+  link step and runtime are unverified locally; CI is the build path.
+- This is a settings/feature-flag layer, not the deep native backends. Still
+  to port on desktop: WS bypass / X-CFG / VPN detection, CameraX video
+  messages, Vosk transcription, ML Kit offline translation, banners
+  moderation, the Ayu ghost database, the exteraless player/lyrics/Last.fm UI,
+  session import/export, and the update service.
+
 ## Telegram base upgrade audit (2026-11-07)
 
 - User requested upgrading the Telegram base to 13.2.1, not changing the

@@ -26,6 +26,10 @@ jobs:
           path: desktop/tdesktop
           submodules: recursive
 
+      - name: Apply LinkiGram overlay
+        shell: bash
+        run: desktop/apply-linkigram.sh desktop/tdesktop
+
       - name: Initialize MSVC Native Tools (x64)
         uses: ilammy/msvc-dev-cmd@v1
         with:

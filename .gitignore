@@ -42,3 +42,6 @@ relay/.wrangler/
 
 # Local Telegram-base upgrade reference trees, previews and backups (large, temporary).
 /ci-apk-*/
+
+# Desktop client: the Telegram Desktop base is cloned here by CI/developers, not vendored.
+/desktop/tdesktop/
