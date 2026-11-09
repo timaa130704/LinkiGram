@@ -1,5 +1,36 @@
 # LinkiGram — Agent Instructions
 
+## Configurable three-dot menu on the chat list (2026-11-10)
+
+- New screen **“Three-dot menu”** (`DialogsMenuItemsPreferencesActivity`, opened
+  from Chats → “List of dialogs”) toggles the items of the chat-list three-dot
+  `ItemOptions` menu: Smart center, day/night theme, Read all (only when
+  `readAllInMenu` is on), New group, Saved messages and Settings. A “Menu item
+  order” row opens `DialogsMenuOrderPreferencesActivity` (drag to reorder the
+  four reorderable slots — theme, read all, new group, saved; a reset action
+  restores the default). Smart center and Settings are toggle-only; the
+  wallet / attach-bot / proxy entries are untouched.
+- Config lives in `NimarkoConfig`: `DIALOGS_MENU_THEME/READ_ALL/NEW_GROUP/SAVED`,
+  `DIALOGS_MENU_DEFAULT_ORDER`, the `dialogsMenuShow*` flags and a persisted
+  `dialogsMenuOrder` Gson list (`setDialogsMenuOrder` / `resetDialogsMenuOrder`).
+  `DialogsActivity.showItemOptions` guards Smart center, iterates the configured
+  order for the four slots, and guards Settings with `dialogsMenuShowSettings`.
+- Strings `NM_DM_Title`, `NM_DM_Theme`, `NM_DM_Reorder` in both locale files.
+  Both new screens were registered in `Tools/generate_settings_search.py`; the
+  catalog regenerated to 454 entries over 31 sections.
+- Checks: `Tools/check_braces.py` `+0/+0` on the changed files, javac reports
+  only classpath cascades, both strings files parse with no duplicate names, and
+  every `R.string` reference resolves. Committed as `7a987500`; CI run
+  **42697009365** (ARM64) succeeded. Artifact `linkigram-apk` verified offline
+  with androguard: package `app.linkigram.messenger`, versionName `2.9`,
+  versionCode `202611089`, v2 signature, certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`; APK
+  SHA-256
+  `ef678361f9c84a6172e8c5fb0063996b8264566067211a9e9fc40dc937eff879`.
+- Not installed or checked on a device: `adb devices` was empty and `lsusb`
+  showed no phone at handoff. The new screen, its toggles and the drag reorder
+  still need a device pass.
+
 ## LinkiGram Desktop: settings hub and branding (2026-11-09)
 
 - The desktop client lives in `desktop/tdesktop/` (a git-ignored vanilla
