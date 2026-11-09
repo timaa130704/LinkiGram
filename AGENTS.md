@@ -686,6 +686,16 @@ node tools/liner-lyrics/check.cjs
   errors (there is no Android SDK here, so this is not a compile). Not built or
   installed: a device pass for photo/file attach, vision-model answers and
   history replay is still required.
+- Committed as `21a7fe7b`; CI run **42537791017** (ARM64) succeeded. Artifact
+  `linkigram-apk` verified offline with androguard: package
+  `app.linkigram.messenger`, versionName `2.9`, versionCode `202611089`, ZIP
+  integrity OK, APK Signature Scheme v2 present, certificate SHA-256
+  `627163ebca3d2b4d0ebe16a2c5aa3622b6eee0b90e425569da9924fca848b0b4`; APK
+  SHA-256
+  `432be0dfad980c911268c0c32c778035be35dde40efba13ff12f4af124be9129`.
+- Not installed: `adb devices` was empty and `lsusb` showed no phone. The
+  attachment UI, provider-side image support and the gallery/file pickers remain
+  unverified on a device.
 
 ## Privacy
 
