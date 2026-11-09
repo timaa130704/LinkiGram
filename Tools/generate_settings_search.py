@@ -11,7 +11,7 @@ JAVA=ROOT/'TMessagesProj/src/main/java'
 PREF='app/nimarkogram/messenger/preferences/'
 names=['Main','General','Appearance','Chats','Camera','Privacy','AyuMoments','Messages',
        'RecentEmojisStickers','Folders','BottomTabs','NimarkoMedia','Banner','Debug',
-       'Experimental','NimarkoTextAnim','Background','MessageMenuItems','Drawer']
+       'Experimental','NimarkoTextAnim','Background','MessageMenuItems','DialogsMenuItems','Drawer']
 specs=[(PREF+n+'PreferencesActivity.java',None,None) for n in names]
 specs += [(PREF+'ScreenAppearanceActivity.java','LF_DrawerStyle','new ScreenAppearanceActivity("drawer")'),
           ('app/exteraless/ai/ui/AiSettingsActivity.java','OEAiTitle','new app.exteraless.ai.ui.AiSettingsActivity()'),
@@ -22,6 +22,7 @@ sections=[('MessageMenuPreferencesActivity','CP_MessageMenu'),
           ('MessageFiltersPreferencesActivity','NM_MF_Title'),
           ('MessageMenuOrderPreferencesActivity','NM_Menu_Reorder'),
           ('MessagesAndProfilesPreferencesActivity','CP_ProfileReplyBackground'),
+          ('DialogsMenuOrderPreferencesActivity','NM_Menu_Reorder'),
           ('IconPackSelectorActivity','AP_IconReplacements')]
 def cleaned(s):
  return re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*[\s\S]*?\*/',lambda m:' '*len(m[0]),s)

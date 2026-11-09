@@ -13518,8 +13518,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private void showItemOptions() {
         ItemOptions io = ItemOptions.makeOptions(this, optionsItem);
-        io.add(R.drawable.msg_stats, getString(R.string.LinkiSmartCenter), () -> presentFragment(
-                new app.nimarkogram.messenger.preferences.SmartChatCenterActivity(currentAccount)));
+        if (NimarkoConfig.dialogsMenuShowSmartCenter) {
+            io.add(R.drawable.msg_stats, getString(R.string.LinkiSmartCenter), () -> presentFragment(
+                    new app.nimarkogram.messenger.preferences.SmartChatCenterActivity(currentAccount)));
+        }
         io.setColors(getThemedColor(Theme.key_actionBarDefaultTitle), getThemedColor(Theme.key_actionBarDefaultTitle));
         io.setDimAlpha(0x08);
 
@@ -13576,57 +13578,69 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else {
             isCurrentThemeDark = Theme.isCurrentThemeDark();
         }
-        io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
-                getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
-            if (switchingTheme) {
-                return;
-            }
-            switchingTheme = true;
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-            String dayThemeName = preferences.getString("lastDayTheme", "Blue");
-            if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                dayThemeName = "Blue";
-            }
-            String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
-            if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                nightThemeName = "Dark Blue";
-            }
-            Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
-            if (dayThemeName.equals(nightThemeName)) {
-                if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                    dayThemeName = "Blue";
-                } else {
-                    nightThemeName = "Dark Blue";
-                }
-            }
+        java.util.List<Integer> dialogsMenuOrder = NimarkoConfig.dialogsMenuOrder != null
+                ? NimarkoConfig.dialogsMenuOrder : NimarkoConfig.DIALOGS_MENU_DEFAULT_ORDER;
+        for (int slot : dialogsMenuOrder) {
+            if (slot == NimarkoConfig.DIALOGS_MENU_THEME) {
+                if (!NimarkoConfig.dialogsMenuShowTheme) continue;
+                io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
+                        getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
+                    if (switchingTheme) {
+                        return;
+                    }
+                    switchingTheme = true;
+                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+                    String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+                    if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
+                        dayThemeName = "Blue";
+                    }
+                    String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+                    if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
+                        nightThemeName = "Dark Blue";
+                    }
+                    Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
+                    if (dayThemeName.equals(nightThemeName)) {
+                        if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
+                            dayThemeName = "Blue";
+                        } else {
+                            nightThemeName = "Dark Blue";
+                        }
+                    }
 
-            boolean toDark;
-            if (toDark = dayThemeName.equals(themeInfo.getKey())) {
-                themeInfo = Theme.getTheme(nightThemeName);
-            } else {
-                themeInfo = Theme.getTheme(dayThemeName);
-            }
-            switchTheme(themeInfo, toDark);
-            Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
-            });
-        });
-        if (NimarkoConfig.readAllInMenu) {
-            ArrayList<TLRPC.Dialog> unreadForMenu = getUnreadDialogsForReadAll();
-            if (!unreadForMenu.isEmpty()) {
-                io.add(R.drawable.msg_markread, getString(R.string.MarkAllAsRead), () -> markDialogsAsRead(unreadForMenu));
+                    boolean toDark;
+                    if (toDark = dayThemeName.equals(themeInfo.getKey())) {
+                        themeInfo = Theme.getTheme(nightThemeName);
+                    } else {
+                        themeInfo = Theme.getTheme(dayThemeName);
+                    }
+                    switchTheme(themeInfo, toDark);
+                    Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
+                        presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
+                    });
+                });
+            } else if (slot == NimarkoConfig.DIALOGS_MENU_READ_ALL) {
+                if (NimarkoConfig.readAllInMenu && NimarkoConfig.dialogsMenuShowReadAll) {
+                    ArrayList<TLRPC.Dialog> unreadForMenu = getUnreadDialogsForReadAll();
+                    if (!unreadForMenu.isEmpty()) {
+                        io.add(R.drawable.msg_markread, getString(R.string.MarkAllAsRead), () -> markDialogsAsRead(unreadForMenu));
+                    }
+                }
+            } else if (slot == NimarkoConfig.DIALOGS_MENU_NEW_GROUP) {
+                if (!NimarkoConfig.dialogsMenuShowNewGroup) continue;
+                io.addGap();
+                io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
+                    Bundle args = new Bundle();
+                    presentFragment(new GroupCreateActivity(args));
+                });
+            } else if (slot == NimarkoConfig.DIALOGS_MENU_SAVED) {
+                if (!NimarkoConfig.dialogsMenuShowSaved) continue;
+                io.add(R.drawable.outline_saved_24, getString(R.string.SavedMessages), () -> {
+                    Bundle args = new Bundle();
+                    args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
+                    presentFragment(new ChatActivity(args));
+                });
             }
         }
-        io.addGap();
-        io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
-            Bundle args = new Bundle();
-            presentFragment(new GroupCreateActivity(args));
-        });
-        io.add(R.drawable.outline_saved_24, getString(R.string.SavedMessages), () -> {
-            Bundle args = new Bundle();
-            args.putLong("user_id", UserConfig.getInstance(currentAccount).getClientUserId());
-            presentFragment(new ChatActivity(args));
-        });
         if (ApplicationLoader.applicationLoaderInstance != null) {
             ApplicationLoader.applicationLoaderInstance.addItemOptions(io);
         }
@@ -13660,7 +13674,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         }
-        if (getUserConfig().showCallsTab) {
+        if (getUserConfig().showCallsTab && NimarkoConfig.dialogsMenuShowSettings) {
             io.add(R.drawable.msg_settings_old, getString(R.string.Settings), () -> {
                 presentFragment(new SettingsActivity());
             });

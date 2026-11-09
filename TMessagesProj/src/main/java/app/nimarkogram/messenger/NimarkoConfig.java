@@ -1738,6 +1738,65 @@ public final class NimarkoConfig {
 
     public static void resetMessageMenuOrder() { setMessageMenuOrder(null); }
 
+    // --- LinkiGram: configurable three-dot menu on the chat list ---
+
+    /** Slots of the chat-list three-dot menu that can be reordered. */
+    public static final int DIALOGS_MENU_THEME = 1;
+    public static final int DIALOGS_MENU_READ_ALL = 2;
+    public static final int DIALOGS_MENU_NEW_GROUP = 3;
+    public static final int DIALOGS_MENU_SAVED = 4;
+
+    public static final List<Integer> DIALOGS_MENU_DEFAULT_ORDER = Collections.unmodifiableList(
+            new ArrayList<>(java.util.Arrays.asList(
+                    DIALOGS_MENU_THEME, DIALOGS_MENU_READ_ALL,
+                    DIALOGS_MENU_NEW_GROUP, DIALOGS_MENU_SAVED)));
+
+    public static boolean dialogsMenuShowSmartCenter = getPreferences().getBoolean("dialogsMenuShowSmartCenter", true);
+    public static void toggleDialogsMenuShowSmartCenter() { dialogsMenuShowSmartCenter = !dialogsMenuShowSmartCenter; getEditor().putBoolean("dialogsMenuShowSmartCenter", dialogsMenuShowSmartCenter).apply(); }
+
+    public static boolean dialogsMenuShowTheme = getPreferences().getBoolean("dialogsMenuShowTheme", true);
+    public static void toggleDialogsMenuShowTheme() { dialogsMenuShowTheme = !dialogsMenuShowTheme; getEditor().putBoolean("dialogsMenuShowTheme", dialogsMenuShowTheme).apply(); }
+
+    public static boolean dialogsMenuShowReadAll = getPreferences().getBoolean("dialogsMenuShowReadAll", true);
+    public static void toggleDialogsMenuShowReadAll() { dialogsMenuShowReadAll = !dialogsMenuShowReadAll; getEditor().putBoolean("dialogsMenuShowReadAll", dialogsMenuShowReadAll).apply(); }
+
+    public static boolean dialogsMenuShowNewGroup = getPreferences().getBoolean("dialogsMenuShowNewGroup", true);
+    public static void toggleDialogsMenuShowNewGroup() { dialogsMenuShowNewGroup = !dialogsMenuShowNewGroup; getEditor().putBoolean("dialogsMenuShowNewGroup", dialogsMenuShowNewGroup).apply(); }
+
+    public static boolean dialogsMenuShowSaved = getPreferences().getBoolean("dialogsMenuShowSaved", true);
+    public static void toggleDialogsMenuShowSaved() { dialogsMenuShowSaved = !dialogsMenuShowSaved; getEditor().putBoolean("dialogsMenuShowSaved", dialogsMenuShowSaved).apply(); }
+
+    public static boolean dialogsMenuShowSettings = getPreferences().getBoolean("dialogsMenuShowSettings", true);
+    public static void toggleDialogsMenuShowSettings() { dialogsMenuShowSettings = !dialogsMenuShowSettings; getEditor().putBoolean("dialogsMenuShowSettings", dialogsMenuShowSettings).apply(); }
+
+    public static volatile List<Integer> dialogsMenuOrder = loadDialogsMenuOrder();
+
+    private static List<Integer> loadDialogsMenuOrder() {
+        String raw = getPreferences().getString("dialogsMenuOrder", null);
+        if (raw == null || raw.isEmpty()) return null;
+        try {
+            List<Integer> list = GSON.fromJson(raw, new TypeToken<List<Integer>>() {}.getType());
+            return list != null && !list.isEmpty()
+                    ? Collections.unmodifiableList(new ArrayList<>(list))
+                    : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    public static synchronized void setDialogsMenuOrder(List<Integer> order) {
+        if (order == null || order.isEmpty()) {
+            dialogsMenuOrder = null;
+            getEditor().remove("dialogsMenuOrder").apply();
+        } else {
+            List<Integer> snapshot = Collections.unmodifiableList(new ArrayList<>(order));
+            dialogsMenuOrder = snapshot;
+            getEditor().putString("dialogsMenuOrder", GSON.toJson(snapshot)).apply();
+        }
+    }
+
+    public static void resetDialogsMenuOrder() { setDialogsMenuOrder(null); }
+
     public static boolean messageMenuHaptic = getPreferences().getBoolean("messageMenuHaptic", true);
     public static void toggleMessageMenuHaptic() {
         messageMenuHaptic = !messageMenuHaptic;

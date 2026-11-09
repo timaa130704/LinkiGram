@@ -105,10 +105,12 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.LinkiOnceArchive, "Saved view-once media");
         labels.put(R.string.LinkiRelativeLastSeen, "Relative last seen");
         labels.put(R.string.LinkiSettingsIconColors, "Settings icon colors");
+        labels.put(R.string.LinkiSmartCenter, "Chat center");
         labels.put(R.string.LinkiStickerTime, "Sticker timestamp");
         labels.put(R.string.LinkiYouCustomize, "LinkiGram You customization");
         labels.put(R.string.LiteMode, "Animations");
         labels.put(R.string.LocalMiscellaneousCache, "Miscellaneous");
+        labels.put(R.string.MarkAllAsRead, "Mark all as read");
         labels.put(R.string.MessagesSettings, "Messages");
         labels.put(R.string.NM_AP_BottomTabs, "Bottom tabs organizer");
         labels.put(R.string.NM_AP_Folders, "Folders");
@@ -220,6 +222,9 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_DBG_ShowAccounts, "Show accounts in drawer");
         labels.put(R.string.NM_DBG_ShowRPCErrors, "Show RPC errors");
         labels.put(R.string.NM_DBG_Title, "Debug");
+        labels.put(R.string.NM_DM_Reorder, "Menu item order");
+        labels.put(R.string.NM_DM_Theme, "Switch day/night theme");
+        labels.put(R.string.NM_DM_Title, "Three-dot menu");
         labels.put(R.string.NM_DisableSendHints, "Disable send hints");
         labels.put(R.string.NM_DownloadMedia, "Media Downloader");
         labels.put(R.string.NM_Drawer_Immersive, "Immersive drawer animation");
@@ -366,6 +371,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_WSB_SuspendOnVpn, "Suspend under VPN");
         labels.put(R.string.NM_WSB_Title, "Bypass");
         labels.put(R.string.NM_WSB_VoIP_Enable, "Route calls through bypass");
+        labels.put(R.string.NewGroup, "New Group");
         labels.put(R.string.NimarkoGramSettings, "LinkiGram Settings");
         labels.put(R.string.NotificationsSound, "Notification Sound");
         labels.put(R.string.OEAiClearHistory, "Clear history");
@@ -416,6 +422,8 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.SaveForNotifications, "Save for notifications");
         labels.put(R.string.SaveToDownloads, "Save to downloads");
         labels.put(R.string.SaveToGallery, "Save to gallery");
+        labels.put(R.string.SavedMessages, "Saved Messages");
+        labels.put(R.string.Settings, "Settings");
         labels.put(R.string.SettingsNotifications, "Notifications");
         labels.put(R.string.ShareFile, "Share");
         labels.put(R.string.TelegramPremium, "Telegram Premium");

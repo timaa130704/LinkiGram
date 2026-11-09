@@ -67,7 +67,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
 
     private final int notificationSoundRow = 70, vibrateInChatsRow = 71;
 
-    private final int messageMenuRow = 80, messageFilterRow = 81, localPinsInfoRow = 82;
+    private final int messageMenuRow = 80, messageFilterRow = 81, localPinsInfoRow = 82,
+            dialogsMenuRow = 83;
 
     @Override
     protected CharSequence getTitle() {
@@ -191,6 +192,7 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
         items.add(UItem.asButton(directShareRow, R.drawable.msg_share, getString(R.string.DirectShare)));
         items.add(UItem.asButton(localPinsInfoRow, R.drawable.msg_pin, getString(R.string.LC_Pins)));
         items.add(UItem.asButton(messageMenuRow, R.drawable.msg_list, getString(R.string.CP_MessageMenu)));
+        items.add(UItem.asButton(dialogsMenuRow, R.drawable.msg_list, getString(R.string.NM_DM_Title)));
         items.add(UItem.asButton(messageFilterRow, R.drawable.msg_notspam, getString(R.string.CP_Message_Filtering)));
         items.add(UItem.asShadow(null));
     }
@@ -353,6 +355,8 @@ public class ChatsPreferencesActivity extends NimarkoUniversalPreferencesActivit
 
         } else if (id == messageMenuRow) {
             presentFragment(new MessageMenuPreferencesActivity());
+        } else if (id == dialogsMenuRow) {
+            presentFragment(new DialogsMenuItemsPreferencesActivity());
         } else if (id == messageFilterRow) {
             presentFragment(new MessageFiltersPreferencesActivity());
         }
