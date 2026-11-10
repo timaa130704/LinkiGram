@@ -1,5 +1,5 @@
 diff --git a/Telegram/SourceFiles/api/api_send_progress.cpp b/Telegram/SourceFiles/api/api_send_progress.cpp
-index 206520e..22d0025 100644
+index 206520e..225c5ba 100644
 --- a/Telegram/SourceFiles/api/api_send_progress.cpp
 +++ b/Telegram/SourceFiles/api/api_send_progress.cpp
 @@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
@@ -10,12 +10,18 @@ index 206520e..22d0025 100644
  #include "apiwrap.h"
  
  namespace Api {
-@@ -152,6 +153,10 @@ void SendProgressManager::send(const Key &key, int progress) {
+@@ -152,6 +153,16 @@ void SendProgressManager::send(const Key &key, int progress) {
  }
  
  bool SendProgressManager::skipRequest(const Key &key) const {
 +	if (key.type == SendProgressType::Typing
 +		&& LinkiGram::HideOutgoingTyping()) {
++		return true;
++	}
++	if (LinkiGram::HideOutgoingRecording()
++		&& (key.type == SendProgressType::RecordVoice
++			|| key.type == SendProgressType::RecordVideo
++			|| key.type == SendProgressType::RecordRound)) {
 +		return true;
 +	}
  	const auto user = key.history->peer->asUser();

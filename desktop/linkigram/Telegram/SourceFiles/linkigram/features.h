@@ -12,5 +12,7 @@ namespace LinkiGram {
 [[nodiscard]] bool GhostEnabled();
 [[nodiscard]] bool HideIncomingTyping();
 [[nodiscard]] bool HideOutgoingTyping();
+[[nodiscard]] bool HideOutgoingRecording();
+[[nodiscard]] bool HideReadReceipts();
 
 } // namespace LinkiGram

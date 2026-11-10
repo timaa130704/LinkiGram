@@ -1,0 +1,23 @@
+diff --git a/Telegram/SourceFiles/data/data_histories.cpp b/Telegram/SourceFiles/data/data_histories.cpp
+index b13e9ef..fdba9f3 100644
+--- a/Telegram/SourceFiles/data/data_histories.cpp
++++ b/Telegram/SourceFiles/data/data_histories.cpp
+@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "data/data_user.h"
+ #include "base/unixtime.h"
+ #include "base/random.h"
++#include "linkigram/features.h"
+ #include "main/main_session.h"
+ #include "window/notifications_manager.h"
+ #include "history/history.h"
+@@ -773,6 +774,10 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
+ 			sendReadRequests();
+ 			finish();
+ 		};
++		if (LinkiGram::HideReadReceipts()) {
++			crl::on_main(&session(), finished);
++			return mtpRequestId(0);
++		}
+ 		if (const auto channel = history->peer->asChannel()) {
+ 			return session().api().request(MTPchannels_ReadHistory(
+ 				channel->inputChannel(),
