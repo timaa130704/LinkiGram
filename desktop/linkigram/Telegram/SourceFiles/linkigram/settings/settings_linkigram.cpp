@@ -116,19 +116,32 @@ void LinkiGramScreen::setupContent() {
 	const auto config = &Config::Instance();
 	const auto &screen = ScreensData()[_index];
 
-	Ui::AddSkip(content);
+	auto first = true;
 	for (const auto &entry : screen.entries) {
+		if (entry.kind == EntryKind::Header) {
+			Ui::AddSkip(content);
+			Ui::AddSubsectionTitle(content, rpl::single(entry.title));
+			first = false;
+			continue;
+		}
+		if (first) {
+			Ui::AddSkip(content);
+			first = false;
+		}
 		const auto key = screen.title + u"/"_q + entry.key;
 		const auto button = AddButtonWithIcon(
 			content,
 			rpl::single(entry.title),
 			st::settingsButtonNoIcon);
-		button->toggleOn(rpl::single(config->getBool(key)));
-		button->toggledValue(
-		) | rpl::on_next([config, key](bool value) {
-			config->setBool(key, value);
-		}, button->lifetime());
+		if (entry.kind == EntryKind::Toggle) {
+			button->toggleOn(rpl::single(config->getBool(key)));
+			button->toggledValue(
+			) | rpl::on_next([config, key](bool value) {
+				config->setBool(key, value);
+			}, button->lifetime());
+		}
 	}
+	Ui::AddSkip(content);
 
 	Ui::ResizeFitChild(this, content);
 }
@@ -178,7 +191,7 @@ void LinkiGramHub::setupContent() {
 	Ui::AddSubsectionTitle(content, rpl::single(u"Settings"_q));
 
 	const auto &screens = ScreensData();
-	for (auto i = 0, count = ScreensCount(); i != count; ++i) {
+	for (auto i = 1, count = ScreensCount(); i != count; ++i) {
 		const auto button = AddButtonWithIcon(
 			content,
 			rpl::single(screens[i].title),

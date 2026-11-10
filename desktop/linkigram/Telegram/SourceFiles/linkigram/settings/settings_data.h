@@ -12,9 +12,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace LinkiGram {
 
+enum class EntryKind {
+	Header,
+	Toggle,
+	Button,
+};
+
 struct EntryData {
 	QString key;
 	QString title;
+	EntryKind kind;
 };
 
 struct ScreenData {

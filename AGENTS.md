@@ -1,5 +1,26 @@
 # LinkiGram — Agent Instructions
 
+## LinkiGram Desktop: grouped settings screens (2026-11-10)
+
+- The LinkiGram desktop settings screens rendered every inventory record — section
+  headers included — as a toggle, so grouped Android screens (for example
+  `AyuMoments (ghost)` with its `NM_Ayu_Header*` sections) looked like one flat
+  list of switches. Reworked them to look like the native/exDesktop settings:
+  `Header` records become `Ui::AddSubsectionTitle` groups, `Toggle` records stay
+  persisted toggle rows, and `Button` records render as plain action rows.
+- `LinkiGram::EntryData` gained an `EntryKind` (`Header`/`Toggle`/`Button`). The
+  tracked `desktop/tools/gen_settings.py` now recovers the kind per key from the
+  Android preference sources (`UItem.asHeader`, `SettingsHelper.asSwitchCG` and
+  the `UItem.asButton`/`asTextDetail`/`asRadio` action factories), drops the
+  screen's own `getTitle()` key, and regenerates
+  `settings_data.cpp` — now 28 screens / 407 records (the 15 screen-title keys
+  are gone; a screen left empty keeps its title as a `Header`; the `LinkiGram`
+  screen is skipped in the hub because the hub is itself that screen).
+- Checked: both changed translation units compile with `-fsyntax-only` under
+  their real per-file flags, and a full local Linux build links
+  `out/bin/Telegram` (`BUILD_EXIT=0`). Not verified at runtime — the grouped
+  screens still need a visual pass.
+
 ## Configurable three-dot menu on the chat list (2026-11-10)
 
 - New screen **“Three-dot menu”** (`DialogsMenuItemsPreferencesActivity`, opened
@@ -42,7 +63,7 @@
   `path()` and `import()`.
 - **Full settings port.** `linkigram/settings/settings_data.{h,cpp}` is
   generated from the settings reference in `DESKTOP_FEATURES.md` and holds all
-  **28 non-Android settings screens / 421 records** (`LinkiGram`,
+  **28 non-Android settings screens / 407 records** (`LinkiGram`,
   `General`, `Appearance`, `Chats`, `Camera`, `Privacy`, `AyuMoments (ghost)`,
   `Messages`, `Recent emojis/stickers`, `Folders`, `Bottom tabs`,
   `Media downloader`, `Banners`, `Debug`, `Experimental`, `Text animation`,
@@ -52,15 +73,22 @@
   the tracked `desktop/tools/gen_settings.py`; regenerate with
   `python3 desktop/tools/gen_settings.py` if the inventory changes.
   `PluginsActivity` is intentionally excluded (Android-only).
+- Each record carries an `EntryKind` (`Header`, `Toggle` or `Button`) recovered
+  by the generator from the Android preference sources (`UItem.asHeader`,
+  `SettingsHelper.asSwitchCG`, `UItem.asButton`); unclassified records default
+  to `Toggle`. The screen's own title key (from `getTitle()`) is dropped, and a
+  screen left empty keeps its title as a `Header`.
 - `linkigram/settings/settings_linkigram.{h,cpp}` implements one generic
   `AbstractSection` per screen (`ScreenFactory` + `LinkiGramScreen`,
   `LinkiGramScreenId(int)`) plus the `LinkiGramHub` `Section` (`LinkiGramId()`)
-  that lists every screen, an About row (opens the repository) and
-  Export/Import actions. Each record is a persisted toggle keyed
-  `"<screen title>/<R.string key>"`. It uses raw `QString` literals and the
-  direct `AddButtonWithIcon` + `toggleOn` + `toggledValue()` pattern, so it
-  needs no `tr::phrase` / `BuildHelper` search registration. The per-screen
-  factory instances are cached so a screen's `Type` (shared_ptr) is stable.
+  that lists every screen (skipping the redundant `LinkiGram` screen), an About
+  row (opens the repository) and Export/Import actions. `LinkiGramScreen`
+  renders `Header` records as `Ui::AddSubsectionTitle` groups, `Toggle` records
+  as persisted `AddButtonWithIcon` + `toggleOn` + `toggledValue()` rows keyed
+  `"<screen title>/<R.string key>"`, and `Button` records as plain action rows.
+  It uses raw `QString` literals, so it needs no `tr::phrase` / `BuildHelper`
+  search registration. The per-screen factory instances are cached so a
+  screen's `Type` (shared_ptr) is stable.
 - Wired a LinkiGram button into `BuildSectionButtons` in
   `settings/sections/settings_main.cpp` and listed the six new files in
   `Telegram/CMakeLists.txt`.
