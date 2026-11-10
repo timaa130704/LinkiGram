@@ -1,0 +1,63 @@
+diff --git a/Telegram/SourceFiles/settings/sections/settings_information.cpp b/Telegram/SourceFiles/settings/sections/settings_information.cpp
+index 8982b51..a0990fb 100644
+--- a/Telegram/SourceFiles/settings/sections/settings_information.cpp
++++ b/Telegram/SourceFiles/settings/sections/settings_information.cpp
+@@ -50,6 +50,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "info/profile/info_profile_badge.h"
+ #include "info/profile/info_profile_phone_menu.h"
+ #include "lang/lang_keys.h"
++#include "linkigram/features.h"
+ #include "menu/menu_mark_as_read.h"
+ #include "main/main_account.h"
+ #include "main/main_session.h"
+@@ -585,27 +586,29 @@ void SetupRows(
+ 		targets->name = nameButton;
+ 	}
+ 
+-	const auto showChangePhone = [=] {
+-		controller->show(
+-			Ui::MakeInformBox(tr::lng_change_phone_error()));
+-		controller->window().activate();
+-	};
+-	const auto phoneButton = AddRow(
+-		container,
+-		tr::lng_settings_phone_label(),
+-		Info::Profile::PhoneWithSpoilerValue(
+-			self,
+-			Info::Profile::PhoneValue(self)),
+-		tr::lng_profile_copy_phone(tr::now),
+-		showChangePhone,
+-		{ &st::menuIconPhone },
+-		true,
+-		[=](not_null<Ui::PopupMenu*> menu) {
+-			Info::Profile::AddPhoneSpoilerMenu(menu, self);
+-		},
+-		&st::menuIconCopy);
+-	if (targets) {
+-		targets->phone = phoneButton;
++	if (!LinkiGram::HideOwnPhone()) {
++		const auto showChangePhone = [=] {
++			controller->show(
++				Ui::MakeInformBox(tr::lng_change_phone_error()));
++			controller->window().activate();
++		};
++		const auto phoneButton = AddRow(
++			container,
++			tr::lng_settings_phone_label(),
++			Info::Profile::PhoneWithSpoilerValue(
++				self,
++				Info::Profile::PhoneValue(self)),
++			tr::lng_profile_copy_phone(tr::now),
++			showChangePhone,
++			{ &st::menuIconPhone },
++			true,
++			[=](not_null<Ui::PopupMenu*> menu) {
++				Info::Profile::AddPhoneSpoilerMenu(menu, self);
++			},
++			&st::menuIconCopy);
++		if (targets) {
++			targets->phone = phoneButton;
++		}
+ 	}
+ 
+ 	auto username = Info::Profile::UsernameValue(self);

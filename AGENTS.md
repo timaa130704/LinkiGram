@@ -1,5 +1,38 @@
 # LinkiGram — Agent Instructions
 
+## LinkiGram Desktop: hide-phone completed, LinkiGram at the top of both menus (2026-11-10)
+
+- **“Hide my phone number locally”** (`General/LinkiHidePhone`) only hooked
+  `PhoneOrHiddenValue` in `info_profile_values.cpp`, so the own-profile row
+  collapsed but the phone still showed on the **Settings main cover** (the most
+  visible place) and in **Settings → My Account → Info** (edit profile). Now all
+  three self surfaces hide it: the profile row (patch `0009`), the Settings
+  cover phone label (`settings_main.cpp`, patch `0002`, forced empty via
+  `LinkiGram::HideOwnPhone()`), and the edit-profile phone row
+  (`settings_information.cpp`, new patch `0010`, the whole `AddRow` is skipped).
+  The “Validate phone number” promo suggestion is also suppressed under the same
+  flag. `PhoneValue` itself is **not** masked globally, so the URL-auth
+  phone-share confirmation and the contact QR still behave normally.
+- **LinkiGram entry** moved/added to the very top of both places: the main
+  three-dot menu (`window/window_main_menu.cpp`, new patch `0011`, an
+  `addAction` before My Profile that calls
+  `controller->showSettings(Settings::LinkiGramId())`) and the Settings list
+  (the `BuildSectionButtons` button moved from the bottom to the first row,
+  patch `0002`). The main-menu footer now reads `AppName` (“LinkiGram Desktop”)
+  and links to the LinkiGram repository instead of the hardcoded
+  “Telegram Desktop” / desktop.telegram.org.
+- Verified at runtime on the PC (Hyprland, `grim` + `ydotool`, fullscreen
+  window): the main menu shows **LinkiGram** at the top; the Settings page shows
+  **LinkiGram** as the first row and its cover no longer shows a phone; the own
+  profile and the edit-profile Info page show **no phone row**; the LinkiGram
+  hub, the General screen and the AyuMoments (ghost) screen render with the
+  grouped headers/toggles. Full local Linux build links (`BUILD_EXIT=0`) and all
+  eleven patches (0001–0011) apply cleanly to a pristine `dev` @ `87ff45f`.
+- Still not wired: the rest of the ~407-record inventory. Only the AyuMoments
+  ghost cluster and `HideOwnPhone` read their keys today; every other toggle is
+  persisted but needs its own native hook. Android-only subsystems and the
+  X-CFG/wsbypass/VPN block stay out.
+
 ## LinkiGram Desktop: first working non-ghost feature, hide own phone (2026-11-10)
 
 - Report: toggling **“Hide my phone number locally”** (`General/LinkiHidePhone`)

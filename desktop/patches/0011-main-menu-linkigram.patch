@@ -1,0 +1,44 @@
+diff --git a/Telegram/SourceFiles/window/window_main_menu.cpp b/Telegram/SourceFiles/window/window_main_menu.cpp
+index db8dcec..676a355 100644
+--- a/Telegram/SourceFiles/window/window_main_menu.cpp
++++ b/Telegram/SourceFiles/window/window_main_menu.cpp
+@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "base/qt_signal_producer.h"
+ #include "boxes/about_box.h"
+ #include "core/update_channel.h"
++#include "core/version.h"
+ #include "boxes/peer_list_controllers.h"
+ #include "boxes/premium_preview_box.h"
+ #include "calls/group/calls_group_common.h"
+@@ -29,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "info/info_memento.h"
+ #include "info/profile/info_profile_badge.h"
+ #include "settings/settings_common.h"
++#include "linkigram/settings/settings_linkigram.h"
+ #include "info/profile/info_profile_emoji_status_panel.h"
+ #include "info/profile/info_profile_icon.h"
+ #include "info/stories/info_stories_widget.h"
+@@ -388,8 +390,8 @@ MainMenu::MainMenu(
+ 	parentResized();
+ 
+ 	_telegram->setMarkedText(tr::link(
+-		u"Telegram Desktop"_q,
+-		u"https://desktop.telegram.org"_q));
++		AppName.utf16(),
++		u"https://github.com/timaa130704/LinkiGram"_q));
+ 	_telegram->setLinksTrusted();
+ 	// The canary version is too long for the "Version {version}" form.
+ 	_version->setMarkedText(
+@@ -667,6 +669,12 @@ void MainMenu::setupMenu() {
+ 			st::mainMenuButton,
+ 			std::move(descriptor));
+ 	};
++	addAction(
++		rpl::single(u"LinkiGram"_q),
++		{ &st::menuIconExperimental }
++	)->setClickedCallback([=] {
++		controller->showSettings(Settings::LinkiGramId());
++	});
+ 	if (!_controller->session().supportMode()) {
+ 		_menu->add(
+ 			CreateButtonWithIcon(
