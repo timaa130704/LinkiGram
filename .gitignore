@@ -37,7 +37,8 @@ relay/.wrangler/
 .release-bot.env
 .release-bot.offset
 
-# Personal agent notes stay local; AGENTS.md contains public project instructions.
+# Agent instructions/notes stay local and are not published.
+/AGENTS.md
 /AGENTS.local.md
 
 # Local Telegram-base upgrade reference trees, previews and backups (large, temporary).
