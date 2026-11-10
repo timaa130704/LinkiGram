@@ -1,0 +1,22 @@
+diff --git a/Telegram/SourceFiles/info/profile/info_profile_values.cpp b/Telegram/SourceFiles/info/profile/info_profile_values.cpp
+index b5ce177..7bad08f 100644
+--- a/Telegram/SourceFiles/info/profile/info_profile_values.cpp
++++ b/Telegram/SourceFiles/info/profile/info_profile_values.cpp
+@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "lang/lang_keys.h"
+ #include "data/notify/data_notify_settings.h"
+ #include "data/data_peer_values.h"
++#include "linkigram/features.h"
+ #include "data/data_saved_messages.h"
+ #include "data/data_saved_sublist.h"
+ #include "data/data_shared_media.h"
+@@ -143,6 +144,9 @@ QString PublicLinkByPhone(not_null<UserData*> user) {
+ }
+ 
+ rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
++	if (user->isSelf() && LinkiGram::HideOwnPhone()) {
++		return rpl::single(TextWithEntities());
++	}
+ 	return rpl::combine(
+ 		PhoneValue(user),
+ 		PlainUsernameValue(user),

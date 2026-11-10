@@ -1,5 +1,32 @@
 # LinkiGram — Agent Instructions
 
+## LinkiGram Desktop: first working non-ghost feature, hide own phone (2026-11-10)
+
+- Report: toggling **“Hide my phone number locally”** (`General/LinkiHidePhone`)
+  changed nothing. That is true of nearly every desktop setting — the screens
+  persist the JSON flags, but only the AyuMoments ghost cluster read any of them.
+  A setting “working” means a native hook that reads its key; the Android
+  `DESKTOP_FEATURES.md` inventory is a porting backlog, not a list of live
+  features (the Android tree itself leaves some toggles unread, for example
+  `hideActionBarStatus` and `blockAds` are only written by the preferences
+  screen).
+- Implemented `LinkiGram::HideOwnPhone()` (`linkigram/features.{h,cpp}`), key
+  `General/LinkiHidePhone`. Patch `0009-profile-hide-phone.patch` makes
+  `Info::Profile::PhoneOrHiddenValue()` return an empty value for the self user,
+  which the profile `SlideWrap` collapses, so the own-profile phone row
+  disappears (mirrors Android `LinkiPrivacy.hidePhone()` in `ProfileActivity`).
+  The main Settings cover shows username, not phone, so it needs no hook.
+- Checks: `-fsyntax-only` clean for `features.cpp` and
+  `info_profile_values.cpp`, full local Linux build links `out/bin/Telegram`
+  (`BUILD_EXIT=0`), and all nine patches (0001–0009) apply cleanly to a pristine
+  `dev` @ `87ff45f` worktree.
+- Not verified at runtime: the own-profile row still needs a visual pass.
+- Remaining scope: the other ~100+ desktop-portable settings each still need
+  their own hook (local privacy/display toggles, folder/tab/menu item
+  preferences, forward/translation defaults, etc.). Android-only subsystems
+  (CameraX, Vosk, ML Kit, the plugin/DEX engine) and the excluded X-CFG/wsbypass
+  stay out of the desktop contract.
+
 ## LinkiGram Desktop: grouped settings screens (2026-11-10)
 
 - The LinkiGram desktop settings screens rendered every inventory record — section
