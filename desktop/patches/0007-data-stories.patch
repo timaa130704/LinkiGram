@@ -1,0 +1,42 @@
+diff --git a/Telegram/SourceFiles/data/data_stories.cpp b/Telegram/SourceFiles/data/data_stories.cpp
+index f86dda5..407097c 100644
+--- a/Telegram/SourceFiles/data/data_stories.cpp
++++ b/Telegram/SourceFiles/data/data_stories.cpp
+@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "history/history.h"
+ #include "history/history_item.h"
+ #include "lang/lang_keys.h"
++#include "linkigram/features.h"
+ #include "main/main_app_config.h"
+ #include "main/main_session.h"
+ #include "ui/layers/show.h"
+@@ -1402,6 +1403,10 @@ void Stories::sendMarkAsReadRequest(
+ 	};
+ 
+ 	const auto api = &_owner->session().api();
++	if (LinkiGram::HideStoryViews()) {
++		crl::on_main(&_owner->session(), finish);
++		return;
++	}
+ 	api->request(MTPstories_ReadStories(
+ 		peer->input(),
+ 		MTP_int(tillId)
+@@ -1463,10 +1468,14 @@ void Stories::sendIncrementViewsRequests() {
+ 			}
+ 			checkQuitPreventFinished();
+ 		};
+-		api->request(MTPstories_IncrementStoryViews(
+-			_owner->peer(peer)->input(),
+-			MTP_vector<MTPint>(std::move(ids))
+-		)).done(finish).fail(finish).send();
++		if (LinkiGram::HideStoryViews()) {
++			crl::on_main(&_owner->session(), finish);
++		} else {
++			api->request(MTPstories_IncrementStoryViews(
++				_owner->peer(peer)->input(),
++				MTP_vector<MTPint>(std::move(ids))
++			)).done(finish).fail(finish).send();
++		}
+ 		_incrementViewsPending.remove(peer);
+ 	}
+ }

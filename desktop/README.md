@@ -24,7 +24,8 @@ is applied on top of it:
   (`Telegram/CMakeLists.txt` source list, `settings/sections/settings_main.cpp`
   section button, `core/version.h` branding, `api/api_send_progress.cpp`
   outgoing typing suppression, `history/view/history_view_send_action.cpp`
-  incoming typing suppression).
+  incoming typing suppression, `data/data_histories.cpp` read-receipt
+  suppression, `data/data_stories.cpp` story-view suppression).
 - `desktop/apply-linkigram.sh` — copies the overlay onto a checkout and applies
   the patches idempotently:
 
