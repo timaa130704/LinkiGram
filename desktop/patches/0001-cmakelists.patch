@@ -1,11 +1,13 @@
 diff --git a/Telegram/CMakeLists.txt b/Telegram/CMakeLists.txt
-index 9248bd4..dce839a 100644
+index 9248bd4..d457fb0 100644
 --- a/Telegram/CMakeLists.txt
 +++ b/Telegram/CMakeLists.txt
-@@ -1989,6 +1989,12 @@ PRIVATE
+@@ -1989,6 +1989,14 @@ PRIVATE
      settings/settings_faq_suggestions.h
      settings/settings_builder.cpp
      settings/settings_builder.h
++    linkigram/features.cpp
++    linkigram/features.h
 +    linkigram/linkigram_config.cpp
 +    linkigram/linkigram_config.h
 +    linkigram/settings/settings_data.cpp

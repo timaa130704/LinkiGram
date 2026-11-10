@@ -87,6 +87,32 @@
   moderation, the Ayu ghost database, the exteraless player/lyrics/Last.fm UI,
   session import/export, and the update service.
 
+## LinkiGram Desktop: ghost/typing native hook (2026-11-10)
+
+- First deep native backend on desktop: the AyuMoments ghost typing cluster.
+  New `linkigram/features.{h,cpp}` is the facade that upstream hooks call; it
+  reads the same `tdata/linkigram.json` keys the settings screen writes
+  (`AyuMoments (ghost)/NM_GhostMaster`, `AyuMoments (ghost)/NM_GhostTyping`,
+  `General/NM_HideIncomingTyping`). `HideOutgoingTyping()` is master-gated;
+  `HideIncomingTyping()` is independent.
+- Two upstream hooks, each its own patch: `api/api_send_progress.cpp`
+  `SendProgressManager::skipRequest` returns true for `SendProgressType::Typing`
+  when `HideOutgoingTyping()`, so no `messages.setTyping` is sent;
+  `history/view/history_view_send_action.cpp` drops a `sendMessageTypingAction`
+  from `_typing` when `HideIncomingTyping()`, so no incoming typing status is
+  shown.
+- `features.{h,cpp}` is listed in `Telegram/CMakeLists.txt`; patches are now
+  0001 cmakelists, 0002 settings-main, 0003 branding, 0004 send-progress,
+  0005 send-action. All five apply cleanly to a pristine `dev` @ `87ff45f` and
+  `apply-linkigram.sh` stays idempotent.
+- Checks: `-fsyntax-only` with the exact per-file production commands (the real
+  per-translation-unit `-DLANG_KEYS_SUBSET`) is clean for `features.cpp`,
+  `api_send_progress.cpp` and `history_view_send_action.cpp`. The local Linux
+  build tree needs the Arch `extra/libtg_owt` package extracted beside the
+  other CMake prefixes, otherwise the reconfigure fails at `find_package(tg_owt)`
+  for `cmake/external/webrtc`.
+- Still unverified: the full link and runtime behavior on a device.
+
 ## Telegram base upgrade audit (2026-11-07)
 
 - User requested upgrading the Telegram base to 13.2.1, not changing the

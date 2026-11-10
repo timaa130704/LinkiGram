@@ -13,14 +13,18 @@ is applied on top of it:
 - `desktop/linkigram/` — the tracked LinkiGram desktop sources, laid out under
   the same `Telegram/SourceFiles/...` paths they take inside the base:
   `linkigram/linkigram_config.{h,cpp}` (JSON settings store at
-  `tdata/linkigram.json`), `linkigram/settings/settings_data.{h,cpp}` (the
-  full settings inventory: all 28 non-Android screens / 421 records parsed from
-  `DESKTOP_FEATURES.md`) and `linkigram/settings/settings_linkigram.{h,cpp}`
-  (the LinkiGram hub reached from the main Settings page plus one generic,
-  persisted toggle screen per Android settings screen).
+  `tdata/linkigram.json`), `linkigram/features.{h,cpp}` (the native feature
+  facade that upstream hooks call), `linkigram/settings/settings_data.{h,cpp}`
+  (the full settings inventory: all 28 non-Android screens / 421 records parsed
+  from `DESKTOP_FEATURES.md`) and
+  `linkigram/settings/settings_linkigram.{h,cpp}` (the LinkiGram hub reached
+  from the main Settings page plus one generic, persisted toggle screen per
+  Android settings screen).
 - `desktop/patches/` — the edits LinkiGram makes to upstream files
   (`Telegram/CMakeLists.txt` source list, `settings/sections/settings_main.cpp`
-  section button, `core/version.h` branding).
+  section button, `core/version.h` branding, `api/api_send_progress.cpp`
+  outgoing typing suppression, `history/view/history_view_send_action.cpp`
+  incoming typing suppression).
 - `desktop/apply-linkigram.sh` — copies the overlay onto a checkout and applies
   the patches idempotently:
 

@@ -1,0 +1,23 @@
+diff --git a/Telegram/SourceFiles/api/api_send_progress.cpp b/Telegram/SourceFiles/api/api_send_progress.cpp
+index 206520e..22d0025 100644
+--- a/Telegram/SourceFiles/api/api_send_progress.cpp
++++ b/Telegram/SourceFiles/api/api_send_progress.cpp
+@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "data/data_user.h"
+ #include "base/unixtime.h"
+ #include "data/data_peer_values.h"
++#include "linkigram/features.h"
+ #include "apiwrap.h"
+ 
+ namespace Api {
+@@ -152,6 +153,10 @@ void SendProgressManager::send(const Key &key, int progress) {
+ }
+ 
+ bool SendProgressManager::skipRequest(const Key &key) const {
++	if (key.type == SendProgressType::Typing
++		&& LinkiGram::HideOutgoingTyping()) {
++		return true;
++	}
+ 	const auto user = key.history->peer->asUser();
+ 	if (!user) {
+ 		return false;
