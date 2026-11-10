@@ -15,5 +15,6 @@ namespace LinkiGram {
 [[nodiscard]] bool HideOutgoingRecording();
 [[nodiscard]] bool HideReadReceipts();
 [[nodiscard]] bool HideStoryViews();
+[[nodiscard]] bool HideOnline();
 
 } // namespace LinkiGram

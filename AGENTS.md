@@ -94,8 +94,9 @@
   reads the same `tdata/linkigram.json` keys the settings screen writes
   (`AyuMoments (ghost)/NM_GhostMaster`, `.../NM_GhostTyping`,
   `.../NM_GhostRecording`, `.../NM_GhostReadReceipts`, `.../NM_GhostStories`,
-  `General/NM_HideIncomingTyping`). Every option except `HideIncomingTyping()`
-  is master-gated by `Hide...()` through a shared `GhostOption(key)` helper.
+  `.../NM_GhostOnline`, `General/NM_HideIncomingTyping`). Every option except
+  `HideIncomingTyping()` is master-gated by `Hide...()` through a shared
+  `GhostOption(key)` helper.
 - Five upstream hooks, each with its own patch file:
   - `api/api_send_progress.cpp` `SendProgressManager::skipRequest` returns true
     for `SendProgressType::Typing` when `HideOutgoingTyping()` and for
@@ -113,11 +114,16 @@
     `sendIncrementViewsRequests` defer their `finish` locally under
     `HideStoryViews()`, so no `stories.readStories` and no
     `stories.incrementStoryViews` are sent.
+  - `api/api_updates.cpp` `Updates::updateOnline` forces `isOnline` false under
+    `HideOnline()`, so `account.updateStatus` is never sent with online and no
+    recurring online tick reaches the server (the session never appears
+    online).
 - `features.{h,cpp}` is listed in `Telegram/CMakeLists.txt`; patches are now
   0001 cmakelists, 0002 settings-main, 0003 branding, 0004 send-progress,
-  0005 send-action, 0006 read-receipts, 0007 data-stories. All seven apply
-  cleanly to a pristine `dev` @ `87ff45f`, `apply-linkigram.sh` stays
-  idempotent, and the applied tree is byte-identical to the working copy.
+  0005 send-action, 0006 read-receipts, 0007 data-stories, 0008 updates-online.
+  All eight apply cleanly to a pristine `dev` @ `87ff45f`,
+  `apply-linkigram.sh` stays idempotent, and the applied tree is byte-identical
+  to the working copy.
 - Checks: `-fsyntax-only` with the exact per-file production commands (the real
   per-translation-unit `-DLANG_KEYS_SUBSET`) is clean for `features.cpp`,
   `api_send_progress.cpp`, `history_view_send_action.cpp`,

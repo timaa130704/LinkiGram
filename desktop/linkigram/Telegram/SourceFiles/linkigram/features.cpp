@@ -18,6 +18,7 @@ const auto kGhostTyping = u"AyuMoments (ghost)/NM_GhostTyping"_q;
 const auto kGhostRecording = u"AyuMoments (ghost)/NM_GhostRecording"_q;
 const auto kGhostReadReceipts = u"AyuMoments (ghost)/NM_GhostReadReceipts"_q;
 const auto kGhostStories = u"AyuMoments (ghost)/NM_GhostStories"_q;
+const auto kGhostOnline = u"AyuMoments (ghost)/NM_GhostOnline"_q;
 const auto kHideIncomingTyping = u"General/NM_HideIncomingTyping"_q;
 
 [[nodiscard]] bool GhostOption(const QString &key) {
@@ -49,6 +50,10 @@ bool HideReadReceipts() {
 
 bool HideStoryViews() {
 	return GhostOption(kGhostStories);
+}
+
+bool HideOnline() {
+	return GhostOption(kGhostOnline);
 }
 
 } // namespace LinkiGram

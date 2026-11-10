@@ -1,0 +1,22 @@
+diff --git a/Telegram/SourceFiles/api/api_updates.cpp b/Telegram/SourceFiles/api/api_updates.cpp
+index 2f8e6fb..d7d3356 100644
+--- a/Telegram/SourceFiles/api/api_updates.cpp
++++ b/Telegram/SourceFiles/api/api_updates.cpp
+@@ -55,6 +55,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "inline_bots/bot_attach_web_view.h"
+ #include "chat_helpers/emoji_interactions.h"
+ #include "lang/lang_cloud_manager.h"
++#include "linkigram/features.h"
+ #include "history/history.h"
+ #include "history/history_item.h"
+ #include "history/history_item_helpers.h"
+@@ -1020,6 +1021,9 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
+ 		}
+ 	}
+ 	auto ms = crl::now();
++	if (LinkiGram::HideOnline()) {
++		isOnline = false;
++	}
+ 	if (isOnline != _lastWasOnline
+ 		|| (isOnline && _lastSetOnline + config.onlineUpdatePeriod <= ms)
+ 		|| (isOnline && gotOtherOffline)) {
