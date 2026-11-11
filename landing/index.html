@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LinkiGram 2.9 — rich-посты и Linki-Share</title>
-  <meta name="description" content="LinkiGram 2.9 — стабильная версия Android-клиента Telegram с rich-постами и кнопками, обменом профилями по NFC, темами Material You и ColorOS 17, приватностью и плагинами.">
+  <title>LinkiGram 2.9 — плеер, текст песен и офлайн-перевод</title>
+  <meta name="description" content="LinkiGram 2.9 — стабильная версия Android-клиента Telegram: база Telegram 13.2.1, очереди треков, текст песен с пословной подсветкой и офлайн-перевод сообщений на устройстве.">
   <link rel="canonical" href="https://www.linkigram.bond/">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LinkiGram">
   <meta property="og:url" content="https://www.linkigram.bond/">
-  <meta property="og:title" content="LinkiGram 2.9 — rich-посты и Linki-Share">
-  <meta property="og:description" content="В LinkiGram 2.9 появились rich-посты с кнопками и Linki-Share — обмен профилями по NFC. Скачайте стабильную версию для Android.">
+  <meta property="og:title" content="LinkiGram 2.9 — плеер, текст песен и офлайн-перевод">
+  <meta property="og:description" content="В LinkiGram 2.9: база Telegram 13.2.1, перетаскивание треков в очереди, центрированный текст песен с пословной подсветкой и офлайн-перевод через ML Kit. Скачайте стабильную версию для Android.">
   <meta property="og:locale" content="ru_RU">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="LinkiGram 2.9 — rich-посты и Linki-Share">
-  <meta name="twitter:description" content="В LinkiGram 2.9 появились rich-посты с кнопками и обмен профилями по NFC. Стабильная версия для Android.">
+  <meta name="twitter:title" content="LinkiGram 2.9 — плеер, текст песен и офлайн-перевод">
+  <meta name="twitter:description" content="В LinkiGram 2.9: база Telegram 13.2.1, плеер с очередью и свечением обложки, текст песен и офлайн-перевод. Стабильная версия для Android.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -93,15 +93,16 @@
         и полноценной платформой плагинов.
       </p>
       <p class="hero__subtitle" data-reveal>
-        В версии 2.9 появились rich-посты с инлайн-кнопками, Linki-Share —
-        обмен профилями в одно касание по NFC, настраиваемое меню на экране чатов
-        и обновлённая база Telegram 13.2.1.
+        В версии 2.9 обновлена база Telegram до 13.2.1: в плеере появилось
+        перетаскивание треков в очереди и мягкое свечение по цвету обложки,
+        текст песен стал центрированным с пословной подсветкой, а перевод
+        сообщений теперь работает офлайн на устройстве.
       </p>
       <div class="term" data-reveal>
         <div class="term__bar">linkigram — bash — 80&times;24</div>
         <div class="term__body">
           <p class="term__line"><span class="term__ps">user@linkigram:~$</span><span class="term__cmd" data-cmd="git clone --depth 1 https://github.com/timaa130704/LinkiGram.git"></span></p>
-          <p class="term__line term__line--out">&#8627; LinkiGram v2.9 · rich-посты + Linki-Share &#10003;</p>
+          <p class="term__line term__line--out">&#8627; LinkiGram v2.9 · база 13.2.1 + плеер + перевод &#10003;</p>
         </div>
       </div>
       <div class="hero__cta" data-reveal>
@@ -194,8 +195,8 @@
             <div class="card__icon"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4z"/><path d="M8 9h8M8 12h5M8 15h7"/><circle cx="18" cy="15" r="2.5"/></svg></div>
             <span class="card__num">07</span>
           </div>
-          <h3>Темы Material You и ColorOS 17</h3>
-          <p>Впервые оформите весь клиент в Material You или ColorOS 17 — от списка чатов и настроек до панелей и контекстного меню сообщений.</p>
+          <h3>Плеер в 2.9</h3>
+          <p>Треки в очереди перетаскиваются, полоса перемотки больше не «залипает», а вокруг обложки появляется мягкое свечение по её цвету.</p>
         </div>
         <div class="card tilt" data-reveal>
           <div class="card__head"><div class="card__icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 3V5z"/><path d="M8 9h8M8 13h5"/></svg></div><span class="card__num">08</span></div>
@@ -206,6 +207,16 @@
           <div class="card__head"><div class="card__icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15v-4M12 15V7M16 15v-6"/></svg></div><span class="card__num">09</span></div>
           <h3>Статистика и повторы</h3>
           <p>Статистика доступной истории групп и тем за выбранный период. Локальные повторы отображаются рядом с отложенными сообщениями.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head"><div class="card__icon"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></div><span class="card__num">10</span></div>
+          <h3>Текст песен</h3>
+          <p>Центрированный режим с расширенной областью текста. Пословная подсветка от Deezer и KuGou, построчная от YouTube Music, текст от Musixmatch.</p>
+        </div>
+        <div class="card tilt" data-reveal>
+          <div class="card__head"><div class="card__icon"><svg viewBox="0 0 24 24"><path d="M4 6h9M8.5 4v2c0 4-2 7-4.5 8.5"/><path d="M6 11c2 3 4.5 4.5 7 5.5"/><path d="M13 20l4-10 4 10M14.6 16.6h4.8"/></svg></div><span class="card__num">11</span></div>
+          <h3>Офлайн-перевод</h3>
+          <p>Перевод сообщений через ML Kit прямо на устройстве: модель скачивается при первом использовании, без сетевой подмены результата.</p>
         </div>
       </div>
     </div>
