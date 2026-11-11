@@ -774,6 +774,13 @@ public final class NimarkoConfig {
         getEditor().putBoolean("gifSpoilers", gifSpoilers).apply();
     }
 
+    // Rich articles (the built-in article/rich-message editor) without the premium/server gate.
+    public static boolean richArticle = getPreferences().getBoolean("richArticle", false);
+    public static void toggleRichArticle() {
+        richArticle = !richArticle;
+        getEditor().putBoolean("richArticle", richArticle).apply();
+    }
+
     public static boolean nimarkoMediaAuto = getPreferences().getBoolean("nimarkoMediaAuto", true);
     public static void toggleNimarkoMediaAuto() {
         nimarkoMediaAuto = !nimarkoMediaAuto;

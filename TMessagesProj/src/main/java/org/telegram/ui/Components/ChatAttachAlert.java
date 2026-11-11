@@ -2879,6 +2879,18 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                     }
                     showLayout(emojiLayout);
                 } else if (num == LAYOUT_TYPE_RICH) {
+                    if (!app.nimarkogram.messenger.NimarkoConfig.richArticle
+                        && !MessagesController.getInstance(currentAccount).richEditorAllowed()) {
+                        // Premium-only article editor: ask the composer to open it, it owns the gate.
+                        if (baseFragment instanceof ChatActivity) {
+                            final ChatActivityEnterView enterView = ((ChatActivity) baseFragment).getChatActivityEnterView();
+                            if (enterView != null) {
+                                enterView.openRichEditor();
+                                dismiss(true);
+                            }
+                        }
+                        return;
+                    }
                     if (richLayout == null) {
                         layouts[10] = richLayout = new ChatAttachAlertRichLayout(this, getContext(), currentAccount, resourcesProvider);
                     }
@@ -6740,7 +6752,9 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                     } else if (position == richButton) {
                         attachButton.setTextAndIcon(LAYOUT_TYPE_RICH, getString(R.string.AttachArticle), GlassTabView.TabAnimation.ARTICLE);
                         attachButton.setTag(LAYOUT_TYPE_RICH);
-                        needPremium = !MessagesController.getInstance(currentAccount).storyEntitiesAllowed();
+                        needPremium = !app.nimarkogram.messenger.NimarkoConfig.richArticle
+                            && !MessagesController.getInstance(currentAccount).richEditorAllowed()
+                            && !UserConfig.getInstance(currentAccount).isPremium();
                     }
                     attachButton.glassTabView.setCounter(err ? "!" : null, err, false);
                     attachButton.glassTabView.setPremiumBadge(needPremium && !UserConfig.getInstance(currentAccount).isPremium());

@@ -41,7 +41,7 @@ public class MessagesPreferencesActivity extends NimarkoUniversalPreferencesActi
 
     private final int reactionsOverlayRow = 14, reactionAnimationRow = 15, tapsOnPremiumStickersRow = 16, premiumStickersAutoplayRow = 17;
 
-    private final int gifSpoilersRow = 18;
+    private final int gifSpoilersRow = 18, richArticleRow = 19;
 
     @Override
     protected CharSequence getTitle() {
@@ -98,6 +98,9 @@ public class MessagesPreferencesActivity extends NimarkoUniversalPreferencesActi
         items.add(SettingsHelper.asSwitchCG(gifSpoilersRow, getString(R.string.NM_MSG_GifSpoilers))
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.gifSpoilers)
         );
+        items.add(SettingsHelper.asSwitchCG(richArticleRow, getString(R.string.NM_MSG_RichArticle), getString(R.string.NM_MSG_RichArticle_Desc))
+                .setChecked(app.nimarkogram.messenger.NimarkoConfig.richArticle)
+        );
         items.add(UItem.asShadow(null));
     }
 
@@ -149,6 +152,9 @@ public class MessagesPreferencesActivity extends NimarkoUniversalPreferencesActi
         } else if (item.id == gifSpoilersRow) {
             NimarkoConfig.toggleGifSpoilers();
             updateCheckState(view, app.nimarkogram.messenger.NimarkoConfig.gifSpoilers);
+        } else if (item.id == richArticleRow) {
+            NimarkoConfig.toggleRichArticle();
+            updateCheckState(view, app.nimarkogram.messenger.NimarkoConfig.richArticle);
         }
     }
 

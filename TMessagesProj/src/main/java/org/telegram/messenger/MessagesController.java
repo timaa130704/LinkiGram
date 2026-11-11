@@ -24031,11 +24031,14 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean richEditorAvailable() {
+        if (app.nimarkogram.messenger.NimarkoConfig.richArticle) return true;
         if (BuildVars.DEBUG_VERSION) return true;
         return !TextUtils.equals("disabled", config.richMessagePosting.get());
     }
 
     public boolean richEditorAllowed() {
+        // LinkiGram: the article editor is opt-in locally, without Premium or the server flag.
+        if (app.nimarkogram.messenger.NimarkoConfig.richArticle) return true;
         switch (config.richMessagePosting.get()) {
             case "premium":
                 return getUserConfig().isPremium();

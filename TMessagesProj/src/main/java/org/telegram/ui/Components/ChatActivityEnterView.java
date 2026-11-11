@@ -7421,7 +7421,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     public boolean sendMessage() {
-        if (richDraftActive && !UserConfig.getInstance(currentAccount).isPremium()) {
+        if (richDraftActive && !NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium()) {
             RichEditor.openConversionSheet(getContext(), this::openRichEditorWithoutFormatting, () -> {
                 if (parentFragment != null) {
                     parentFragment.showDialog(new PremiumFeatureBottomSheet(parentFragment, PremiumPreviewFragment.PREMIUM_FEATURE_RICH_EDITOR, true));
@@ -11038,7 +11038,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             emojiButton.setVisibility(View.GONE);
             deleteRichDraftButton.setVisibility(View.VISIBLE);
-            sendButton.setLocked(!UserConfig.getInstance(currentAccount).isPremium());
+            sendButton.setLocked(!NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium());
         } else {
             richDraftPreview.setVisibility(View.GONE);
             if (messageEditText != null) {
@@ -13901,7 +13901,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             updateGiftButton(true);
         } else if (id == NotificationCenter.currentUserPremiumStatusChanged) {
             if (richDraftActive && sendButton != null) {
-                sendButton.setLocked(!UserConfig.getInstance(currentAccount).isPremium());
+                sendButton.setLocked(!NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium());
             }
         }
     }
