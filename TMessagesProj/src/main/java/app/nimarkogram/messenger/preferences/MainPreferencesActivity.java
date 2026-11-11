@@ -54,6 +54,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public static final int ID_SOURCE_CODE    = 30;
     public static final int ID_EASTER         = 31;
     public static final int ID_AYUMOMENTS     = 32;
+    public static final int ID_LINKI_SHARE    = 35;
 
     private int easterEggClicks = 0;
     private long easterEggLastClickTime = 0;
@@ -91,6 +92,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         arrayList.add(UItem.asShadow(null));
 
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.NM_HUB_Header_Misc)));
+        arrayList.add(category(ID_LINKI_SHARE, IconBackgroundColors.GREEN,
+                R.drawable.msg_secret_solar, R.string.NM_LS_Title, "nimarko_linki_share"));
         arrayList.add(UItem.asButton(2002, R.drawable.msg_customize, LocaleController.getString(R.string.LF_Menu)));
         if (PluginsController.isPluginEngineSupported()) {
             arrayList.add(category(ID_PLUGINS, IconBackgroundColors.PURPLE,
@@ -253,6 +256,9 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public void onClick(UItem uItem, View view, int i, float f, float f2) {
         switch (uItem.id) {
             case 2002: presentFragment(new DrawerPreferencesActivity()); break;
+            case ID_LINKI_SHARE:
+                presentFragment(new app.nimarkogram.messenger.nfc.LinkiShareActivity());
+                break;
             case ID_GENERAL:
                 presentFragment(new GeneralPreferencesActivity());
                 break;

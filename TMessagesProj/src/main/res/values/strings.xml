@@ -11323,6 +11323,15 @@
 <string name="NM_DM_Title">Three-dot menu</string>
 <string name="NM_DM_Theme">Switch day/night theme</string>
 <string name="NM_DM_Reorder">Menu item order</string>
+<string name="NM_LS_Title">Linki-Share</string>
+<string name="NM_LS_ServiceDesc">Share your LinkiGram profile over NFC</string>
+<string name="NM_LS_Hint">Hold the phones together</string>
+<string name="NM_LS_HintDetail">Open Linki-Share on both phones and touch them back to back. Each phone opens the other person\'s profile.</string>
+<string name="NM_LS_NfcOff">NFC is off</string>
+<string name="NM_LS_EnableNfc">Turn on NFC</string>
+<string name="NM_LS_NoNfc">This device has no NFC</string>
+<string name="NM_LS_Received">Profile received</string>
+<string name="NM_LS_Unavailable">Profile is not available: the other account has no public username</string>
 <string name="NM_CP_SnowflakesInChat">Snowflakes in chat</string>
 <string name="NM_CP_WeekdayNearDate">Show weekday by date</string>
 <string name="NM_CP_WeekdayNearDate_Desc">Adds the day of the week next to the date in chat.</string>
@@ -11939,6 +11948,8 @@
 <string name="NM_ChooseFolderIcon">Choose an Icon</string>
 <string name="NM_MSG_Header_Sending">Sending</string>
 <string name="NM_MSG_GifSpoilers">Send GIFs with spoiler</string>
+<string name="NM_MSG_RichArticle">Article editor</string>
+<string name="NM_MSG_RichArticle_Desc">Open the rich article editor (headers, tables, media, buttons) from the attach menu and the composer without Telegram Premium. Sending still requires the server to accept rich messages.</string>
 <string name="NM_Vibrate_Off">Off</string>
 <string name="NM_Vibrate_Click">Click</string>
 <string name="NM_Vibrate_Wave">Wave</string>

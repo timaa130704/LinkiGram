@@ -15,6 +15,15 @@
     <string name="NM_DM_Title">Меню из трёх точек</string>
     <string name="NM_DM_Theme">Переключение темы день/ночь</string>
     <string name="NM_DM_Reorder">Порядок пунктов меню</string>
+    <string name="NM_LS_Title">Linki-Share</string>
+    <string name="NM_LS_ServiceDesc">Передача профиля LinkiGram по NFC</string>
+    <string name="NM_LS_Hint">Приложите телефоны друг к другу</string>
+    <string name="NM_LS_HintDetail">Откройте Linki-Share на обоих телефонах и приложите их спинка к спинке. Каждый телефон откроет профиль другого.</string>
+    <string name="NM_LS_NfcOff">NFC выключен</string>
+    <string name="NM_LS_EnableNfc">Включить NFC</string>
+    <string name="NM_LS_NoNfc">На этом устройстве нет NFC</string>
+    <string name="NM_LS_Received">Профиль получен</string>
+    <string name="NM_LS_Unavailable">Профиль недоступен: у второго аккаунта нет публичного имени пользователя</string>
     <string name="NM_CP_SnowflakesInChat">Снежинки в чате</string>
     <string name="NM_CP_WeekdayNearDate">День недели у даты</string>
     <string name="NM_CP_WeekdayNearDate_Desc">Показывает день недели рядом с датой в чате.</string>
@@ -1087,6 +1096,8 @@
     <string name="CP_OpenSettingsBySwipe_Desc">Проведите вниз по списку чатов, чтобы открыть настройки.</string>
     <string name="NM_MSG_Header_Sending">Отправка</string>
     <string name="NM_MSG_GifSpoilers">Отправлять GIF со спойлером</string>
+    <string name="NM_MSG_RichArticle">Редактор статей</string>
+    <string name="NM_MSG_RichArticle_Desc">Открывать редактор rich-статей (заголовки, таблицы, медиа, кнопки) из меню вложений и поля ввода без Telegram Premium. Для отправки сервер всё равно должен принимать rich-сообщения.</string>
     <string name="EP_CustomChat_Selected_Title">вместо</string>
     <string name="NM_JumpToBeginning">В начало</string>
     <string name="NM_DeleteAllFromSelf">Удалить мои сообщения</string>

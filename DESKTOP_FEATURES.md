@@ -867,3 +867,4 @@ Chaquopy/Python/Pine/DEX, нативные JNI-мосты, активити/се
 | UI плагинов | Экраны | `plugins/ui/PluginsActivity.java`, `PluginSettingsActivity.java`, `PluginsInfoActivity.java`, `PluginOverlayHost.java`, `PluginUiRegistry.java`, `PluginUiDiskExecutor.java`, `PluginViewListener.java`, `PluginDialogCallback.java`, `components/` |
 | Python-пакеты | Ресурсы | `app/elyx_runtime` (Python), Chaquopy-конфигурация в `TMessagesProj/build.gradle` |
 | ИИ-агент плагинов | Экран | `plugins/ui/PluginAgentActivity.java`, `PluginAgentPrompt.java` — **исключён из документа** |
+| Linki-Share (NFC-обмен профилями) | Экран+сервис | `app/nimarkogram/messenger/nfc/` (`LinkiShareActivity`, `LinkiShareView`, `LinkiSharePayload`, `LinkiShareNdefService`), `res/xml/linkishare_aid.xml` — **только Android (NFC HCE)** |
