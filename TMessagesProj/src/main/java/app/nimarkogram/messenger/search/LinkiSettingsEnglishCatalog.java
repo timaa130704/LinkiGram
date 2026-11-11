@@ -310,6 +310,7 @@ final class LinkiSettingsEnglishCatalog {
         labels.put(R.string.NM_MP_ShowSeconds, "Format time with seconds");
         labels.put(R.string.NM_MSG_GifSpoilers, "Send GIFs with spoiler");
         labels.put(R.string.NM_MSG_Header_Sending, "Sending");
+        labels.put(R.string.NM_MSG_RichArticle, "Article editor");
         labels.put(R.string.NM_Material_All, "Enable all Material 3 styles");
         labels.put(R.string.NM_Material_Dividers, "Section dividers");
         labels.put(R.string.NM_Material_Headers, "Separate section headers");
