@@ -64,9 +64,9 @@ public class LinkiShareActivity extends BaseFragment implements NfcAdapter.Reade
     private int readerPhaseMs = 1400;
     private int cardPhaseMs = 1400;
 
-    private boolean resumed;
-    private boolean readHandled;
-    private boolean readerModeOn;
+    private volatile boolean resumed;
+    private volatile boolean readHandled;
+    private volatile boolean readerModeOn;
 
     @Override
     public boolean onFragmentCreate() {
@@ -98,7 +98,8 @@ public class LinkiShareActivity extends BaseFragment implements NfcAdapter.Reade
                 Theme.getColor(Theme.key_windowBackgroundWhite),
                 Theme.getColor(Theme.key_windowBackgroundWhiteBlackText),
                 Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
-        content.addView(heroView, LayoutHelper.createLinear(320, 220, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
+        content.addView(heroView, LayoutHelper.createLinear(
+                LayoutHelper.MATCH_PARENT, 230, Gravity.CENTER_HORIZONTAL));
 
         titleView = new TextView(context);
         titleView.setGravity(Gravity.CENTER);
@@ -106,6 +107,7 @@ public class LinkiShareActivity extends BaseFragment implements NfcAdapter.Reade
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
         titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         titleView.setText(LocaleController.getString(R.string.NM_LS_Hint));
+        titleView.setPadding(AndroidUtilities.dp(28), 0, AndroidUtilities.dp(28), 0);
         content.addView(titleView, LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 24, 0, 0));
 
@@ -114,6 +116,7 @@ public class LinkiShareActivity extends BaseFragment implements NfcAdapter.Reade
         subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         subtitleView.setText(LocaleController.getString(R.string.NM_LS_HintDetail));
+        subtitleView.setPadding(AndroidUtilities.dp(32), 0, AndroidUtilities.dp(32), 0);
         content.addView(subtitleView, LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 10, 0, 0));
 
@@ -224,7 +227,9 @@ public class LinkiShareActivity extends BaseFragment implements NfcAdapter.Reade
                 return;
             }
             if (nfcAdapter == null || !nfcAdapter.isEnabled()) {
-                enableNfcView.setVisibility(View.VISIBLE);
+                if (enableNfcView != null) {
+                    enableNfcView.setVisibility(View.VISIBLE);
+                }
                 showEnableState();
                 return;
             }
