@@ -125,6 +125,48 @@ function initThemeToggle() {
   });
 }
 
+/* ---------- Уведомление о смене канала ---------- */
+function initChannelNotice() {
+  const notice = document.getElementById("channel-notice");
+  if (!notice) return;
+  const KEY = "lg-channel-notice-2.9";
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+  let dismissed = 0;
+  try {
+    dismissed = parseInt(localStorage.getItem(KEY) || "0", 10) || 0;
+  } catch (e) {
+    /* приватный режим — показываем всегда */
+  }
+  if (dismissed && Date.now() - dismissed < WEEK) return;
+
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    notice.hidden = true;
+    document.body.classList.remove("notice-open");
+    try {
+      localStorage.setItem(KEY, String(Date.now()));
+    } catch (e) {
+      /* не критично */
+    }
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+
+  notice.hidden = false;
+  document.body.classList.add("notice-open");
+  notice.querySelectorAll("[data-notice-close]").forEach((el) => {
+    el.addEventListener("click", close);
+  });
+  document.addEventListener("keydown", onKey);
+  const primary = notice.querySelector(".notice__actions .btn--primary");
+  if (primary) primary.focus({ preventScroll: true });
+}
+
 /* ---------- Старт ---------- */
 initHeader();
 initNav();
@@ -132,6 +174,7 @@ initTilt();
 initReveal();
 initTypeCmd();
 initThemeToggle();
+initChannelNotice();
 
 
 // A quiet rain layer, with a bounded particle count and no background work.

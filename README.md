@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://t.me/linkireleases">
+  <a href="https://t.me/serostgram">
     <img alt="Telegram-канал релизов" src="https://img.shields.io/badge/%F0%9F%93%A3%20%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB%20%D1%80%D0%B5%D0%BB%D0%B8%D0%B7%D0%BE%D0%B2-2AABEE?style=flat-square&logo=telegram&logoColor=white">
   </a>
   <a href="https://www.linkigram.bond">
@@ -17,11 +17,11 @@
 
 ## 📢 Канал релизов
 
-**Все версии и анонсы выходят сюда → [@linkireleases](https://t.me/linkireleases)**
+**Все версии и анонсы выходят сюда → [@serostgram](https://t.me/serostgram)**
 
 Это основной канал обновлений: новые релизы появляются там первыми, раньше, чем в репозитории. Там же обсуждение и сборки.
 
-**[Подписаться на @linkireleases](https://t.me/linkireleases)**
+**[Подписаться на @serostgram](https://t.me/serostgram)**
 
 ## Что внутри
 
