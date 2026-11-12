@@ -713,28 +713,18 @@ body::after {
   .term { width: 100%; }
 }
 
-/* Ambient rain: decorative, never intercepts input. */
-.ambient-rain {
+/* Ambient snowfall: decorative, never intercepts input. */
+.ambient-snow {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
   z-index: 5;
-  opacity: .55;
+  opacity: .85;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ambient-rain { display: none; }
-}
-
-/* Brief wet glints where raindrops land on the text. */
-.rain-wet { animation: rain-text-glint .65s ease-out; }
-@keyframes rain-text-glint {
-  0% { text-shadow: 0 -1px 1px rgba(255,255,255,.8), 0 2px 9px rgba(var(--accent-rgb),.65); }
-  100% { text-shadow: 0 0 0 transparent; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .rain-wet { animation: none; }
+  .ambient-snow { display: none; }
 }
 
 /* ============ Уведомление о смене канала ============ */

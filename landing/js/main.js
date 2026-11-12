@@ -177,46 +177,33 @@ initThemeToggle();
 initChannelNotice();
 
 
-// A quiet rain layer, with a bounded particle count and no background work.
+// A quiet snowfall, with a bounded flake count and no background work.
 (() => {
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const canvas = document.createElement('canvas');
-  canvas.className = 'ambient-rain';
+  canvas.className = 'ambient-snow';
   canvas.setAttribute('aria-hidden', 'true');
   document.body.prepend(canvas);
   const ctx = canvas.getContext('2d');
   if (!ctx) { canvas.remove(); return; }
-  let width = 0, height = 0, drops = [], frame = 0, previous = 0;
-  let color = '#b9c1cd';
-  let textEdges = [], splashes = [];
-  const collectText = () => {
-    textEdges = [];
-    document.querySelectorAll('h1, h2, h3, .hero__subtitle, .proxy__text > p').forEach(element => {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-      let node;
-      while ((node = walker.nextNode())) {
-        for (let i = 0; i < node.length; i++) {
-          if (!node.textContent[i].trim()) continue;
-          const range = document.createRange();
-          range.setStart(node, i); range.setEnd(node, i + 1);
-          const rect = range.getBoundingClientRect();
-          if (rect.bottom > 0 && rect.top < innerHeight && rect.width > 0) {
-            textEdges.push({left: rect.left, right: rect.right, top: rect.top + rect.height * .22, element});
-          }
-        }
-      }
-    });
-  };
-  let textUpdate = 0;
-  const scheduleText = () => {
-    if (textUpdate) return;
-    textUpdate = requestAnimationFrame(() => { textUpdate = 0; collectText(); });
-  };
-  addEventListener('scroll', scheduleText, {passive: true});
-  if (document.fonts) document.fonts.ready.then(collectText);
-  setTimeout(collectText, 1400);
+  let width = 0, height = 0, flakes = [], frame = 0, previous = 0, clock = 0;
+  let tint = '#e8eef6';
   const refreshColor = () => {
-    color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#b9c1cd';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim();
+    tint = accent || '#e8eef6';
+  };
+  const makeFlake = (spawnOnTop) => {
+    const radius = 0.8 + Math.random() * 2.4;
+    return {
+      x: Math.random() * (width + 120) - 60,
+      y: spawnOnTop ? -radius * 4 : Math.random() * height,
+      r: radius,
+      speed: 14 + radius * 11 + Math.random() * 16,
+      drift: 5 + Math.random() * 18,
+      phase: Math.random() * Math.PI * 2,
+      spin: 0.4 + Math.random() * 1.1,
+      alpha: 0.3 + Math.random() * 0.55
+    };
   };
   const resize = () => {
     width = innerWidth; height = innerHeight;
@@ -224,48 +211,30 @@ initChannelNotice();
     canvas.width = Math.round(width * ratio);
     canvas.height = Math.round(height * ratio);
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    collectText();
-    drops = Array.from({length: Math.min(110, Math.max(30, Math.round(width / 16)))}, () => ({
-      x: Math.random() * (width + 100), y: Math.random() * height,
-      speed: 260 + Math.random() * 330, length: 12 + Math.random() * 25,
-      alpha: .15 + Math.random() * .4
-    }));
+    refreshColor();
+    const count = Math.min(150, Math.max(40, Math.round(width / 11)));
+    flakes = Array.from({length: count}, () => makeFlake(false));
   };
   const draw = now => {
     const dt = previous ? Math.min((now - previous) / 1000, .04) : 0;
     previous = now;
+    clock += dt;
     ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
-    for (const drop of drops) {
-      const oldY = drop.y;
-      drop.y += drop.speed * dt;
-      drop.x -= drop.speed * dt * .16;
-      if (drop.y > height + drop.length || drop.x < -40) {
-        drop.y = -drop.length; drop.x = Math.random() * (width + 100);
+    ctx.fillStyle = tint;
+    for (const flake of flakes) {
+      flake.y += flake.speed * dt;
+      flake.x += Math.cos(clock * flake.spin + flake.phase) * flake.drift * dt - 6 * dt;
+      if (flake.y > height + flake.r * 4) {
+        Object.assign(flake, makeFlake(true));
+      } else if (flake.x < -70) {
+        flake.x = width + 60;
       }
-      const hit = textEdges.find(edge => oldY < edge.top && drop.y >= edge.top && drop.x >= edge.left && drop.x <= edge.right);
-      if (hit) {
-        for (let i = 0; i < 4 && splashes.length < 160; i++) {
-          splashes.push({x: drop.x, y: hit.top, vx: (Math.random() - .5) * 110, vy: -35 - Math.random() * 65, life: .3 + Math.random() * .2});
-        }
-        hit.element.classList.remove('rain-wet');
-        void hit.element.offsetWidth;
-        hit.element.classList.add('rain-wet');
-        drop.y = -drop.length; drop.x = Math.random() * (width + 100);
-      }
-      ctx.globalAlpha = drop.alpha;
-      ctx.beginPath(); ctx.moveTo(drop.x, drop.y);
-      ctx.lineTo(drop.x + drop.length * .16, drop.y - drop.length); ctx.stroke();
+      ctx.globalAlpha = flake.alpha;
+      ctx.beginPath();
+      ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+      ctx.fill();
     }
-    for (let i = splashes.length - 1; i >= 0; i--) {
-      const splash = splashes[i];
-      splash.life -= dt;
-      if (splash.life <= 0) { splashes.splice(i, 1); continue; }
-      splash.x += splash.vx * dt; splash.y += splash.vy * dt; splash.vy += 240 * dt;
-      ctx.globalAlpha = Math.min(1, splash.life * 3);
-      ctx.beginPath(); ctx.arc(splash.x, splash.y, 1.1, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
-    }
+    ctx.globalAlpha = 1;
     frame = requestAnimationFrame(draw);
   };
   const sync = () => {
