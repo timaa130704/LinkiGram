@@ -72,6 +72,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     private final int liquidGlassRow = 28;
     private final int linkiYouRow = 29;
     private final int colorOs17Row = 30;
+    private final int material3Row = 31;
     @Override protected void prepareSettingsSearch() {
         materialExpanded = true;
         iosExpanded = true;
@@ -120,7 +121,8 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
         boolean linkiYou = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
-                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
+                || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(SettingsHelper.asSwitchCG(linkiYouRow, getString(R.string.NM_LinkiGramYou),
                         getString(R.string.LinkiClientMaterialDescription))
@@ -128,6 +130,9 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
         items.add(SettingsHelper.asSwitchCG(colorOs17Row, getString(R.string.NM_ColorOS17),
                         getString(R.string.NM_ColorOS17_Desc))
                 .setChecked(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()));
+        items.add(SettingsHelper.asSwitchCG(material3Row, getString(R.string.NM_Material3),
+                        getString(R.string.NM_Material3_Desc))
+                .setChecked(app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()));
         if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
             items.add(UItem.asButton(YOU_CUSTOMIZE, getString(R.string.LinkiYouCustomize)));
         items.add(UItem.asButton(2002, getString(R.string.LF_Menu)));
@@ -278,6 +283,13 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             refreshMaterialViews();
             return;
         }
+        if (item.id == material3Row) {
+            boolean enabled = !app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
+            app.nimarkogram.messenger.appearance.Material3Theme.setEnabled(enabled);
+            updateCheckState(view, enabled);
+            refreshMaterialViews();
+            return;
+        }
         if (item.id == linkiYouRow) {
             boolean enabled = !app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
             app.nimarkogram.messenger.appearance.LinkiGramYouTheme.setEnabled(enabled);
@@ -286,11 +298,13 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
             return;
         }
         if ((app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
-                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled())
+                || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
+                || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled())
                 && (item.id == MATERIAL_ALL || item.id == MATERIAL_HEADERS || item.id == disableDividersRow
                 || item.id == materialCardsRow || item.id == oneUISwitchesRow
                 || (item.id >= STYLE_BASE && item.id < STYLE_BASE + 8))) return;
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
+        if ((app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()
+                || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled())
                 && item.id >= STYLE_BASE + 8 && item.id < STYLE_BASE + 10) return;
         if (item.id == YOU_CUSTOMIZE) { presentFragment(new YouCustomizationActivity()); return; }
         if (item.id == SETTINGS_ICON_COLORS) { showSettingsIconColors(); return; }
@@ -528,6 +542,7 @@ public class AppearancePreferencesActivity extends NimarkoUniversalPreferencesAc
 
     private String getSwitchStyleValueText() {
         if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) return "ColorOS 17";
+        if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) return "Material 3";
         if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) return "Material You";
         return switch (NimarkoConfig.switchStyle) {
             case NimarkoConfig.SWITCH_STYLE_ONEUI -> "One UI";

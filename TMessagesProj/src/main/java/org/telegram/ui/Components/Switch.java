@@ -246,8 +246,8 @@ public class Switch extends View implements Theme.Colorable {
 
     private void animateToCheckedState(boolean newCheckedState) {
         checkAnimator = ObjectAnimator.ofFloat(this, "progress", newCheckedState ? 1 : 0);
-        checkAnimator.setDuration(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 380 : 200);
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        checkAnimator.setDuration(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled() ? 380 : 200);
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             checkAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
         }
         checkAnimator.addListener(new AnimatorListenerAdapter() {
@@ -395,7 +395,7 @@ public class Switch extends View implements Theme.Colorable {
         if (getVisibility() != VISIBLE) {
             return;
         }
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             drawColorOsSwitch(canvas);
             return;
         }

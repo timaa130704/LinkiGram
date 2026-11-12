@@ -63,11 +63,11 @@ public abstract class UniversalFragment extends BaseFragment {
                 );
             }
         };
-        if (!useSimpleActionBar() || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        if (!useSimpleActionBar() || app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             // simple screens: the sectioned list draws the screen background itself
             ThemeBind.backgroundColor(contentView, Theme.key_windowBackgroundGray);
         }
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && actionBar != null) {
+        if ((app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) && actionBar != null) {
             actionBar.setDrawBlurBackground((SizeNotifierFrameLayout) contentView);
         }
 

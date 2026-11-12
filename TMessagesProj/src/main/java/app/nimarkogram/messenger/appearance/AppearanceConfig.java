@@ -32,6 +32,13 @@ public final class AppearanceConfig {
             if ("iosNavigationBarStyle".equals(key) || "iosChatHeader".equals(key)
                     || "md3Slider".equals(key) || "md3Switch".equals(key)) return false;
         }
+        if (Material3Theme.isEnabled()) {
+            // Material 3 is a whole style: the complete Material Design set is
+            // on (switches, sliders, loaders, header, navigation, lists, player)
+            // and the iOS variants are off.
+            for (String materialKey : MATERIAL_KEYS) if (materialKey.equals(key)) return true;
+            for (String iosKey : IOS_KEYS) if (iosKey.equals(key)) return false;
+        }
         if (LinkiGramYouTheme.isEnabled()) {
             for (String materialKey : MATERIAL_KEYS) if (materialKey.equals(key)) return true;
         }

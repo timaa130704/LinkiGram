@@ -43,6 +43,7 @@ public final class ColorOs17Theme {
         NimarkoConfig.getPreferences().edit().putBoolean(PREF_ENABLED, value).apply();
         if (value) LinkiGramYouTheme.setEnabled(false);
         else if (restoreYou) LinkiGramYouTheme.setEnabled(true);
+        if (value) Material3Theme.setEnabled(false);
     }
 
     public static int resolveColor(int key, int original) {

@@ -3627,7 +3627,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                         if (first) outRect.top = enableTopPadding ? padding : dp(4);
                         if (last) outRect.bottom = padding;
                         if (!first && this.parent.materialSegments() && this.parent.sectionNeighbor(view, -1)
-                                && !app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+                                && !(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled())) {
                             outRect.top += dp(2);
                         }
                     }
@@ -3665,7 +3665,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     private final float[] materialCorners = new float[8];
     private void materialCorners(View view) {
         boolean above = sectionNeighbor(view, -1), below = sectionNeighbor(view, 1);
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             float top = above ? 0 : dp(20);
             float bottom = below ? 0 : dp(20);
             for (int i = 0; i < 4; i++) materialCorners[i] = top;

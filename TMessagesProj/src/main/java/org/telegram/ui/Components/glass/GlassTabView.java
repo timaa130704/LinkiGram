@@ -111,7 +111,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         materialMainTab = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         if (!materialMainTab) return;
         colorOsMainTab = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
-        stackedMainTab = colorOsMainTab || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+        // Material 3 shares the icon-over-label dock, with its own palette.
+        stackedMainTab = colorOsMainTab || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()
+                || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
                 && org.telegram.ui.MainTabsLayout.getBottomNavigationMode() == org.telegram.ui.MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
         imageView.setLayoutParams(LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 12, 0, 0, 0));
         if (backupImageView != null) backupImageView.setLayoutParams(LayoutHelper.createFrame(22, 22, Gravity.LEFT | Gravity.CENTER_VERTICAL, 13, 0, 0, 0));

@@ -361,7 +361,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
 
         progressViewStyle = progressStyle;
         backgroundColor = getThemedColor(backgroundColorKey = Theme.key_dialogBackground);
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) dimAlpha = 0.2f;
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) dimAlpha = 0.2f;
         final boolean isDark = AndroidUtilities.computePerceivedBrightness(backgroundColor) < 0.721f;
         blurredNativeBackground = supportsNativeBlur() && progressViewStyle == ALERT_TYPE_MESSAGE;
         blurredBackground = (blurredNativeBackground || !supportsNativeBlur() && SharedConfig.getDevicePerformanceClass() >= SharedConfig.PERFORMANCE_CLASS_HIGH && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BLUR)) && isDark;
@@ -1414,7 +1414,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
         }
 
         if (app.nimarkogram.messenger.appearance.ClientTheme.isEnabled()) {
-            final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
+            final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
             if (titleTextView != null) {
                 titleTextView.setGravity(colorOs ? Gravity.CENTER_HORIZONTAL : Gravity.START);
                 titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, colorOs ? 18 : 24);
@@ -1457,7 +1457,7 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
             params.width = WindowManager.LayoutParams.MATCH_PARENT;
         } else {
             if (dimEnabled && !dimCustom) {
-                params.dimAmount = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 0.2f : dimAlpha;
+                params.dimAmount = (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) ? 0.2f : dimAlpha;
                 params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
             } else {
                 params.dimAmount = 0f;

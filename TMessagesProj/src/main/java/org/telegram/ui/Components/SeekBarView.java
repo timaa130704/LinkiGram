@@ -498,7 +498,7 @@ public class SeekBarView extends FrameLayout implements Theme.Colorable {
         float left = selectorWidth / 2f, right = getMeasuredWidth() - selectorWidth / 2;
         float top = centerY - AndroidUtilities.dp(effectiveLineWidthDp()) / 2f, bottom = centerY + AndroidUtilities.dp(effectiveLineWidthDp()) / 2f;
 
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() && !twoSided) {
+        if ((app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) && !twoSided) {
             drawColorOsSlider(canvas, left, right, centerY, thumbX);
             drawTimestampLabel(canvas);
             return;

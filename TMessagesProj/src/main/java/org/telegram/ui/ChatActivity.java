@@ -32416,7 +32416,7 @@ public class ChatActivity extends BaseFragment implements
                 popupLayout.setBackground(scrimBlur3Factory.create(popupLayout, true)
                     .setColorProvider(BlurredBackgroundProviderImpl.messageMenuBackground(resourceProvider))
                     .setThickness(dp(14))
-                    .setRadius(dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : liquidMessageMenu ? 20 : 12))
+                    .setRadius(dp(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 24 : app.nimarkogram.messenger.appearance.Material3Theme.isEnabled() ? 12 : liquidMessageMenu ? 20 : 12))
                     .setPadding(dp(8)));
             }
 

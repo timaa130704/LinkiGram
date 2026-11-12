@@ -98,7 +98,7 @@ public class MessageDrawable extends Drawable {
     private int cachedColorOsStyle;
 
     private void checkColorOsCache() {
-        int enabled = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() ? 2
+        int enabled = (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) ? 2
                 : app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled() ? 1 : 0;
         if (cachedColorOsStyle == enabled) return;
         cachedColorOsStyle = enabled;

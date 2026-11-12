@@ -172,7 +172,7 @@ public class WavySeekBar extends View {
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             float cy = getHeight() / 2f;
             float start = left(), end = right();
             float value = Math.max(0, Math.min(1, dragging ? dragProgress : progress));

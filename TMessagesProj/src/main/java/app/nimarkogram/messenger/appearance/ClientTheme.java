@@ -32,7 +32,8 @@ public final class ClientTheme {
     private ClientTheme() { }
 
     public static boolean isEnabled() {
-        return ColorOs17Theme.isEnabled() || LinkiGramYouTheme.isEnabled();
+        return ColorOs17Theme.isEnabled() || LinkiGramYouTheme.isEnabled()
+                || Material3Theme.isEnabled();
     }
 
     public static int resolveColor(int key, int original) {
@@ -40,7 +41,7 @@ public final class ClientTheme {
         if (key == Theme.key_chat_outBubbleGradient1 || key == Theme.key_chat_outBubbleGradient2
                 || key == Theme.key_chat_outBubbleGradient3 || key == Theme.key_chat_outBubbleGradientAnimated)
             return 0;
-        if (LinkiGramYouTheme.isEnabled()) {
+        if (LinkiGramYouTheme.isEnabled() || Material3Theme.isEnabled()) {
             if (key == Theme.key_actionBarTabActiveText) return color(ON_CONTAINER);
             if (key == Theme.key_actionBarTabLine) return color(CONTAINER);
         }
@@ -98,14 +99,21 @@ public final class ClientTheme {
     }
 
     private static Palette palette(boolean dark) {
-        int seed = 0xFF6750A4;
-        Context context = ApplicationLoader.applicationContext;
-        if (context != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try { seed = context.getColor(android.R.color.system_accent1_500); }
-            catch (RuntimeException ignored) { }
+        int seed;
+        if (Material3Theme.isEnabled()) {
+            // Material 3 keeps its own fixed tonal seed, so it never tracks the
+            // wallpaper accent the way the Material You layer does.
+            seed = Material3Theme.getSeedColor();
+        } else {
+            seed = 0xFF6750A4;
+            Context context = ApplicationLoader.applicationContext;
+            if (context != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try { seed = context.getColor(android.R.color.system_accent1_500); }
+                catch (RuntimeException ignored) { }
+            }
+            int customSeed = LinkiGramYouTheme.getSeedColor();
+            if (customSeed != 0) seed = customSeed;
         }
-        int customSeed = LinkiGramYouTheme.getSeedColor();
-        if (customSeed != 0) seed = customSeed;
         Palette result = cachedPalette;
         if (result == null || result.dark != dark || result.seed != seed) {
             synchronized (ClientTheme.class) {
@@ -136,11 +144,30 @@ public final class ClientTheme {
         }
     }
 
-    public static int popupRadius() { return ColorOs17Theme.isEnabled() ? 24 : LinkiGramYouTheme.radius("popup", 16); }
-    public static int dialogRadius() { return ColorOs17Theme.isEnabled() ? 24 : LinkiGramYouTheme.radius("dialog", 28); }
-    public static int sectionRadius() { return ColorOs17Theme.isEnabled() ? 20 : LinkiGramYouTheme.radius("section", 24); }
-    public static int bubbleRadius() { return ColorOs17Theme.isEnabled() ? 20 : LinkiGramYouTheme.radius("bubble", 24); }
-    public static int menuHeight() { return ColorOs17Theme.isEnabled() ? 52 : 48; }
+    public static int popupRadius() {
+        if (ColorOs17Theme.isEnabled()) return 24;
+        if (Material3Theme.isEnabled()) return 12;
+        return LinkiGramYouTheme.radius("popup", 16);
+    }
+    public static int dialogRadius() {
+        if (ColorOs17Theme.isEnabled()) return 24;
+        if (Material3Theme.isEnabled()) return 28;
+        return LinkiGramYouTheme.radius("dialog", 28);
+    }
+    public static int sectionRadius() {
+        if (ColorOs17Theme.isEnabled()) return 20;
+        if (Material3Theme.isEnabled()) return 24;
+        return LinkiGramYouTheme.radius("section", 24);
+    }
+    public static int bubbleRadius() {
+        if (ColorOs17Theme.isEnabled()) return 20;
+        if (Material3Theme.isEnabled()) return 20;
+        return LinkiGramYouTheme.radius("bubble", 24);
+    }
+    public static int menuHeight() {
+        if (ColorOs17Theme.isEnabled()) return 52;
+        return 48;
+    }
 
     /** Retain nine-patch padding; a replacement color filter replaces the fill tint. */
     public static Drawable surfaceDrawable(Drawable original, int color, boolean topOnly) {

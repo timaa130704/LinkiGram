@@ -52,7 +52,10 @@ public final class LinkiGramYouTheme {
     }
 
     public static void setEnabled(boolean enabled) {
-        if (enabled) ColorOs17Theme.setEnabled(false);
+        if (enabled) {
+            ColorOs17Theme.setEnabled(false);
+            Material3Theme.setEnabled(false);
+        }
         LinkiGramYouTheme.enabled = enabled;
         loaded = true;
         app.nimarkogram.messenger.NimarkoConfig.getPreferences().edit().putBoolean(PREF_ENABLED, enabled).apply();
@@ -66,6 +69,7 @@ public final class LinkiGramYouTheme {
     public static int navigationBarColor(Context context, int role, int fallback) {
         if (!ClientTheme.isEnabled()) return fallback;
         if (ColorOs17Theme.isEnabled()) return ColorOs17Theme.navigationBarColor(role, fallback);
+        if (Material3Theme.isEnabled()) return Material3Theme.navigationBarColor(role, fallback);
         switch (role) {
             case NAV_COLOR_SURFACE: return ClientTheme.color(ClientTheme.SURFACE_HIGH);
             case NAV_COLOR_INDICATOR: return ClientTheme.color(ClientTheme.CONTAINER);
