@@ -57,6 +57,15 @@ public class MessagesPreferencesActivity extends NimarkoUniversalPreferencesActi
 
     @Override
     public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
+        items.add(UItem.asHeader(getString(R.string.NM_MSG_Header_Sending)));
+        items.add(SettingsHelper.asSwitchCG(richArticleRow, getString(R.string.NM_MSG_RichArticle), getString(R.string.NM_MSG_RichArticle_Desc))
+                .setChecked(app.nimarkogram.messenger.NimarkoConfig.richArticle)
+        );
+        items.add(SettingsHelper.asSwitchCG(gifSpoilersRow, getString(R.string.NM_MSG_GifSpoilers))
+                .setChecked(app.nimarkogram.messenger.NimarkoConfig.gifSpoilers)
+        );
+        items.add(UItem.asShadow(null));
+
         items.add(UItem.asHeader(getString(R.string.AP_Header_Appearance)));
         items.add(UItem.asButton(messageMenuRow, R.drawable.msg_list, getString(R.string.CP_MessageMenu)));
         items.add(UItem.asButton(messageSizeRow, R.drawable.msg_photo_settings, getString(R.string.CP_Messages_Size)));
@@ -91,15 +100,6 @@ public class MessagesPreferencesActivity extends NimarkoUniversalPreferencesActi
         );
         items.add(SettingsHelper.asSwitchCG(premiumStickersAutoplayRow, getString(R.string.CP_DisablePremStickAutoPlay), getString(R.string.CP_DisablePremStickAutoPlay_Desc))
                 .setChecked(app.nimarkogram.messenger.NimarkoConfig.disablePremStickAutoPlay)
-        );
-        items.add(UItem.asShadow(null));
-
-        items.add(UItem.asHeader(getString(R.string.NM_MSG_Header_Sending)));
-        items.add(SettingsHelper.asSwitchCG(gifSpoilersRow, getString(R.string.NM_MSG_GifSpoilers))
-                .setChecked(app.nimarkogram.messenger.NimarkoConfig.gifSpoilers)
-        );
-        items.add(SettingsHelper.asSwitchCG(richArticleRow, getString(R.string.NM_MSG_RichArticle), getString(R.string.NM_MSG_RichArticle_Desc))
-                .setChecked(app.nimarkogram.messenger.NimarkoConfig.richArticle)
         );
         items.add(UItem.asShadow(null));
     }

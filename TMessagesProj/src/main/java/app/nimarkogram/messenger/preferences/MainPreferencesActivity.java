@@ -55,6 +55,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
     public static final int ID_EASTER         = 31;
     public static final int ID_AYUMOMENTS     = 32;
     public static final int ID_LINKI_SHARE    = 35;
+    public static final int ID_MESSAGES       = 36;
 
     private int easterEggClicks = 0;
     private long easterEggLastClickTime = 0;
@@ -80,6 +81,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 R.drawable.msg_theme_solar, R.string.NM_Cat_Appearance, "nimarko_appearance"));
         arrayList.add(category(ID_CHATS, IconBackgroundColors.BLUE_DEEP,
                 R.drawable.msg_msgbubble3_solar, R.string.NM_Cat_Chats, "nimarko_chats"));
+        arrayList.add(category(ID_MESSAGES, IconBackgroundColors.BLUE,
+                R.drawable.msg_message_solar, R.string.NM_Cat_Messages, "nimarko_messages"));
         arrayList.add(category(ID_CAMERA, IconBackgroundColors.CYAN,
                 R.drawable.camera_solar, R.string.NM_Cat_Camera, "nimarko_camera"));
         
@@ -267,6 +270,9 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
                 break;
             case ID_CHATS:
                 presentFragment(new ChatsPreferencesActivity());
+                break;
+            case ID_MESSAGES:
+                presentFragment(new MessagesPreferencesActivity());
                 break;
             case ID_CAMERA:
                 presentFragment(new CameraPreferencesActivity());
