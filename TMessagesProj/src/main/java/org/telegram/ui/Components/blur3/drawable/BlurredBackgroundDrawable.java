@@ -28,6 +28,7 @@ import androidx.annotation.RequiresApi;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
+import org.telegram.messenger.R;
 import org.telegram.messenger.utils.RadiiUtils;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.blur3.Blur3HashImpl;
@@ -729,11 +730,42 @@ public class BlurredBackgroundDrawable extends GlassDrawable implements Theme.Co
     private boolean liquidGlassEffectAllowed;
     private int glassSettingsGeneration = GlassEngine.getGlassSettingsGenerationId();
 
+    /** The lens this glass draws with: the plain one, or the richer Backdrop one of the bottom navigation. */
+    private int liquidGlassMaterialRes = R.raw.liquid_glass_shader;
+    /** The moving light of the surface, for the rich lens ({@link LiquidGlassEffect#setSurfaceLight}). */
+    private float glassLightPosition = 0.5f, glassLightPress;
+
     /** The screen wants the liquid glass here: it is drawn while the glass settings have it on (Android 13+). */
     public void setLiquidGlassEffectAllowed() {
         if (!liquidGlassEffectAllowed) {
             liquidGlassEffectAllowed = true;
             implInvalidated = true;
+        }
+    }
+
+    /**
+     * The shader of the lens, e.g. {@link R.raw#main_tabs_glass_shader} for the bottom navigation: it adds chromatic
+     * dispersion, an ambient edge highlight and a moving light over the plain {@link R.raw#liquid_glass_shader}.
+     */
+    public void setLiquidGlassMaterial(int shaderResource) {
+        if (liquidGlassMaterialRes != shaderResource) {
+            liquidGlassMaterialRes = shaderResource;
+            if (renderNodeImpl != null) {
+                renderNodeImpl.onLiquidGlassMaterialChanged();
+            }
+        }
+    }
+
+    /** The moving light of the surface: where it comes from along x (0..1) and how pressed it is (0..1). */
+    public void setGlassLightPosition(float position, float pressProgress) {
+        if (Math.abs(glassLightPosition - position) < 0.001f
+                && Math.abs(glassLightPress - pressProgress) < 0.001f) {
+            return;
+        }
+        glassLightPosition = position;
+        glassLightPress = pressProgress;
+        if (renderNodeImpl != null) {
+            renderNodeImpl.onGlassLightChanged();
         }
     }
 
@@ -945,6 +977,14 @@ public class BlurredBackgroundDrawable extends GlassDrawable implements Theme.Co
         }
 
         void setLiquidGlassEnabled(boolean enabled) {
+
+        }
+
+        void onGlassLightChanged() {
+
+        }
+
+        void onLiquidGlassMaterialChanged() {
 
         }
 
@@ -1198,12 +1238,31 @@ public class BlurredBackgroundDrawable extends GlassDrawable implements Theme.Co
                 return;
             }
             if (enabled) {
-                liquidGlassEffect = new LiquidGlassEffect(renderNodeFill);
+                liquidGlassEffect = new LiquidGlassEffect(renderNodeFill, liquidGlassMaterialRes);
+                liquidGlassEffect.setSurfaceLight(glassLightPosition, glassLightPress);
             } else {
                 liquidGlassEffect = null;
                 renderNodeFill.setRenderEffect(null);
             }
             invalidated = true;
+        }
+
+        @Override
+        void onLiquidGlassMaterialChanged() {
+            if (liquidGlassEffect != null) {
+                liquidGlassEffect = new LiquidGlassEffect(renderNodeFill, liquidGlassMaterialRes);
+                liquidGlassEffect.setSurfaceLight(glassLightPosition, glassLightPress);
+                invalidated = true;
+                invalidateSelf();
+            }
+        }
+
+        @Override
+        void onGlassLightChanged() {
+            if (liquidGlassEffect != null && liquidGlassEffect.setSurfaceLight(glassLightPosition, glassLightPress)) {
+                invalidated = true;
+                invalidateSelf();
+            }
         }
 
         @Override

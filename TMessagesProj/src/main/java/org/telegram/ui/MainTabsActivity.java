@@ -540,6 +540,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabsViewBackground = iBlur3FactoryGlass.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
         tabsViewBackground.setThickness(dp(16));
         tabsViewBackground.setIntensity(1f);
+        if (tabsLiquidGlassEnabled) {
+            // the Backdrop lens of the bottom navigation (dispersion, ambient highlight, moving light)
+            tabsViewBackground.setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
+        }
         tabsViewBackground.setRadius(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(dockedTabs ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         if (colorOsNav) {
@@ -1703,6 +1707,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         factory.setSourceRootView(new ViewPositionWatcher(contentView), contentView);
         factory.setLiquidGlassEffectAllowed(enabled);
         tabsViewBackground = factory.create(tabsView, BlurredBackgroundProviderImpl.mainTabs(resourceProvider));
+        tabsViewBackground.setThickness(dp(16));
+        tabsViewBackground.setIntensity(1f);
+        if (enabled) {
+            tabsViewBackground.setLiquidGlassMaterial(R.raw.main_tabs_glass_shader);
+        }
         tabsViewBackground.setRadius(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_HEIGHT / 2f));
         tabsViewBackground.setPadding(dp(tabsDocked ? 0 : DialogsActivity.MAIN_TABS_MARGIN - 0.334f));
         if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {

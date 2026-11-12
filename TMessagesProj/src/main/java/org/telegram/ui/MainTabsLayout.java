@@ -453,6 +453,8 @@ public class MainTabsLayout extends AnimatedLinearLayout {
             // on every frame of the selector drag.
             final float angle = Math.round((0.5f - clamped) * 120f / 4f) * 4f;
             glass.setLightAngle(angle);
+            // the rich Backdrop lens of the bottom bar: its light follows the selector and the press
+            glass.setGlassLightPosition(clamped, selectorPress);
         }
         super.draw(canvas);
     }

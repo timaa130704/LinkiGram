@@ -28,10 +28,48 @@ public class LiquidGlassEffect {
     private float[] effectPoolCenterY;
 
     public LiquidGlassEffect(RenderNode node) {
+        this(node, R.raw.liquid_glass_shader);
+    }
+
+    /**
+     * @param shaderResource the lens: {@link R.raw#liquid_glass_shader}, or the richer
+     * {@link R.raw#main_tabs_glass_shader} of the bottom navigation (chromatic dispersion, an ambient edge
+     * highlight and a moving touch light; adapted from Backdrop by Kyant, Apache-2.0).
+     */
+    public LiquidGlassEffect(RenderNode node, int shaderResource) {
         this.node = node;
-        final String code = AndroidUtilities.readRes(R.raw.liquid_glass_shader);
+        final String code = AndroidUtilities.readRes(shaderResource);
         shader = plainShader = new RuntimeShader(code);
+        hasSurfaceLight = shaderResource == R.raw.main_tabs_glass_shader;
+        if (hasSurfaceLight) {
+            plainShader.setFloatUniform("light_position", surfaceLight);
+            plainShader.setFloatUniform("press_progress", pressProgress);
+        }
         node.setRenderEffect(effect = RenderEffect.createRuntimeShaderEffect(shader, "img"));
+    }
+
+    private final boolean hasSurfaceLight;
+    private float surfaceLight = 0.5f;
+    private float pressProgress;
+    private boolean lightChanged;
+
+    /**
+     * The moving light of the surface (the Backdrop lens): where it comes from along x (0..1) and how pressed
+     * the surface is (0..1). Only the rich lens draws it; returns whether anything changed.
+     */
+    public boolean setSurfaceLight(float position, float pressProgress) {
+        position = Math.max(0f, Math.min(1f, position));
+        pressProgress = Math.max(0f, Math.min(1f, pressProgress));
+        if (!hasSurfaceLight || (Math.abs(surfaceLight - position) < 0.001f
+                && Math.abs(this.pressProgress - pressProgress) < 0.001f)) {
+            return false;
+        }
+        surfaceLight = position;
+        this.pressProgress = pressProgress;
+        plainShader.setFloatUniform("light_position", position);
+        plainShader.setFloatUniform("press_progress", pressProgress);
+        lightChanged = true;
+        return true;
     }
 
     private int downsample;
@@ -114,10 +152,12 @@ public class LiquidGlassEffect {
             Math.abs(this.intensity - intensity) > 0.1f ||
             Math.abs(this.index - index) > 0.1f ||
             this.foregroundColor != foregroundColor ||
-            arrowChanged
+            arrowChanged ||
+            lightChanged
         ) {
+            lightChanged = false;
             arrowChanged = false;
-            if (arrowHeight > 0) {
+            if (arrowHeight > 0 && !hasSurfaceLight) {
                 if (arrowShader == null) {
                     arrowShader = new RuntimeShader(AndroidUtilities.readRes(R.raw.liquid_glass_arrow_shader));
                 }
@@ -151,6 +191,10 @@ public class LiquidGlassEffect {
             if (shader == arrowShader) {
                 shader.setFloatUniform("arrow", arrowHeight * scale, arrowTipRadius * scale, arrowFilletRadius * scale, arrowStripe * scale);
                 shader.setFloatUniform("arrow_axis", arrowAxisX * scale, arrowAxisY * scale, arrowDirX, arrowDirY);
+            }
+            if (hasSurfaceLight) {
+                // the Backdrop lens samples the captured page in the pixels of the node
+                plainShader.setFloatUniform("resolution", node.getWidth(), node.getHeight());
             }
 
             // and the last one for a node off the grid of the screen, e.g. a view on its way
