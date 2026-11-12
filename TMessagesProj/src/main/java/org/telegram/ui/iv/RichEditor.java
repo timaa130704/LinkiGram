@@ -1914,7 +1914,6 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
 
     private boolean isSendLocked() {
         return !MessagesController.getInstance(currentAccount).richEditorAllowed()
-            && !app.nimarkogram.messenger.NimarkoConfig.richArticle
             && !UserConfig.getInstance(currentAccount).isPremium()
             && listView.isLossy();
     }
@@ -1926,7 +1925,7 @@ public class RichEditor extends BaseFragment implements NotificationCenter.Notif
 
     private void showConversionSheet() {
         openConversionSheet(getContext(), listView::convertToSimple, () -> {
-            if (!app.nimarkogram.messenger.NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium()) {
+            if (!UserConfig.getInstance(currentAccount).isPremium()) {
                 showDialog(new PremiumFeatureBottomSheet(this, PremiumPreviewFragment.PREMIUM_FEATURE_RICH_EDITOR, true));
             }
         }, getResourceProvider());

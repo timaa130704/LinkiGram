@@ -1118,8 +1118,6 @@
     <string name="CP_OpenSettingsBySwipe_Desc">Проведите вниз по списку чатов, чтобы открыть настройки.</string>
     <string name="NM_MSG_Header_Sending">Отправка</string>
     <string name="NM_MSG_GifSpoilers">Отправлять GIF со спойлером</string>
-    <string name="NM_MSG_RichArticle">Редактор статей</string>
-    <string name="NM_MSG_RichArticle_Desc">Открывать редактор rich-статей (заголовки, таблицы, медиа, кнопки) из меню вложений и поля ввода без Telegram Premium. Для отправки сервер всё равно должен принимать rich-сообщения.</string>
     <string name="EP_CustomChat_Selected_Title">вместо</string>
     <string name="NM_JumpToBeginning">В начало</string>
     <string name="NM_DeleteAllFromSelf">Удалить мои сообщения</string>

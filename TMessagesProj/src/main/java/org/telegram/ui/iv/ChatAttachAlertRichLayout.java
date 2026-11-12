@@ -824,8 +824,7 @@ public class ChatAttachAlertRichLayout extends ChatAttachAlert.AttachAlertLayout
             updateSendButtonEnabled();
             return false;
         }
-        if (!MessagesController.getInstance(currentAccount).richEditorAllowed()
-            && !app.nimarkogram.messenger.NimarkoConfig.richArticle) {
+        if (!MessagesController.getInstance(currentAccount).richEditorAllowed()) {
             // non-premium user with non-lossy content: send it as a simple message via the composer
             if (parentAlert.baseFragment instanceof ChatActivity) {
                 final ChatActivityEnterView enterView = ((ChatActivity) parentAlert.baseFragment).getChatActivityEnterView();
@@ -889,7 +888,7 @@ public class ChatAttachAlertRichLayout extends ChatAttachAlert.AttachAlertLayout
     private MessageSendPreview messageSendPreview;
 
     private boolean showSendPreview(View view) {
-        if (!app.nimarkogram.messenger.NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium()) {
+        if (!UserConfig.getInstance(currentAccount).isPremium()) {
             new PremiumFeatureBottomSheet(parentAlert.baseFragment, getContext(), currentAccount, PremiumPreviewFragment.PREMIUM_FEATURE_RICH_EDITOR, true).show();
             return true;
         }
@@ -1148,7 +1147,6 @@ public class ChatAttachAlertRichLayout extends ChatAttachAlert.AttachAlertLayout
     private void updateSendButtonLocked() {
         if (toolbar != null) {
             final boolean premiumLocked = !MessagesController.getInstance(currentAccount).richEditorAllowed()
-                && !app.nimarkogram.messenger.NimarkoConfig.richArticle
                 && !UserConfig.getInstance(currentAccount).isPremium();
             toolbar.getSendButton().setLocked(premiumLocked && listView.isLossy());
             toolbar.setPremiumLocked(premiumLocked);
@@ -1157,14 +1155,13 @@ public class ChatAttachAlertRichLayout extends ChatAttachAlert.AttachAlertLayout
 
     private boolean isSendLocked() {
         return !MessagesController.getInstance(currentAccount).richEditorAllowed()
-            && !app.nimarkogram.messenger.NimarkoConfig.richArticle
             && !UserConfig.getInstance(currentAccount).isPremium()
             && listView.isLossy();
     }
 
     private void showConversionSheet() {
         RichEditor.openConversionSheet(getContext(), listView::convertToSimple, () -> {
-            if (!app.nimarkogram.messenger.NimarkoConfig.richArticle && !UserConfig.getInstance(currentAccount).isPremium()) {
+            if (!UserConfig.getInstance(currentAccount).isPremium()) {
                 new PremiumFeatureBottomSheet(parentAlert.baseFragment, getContext(), currentAccount, PremiumPreviewFragment.PREMIUM_FEATURE_RICH_EDITOR, true).show();
             }
         }, resourcesProvider);

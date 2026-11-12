@@ -11968,8 +11968,6 @@
 <string name="NM_ChooseFolderIcon">Choose an Icon</string>
 <string name="NM_MSG_Header_Sending">Sending</string>
 <string name="NM_MSG_GifSpoilers">Send GIFs with spoiler</string>
-<string name="NM_MSG_RichArticle">Article editor</string>
-<string name="NM_MSG_RichArticle_Desc">Open the rich article editor (headers, tables, media, buttons) from the attach menu and the composer without Telegram Premium. Sending still requires the server to accept rich messages.</string>
 <string name="NM_Vibrate_Off">Off</string>
 <string name="NM_Vibrate_Click">Click</string>
 <string name="NM_Vibrate_Wave">Wave</string>
