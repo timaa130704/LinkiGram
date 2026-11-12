@@ -62,6 +62,8 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     private static final String SOURCE_REPOSITORY_URL = "https://github.com/timaa130704/LinkiGram";
 
+    private LinearLayout aboutHeader;
+
     private UItem category(int id, IconBackgroundColors colors, int icon, int title, String alias) {
         return SettingsActivity.SettingCell.Factory.of(
                         id, colors.top, colors.bottom, icon,
@@ -72,8 +74,12 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     @Override
     public void fillItems(ArrayList<UItem> arrayList, UniversalAdapter universalAdapter) {
-        // UItem.asCustom accepts height in dp and converts it inside UniversalAdapter.
-        arrayList.add(UItem.asCustom(createAboutHeader(getContext()), 190));
+        // asFullyCustom measures the header at its real height, so an enlarged
+        // system font no longer overflows the fixed 190dp custom slot.
+        if (aboutHeader == null) {
+            aboutHeader = createAboutHeader(getContext());
+        }
+        arrayList.add(UItem.asFullyCustom(aboutHeader));
         arrayList.add(UItem.asHeader(LocaleController.getString(R.string.AP_Header_General)));
         arrayList.add(category(ID_GENERAL, IconBackgroundColors.BLUE,
                 R.drawable.msg_settings_solar, R.string.NM_Cat_General, "nimarko_general"));
@@ -139,7 +145,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         LinearLayout header = new LinearLayout(context);
         header.setOrientation(LinearLayout.VERTICAL);
         header.setGravity(Gravity.CENTER_HORIZONTAL);
-        header.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+        header.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(16));
 
         ImageView icon = new ImageView(context);
         // Draw the plate and plane separately so the logo follows the same
@@ -218,14 +224,14 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
             }
         });
         icon.setClipToOutline(true);
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(AndroidUtilities.dp(88), AndroidUtilities.dp(88));
-        iconParams.bottomMargin = AndroidUtilities.dp(14);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(AndroidUtilities.dp(68), AndroidUtilities.dp(68));
+        iconParams.bottomMargin = AndroidUtilities.dp(10);
         header.addView(icon, iconParams);
 
         TextView name = new TextView(context);
         name.setText("LinkiGram");
         name.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 23);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 21);
         name.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         name.setGravity(Gravity.CENTER);
         header.addView(name, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
@@ -244,7 +250,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
         version.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionParams = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
-        versionParams.topMargin = AndroidUtilities.dp(6);
+        versionParams.topMargin = AndroidUtilities.dp(4);
         header.addView(version, versionParams);
 
         return header;
