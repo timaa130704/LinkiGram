@@ -368,6 +368,28 @@
     <string name="NM_Cat_Messages">Сообщения</string>
     <string name="NM_Cat_MessageMenu">Меню сообщения</string>
 
+    <!-- Описания карточек хаба LinkiGram -->
+    <string name="NM_HUB_Card_General">Язык, уведомления, прокрутка</string>
+    <string name="NM_HUB_Card_Appearance">Иконки, список чатов, папки, навигация</string>
+    <string name="NM_HUB_Card_Chats">Обои, ночной режим, анимации</string>
+    <string name="NM_HUB_Card_Messages">Меню, пузыри, жесты, ввод, медиа</string>
+    <string name="NM_HUB_Card_Camera">Видеокружки, качество, эффекты</string>
+    <string name="NM_HUB_Card_Privacy">Телефон, ID, режим стримера, сессии</string>
+    <string name="NM_HUB_Card_PrivacyModes">Мгновенные профили скрытности</string>
+    <string name="NM_HUB_Card_AyuMoments">Призрачные режимы, база моментов</string>
+    <string name="NM_HUB_Card_LinkiShare">Обмен профилями по NFC</string>
+    <string name="NM_HUB_Card_Plugins">Движок, установка, отчёты</string>
+    <string name="NM_HUB_Card_Media">Скачивание медиа из чатов</string>
+    <string name="NM_HUB_Card_Banners">Модерация и управление баннерами</string>
+    <string name="NM_HUB_Card_Bypass">tg-ws-proxy, туннели, диагностика</string>
+    <string name="NM_HUB_Card_TextAnim">Эффекты появления текста</string>
+    <string name="NM_HUB_Card_Cards">Инфо-карточки над списком чатов</string>
+    <string name="NM_HUB_Card_Debug">Тонкая настройка и эксперименты</string>
+    <string name="NM_HUB_Card_Diagnostics">Логи, ошибки, состояние соединения</string>
+    <string name="NM_HUB_Card_SourceCode">Репозиторий на GitHub</string>
+    <string name="NM_HUB_Card_Restart">Перезапустить приложение</string>
+    <string name="NM_HUB_Card_Updates">Автообновление, резервные копии</string>
+
     <!-- Внешний вид -->
     <string name="NM_AP_Header">Заголовок</string>
     <string name="NM_AP_CenterTitle">Центрирование заголовка</string>

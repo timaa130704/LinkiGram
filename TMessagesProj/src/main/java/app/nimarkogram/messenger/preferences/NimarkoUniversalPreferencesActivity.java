@@ -73,7 +73,12 @@ public abstract class NimarkoUniversalPreferencesActivity extends UniversalFragm
     @Override
     public void onInsets(int left, int top, int right, int bottom) {
         if (listView != null) {
-            listView.setPadding(0, 0, 0, bottom);
+            if (!app.nimarkogram.messenger.appearance.ClientTheme.glassEnabled()) {
+                // LinkiGlass on the You layer: BaseFragment.onInsetsInternal already reserved
+                // the action bar space through setListViewParams, so clearing the padding here
+                // would slide the first rows under the action bar.
+                listView.setPadding(0, 0, 0, bottom);
+            }
             listView.setClipToPadding(false);
         }
     }
