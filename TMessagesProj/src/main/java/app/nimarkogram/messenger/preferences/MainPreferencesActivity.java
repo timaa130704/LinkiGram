@@ -62,7 +62,7 @@ public class MainPreferencesActivity extends BasePreferencesActivity {
 
     private static final String SOURCE_REPOSITORY_URL = "https://github.com/timaa130704/LinkiGram";
 
-    private LinearLayout aboutHeader;
+    private View aboutHeader;
 
     private UItem category(int id, IconBackgroundColors colors, int icon, int title, String alias) {
         return SettingsActivity.SettingCell.Factory.of(
