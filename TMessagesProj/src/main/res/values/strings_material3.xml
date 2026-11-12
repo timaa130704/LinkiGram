@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="NM_Material3">Material 3</string>
-    <string name="NM_Material3_Desc">Google's Material 3: tonal palette, MD3 navigation bar, switches, sliders, lists and player.</string>
+    <string name="NM_Material3_Desc">Google\'s Material 3: tonal palette, MD3 navigation bar, switches, sliders, lists and player.</string>
 </resources>
