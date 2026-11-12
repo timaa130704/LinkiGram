@@ -8,6 +8,7 @@ import android.graphics.RuntimeShader;
 import androidx.annotation.RequiresApi;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 
 import java.util.Arrays;
@@ -38,8 +39,20 @@ public class LiquidGlassEffect {
      */
     public LiquidGlassEffect(RenderNode node, int shaderResource) {
         this.node = node;
-        final String code = AndroidUtilities.readRes(shaderResource);
-        shader = plainShader = new RuntimeShader(code);
+        RuntimeShader compiled = null;
+        if (shaderResource != R.raw.liquid_glass_shader) {
+            try {
+                compiled = new RuntimeShader(AndroidUtilities.readRes(shaderResource));
+            } catch (IllegalArgumentException e) {
+                FileLog.e(e);
+            }
+        }
+        if (compiled == null) {
+            // the plain lens, when the rich one is missing or does not compile
+            shaderResource = R.raw.liquid_glass_shader;
+            compiled = new RuntimeShader(AndroidUtilities.readRes(shaderResource));
+        }
+        shader = plainShader = compiled;
         hasSurfaceLight = shaderResource == R.raw.main_tabs_glass_shader;
         if (hasSurfaceLight) {
             plainShader.setFloatUniform("light_position", surfaceLight);

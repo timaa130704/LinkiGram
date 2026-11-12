@@ -44,7 +44,7 @@ public class BlurredBackgroundProviderImpl {
                     // has to stay translucent. Solving it to the solid glass target at 0.85 alpha
                     // produced a plain slab with the blurred page hidden behind it.
                     return Theme.multAlpha(Theme.getColor(Theme.key_glass_targetMainTabs, r),
-                            isDark ? 0.42f : 0.34f);
+                            isDark ? 0.30f : 0.24f);
                 }
                 final float alpha = LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS) ? 0.85f : 0.76f;
                 final int colorBg = Theme.getColor(Theme.key_windowBackgroundWhite, r);

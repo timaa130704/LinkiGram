@@ -8,11 +8,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Adapted for LinkiGram from Backdrop's RoundedRectRefractionShaderString
- * and AmbientHighlightShaderString by Kyant:
+ * Adapted for LinkiGram from Backdrop's rounded-rect lens by Kyant:
  * https://github.com/Kyant0/AndroidLiquidGlass
- * Changes: RenderNode coordinates, captured backdrop gutter, subtle RGB
- * dispersion, theme surface tint, a subpixel highlight and moving touch light.
+ * LinkiGram changes: bell-profile edge distortion, RGB dispersion,
+ * bevel highlights, inner shading and selector-driven surface light.
  */
 uniform shader img;
 uniform float2 resolution;
@@ -26,62 +25,61 @@ uniform float4 foreground_color_premultiplied;
 uniform float light_position;
 uniform float press_progress;
 
-float glassRadius(float2 p) {
-    float4 r = p.x > 0.0 ? radius : radius.zwxy;
-    return p.y > 0.0 ? r.x : r.y;
-}
-
-float glassDistance(float2 p, float r) {
-    float2 q = abs(p) - size + r;
-    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-}
-
-float2 glassGradient(float2 p, float r) {
-    float2 q = abs(p) - size + r;
-    if (q.x >= 0.0 || q.y >= 0.0) {
-        float2 outer = max(q, 0.0);
-        return sign(p) * outer / max(length(outer), 0.001);
-    }
-    float gx = step(q.y, q.x);
-    return sign(p) * float2(gx, 1.0 - gx);
+float sdRoundBox(float2 p, float2 halfSize, float4 r) {
+    r.xy = (p.x > 0.0) ? r.xy : r.zw;
+    r.x = (p.y > 0.0) ? r.x : r.y;
+    float2 q = abs(p) - halfSize + r.x;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r.x;
 }
 
 half4 main(float2 coord) {
     float2 p = coord - center;
-    float r = glassRadius(p);
-    float depth = max(-glassDistance(p, r), 0.0);
-    float height = max(thickness * 1.5, 1.0);
-    float edge = clamp(1.0 - depth / height, 0.0, 1.0);
-    float displacement = (1.0 - sqrt(max(1.0 - edge * edge, 0.0)))
-        * height * refract_intensity * (refract_index / 1.5);
-    float gradRadius = min(r * 1.5, min(size.x, size.y));
-    float2 normal = glassGradient(p, gradRadius);
-    float2 sampleCoord = coord + normal * displacement;
-    float dispersion = displacement * 0.018 * (p.x * p.y) / max(size.x * size.y, 1.0);
-    float2 lo = float2(0.5);
-    float2 hi = max(resolution - 0.5, lo);
-    half4 base = img.eval(clamp(sampleCoord, lo, hi));
+    float sd = sdRoundBox(p, size, radius);
+    // Central differences avoid a directional bias on small downsampled lenses.
+    float2 grad = float2(
+        sdRoundBox(p + float2(0.5, 0.0), size, radius)
+            - sdRoundBox(p - float2(0.5, 0.0), size, radius),
+        sdRoundBox(p + float2(0.0, 0.5), size, radius)
+            - sdRoundBox(p - float2(0.0, 0.5), size, radius));
+    float2 outward = grad / max(length(grad), 0.0001);
+    float t = max(thickness, 1.0);
+    float depth = max(-sd, 0.0);
+
+    // Join the silhouette and the flat centre without a displacement seam.
+    float band = clamp(depth / (t * 1.25), 0.0, 1.0);
+    float profile = max(sin(band * 3.14159265), 0.0);
+    float bend = profile * t * refract_intensity * 1.8 * (refract_index / 1.5);
+    float2 offset = -outward * bend;
+    float2 lo = max(float2(0.5), center - size + 0.5);
+    float2 hi = max(lo, min(resolution - 0.5, center + size - 0.5));
+    half4 source = img.eval(clamp(coord + offset, lo, hi));
     half3 color = half3(
-        img.eval(clamp(sampleCoord + normal * dispersion, lo, hi)).r,
-        base.g,
-        img.eval(clamp(sampleCoord - normal * dispersion, lo, hi)).b);
+        img.eval(clamp(coord + offset * 0.95, lo, hi)).r,
+        source.g,
+        img.eval(clamp(coord + offset * 1.05, lo, hi)).b);
     half luminance = dot(color, half3(0.2126, 0.7152, 0.0722));
-    color = clamp(mix(half3(luminance), color, half(1.12)), 0.0, 1.0);
+    color = clamp(half3(luminance) + (color - half3(luminance)) * 1.12, 0.0, 1.0);
     half4 tint = half4(foreground_color_premultiplied);
     color = color * (1.0 - tint.a) + tint.rgb;
 
-    // Backdrop's ambient highlight follows the silhouette. Keep it confined
-    // to a thin edge instead of illuminating the entire bevel like chrome.
-    float2 light = normalize(float2(-0.7 + light_position * 0.4, -0.8));
-    float alignment = dot(normal, light);
-    float directional = pow(abs(alignment), 3.0);
-    float rimWidth = max(height / 32.0, 0.75);
-    float rim = 1.0 - smoothstep(0.0, rimWidth, depth);
-    float rimAlpha = rim * (0.06 + directional * 0.28);
-    color = mix(color, alignment > 0.0 ? half3(1.0) : half3(0.0), half(rimAlpha));
-    float2 touch = float2((light_position - 0.5) * size.x * 2.0, 0.0);
-    float2 delta = (p - touch) / max(float2(size.y * 2.0, size.y * 1.5), float2(1.0));
-    float touchGlow = exp(-dot(delta, delta) * 2.0) * (0.012 + 0.055 * press_progress);
-    color = mix(color, half3(1.0), half(touchGlow));
-    return half4(color, 1.0);
+    // Surface normal: vertical at the rim, facing the viewer on the flat centre.
+    float slope = clamp(1.0 - depth / t, 0.0, 1.0);
+    float3 normal = float3(outward * slope, sqrt(max(1.0 - slope * slope, 0.0)));
+    float3 light = normalize(float3(-0.40 + (light_position - 0.5) * 0.6, -0.70, 0.58));
+    float lit = clamp(dot(outward, normalize(light.xy)), 0.0, 1.0);
+    float bevel = clamp(1.0 - depth / (t * 1.25), 0.0, 1.0);
+    float3 halfway = normalize(light + float3(0.0, 0.0, 1.0));
+    float specular = pow(max(dot(normal, halfway), 0.0), 64.0) * bevel * 0.24;
+    float soft = pow(bevel, 1.6) * lit * lit * 0.08;
+    float rim = (1.0 - smoothstep(0.0, max(t * 0.055, 0.55), depth))
+        * (0.035 + 0.32 * lit * lit * lit);
+    float inner = pow(bevel, 3.0) * (1.0 - lit) * 0.08;
+    color = color * (1.0 - inner) + half(soft + rim + specular);
+
+    float sweep = (light_position - 0.5) * size.x * 2.0;
+    float2 glowDelta = float2(p.x - sweep, p.y)
+        / max(float2(size.y * 1.9, size.y * 1.4), float2(1.0));
+    float glow = exp(-dot(glowDelta, glowDelta) * 2.0) * (0.008 + 0.05 * press_progress);
+    color = mix(color, half3(1.0), half(glow));
+    return half4(clamp(color, 0.0, 1.0), 1.0);
 }
