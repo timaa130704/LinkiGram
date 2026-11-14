@@ -172,7 +172,57 @@ public class WavySeekBar extends View {
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+            long now = SystemClock.elapsedRealtime();
+            float dt = frozen ? 0f : lastFrame == 0 ? 0.016f : Math.min(0.05f, (now - lastFrame) / 1000f);
+            lastFrame = frozen ? 0 : now;
+            float targetAmplitude = playing || dragging ? dp(3) : 0f;
+            amplitude += (targetAmplitude - amplitude) * (1f - (float) Math.pow(0.78, dt / 0.04f));
+            if (!frozen) phase = (phase + 4.5f * dt) % TAU;
+
+            float cy = getHeight() / 2f;
+            float start = left(), end = right();
+            float value = Math.max(0, Math.min(1, dragging ? dragProgress : progress));
+            float x = start + value * (end - start);
+            float gap = dp(6);
+            int primary = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY);
+            int track = app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.TRACK);
+            int waveColor = wavePaint.getColor();
+            int trackColor = trackPaint.getColor();
+            int fillColor = fillPaint.getColor();
+            wavePaint.setColor(primary);
+            trackPaint.setColor(track);
+            fillPaint.setColor(primary);
+
+            float waveEnd = Math.max(start, x - gap - dp(2));
+            if (waveEnd > start) {
+                path.rewind();
+                boolean first = true;
+                float lambda = dp(24);
+                for (float px = start; ; px += dp(2)) {
+                    boolean last = px >= waveEnd;
+                    float cx = Math.min(px, waveEnd);
+                    float envelope = Math.min(1f, (cx - start) / dp(8)) * Math.min(1f, (waveEnd - cx) / dp(8));
+                    float y = cy + amplitude * envelope * (float) Math.sin(TAU * cx / lambda - phase);
+                    if (first) { path.moveTo(cx, y); first = false; }
+                    else path.lineTo(cx, y);
+                    if (last) break;
+                }
+                canvas.drawPath(path, wavePaint);
+            }
+            float restStart = Math.min(end, x + gap + dp(2));
+            if (restStart < end) canvas.drawLine(restStart, cy, end, cy, trackPaint);
+            canvas.drawCircle(end - dp(2), cy, dp(2), fillPaint);
+            rect.set(x - dp(1.5f), cy - dp(12), x + dp(1.5f), cy + dp(12));
+            canvas.drawRoundRect(rect, dp(2), dp(2), fillPaint);
+            wavePaint.setColor(waveColor);
+            trackPaint.setColor(trackColor);
+            fillPaint.setColor(fillColor);
+            if (!frozen && (amplitude > dpf2(0.05f) || targetAmplitude != amplitude)) postInvalidateOnAnimation();
+            else lastFrame = 0;
+            return;
+        }
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
             float cy = getHeight() / 2f;
             float start = left(), end = right();
             float value = Math.max(0, Math.min(1, dragging ? dragProgress : progress));

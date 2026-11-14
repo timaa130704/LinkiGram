@@ -3577,6 +3577,11 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     }
 
     int getSectionColorForDecoration() {
+        if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+            // Yougram settings: lifted container cards over the darker page background.
+            return app.nimarkogram.messenger.appearance.ClientTheme.color(
+                    app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH);
+        }
         return Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider);
     }
 
@@ -3627,7 +3632,7 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
                         if (first) outRect.top = enableTopPadding ? padding : dp(4);
                         if (last) outRect.bottom = padding;
                         if (!first && this.parent.materialSegments() && this.parent.sectionNeighbor(view, -1)
-                                && !(app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled())) {
+                                && !app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
                             outRect.top += dp(2);
                         }
                     }
@@ -3665,7 +3670,18 @@ public class RecyclerListView extends RecyclerView implements IBlur3Capture {
     private final float[] materialCorners = new float[8];
     private void materialCorners(View view) {
         boolean above = sectionNeighbor(view, -1), below = sectionNeighbor(view, 1);
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+            // Yougram settings groups: a 28dp outer edge that morphs into an
+            // 8dp inner join, with a 2dp gap between the segments.
+            float outer = dp(app.nimarkogram.messenger.appearance.Material3Theme.LARGE_SHAPE_DP);
+            float inner = dp(app.nimarkogram.messenger.appearance.Material3Theme.SMALL_SHAPE_DP);
+            float top = above ? inner : outer;
+            float bottom = below ? inner : outer;
+            for (int i = 0; i < 4; i++) materialCorners[i] = top;
+            for (int i = 4; i < 8; i++) materialCorners[i] = bottom;
+            return;
+        }
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
             float top = above ? 0 : dp(20);
             float bottom = below ? 0 : dp(20);
             for (int i = 0; i < 4; i++) materialCorners[i] = top;

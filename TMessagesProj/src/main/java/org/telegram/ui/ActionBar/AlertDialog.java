@@ -1429,6 +1429,22 @@ public class AlertDialog extends Dialog implements Drawable.Callback, Notificati
                     if (!(child instanceof TextView)) continue;
                     TextView button = (TextView) child;
                     boolean primary = Integer.valueOf(Dialog.BUTTON_POSITIVE).equals(button.getTag());
+                    if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+                        // Yougram expressive buttons: full pills; the primary action
+                        // is accent-filled and the others stay text-only.
+                        int fill = primary ? app.nimarkogram.messenger.appearance.ClientTheme.color(
+                                app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY)
+                                : android.graphics.Color.TRANSPARENT;
+                        button.setTextColor(primary ? app.nimarkogram.messenger.appearance.ClientTheme.color(
+                                app.nimarkogram.messenger.appearance.ClientTheme.ON_PRIMARY)
+                                : app.nimarkogram.messenger.appearance.ClientTheme.color(
+                                app.nimarkogram.messenger.appearance.ClientTheme.PRIMARY));
+                        button.setBackground(new android.graphics.drawable.RippleDrawable(
+                                android.content.res.ColorStateList.valueOf(
+                                        Theme.isCurrentThemeDark() ? 0x33FFFFFF : 0x18000000),
+                                Theme.createRoundRectDrawable(dp(24), fill), null));
+                        continue;
+                    }
                     int fill = primary ? getThemedColor(dialogButtonColorKey)
                             : colorOs ? app.nimarkogram.messenger.appearance.ColorOs17Theme.controlTrackColor() : android.graphics.Color.TRANSPARENT;
                     button.setTextColor(primary ? app.nimarkogram.messenger.appearance.ClientTheme.color(app.nimarkogram.messenger.appearance.ClientTheme.ON_PRIMARY)

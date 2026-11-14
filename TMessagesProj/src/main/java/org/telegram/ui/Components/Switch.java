@@ -395,12 +395,13 @@ public class Switch extends View implements Theme.Colorable {
         if (getVisibility() != VISIBLE) {
             return;
         }
-        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled() || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled()) {
             drawColorOsSwitch(canvas);
             return;
         }
 
-        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()) {
+        if (app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
+                || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
             drawMaterialYouSwitch(canvas);
             return;
         }

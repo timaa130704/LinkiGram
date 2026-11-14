@@ -286,6 +286,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private int getNavigationBarSurfaceColor() {
+        if (app.nimarkogram.messenger.appearance.Material3Theme.isEnabled()) {
+            return app.nimarkogram.messenger.appearance.ClientTheme.color(
+                    app.nimarkogram.messenger.appearance.ClientTheme.SURFACE_HIGH);
+        }
         int color = app.nimarkogram.messenger.appearance.LinkiGramYouTheme.navigationBarColor(
                 ApplicationLoader.applicationContext,
                 app.nimarkogram.messenger.appearance.LinkiGramYouTheme.NAV_COLOR_SURFACE,
@@ -324,9 +328,10 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.ColorOs17Theme.navigationBarBackgroundDrawable());
             setTabsNavStripVisible(false);
         } else if (material3) {
-            // Material 3 dock: a full-width surfaceContainer panel on the strip.
-            tabsViewWrapper.setBackground(app.nimarkogram.messenger.appearance.Material3Theme.navigationBarBackgroundDrawable());
-            setTabsNavStripVisible(false);
+            // Material 3 floating pill: the wrapper stays transparent and only
+            // the system navigation strip under it keeps the surface colour.
+            tabsViewWrapper.setBackground(null);
+            setTabsNavStripVisible(true);
         } else if (glass) {
             tabsViewWrapper.setBackground(null);
             setTabsNavStripVisible(true);
@@ -445,8 +450,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         final boolean colorOsNav = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
         final boolean material3Nav = app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
         final boolean iosNav = app.nimarkogram.messenger.appearance.AppearanceConfig.iosNavigationBarStyle();
-        final boolean dockedTabs = (!md3Nav || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled()
-                || material3Nav)
+        final boolean dockedTabs = (!md3Nav || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
                 && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;
         tabsDocked = dockedTabs;
         final boolean fullWidthTabs = colorOsNav || dockedTabs || !md3Nav && iosNav;
@@ -1304,7 +1308,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             ViewGroup.LayoutParams tabsParams = tabsView.getLayoutParams();
             final boolean colorOs = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
             final boolean material3 = app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
-            final boolean fullWidthDock = colorOs || material3;
+            final boolean fullWidthDock = colorOs;
             int height = dp(64);
             if (tabsParams.height != height) { tabsParams.height = height; tabsView.setLayoutParams(tabsParams); }
             boolean youDocked = tabsDocked && app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled();
