@@ -448,7 +448,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         // Material You uses a floating capsule; ColorOS has its own full-width dock.
         final boolean md3Nav = app.nimarkogram.messenger.appearance.AppearanceConfig.newNavigationBarStyle();
         final boolean colorOsNav = app.nimarkogram.messenger.appearance.ColorOs17Theme.isEnabled();
-        final boolean material3Nav = app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
         final boolean iosNav = app.nimarkogram.messenger.appearance.AppearanceConfig.iosNavigationBarStyle();
         final boolean dockedTabs = (!md3Nav || app.nimarkogram.messenger.appearance.LinkiGramYouTheme.isEnabled())
                 && MainTabsLayout.getBottomNavigationMode() == MainTabsLayout.BOTTOM_NAVIGATION_MODE_SHOW;

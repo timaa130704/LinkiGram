@@ -13741,8 +13741,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     /** LinkiGram: место под нижнюю панель зависит от режима (Show / Hide / Floating). */
     private void updateAdditionNavigationBarHeight() {
         final boolean bottomNavVisible = hasMainTabs && NimarkoConfig.isBottomNavigationVisible();
+        // Material 3 always draws a floating capsule, even when the user left
+        // the navigation mode on "Show", so the list reserves the capsule plus
+        // its margins instead of the docked height.
+        final boolean floatingBar = NimarkoConfig.isBottomNavigationFloating()
+                || app.nimarkogram.messenger.appearance.Material3Theme.isEnabled();
         additionNavigationBarHeight = bottomNavVisible
-                ? dp(NimarkoConfig.isBottomNavigationFloating() ? MAIN_TABS_HEIGHT_WITH_MARGINS : MAIN_TABS_HEIGHT)
+                ? dp(floatingBar ? MAIN_TABS_HEIGHT_WITH_MARGINS : MAIN_TABS_HEIGHT)
                 : 0;
         additionFloatingButtonOffset = bottomNavVisible
                 ? dp(DialogsActivity.MAIN_TABS_HEIGHT + DialogsActivity.MAIN_TABS_MARGIN)
